@@ -146,7 +146,7 @@ namespace Parsing
 {
 public static class ParsingBatteryHealth
 {
-    public static bool ParseBatteryHealth(string plistOutput, out double batteryHealth)
+    public static bool ParseBatteryHealth(string plistOutput, out double? batteryHealth)
     {
         batteryHealth = 0; // Initialize the out parameter
 

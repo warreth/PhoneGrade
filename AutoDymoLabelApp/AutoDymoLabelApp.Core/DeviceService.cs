@@ -53,9 +53,9 @@ namespace DeviceService
                             : null;
 
             // Parse the battery health
-            if (plistOutput != null && ParsingBatteryHealth.ParseBatteryHealth(plistOutput, out double batteryHealth))
+            if (plistOutput != null && ParsingBatteryHealth.ParseBatteryHealth(plistOutput, out double? batteryHealth))
             {
-                return $"{batteryHealth:F2}";
+                return $"{batteryHealth:F0}";
             }
             else
             {
