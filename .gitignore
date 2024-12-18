@@ -1,0 +1,37 @@
+# Algemeen voor C# projecten
+
+# Negeer alle bin en obj mappen
+**/bin/
+**/obj/
+
+# Negeer .vscode mappen
+**/.vscode/
+
+# Negeer andere veelvoorkomende C# bestanden
+*.user
+*.suo
+*.rsuser
+*.userosscache
+*.sln.docstates
+
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+
+
+
