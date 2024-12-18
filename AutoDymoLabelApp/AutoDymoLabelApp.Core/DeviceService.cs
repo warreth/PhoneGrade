@@ -1,4 +1,5 @@
 using Parsing;
+using Mappings;
 using static CommandExecution.CommandExecution;
 
 namespace DeviceService
@@ -65,7 +66,11 @@ namespace DeviceService
         
 
         private static string GetColor()
-        => ExecuteCommand("ideviceinfo", "-k DeviceEnclosureColor"); 
+        {
+            ColorMapper colorMapper = new();
+            return colorMapper.MapColor(ExecuteCommand("ideviceinfo", "-k DeviceEnclosureColor"));
+        }
+        
 
         private static string GetStorage()
         {
@@ -75,7 +80,10 @@ namespace DeviceService
         
 
         private static string GetModel()
-        => ExecuteCommand("ideviceinfo", "-k ProductType"); 
+        {
+            ModelMapper modelMapper = new();
+            return modelMapper.MapModel(ExecuteCommand("ideviceinfo", "-k ProductType"));
+        }
 
         private static string GetImei()
         => ExecuteCommand("ideviceinfo", "-k InternationalMobileEquipmentIdentity"); 
