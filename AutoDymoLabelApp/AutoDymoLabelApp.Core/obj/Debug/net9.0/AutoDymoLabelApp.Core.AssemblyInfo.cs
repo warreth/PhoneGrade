@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AutoDymoLabelApp.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2a863b0697e5422a348192870a464314603ea9d4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8dbb62b0bd63172d16cedb566dfd2e979e37975c")]
 [assembly: System.Reflection.AssemblyProductAttribute("AutoDymoLabelApp.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AutoDymoLabelApp.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
