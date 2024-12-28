@@ -1,181 +1,228 @@
-﻿using System.Collections.ObjectModel;
-using System.Collections.ObjectModel;
-using ReactiveUI;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using static DeviceService.DeviceService;
+using ReactiveUI;
+using Avalonia.Threading;
 using System;
-using System.Reactive.Disposables;
+using static DeviceService.DeviceService;
 
-namespace AutoDymoLabel.UI.ViewModels;
-public class MainWindowViewModel : ReactiveObject
+
+namespace AutoDymoLabel.UI.ViewModels
 {
-    private DeviceData _deviceData = new DeviceData();
-    public DeviceData DeviceData
+    public class MainWindowViewModel : ViewModelBase
     {
-        get => _deviceData;
-        set => this.RaiseAndSetIfChanged(ref _deviceData, value);
-    }
+        // Private backing fields
+        private DeviceData _deviceData = new();
+        private Dictionary<string, string> _devices = new();
+        private string _selectedDevice = string.Empty;
+        private bool _autoActivate;
+        private int _progress;
+        private string _data = string.Empty;
+        private bool _isEditorEnabled = true;
+        private string _updateNotification = "Welcome to AutoDymoLabel!";
+        private bool _isUpdateNotifierVisible = true;
+        private bool _enable85PercentChecker;
+        private bool _enableDataEditor;
+        private string _labelOpeningOption = "Direct";
+        private bool _useDymoAPI;
 
-    private Dictionary<string, string> _devices = GetConnectedDevices();
-    public Dictionary<string, string> Devices
-    {
-        get => _devices;
-        set => this.RaiseAndSetIfChanged(ref _devices, value);
-    }
-
-    private string _selectedDevice = string.Empty;
-    public string SelectedDevice
-    {
-        get => _selectedDevice;
-        set => this.RaiseAndSetIfChanged(ref _selectedDevice, value);
-    }
-
-    private bool _autoActivate;
-    public bool AutoActivate
-    {
-        get => _autoActivate;
-        set => this.RaiseAndSetIfChanged(ref _autoActivate, value);
-    }
-
-    private int _progress;
-    public int Progress
-    {
-        get => _progress;
-        set => this.RaiseAndSetIfChanged(ref _progress, value);
-    }
-
-    private string _data = string.Empty;
-    public string Data
-    {
-        get => _data;
-        set => this.RaiseAndSetIfChanged(ref _data, value);
-    }
-
-    private bool _isEditorEnabled = true;
-    public bool IsEditorEnabled
-    {
-        get => _isEditorEnabled;
-        set => this.RaiseAndSetIfChanged(ref _isEditorEnabled, value);
-    }
-
-    private string _updateNotification = "Welcome to AutoDymoLabel!";
-    public string UpdateNotification
-    {
-        get => _updateNotification;
-        set => this.RaiseAndSetIfChanged(ref _updateNotification, value);
-    }
-
-    private bool _isUpdateNotifierVisible = true;
-    public bool IsUpdateNotifierVisible
-    {
-        get => _isUpdateNotifierVisible;
-        set => this.RaiseAndSetIfChanged(ref _isUpdateNotifierVisible, value);
-    }
-
-    private bool _enable85PercentChecker;
-    public bool Enable85PercentChecker
-    {
-        get => _enable85PercentChecker;
-        set => this.RaiseAndSetIfChanged(ref _enable85PercentChecker, value);
-    }
-
-    private bool _enableDataEditor;
-    public bool EnableDataEditor
-    {
-        get => _enableDataEditor;
-        set => this.RaiseAndSetIfChanged(ref _enableDataEditor, value);
-    }
-
-    private string _labelOpeningOption = "Direct";
-    public string LabelOpeningOption
-    {
-        get => _labelOpeningOption;
-        set => this.RaiseAndSetIfChanged(ref _labelOpeningOption, value);
-    }
-
-    private bool _useDymoAPI;
-    public bool UseDymoAPI
-    {
-        get => _useDymoAPI;
-        set => this.RaiseAndSetIfChanged(ref _useDymoAPI, value);
-    }
-
-    public ReactiveCommand<Unit, Unit> StartCommand { get; }
-    public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
-    public ReactiveCommand<string, Unit> SetQualityCommand { get; }
-
-    public MainWindowViewModel()
-    {
-        StartCommand = ReactiveCommand.Create(
-            StartProcess,
-            outputScheduler: RxApp.MainThreadScheduler);
-
-        RefreshDevicesCommand = ReactiveCommand.CreateFromTask(
-            RefreshDeviceList,
-            outputScheduler: RxApp.MainThreadScheduler);
-
-        SetQualityCommand = ReactiveCommand.Create<string>(
-            SetQuality,
-            outputScheduler: RxApp.MainThreadScheduler);
-
-        // Handle command exceptions
-        RefreshDevicesCommand.ThrownExceptions
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(ex => UpdateNotification = $"Error: {ex.Message}");
-
-        // Execute initial refresh
-        RefreshDevicesCommand.Execute().Subscribe();
-    }
-
-    private async Task RefreshDeviceList()
-    {
-        Console.WriteLine("RefreshDeviceList started...");
-        try
+        // Public properties
+        public DeviceData DeviceData
         {
-            var devices = await Task.Run(() => GetConnectedDevices());
-            
-            RxApp.MainThreadScheduler.Schedule(TimeSpan.Zero, (scheduler, time) =>
+            get => _deviceData;
+            set => this.RaiseAndSetIfChanged(ref _deviceData, value);
+        }
+
+        public Dictionary<string, string> Devices
+        {
+            get => _devices;
+            set => this.RaiseAndSetIfChanged(ref _devices, value);
+        }
+
+        public string SelectedDevice
+        {
+            get => _selectedDevice;
+            set => this.RaiseAndSetIfChanged(ref _selectedDevice, value);
+        }
+
+        public bool AutoActivate
+        {
+            get => _autoActivate;
+            set => this.RaiseAndSetIfChanged(ref _autoActivate, value);
+        }
+
+        public int Progress
+        {
+            get => _progress;
+            set => this.RaiseAndSetIfChanged(ref _progress, value);
+        }
+
+        public string Data
+        {
+            get => _data;
+            set => this.RaiseAndSetIfChanged(ref _data, value);
+        }
+
+        public bool IsEditorEnabled
+        {
+            get => _isEditorEnabled;
+            set => this.RaiseAndSetIfChanged(ref _isEditorEnabled, value);
+        }
+
+        public string UpdateNotification
+        {
+            get => _updateNotification;
+            set => this.RaiseAndSetIfChanged(ref _updateNotification, value);
+        }
+
+        public bool IsUpdateNotifierVisible
+        {
+            get => _isUpdateNotifierVisible;
+            set => this.RaiseAndSetIfChanged(ref _isUpdateNotifierVisible, value);
+        }
+
+        public bool Enable85PercentChecker
+        {
+            get => _enable85PercentChecker;
+            set => this.RaiseAndSetIfChanged(ref _enable85PercentChecker, value);
+        }
+
+        public bool EnableDataEditor
+        {
+            get => _enableDataEditor;
+            set => this.RaiseAndSetIfChanged(ref _enableDataEditor, value);
+        }
+
+        public string LabelOpeningOption
+        {
+            get => _labelOpeningOption;
+            set => this.RaiseAndSetIfChanged(ref _labelOpeningOption, value);
+        }
+
+        public bool UseDymoAPI
+        {
+            get => _useDymoAPI;
+            set => this.RaiseAndSetIfChanged(ref _useDymoAPI, value);
+        }
+
+        // Commands
+        public ReactiveCommand<Unit, Unit> StartCommand { get; }
+        public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
+        public ReactiveCommand<string, Unit> SetQualityCommand { get; }
+
+        public MainWindowViewModel()
+        {
+            var mainThreadScheduler = RxApp.MainThreadScheduler;
+
+            RefreshDevicesCommand = ReactiveCommand.CreateFromTask(
+                RefreshDeviceList,
+                outputScheduler: mainThreadScheduler
+            );
+
+            SetQualityCommand = ReactiveCommand.Create<string>(
+                SetQuality,
+                outputScheduler: mainThreadScheduler
+            );
+
+            StartCommand = ReactiveCommand.Create(
+                StartProcess,
+                outputScheduler: mainThreadScheduler
+            );
+
+            RefreshDevicesCommand.ThrownExceptions
+                .ObserveOn(mainThreadScheduler)
+                .Subscribe(ex =>
+                {
+                    UpdateNotification = $"Error: {ex.Message}";
+                });
+
+            RefreshDevicesCommand.Execute().Subscribe();
+        }
+
+        private async Task RefreshDeviceList()
+        {
+            Console.WriteLine("RefreshDeviceList started...");
+            try
             {
-                Devices = devices ?? new Dictionary<string, string>();
-                SelectedDevice = Devices.FirstOrDefault().Key ?? string.Empty;
-                UpdateNotification = Devices.Any()
-                    ? $"Found {Devices.Count} connected devices."
-                    : "No devices found.";
-                return Disposable.Empty;
+                var devices = await Task.Run(() => GetConnectedDevices());
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    Devices = devices ?? new Dictionary<string, string>();
+
+                    if (Devices.Count == 1)
+                    {
+                        // Automatically select the only available device
+                        SelectedDevice = Devices.Values.First();
+                        UpdateNotification = "One device found and selected automatically.";
+                    }
+                    else
+                    {
+                        // Clear selection if no devices or multiple devices are found
+                        SelectedDevice = string.Empty;
+                        UpdateNotification = Devices.Any()
+                            ? $"Found {Devices.Count} connected devices."
+                            : "No devices found.";
+                    }
+
+                    // Display only the values from the Devices dictionary
+                    foreach (var deviceName in Devices.Values)
+                    {
+                        Console.WriteLine($"Device: {deviceName}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    UpdateNotification = $"Error refreshing devices: {ex.Message}";
+                });
+                Console.WriteLine($"Error refreshing devices: {ex}");
+            }
+            Console.WriteLine("RefreshDeviceList completed.");
+        }
+
+        private void SetQuality(string quality)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                DeviceData.Quality = quality;
+                UpdateNotification = $"Device Quality set to: {quality}";
             });
         }
-        catch (Exception ex)
+
+        private void StartProcess()
         {
-            RxApp.MainThreadScheduler.Schedule(TimeSpan.Zero, (scheduler, time) =>
+            Dispatcher.UIThread.Post(() =>
             {
-                UpdateNotification = $"Error refreshing devices: {ex.Message}";
-                return Disposable.Empty;
+                UpdateNotification = "Process started...";
+                HandleActivation();
+                
             });
-            Console.WriteLine($"Error refreshing devices: {ex}");
         }
-        Console.WriteLine("RefreshDeviceList completed.");
-    }
-
-    private void SetQuality(string quality)
-    {
-        RxApp.MainThreadScheduler.Schedule(TimeSpan.Zero, (scheduler, time) =>
+        private void HandleActivation()
         {
-            DeviceData.Quality = quality;
-            UpdateNotification = $"Device Quality set to: {quality}";
-            return Disposable.Empty;
-        });
-    }
+            if (!IsDeviceConnected())
+                {
+                    UpdateNotification = "No device connected.";
+                    return;
+                }
+                if (!IsDeviceTrusted())
+                {
+                    UpdateNotification = "Device not trusted.";
+                    return;
+                }
+                if (AutoActivate && !IsActivated())
+                {
+                    UpdateNotification = "Device not activated.";
+                    Activation.ActivationService.SkipActivation(SelectedDevice);
+                    UpdateNotification = "Device activated.";
+                    return;
+                }
+        }
 
-    private void StartProcess()
-    {
-        RxApp.MainThreadScheduler.Schedule(TimeSpan.Zero, (scheduler, time) =>
-        {
-            UpdateNotification = "Process started...";
-            return Disposable.Empty;
-        });
     }
 }

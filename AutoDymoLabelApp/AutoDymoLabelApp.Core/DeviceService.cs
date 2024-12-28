@@ -42,7 +42,9 @@ namespace DeviceService
             foreach (var deviceId in deviceIds)
             {
                 string deviceName = ExecuteCommand("ideviceinfo", $"-u {deviceId} -k DeviceName").Trim();
-                devices[deviceName] = deviceId;
+                string ModelName = GetModel(deviceId);
+                string Key = $"{deviceName}: {ModelName}";
+                devices[deviceId] = Key;
             }
 
             return devices;

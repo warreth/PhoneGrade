@@ -1,8 +1,8 @@
 using static CommandExecution.CommandExecution;
-
-public class ActivationService
+namespace Activation;
+public static class ActivationService
 {
-    public string SkipActivation(string deviceId)
+    public static string SkipActivation(string deviceId)
     {
         try
         {

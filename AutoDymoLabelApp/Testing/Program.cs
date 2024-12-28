@@ -5,14 +5,12 @@ using static CommandExecution.CommandExecution;
 
 string firstDeviceId = "";
 var connectedDevices = GetConnectedDevices();
-if (IsDeviceConnected())
+
+foreach (var device in connectedDevices)
 {
-    firstDeviceId = connectedDevices.Values.First();
+    System.Console.WriteLine(device.Value);
 }
-else
-{
-    System.Console.WriteLine("No device connected");
-}
+/*
 DeviceData deviceData = GetDeviceData(firstDeviceId);
 
 
@@ -27,3 +25,4 @@ System.Console.WriteLine(deviceData.PayMethod);
 
 System.Console.WriteLine(deviceData.Storage);
 System.Console.WriteLine(deviceData.Color);
+*/
