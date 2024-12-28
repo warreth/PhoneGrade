@@ -1,0 +1,89 @@
+<Window x:Class="AutoDymoLabel.UI.Views.MainWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AutoDymoLabel.UI.ViewModels"
+        x:DataType="local:MainWindowViewModel"
+        Title="Main Window"
+        Width="600" Height="400">
+        
+    <DockPanel>
+
+        <!-- Update Notification -->
+        <Border Background="LightYellow" DockPanel.Dock="Top" IsVisible="{Binding IsUpdateNotifierVisible}" Margin="5">
+            <TextBlock Text="{Binding UpdateNotification}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="DarkRed" />
+        </Border>
+
+        <!-- Main Content -->
+        <StackPanel Margin="10" Spacing="10">
+            
+            <!-- Devices Dropdown with Refresh Button -->
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <!-- Label for Devices Dropdown -->
+                <TextBlock Text="Select Device:" VerticalAlignment="Center" />
+                
+                <!-- Devices Dropdown -->
+                <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" Width="200">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                
+                <!-- Refresh Button -->
+                <Button Content="Refresh" Command="{Binding RefreshDevicesCommand}" Width="80" />
+            </StackPanel>
+
+            <!-- Auto Activate Checkbox -->
+            <CheckBox Content="Auto Activate Device" IsChecked="{Binding AutoActivate}" />
+
+            <!-- Start Button -->
+            <Button Content="Start" Command="{Binding StartCommand}" Width="150" HorizontalAlignment="Left" />
+
+            <!-- Progress Bar -->
+            <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}" Height="20" />
+
+            <!-- Quality Selection Buttons (Using CommandParameter) -->
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Quality A" Command="{Binding SetQualityCommand}" CommandParameter="A" Width="100" />
+                <Button Content="Quality B" Command="{Binding SetQualityCommand}" CommandParameter="B" Width="100" />
+                <Button Content="Quality C" Command="{Binding SetQualityCommand}" CommandParameter="C" Width="100" />
+            </StackPanel>
+
+            <!-- Text Viewer and Editor -->
+            <TextBlock Text="Edit Data:" />
+            <TextBox Text="{Binding Data}" IsEnabled="{Binding IsEditorEnabled}" AcceptsReturn="True" Height="150" />
+
+            <!-- Display Current Device Data (Optional) -->
+            <StackPanel Margin="0,10,0,10">
+                <TextBlock Text="Current Quality:" FontWeight="Bold" />
+                <TextBlock Text="{Binding DeviceData.Quality}" />
+            </StackPanel>
+
+            <!-- Advanced Settings Section -->
+            <Expander Header="Settings" IsExpanded="False">
+                <StackPanel Spacing="10">
+                    <!-- Enable/Disable 85% Battery Checker -->
+                    <CheckBox Content="Enable 85% Battery Checker" IsChecked="{Binding Enable85PercentChecker}" />
+
+                    <!-- Enable/Disable Data Editor -->
+                    <CheckBox Content="Enable Data Editor (Read &amp; Write)" IsChecked="{Binding EnableDataEditor}" />
+
+                    <!-- Label Opening Options -->
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <TextBlock Text="Label Opening Option:" VerticalAlignment="Center" />
+                        <ComboBox SelectedItem="{Binding LabelOpeningOption}" Width="150">
+                            <ComboBoxItem Content="Direct" />
+                            <ComboBoxItem Content="Popup" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Print Using Dymo API -->
+                    <CheckBox Content="Print Directly Using Dymo API" IsChecked="{Binding UseDymoAPI}" />
+                </StackPanel>
+            </Expander>
+
+        </StackPanel>
+
+    </DockPanel>
+</Window>

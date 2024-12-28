@@ -3,7 +3,17 @@
 using Parsing;
 using static CommandExecution.CommandExecution;
 
-DeviceData deviceData = GetDeviceData();
+string firstDeviceId = "";
+var connectedDevices = GetConnectedDevices();
+if (IsDeviceConnected())
+{
+    firstDeviceId = connectedDevices.Values.First();
+}
+else
+{
+    System.Console.WriteLine("No device connected");
+}
+DeviceData deviceData = GetDeviceData(firstDeviceId);
 
 
 System.Console.WriteLine(deviceData.BatteryHealth);

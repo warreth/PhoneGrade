@@ -2,11 +2,11 @@ using static CommandExecution.CommandExecution;
 
 public class ActivationService
 {
-    public string SkipActivation()
+    public string SkipActivation(string deviceId)
     {
         try
         {
-            ExecuteCommand("ideviceactivation", "activate -b");
+            ExecuteCommand("ideviceactivation", $"-u {deviceId} activate -b");
             return "Device activated";
         }
         catch(Exception ex)

@@ -1,7 +1,8 @@
 using Parsing;
 using Mappings;
 using static CommandExecution.CommandExecution;
-
+using System.Collections.Generic;
+using System.Linq;
 namespace DeviceService
 {
     public static class DeviceService
@@ -11,9 +12,9 @@ namespace DeviceService
             //init
         }*/
 
-        public static bool IsDeviceConnected()
+        public static bool IsDeviceConnected() //TODO: Does this work ?
         {
-            if (ExecuteCommand("ideviceinfo", "").Contains("ERROR: No device found!")) { return false; }
+            if (ExecuteCommand("ideviceinfo", "").Contains("ERROR")) { return false; }
             else return true;
         }
         public static bool IsDeviceTrusted()
@@ -27,26 +28,44 @@ namespace DeviceService
             else return false;
         }
 
-        public static DeviceData GetDeviceData()
+        public static Dictionary<string, string> GetConnectedDevices()
+        {
+            string output = ExecuteCommand("idevice_id", "-l");
+            if (string.IsNullOrEmpty(output))
+            {
+                return new Dictionary<string, string>();
+            }
+
+            var deviceIds = output.Split('\n').Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
+            var devices = new Dictionary<string, string>();
+
+            foreach (var deviceId in deviceIds)
+            {
+                string deviceName = ExecuteCommand("ideviceinfo", $"-u {deviceId} -k DeviceName").Trim();
+                devices[deviceName] = deviceId;
+            }
+
+            return devices;
+        }
+        public static DeviceData GetDeviceData(string deviceId)
         {
             return new DeviceData
             {
-                Identifier = GetIdentifier(),
-                BatteryHealth = GetBatteryHealth(),
-                Color = GetColor(),
-                Storage = GetStorage(),
-                Model = GetModel()
+                Identifier = GetIdentifier(deviceId),
+                BatteryHealth = GetBatteryHealth(deviceId),
+                Color = GetColor(deviceId),
+                Storage = GetStorage(deviceId),
+                Model = GetModel(deviceId)
             };
         }
 
-        private static string GetBatteryHealth()
+        private static string GetBatteryHealth(string deviceId)
         {
             // Attempt the first command
-            string output1 = ExecuteCommand("idevicediagnostics", "ioregentry AppleARMPMUCharger");
+            string output1 = ExecuteCommand("idevicediagnostics", $"-u {deviceId} ioregentry AppleARMPMUCharger");
 
             // Attempt the second command if the first one fails
-            string output2 = ExecuteCommand("idevicediagnostics", "ioregentry AppleSmartBattery");
-
+            string output2 = ExecuteCommand("idevicediagnostics", $"-u {deviceId} ioregentry AppleSmartBattery");
             // Use the first successful output
             string? plistOutput = !string.IsNullOrEmpty(output1) ? output1 
                             : !string.IsNullOrEmpty(output2) ? output2 
@@ -65,33 +84,33 @@ namespace DeviceService
 
         
 
-        private static string GetColor()
+        private static string GetColor(string deviceId)
         {
             ColorMapper colorMapper = new();
-            return colorMapper.MapColor(ExecuteCommand("ideviceinfo", "-k DeviceEnclosureColor"));
+            return colorMapper.MapColor(ExecuteCommand("ideviceinfo", $"-u {deviceId} -k DeviceEnclosureColor"));
         }
         
 
-        private static string GetStorage()
+        private static string GetStorage(string deviceId)
         {
-            ParsingStorage.ParseStorage(ExecuteCommand("ideviceinfo", "-q com.apple.disk_usage"), out string totalDiskCapacityGB);
+            ParsingStorage.ParseStorage(ExecuteCommand("ideviceinfo", $"-u {deviceId} -q com.apple.disk_usage"), out string totalDiskCapacityGB);
             return totalDiskCapacityGB;        
         }
         
 
-        private static string GetModel()
+        private static string GetModel(string deviceId)
         {
             ModelMapper modelMapper = new();
-            return modelMapper.MapModel(ExecuteCommand("ideviceinfo", "-k ProductType"));
+            return modelMapper.MapModel(ExecuteCommand("ideviceinfo", $"-u {deviceId} -k ProductType"));
         }
 
-        private static string GetImei()
-        => ExecuteCommand("ideviceinfo", "-k InternationalMobileEquipmentIdentity"); 
+        private static string GetImei(string deviceId)
+        => ExecuteCommand("ideviceinfo", $"-u {deviceId} -k InternationalMobileEquipmentIdentity"); 
 
-        private static string GetSerialNumber()
-        => ExecuteCommand("ideviceinfo", "-k SerialNumber");
+        private static string GetSerialNumber(string deviceId)
+        => ExecuteCommand("ideviceinfo", $"-u {deviceId} -k SerialNumber");
 
-        private static string GetIdentifier()
-        => ParsingDeviceIdentifier.ParseDeviceIdentifier(GetImei(), GetSerialNumber(), out string identifier) ? identifier : "NOID";
+        private static string GetIdentifier(string deviceId)
+        => ParsingDeviceIdentifier.ParseDeviceIdentifier(GetImei(deviceId), GetSerialNumber(deviceId), out string identifier) ? identifier : "NOID";
     }
 }
