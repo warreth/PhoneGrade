@@ -26,8 +26,11 @@ namespace AutoDymoLabel.UI.ViewModels
         private bool _isUpdateNotifierVisible = true;
         private bool _enable85PercentChecker;
         private bool _enableDataEditor;
-        private string _labelOpeningOption = "Direct";
+        private string _labelOpeningOption = "Popup";
         private bool _useDymoAPI;
+        private bool _isQualityPopupVisible;
+        private bool _isPaymentPopupVisible;
+
 
         // Public properties
         public DeviceData DeviceData
@@ -114,11 +117,22 @@ namespace AutoDymoLabel.UI.ViewModels
             get => _useDymoAPI;
             set => this.RaiseAndSetIfChanged(ref _useDymoAPI, value);
         }
+        public bool IsQualityPopupVisible
+        {
+            get => _isQualityPopupVisible;
+            set => this.RaiseAndSetIfChanged(ref _isQualityPopupVisible, value);
+        }       
+        public bool IsPaymentPopupVisible
+        {
+            get => _isPaymentPopupVisible;
+            set => this.RaiseAndSetIfChanged(ref _isPaymentPopupVisible, value);
+        }
 
         // Commands
         public ReactiveCommand<Unit, Unit> StartCommand { get; }
         public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
         public ReactiveCommand<string, Unit> SetQualityCommand { get; }
+        public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
 
         public MainWindowViewModel()
         {
@@ -147,6 +161,11 @@ namespace AutoDymoLabel.UI.ViewModels
                 });
 
             RefreshDevicesCommand.Execute().Subscribe();
+
+            SetPaymentMethodCommand = ReactiveCommand.Create<string>(
+                SetPaymentMethod,
+                outputScheduler: mainThreadScheduler
+            );
         }
 
         private async Task RefreshDeviceList()
@@ -198,10 +217,32 @@ namespace AutoDymoLabel.UI.ViewModels
             Dispatcher.UIThread.Post(() =>
             {
                 DeviceData.Quality = quality;
-                UpdateNotification = $"Device Quality set to: {quality}";
+                UpdateProgressSafe(85, $"Device Quality set to: {quality}");
+                IsQualityPopupVisible = false;
+                IsPaymentPopupVisible = true; // Show payment popup after quality
             });
         }
+        private void SetPaymentMethod(string method)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                DeviceData.PayMethod = method;
+                UpdateProgressSafe(100, $"Payment method set to: {method}");
+                IsPaymentPopupVisible = false;
+            });
+        }    
 
+        private void UpdateProgressSafe(int progress, string? message = null)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                Progress = progress;
+                if (!string.IsNullOrEmpty(message))
+                {
+                    UpdateNotificationSafe(message);
+                }
+            });
+        }
         private void UpdateNotificationSafe(string message)
         {
             Dispatcher.UIThread.Post(() =>
@@ -212,24 +253,29 @@ namespace AutoDymoLabel.UI.ViewModels
         }
         private void StartProcess()
         {
-            Dispatcher.UIThread.Post(async () =>
+            Dispatcher.UIThread.Post(() =>
             {
-                UpdateNotificationSafe("Process started...");
-                CheckDevice();
-                HandleActivation();
-                DeviceData DeviceData = GetDeviceData(SelectedDeviceKey);
+                // Reset progress
+                UpdateProgressSafe(0, "Process started...");
 
-                System.Console.WriteLine(DeviceData.BatteryHealth);
-                System.Console.WriteLine(DeviceData.Identifier);
-                System.Console.WriteLine(DeviceData.Model);
-                System.Console.WriteLine(DeviceData.Quality);
-                System.Console.WriteLine(DeviceData.PayMethod);
-                System.Console.WriteLine(DeviceData.Storage);
-                System.Console.WriteLine(DeviceData.Color);
-                // TODO: get data, make label, print label
+                // Check device - 25%
+                CheckDevice();
+                UpdateProgressSafe(25, "Device checked...");
+
+                // Handle activation - 50%
+                HandleActivation();
+                UpdateProgressSafe(50, "Activation handled...");
+
+                // Show quality selection - 75%
+                IsQualityPopupVisible = true;
+                UpdateProgressSafe(75, "Waiting for quality selection...");
+
+                // Quality selection will complete the progress in SetQuality method
+                LabelService labelService = new();
+                labelService.GenerateLabel(DeviceData);
             });
         }
-
+        
         private void CheckDevice()
         {
             if (!IsDeviceConnected())

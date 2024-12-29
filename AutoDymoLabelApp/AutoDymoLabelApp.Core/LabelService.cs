@@ -2,8 +2,8 @@
 
 public class LabelService
 {
-    private string templatePath = "Assets/my.dymo";
-    private string outputPath = "Assets/gen_label.dymo";
+    private string templatePath = "../Assets/my.dymo";
+    private string outputPath = "../Assets/gen_label.dymo";
 
     public void GenerateLabel(DeviceData data)
     {

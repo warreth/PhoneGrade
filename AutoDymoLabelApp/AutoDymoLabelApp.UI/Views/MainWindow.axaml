@@ -3,76 +3,146 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:AutoDymoLabel.UI.ViewModels"
         x:DataType="local:MainWindowViewModel"
-        Title="Main Window"
-        Width="600" Height="400">
-        
-    <DockPanel>
-        <!-- Update Notification -->
-        <Border Background="LightYellow" DockPanel.Dock="Top" IsVisible="{Binding IsUpdateNotifierVisible}" Margin="5">
-            <TextBlock Text="{Binding UpdateNotification}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="DarkRed" />
-        </Border>
+        Title="AutoDymoLabel"
+        Width="700" Height="500">
 
-        <!-- Scrollable Content -->
-        <ScrollViewer>
-            <StackPanel Margin="10" Spacing="10">
-                <!-- Devices Dropdown with Refresh Button -->
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <TextBlock Text="Select Device:" VerticalAlignment="Center" />
-                    <ComboBox ItemsSource="{Binding Devices}"
-                            SelectedValue="{Binding SelectedDeviceKey, Mode=TwoWay}"
-                            SelectedValueBinding="{Binding Key}"
-                            Width="200">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Value}" />
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <Button Content="Refresh" Command="{Binding RefreshDevicesCommand}" Width="80" />
-                </StackPanel>
-
-                <!-- Auto Activate Checkbox -->
-                <CheckBox Content="Auto Activate Device" IsChecked="{Binding AutoActivate}" />
-
-                <!-- Start Button -->
-                <Button Content="Start" Command="{Binding StartCommand}" Width="150" HorizontalAlignment="Left" />
-
-                <!-- Progress Bar -->
-                <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}" Height="20" />
-
-                <!-- Quality Selection Buttons -->
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Button Content="Quality A" Command="{Binding SetQualityCommand}" CommandParameter="A" Width="100" />
-                    <Button Content="Quality B" Command="{Binding SetQualityCommand}" CommandParameter="B" Width="100" />
-                    <Button Content="Quality C" Command="{Binding SetQualityCommand}" CommandParameter="C" Width="100" />
-                </StackPanel>
-
-                <!-- Text Viewer and Editor -->
-                <TextBlock Text="Edit Data:" />
-                <TextBox Text="{Binding Data}" IsEnabled="{Binding IsEditorEnabled}" AcceptsReturn="True" Height="150" />
-
-                <!-- Display Current Device Data -->
-                <StackPanel Margin="0,10,0,10">
-                    <TextBlock Text="Current Quality:" FontWeight="Bold" />
-                    <TextBlock Text="{Binding DeviceData.Quality}" />
-                </StackPanel>
-
-                <!-- Advanced Settings Section -->
-                <Expander Header="Settings" IsExpanded="False">
-                    <StackPanel Spacing="10">
-                        <CheckBox Content="Enable 85% Battery Checker" IsChecked="{Binding Enable85PercentChecker}" />
-                        <CheckBox Content="Enable Data Editor (Read &amp; Write)" IsChecked="{Binding EnableDataEditor}" />
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <TextBlock Text="Label Opening Option:" VerticalAlignment="Center" />
-                            <ComboBox SelectedItem="{Binding LabelOpeningOption}" Width="150">
-                                <ComboBoxItem Content="Direct" />
-                                <ComboBoxItem Content="Popup" />
-                            </ComboBox>
-                        </StackPanel>
-                        <CheckBox Content="Print Directly Using Dymo API" IsChecked="{Binding UseDymoAPI}" />
+    <Panel>
+        <DockPanel>
+            <ScrollViewer>
+                <StackPanel Margin="10" Spacing="10">
+                    <!-- Devices Dropdown with Refresh Button -->
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="Select Device:" VerticalAlignment="Center" />
+                        <ComboBox ItemsSource="{Binding Devices}"
+                                SelectedValue="{Binding SelectedDeviceKey, Mode=TwoWay}"
+                                SelectedValueBinding="{Binding Key}"
+                                Width="200">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Value}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Content="Refresh" Command="{Binding RefreshDevicesCommand}" Width="80" />
                     </StackPanel>
-                </Expander>
-            </StackPanel>
-        </ScrollViewer>
-    </DockPanel>
+
+                    <!-- Auto Activate Checkbox -->
+                    <CheckBox Content="Auto Activate Device" IsChecked="{Binding AutoActivate}" />
+
+                    <!-- Start Button -->
+                    <Button Content="Start" Command="{Binding StartCommand}" Width="150" HorizontalAlignment="Left" />
+
+                    <!-- Progress Bar and Notification -->
+                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progress}" Height="20" />
+                    <Border Background="Black" IsVisible="{Binding IsUpdateNotifierVisible}" Margin="5">
+                        <TextBlock Text="{Binding UpdateNotification}" 
+                                 HorizontalAlignment="Center" 
+                                 VerticalAlignment="Center" 
+                                 Foreground="White"
+                                 FontWeight="Bold" />
+                    </Border>
+
+                    <!-- Text Viewer and Editor -->
+                    <TextBlock Text="Edit Data:" />
+                    <TextBox Text="{Binding Data}" 
+                            IsEnabled="{Binding IsEditorEnabled}" 
+                            AcceptsReturn="True" 
+                            Height="150" />
+
+                    <!-- Advanced Settings Section -->
+                    <Expander Header="Settings" IsExpanded="False">
+                        <StackPanel Spacing="10">
+                            <CheckBox Content="Enable 85% Battery Checker" IsChecked="{Binding Enable85PercentChecker}" />
+                            <CheckBox Content="Enable Data Editor (Read &amp; Write)" IsChecked="{Binding EnableDataEditor}" />
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="Label Opening Option:" VerticalAlignment="Center" />
+                                <ComboBox SelectedItem="{Binding LabelOpeningOption}" Width="150">
+                                    <ComboBoxItem Content="Direct" />
+                                    <ComboBoxItem Content="Popup" />
+                                </ComboBox>
+                            </StackPanel>
+                            <CheckBox Content="Print Directly Using Dymo API" IsChecked="{Binding UseDymoAPI}" />
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+            </ScrollViewer>
+        </DockPanel>
+
+        <!-- Quality Selection Popup -->
+        <Panel IsVisible="{Binding IsQualityPopupVisible}">
+            <Rectangle Fill="Black" Opacity="0.7"/>
+            <Border Background="#333333" 
+                    CornerRadius="5" 
+                    Width="300" 
+                    Height="200" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    Margin="20"
+                    BoxShadow="0 4 8 8 #80000000">
+                <StackPanel Spacing="10" Margin="20">
+                    <TextBlock Text="Select Device Quality" 
+                             HorizontalAlignment="Center" 
+                             FontSize="18" 
+                             FontWeight="Bold"
+                             Foreground="White"/>
+                    <StackPanel Spacing="10" Margin="0,20,0,0">
+                        <Button Content="Quality A" 
+                                Command="{Binding SetQualityCommand}" 
+                                CommandParameter="A" 
+                                HorizontalAlignment="Stretch"
+                                Classes="primary"
+                                Background="#0078D4"
+                                Foreground="White"/>
+                        <Button Content="Quality B" 
+                                Command="{Binding SetQualityCommand}" 
+                                CommandParameter="B" 
+                                HorizontalAlignment="Stretch"
+                                Background="#0078D4"
+                                Foreground="White"/>
+                        <Button Content="Quality C" 
+                                Command="{Binding SetQualityCommand}" 
+                                CommandParameter="C" 
+                                HorizontalAlignment="Stretch"
+                                Background="#0078D4"
+                                Foreground="White"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Panel>
+
+        <!-- Payment Method Popup -->
+        <Panel IsVisible="{Binding IsPaymentPopupVisible}">
+            <Rectangle Fill="Black" Opacity="0.7"/>
+            <Border Background="#333333" 
+                    CornerRadius="5" 
+                    Width="300" 
+                    Height="200" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    Margin="20"
+                    BoxShadow="0 4 8 8 #80000000">
+                <StackPanel Spacing="10" Margin="20">
+                    <TextBlock Text="Is the device paid with cash?" 
+                             HorizontalAlignment="Center" 
+                             FontSize="18" 
+                             FontWeight="Bold"
+                             Foreground="White"/>
+                    <StackPanel Spacing="10" Margin="0,20,0,0">
+                        <Button Content="Yes (Marge)" 
+                                Command="{Binding SetPaymentMethodCommand}" 
+                                CommandParameter="Marge" 
+                                HorizontalAlignment="Stretch"
+                                Background="#0078D4"
+                                Foreground="White"/>
+                        <Button Content="No (BTW)" 
+                                Command="{Binding SetPaymentMethodCommand}" 
+                                CommandParameter="BTW" 
+                                HorizontalAlignment="Stretch"
+                                Background="#0078D4"
+                                Foreground="White"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Panel>
+    </Panel>
 </Window>
