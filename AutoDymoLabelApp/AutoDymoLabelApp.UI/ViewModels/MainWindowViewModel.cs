@@ -5,36 +5,89 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using ReactiveUI;
 using Avalonia.Threading;
+using AutoDymoLabelApp.UI.Models;
 using System;
 using static DeviceService.DeviceService;
 
 
-namespace AutoDymoLabel.UI.ViewModels
+namespace AutoDymoLabelApp.UI.ViewModels
 {
-    public class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : ReactiveObject
     {
+        private readonly AppSettings _settings;
+
         // Private backing fields
-        private DeviceData _deviceData = new();
-        private Dictionary<string, string> _devices = new();
-        private string _selectedDeviceKey = string.Empty;
- //       private string _selectedDeviceValue;
         private bool _autoActivate;
+        private string _selectedDeviceKey = string.Empty;
+        private bool _enable85PercentChecker;
+        private bool _useDymoAPI;
+        private DeviceData _deviceData = new();
+        private Dictionary<string, string> _devices = [];  // Simplified initialization
         private int _progress;
         private string _data = string.Empty;
         private bool _isEditorEnabled = true;
+        private bool _enableDataEditor = true; // Added missing property backing field
+
         private string _updateNotification = "Welcome to AutoDymoLabel!";
         private bool _isUpdateNotifierVisible = true;
-        private bool _enable85PercentChecker;
-        private bool _enableDataEditor;
-        private string _labelOpeningOption = "Popup";
-        private bool _useDymoAPI;
         private bool _isQualityPopupVisible;
         private bool _isPaymentPopupVisible;
         private bool _isFileDialogVisible;
 
+        public bool EnableDataEditor
+        {
+            get => _enableDataEditor;
+            set
+            {
+                _settings.EnableDataEditor = value;
+                _settings.Save();
+                this.RaiseAndSetIfChanged(ref _enableDataEditor, value);
+            }
+        }
+        public bool AutoActivate
+        {
+            get => _autoActivate;
+            set
+            {
+                _settings.AutoActivate = value;
+                _settings.Save();
+                this.RaiseAndSetIfChanged(ref _autoActivate, value);
+            }
+        }
 
+        public string SelectedDeviceKey
+        {
+            get => _selectedDeviceKey;
+            set
+            {
+                _settings.SelectedDeviceKey = value;
+                _settings.Save();
+                this.RaiseAndSetIfChanged(ref _selectedDeviceKey, value);
+            }
+        }
 
-        // Public properties
+        public bool Enable85PercentChecker
+        {
+            get => _enable85PercentChecker;
+            set
+            {
+                _settings.Enable85PercentChecker = value;
+                _settings.Save();
+                this.RaiseAndSetIfChanged(ref _enable85PercentChecker, value);
+            }
+        }
+
+        public bool UseDymoAPI
+        {
+            get => _useDymoAPI;
+            set
+            {
+                _settings.UseDymoAPI = value;
+                _settings.Save();
+                this.RaiseAndSetIfChanged(ref _useDymoAPI, value);
+            }
+        }
+
         public DeviceData DeviceData
         {
             get => _deviceData;
@@ -45,25 +98,6 @@ namespace AutoDymoLabel.UI.ViewModels
         {
             get => _devices;
             set => this.RaiseAndSetIfChanged(ref _devices, value);
-        }
-
-        public string SelectedDeviceKey
-        {
-            get => _selectedDeviceKey;
-            set => this.RaiseAndSetIfChanged(ref _selectedDeviceKey, value);
-        }
-
-/*
-        public string SelectedDeviceValue
-        {
-            get => Devices.TryGetValue(SelectedDeviceKey, out var value) ? value : string.Empty;
-            set {}
-        }
-*/
-        public bool AutoActivate
-        {
-            get => _autoActivate;
-            set => this.RaiseAndSetIfChanged(ref _autoActivate, value);
         }
 
         public int Progress
@@ -96,46 +130,24 @@ namespace AutoDymoLabel.UI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _isUpdateNotifierVisible, value);
         }
 
-        public bool Enable85PercentChecker
-        {
-            get => _enable85PercentChecker;
-            set => this.RaiseAndSetIfChanged(ref _enable85PercentChecker, value);
-        }
-
-        public bool EnableDataEditor
-        {
-            get => _enableDataEditor;
-            set => this.RaiseAndSetIfChanged(ref _enableDataEditor, value);
-        }
-
-        public string LabelOpeningOption
-        {
-            get => _labelOpeningOption;
-            set => this.RaiseAndSetIfChanged(ref _labelOpeningOption, value);
-        }
-
-        public bool UseDymoAPI
-        {
-            get => _useDymoAPI;
-            set => this.RaiseAndSetIfChanged(ref _useDymoAPI, value);
-        }
         public bool IsQualityPopupVisible
         {
             get => _isQualityPopupVisible;
             set => this.RaiseAndSetIfChanged(ref _isQualityPopupVisible, value);
-        }       
+        }
+
         public bool IsPaymentPopupVisible
         {
             get => _isPaymentPopupVisible;
             set => this.RaiseAndSetIfChanged(ref _isPaymentPopupVisible, value);
         }
-        public bool IsFileDialogVisible
-            {
-                get => _isFileDialogVisible;
-                set => this.RaiseAndSetIfChanged(ref _isFileDialogVisible, value);
-            }
 
-        // Commands
+        public bool IsFileDialogVisible
+        {
+            get => _isFileDialogVisible;
+            set => this.RaiseAndSetIfChanged(ref _isFileDialogVisible, value);
+        }
+
         public ReactiveCommand<Unit, Unit> StartCommand { get; }
         public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
         public ReactiveCommand<string, Unit> SetQualityCommand { get; }
@@ -144,6 +156,16 @@ namespace AutoDymoLabel.UI.ViewModels
 
         public MainWindowViewModel()
         {
+            _settings = AppSettings.Load();
+
+            // Initialize backing fields from settings
+            _autoActivate = _settings.AutoActivate;
+            _selectedDeviceKey = _settings.SelectedDeviceKey;
+            _enable85PercentChecker = _settings.Enable85PercentChecker;
+            _useDymoAPI = _settings.UseDymoAPI;
+            _enableDataEditor = _settings.EnableDataEditor; // Add this line
+
+
             var mainThreadScheduler = RxApp.MainThreadScheduler;
 
             RefreshDevicesCommand = ReactiveCommand.CreateFromTask(
@@ -183,35 +205,27 @@ namespace AutoDymoLabel.UI.ViewModels
 
         private async Task RefreshDeviceList()
         {
-            //Console.WriteLine("RefreshDeviceList started...");
             try
             {
                 var devices = await Task.Run(() => GetConnectedDevices());
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    // Initialize Devices; if 'devices' is null, create a new empty dictionary
                     Devices = devices ?? new Dictionary<string, string>();
 
-                    // Check the number of devices
                     int deviceCount = Devices.Count;
 
                     if (deviceCount == 1)
                     {
-                        // Automatically select the only available device
                         SelectedDeviceKey = Devices.Keys.First();
-                        //System.Console.WriteLine($"Selected Device: {SelectedDeviceValue}");
                         UpdateNotification = "One device found and selected automatically.";
                     }
                     else
                     {
-                        // Clear selection if no devices or multiple devices are found
-                        //SelectedDeviceValue = "Select a device";
                         UpdateNotification = deviceCount > 0
                             ? $"Found {deviceCount} connected devices."
                             : "No devices found.";
                     }
-
                 });
             }
             catch (Exception ex)
@@ -220,9 +234,7 @@ namespace AutoDymoLabel.UI.ViewModels
                 {
                     UpdateNotification = $"Error refreshing devices: {ex.Message}";
                 });
-                //Console.WriteLine($"Error refreshing devices: {ex}");
             }
-            //Console.WriteLine("RefreshDeviceList completed.");
         }
 
         private void SetQuality(string quality)
@@ -232,9 +244,10 @@ namespace AutoDymoLabel.UI.ViewModels
                 DeviceData.Quality = quality;
                 UpdateProgressSafe(85, $"Device Quality set to: {quality}");
                 IsQualityPopupVisible = false;
-                IsPaymentPopupVisible = true; // Show payment popup after quality
+                IsPaymentPopupVisible = true;
             });
         }
+
         private void SetPaymentMethod(string method)
         {
             Dispatcher.UIThread.Post(() =>
@@ -243,19 +256,10 @@ namespace AutoDymoLabel.UI.ViewModels
                 UpdateProgressSafe(90, $"Payment method set to: {method}");
                 IsPaymentPopupVisible = false;
 
-                // Handle label opening based on setting
-                if (LabelOpeningOption == "Popup")
-                {
-                    IsFileDialogVisible = true;
-                    UpdateProgressSafe(95, "Waiting for label file selection...");
-                }
-                else
-                {
-                    OpenLabel.OpenLabelFile();
-                    UpdateProgressSafe(100, "Label opened directly.");
-                }
+                IsFileDialogVisible = true; //show the file popup
+
             });
-        }  
+        }
 
         private void UpdateProgressSafe(int progress, string? message = null)
         {
@@ -268,6 +272,7 @@ namespace AutoDymoLabel.UI.ViewModels
                 }
             });
         }
+
         private void UpdateNotificationSafe(string message)
         {
             Dispatcher.UIThread.Post(() =>
@@ -276,30 +281,22 @@ namespace AutoDymoLabel.UI.ViewModels
                 IsUpdateNotifierVisible = true;
             });
         }
+
         private void StartProcess()
         {
             Dispatcher.UIThread.Post(() =>
             {
-                // Reset progress
                 UpdateProgressSafe(0, "Process started...");
-
-                // Check device - 25%
                 CheckDevice();
                 UpdateProgressSafe(25, "Device checked...");
-
-                // Handle activation - 50%
                 HandleActivation();
                 UpdateProgressSafe(50, "Activation handled...");
-
-                // Show quality selection - 75%
                 IsQualityPopupVisible = true;
                 UpdateProgressSafe(75, "Waiting for quality selection...");
-
-                // Quality selection will complete the progress in SetQuality method
                 LabelService.GenerateLabel(DeviceData);
             });
         }
-        
+
         private void CheckDevice()
         {
             if (!IsDeviceConnected())
@@ -318,19 +315,18 @@ namespace AutoDymoLabel.UI.ViewModels
         {
             if (AutoActivate && !IsActivated())
             {
-                UpdateNotificationSafe("Device not activated, activating ..."); // TODO: Fix Not showing up
-                System.Console.WriteLine($"Key = {SelectedDeviceKey}");
+                UpdateNotificationSafe("Device not activated, activating ...");
                 string activationResult = Activation.ActivationService.SkipActivation(SelectedDeviceKey);
                 UpdateNotificationSafe(activationResult);
                 return;
             }
-        }   
+        }
+
         private void HandleLabelOpening()
         {
             OpenLabel.OpenLabelFile();
             IsFileDialogVisible = false;
             UpdateProgressSafe(100, "Label file opened.");
         }
-
     }
 }

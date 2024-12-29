@@ -1,5 +1,5 @@
 using Avalonia.Controls;
-using AutoDymoLabel.UI.ViewModels;
+using AutoDymoLabelApp.UI.ViewModels;
 
 namespace AutoDymoLabel.UI.Views
 {

@@ -4,7 +4,7 @@ using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using Avalonia.Markup.Xaml;
-using AutoDymoLabel.UI.ViewModels;
+using AutoDymoLabelApp.UI.ViewModels;
 using AutoDymoLabel.UI.Views;
 
 namespace AutoDymoLabel.UI;

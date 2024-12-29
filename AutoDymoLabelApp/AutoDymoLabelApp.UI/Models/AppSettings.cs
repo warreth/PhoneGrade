@@ -2,15 +2,15 @@ using System;
 using System.IO;
 using System.Text.Json;
 
-namespace AutoDymoLabel.UI.Models
+namespace AutoDymoLabelApp.UI.Models
 {
     public class AppSettings
     {
         public bool AutoActivate { get; set; } = false;
         public string SelectedDeviceKey { get; set; } = string.Empty;
         public bool Enable85PercentChecker { get; set; } = false;
-        public string LabelOpeningOption { get; set; } = "Popup";
         public bool UseDymoAPI { get; set; } = false;
+        public bool EnableDataEditor { get; set; } = true;
 
         private static readonly string SettingsFilePath = "settings.json";
 

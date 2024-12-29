@@ -1,7 +1,7 @@
 <Window x:Class="AutoDymoLabel.UI.Views.MainWindow"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:AutoDymoLabel.UI.ViewModels"
+        xmlns:local="clr-namespace:AutoDymoLabelApp.UI.ViewModels"
         x:DataType="local:MainWindowViewModel"
         Title="AutoDymoLabel"
         Width="700" Height="500">
@@ -54,13 +54,6 @@
                         <StackPanel Spacing="10">
                             <CheckBox Content="Enable 85% Battery Checker" IsChecked="{Binding Enable85PercentChecker}" />
                             <CheckBox Content="Enable Data Editor (Read &amp; Write)" IsChecked="{Binding EnableDataEditor}" />
-                            <StackPanel Orientation="Horizontal" Spacing="5">
-                                <TextBlock Text="Label Opening Option:" VerticalAlignment="Center" />
-                                <ComboBox SelectedItem="{Binding LabelOpeningOption}" Width="150">
-                                    <ComboBoxItem Content="Direct" />
-                                    <ComboBoxItem Content="Popup" />
-                                </ComboBox>
-                            </StackPanel>
                             <CheckBox Content="Print Directly Using Dymo API" IsChecked="{Binding UseDymoAPI}" />
                         </StackPanel>
                     </Expander>
