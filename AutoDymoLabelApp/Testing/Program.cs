@@ -3,15 +3,9 @@
 using Parsing;
 using static CommandExecution.CommandExecution;
 
-string firstDeviceId = "";
-var connectedDevices = GetConnectedDevices();
 
-foreach (var device in connectedDevices)
-{
-    System.Console.WriteLine($"{device.Key}: {device.Value}");
-}
+System.Console.WriteLine(OpenLabel.OpenLabelFile());
 
-OpenLabel.OpenLabelFile();
 /*
 DeviceData deviceData = GetDeviceData(firstDeviceId);
 

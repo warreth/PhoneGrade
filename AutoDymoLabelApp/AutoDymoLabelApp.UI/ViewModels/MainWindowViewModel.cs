@@ -22,11 +22,11 @@ namespace AutoDymoLabelApp.UI.ViewModels
         private bool _enable85PercentChecker;
         private bool _useDymoAPI;
         private DeviceData _deviceData = new();
-        private Dictionary<string, string> _devices = [];  // Simplified initialization
+        private Dictionary<string, string> _devices = [];
         private int _progress;
         private string _data = string.Empty;
         private bool _isEditorEnabled = true;
-        private bool _enableDataEditor = true; // Added missing property backing field
+        private bool _enableDataEditor = true;
 
         private string _updateNotification = "Welcome to AutoDymoLabel!";
         private bool _isUpdateNotifierVisible = true;
@@ -163,7 +163,7 @@ namespace AutoDymoLabelApp.UI.ViewModels
             _selectedDeviceKey = _settings.SelectedDeviceKey;
             _enable85PercentChecker = _settings.Enable85PercentChecker;
             _useDymoAPI = _settings.UseDymoAPI;
-            _enableDataEditor = _settings.EnableDataEditor; // Add this line
+            _enableDataEditor = _settings.EnableDataEditor;
 
 
             var mainThreadScheduler = RxApp.MainThreadScheduler;
@@ -244,7 +244,7 @@ namespace AutoDymoLabelApp.UI.ViewModels
                 DeviceData.Quality = quality;
                 UpdateProgressSafe(85, $"Device Quality set to: {quality}");
                 IsQualityPopupVisible = false;
-                IsPaymentPopupVisible = true;
+                IsPaymentPopupVisible = true; //show the payment popup
             });
         }
 
@@ -255,9 +255,12 @@ namespace AutoDymoLabelApp.UI.ViewModels
                 DeviceData.PayMethod = method;
                 UpdateProgressSafe(90, $"Payment method set to: {method}");
                 IsPaymentPopupVisible = false;
-
-                IsFileDialogVisible = true; //show the file popup
-
+                
+                // Generate label after all data is collected
+                LabelService.GenerateLabel(DeviceData);
+                UpdateProgressSafe(95, "Label generated...");
+                
+                IsFileDialogVisible = true;
             });
         }
 
@@ -290,10 +293,12 @@ namespace AutoDymoLabelApp.UI.ViewModels
                 CheckDevice();
                 UpdateProgressSafe(25, "Device checked...");
                 HandleActivation();
-                UpdateProgressSafe(50, "Activation handled...");
-                IsQualityPopupVisible = true;
-                UpdateProgressSafe(75, "Waiting for quality selection...");
-                LabelService.GenerateLabel(DeviceData);
+                UpdateProgressSafe(40, "Activation handled...");
+                
+                DeviceData = GetDeviceData(SelectedDeviceKey);
+                UpdateProgressSafe(50, "Device data retrieved...");
+                IsQualityPopupVisible = true; //show the quality popup
+                
             });
         }
 
@@ -324,9 +329,8 @@ namespace AutoDymoLabelApp.UI.ViewModels
 
         private void HandleLabelOpening()
         {
-            OpenLabel.OpenLabelFile();
             IsFileDialogVisible = false;
-            UpdateProgressSafe(100, "Label file opened.");
+            UpdateProgressSafe(100, OpenLabel.OpenLabelFile());
         }
     }
 }

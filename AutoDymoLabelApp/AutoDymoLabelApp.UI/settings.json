@@ -1,6 +1,6 @@
 {
-  "AutoActivate": true,
-  "SelectedDeviceKey": "8440dontlookhereb8c6e9f2760e0b71d2eb8ca06ebe15e8",
+  "AutoActivate": false,
+  "SelectedDeviceKey": "84400a0b71d2eb8ca06ebe15e8",
   "Enable85PercentChecker": true,
   "UseDymoAPI": true,
   "EnableDataEditor": true

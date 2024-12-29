@@ -115,7 +115,7 @@
                     Margin="20"
                     BoxShadow="0 4 8 8 #80000000">
                 <StackPanel Spacing="10" Margin="20">
-                    <TextBlock Text="Is the device paid with cash?" 
+                    <TextBlock Text="Was it paid with cash/card?" 
                              HorizontalAlignment="Center" 
                              FontSize="18" 
                              FontWeight="Bold"
