@@ -30,6 +30,8 @@ namespace AutoDymoLabel.UI.ViewModels
         private bool _useDymoAPI;
         private bool _isQualityPopupVisible;
         private bool _isPaymentPopupVisible;
+        private bool _isFileDialogVisible;
+
 
 
         // Public properties
@@ -127,12 +129,18 @@ namespace AutoDymoLabel.UI.ViewModels
             get => _isPaymentPopupVisible;
             set => this.RaiseAndSetIfChanged(ref _isPaymentPopupVisible, value);
         }
+        public bool IsFileDialogVisible
+            {
+                get => _isFileDialogVisible;
+                set => this.RaiseAndSetIfChanged(ref _isFileDialogVisible, value);
+            }
 
         // Commands
         public ReactiveCommand<Unit, Unit> StartCommand { get; }
         public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
         public ReactiveCommand<string, Unit> SetQualityCommand { get; }
         public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
+        public ReactiveCommand<Unit, Unit> ShowLabelCommand { get; }
 
         public MainWindowViewModel()
         {
@@ -164,6 +172,11 @@ namespace AutoDymoLabel.UI.ViewModels
 
             SetPaymentMethodCommand = ReactiveCommand.Create<string>(
                 SetPaymentMethod,
+                outputScheduler: mainThreadScheduler
+            );
+
+            ShowLabelCommand = ReactiveCommand.Create(
+                HandleLabelOpening,
                 outputScheduler: mainThreadScheduler
             );
         }
@@ -227,10 +240,22 @@ namespace AutoDymoLabel.UI.ViewModels
             Dispatcher.UIThread.Post(() =>
             {
                 DeviceData.PayMethod = method;
-                UpdateProgressSafe(100, $"Payment method set to: {method}");
+                UpdateProgressSafe(90, $"Payment method set to: {method}");
                 IsPaymentPopupVisible = false;
+
+                // Handle label opening based on setting
+                if (LabelOpeningOption == "Popup")
+                {
+                    IsFileDialogVisible = true;
+                    UpdateProgressSafe(95, "Waiting for label file selection...");
+                }
+                else
+                {
+                    OpenLabel.OpenLabelFile();
+                    UpdateProgressSafe(100, "Label opened directly.");
+                }
             });
-        }    
+        }  
 
         private void UpdateProgressSafe(int progress, string? message = null)
         {
@@ -271,8 +296,7 @@ namespace AutoDymoLabel.UI.ViewModels
                 UpdateProgressSafe(75, "Waiting for quality selection...");
 
                 // Quality selection will complete the progress in SetQuality method
-                LabelService labelService = new();
-                labelService.GenerateLabel(DeviceData);
+                LabelService.GenerateLabel(DeviceData);
             });
         }
         
@@ -301,6 +325,12 @@ namespace AutoDymoLabel.UI.ViewModels
                 return;
             }
         }   
+        private void HandleLabelOpening()
+        {
+            OpenLabel.OpenLabelFile();
+            IsFileDialogVisible = false;
+            UpdateProgressSafe(100, "Label file opened.");
+        }
 
     }
 }

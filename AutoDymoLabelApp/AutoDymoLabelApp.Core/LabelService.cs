@@ -1,11 +1,11 @@
 // Handles label generation
+using System.Diagnostics;
 
-public class LabelService
+public static class LabelService
 {
-    private string templatePath = "../Assets/my.dymo";
-    private string outputPath = "../Assets/gen_label.dymo";
-
-    public void GenerateLabel(DeviceData data)
+    static string templatePath = "../Assets/my.dymo";
+    public static string outputPath = "../Assets/gen_label.dymo";
+    public static void GenerateLabel(DeviceData data)
     {
         File.Copy(templatePath, outputPath, true);
 
@@ -21,5 +21,26 @@ public class LabelService
             .Replace("STORAGE", data.Storage);
 
         File.WriteAllText(outputPath, content);
+    }
+    
+}
+
+public static class OpenLabel
+{
+    public static string OpenLabelFile()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = LabelService.outputPath,
+                UseShellExecute = true // Ensure it's opened with the associated default application
+            });
+            return "Succesfully opened label file";
+        }
+        catch (Exception e)
+        {
+            return e.Message;
+        }
     }
 }

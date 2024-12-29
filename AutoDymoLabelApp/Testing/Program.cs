@@ -11,7 +11,7 @@ foreach (var device in connectedDevices)
     System.Console.WriteLine($"{device.Key}: {device.Value}");
 }
 
-
+OpenLabel.OpenLabelFile();
 /*
 DeviceData deviceData = GetDeviceData(firstDeviceId);
 
