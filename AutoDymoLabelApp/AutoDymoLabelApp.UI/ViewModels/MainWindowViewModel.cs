@@ -16,7 +16,8 @@ namespace AutoDymoLabel.UI.ViewModels
         // Private backing fields
         private DeviceData _deviceData = new();
         private Dictionary<string, string> _devices = new();
-        private string _selectedDevice = string.Empty;
+        private string _selectedDeviceKey = string.Empty;
+ //       private string _selectedDeviceValue;
         private bool _autoActivate;
         private int _progress;
         private string _data = string.Empty;
@@ -41,12 +42,19 @@ namespace AutoDymoLabel.UI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _devices, value);
         }
 
-        public string SelectedDevice
+        public string SelectedDeviceKey
         {
-            get => _selectedDevice;
-            set => this.RaiseAndSetIfChanged(ref _selectedDevice, value);
+            get => _selectedDeviceKey;
+            set => this.RaiseAndSetIfChanged(ref _selectedDeviceKey, value);
         }
 
+/*
+        public string SelectedDeviceValue
+        {
+            get => Devices.TryGetValue(SelectedDeviceKey, out var value) ? value : string.Empty;
+            set {}
+        }
+*/
         public bool AutoActivate
         {
             get => _autoActivate;
@@ -143,35 +151,35 @@ namespace AutoDymoLabel.UI.ViewModels
 
         private async Task RefreshDeviceList()
         {
-            Console.WriteLine("RefreshDeviceList started...");
+            //Console.WriteLine("RefreshDeviceList started...");
             try
             {
                 var devices = await Task.Run(() => GetConnectedDevices());
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
+                    // Initialize Devices; if 'devices' is null, create a new empty dictionary
                     Devices = devices ?? new Dictionary<string, string>();
 
-                    if (Devices.Count == 1)
+                    // Check the number of devices
+                    int deviceCount = Devices.Count;
+
+                    if (deviceCount == 1)
                     {
                         // Automatically select the only available device
-                        SelectedDevice = Devices.Values.First();
+                        SelectedDeviceKey = Devices.Keys.First();
+                        //System.Console.WriteLine($"Selected Device: {SelectedDeviceValue}");
                         UpdateNotification = "One device found and selected automatically.";
                     }
                     else
                     {
                         // Clear selection if no devices or multiple devices are found
-                        SelectedDevice = string.Empty;
-                        UpdateNotification = Devices.Any()
-                            ? $"Found {Devices.Count} connected devices."
+                        //SelectedDeviceValue = "Select a device";
+                        UpdateNotification = deviceCount > 0
+                            ? $"Found {deviceCount} connected devices."
                             : "No devices found.";
                     }
 
-                    // Display only the values from the Devices dictionary
-                    foreach (var deviceName in Devices.Values)
-                    {
-                        Console.WriteLine($"Device: {deviceName}");
-                    }
                 });
             }
             catch (Exception ex)
@@ -180,9 +188,9 @@ namespace AutoDymoLabel.UI.ViewModels
                 {
                     UpdateNotification = $"Error refreshing devices: {ex.Message}";
                 });
-                Console.WriteLine($"Error refreshing devices: {ex}");
+                //Console.WriteLine($"Error refreshing devices: {ex}");
             }
-            Console.WriteLine("RefreshDeviceList completed.");
+            //Console.WriteLine("RefreshDeviceList completed.");
         }
 
         private void SetQuality(string quality)
@@ -194,35 +202,59 @@ namespace AutoDymoLabel.UI.ViewModels
             });
         }
 
-        private void StartProcess()
+        private void UpdateNotificationSafe(string message)
         {
             Dispatcher.UIThread.Post(() =>
             {
-                UpdateNotification = "Process started...";
-                HandleActivation();
-                
+                UpdateNotification = message;
+                IsUpdateNotifierVisible = true;
             });
         }
-        private void HandleActivation()
+        private void StartProcess()
+        {
+            Dispatcher.UIThread.Post(async () =>
+            {
+                UpdateNotificationSafe("Process started...");
+                CheckDevice();
+                HandleActivation();
+                DeviceData DeviceData = GetDeviceData(SelectedDeviceKey);
+
+                System.Console.WriteLine(DeviceData.BatteryHealth);
+                System.Console.WriteLine(DeviceData.Identifier);
+                System.Console.WriteLine(DeviceData.Model);
+                System.Console.WriteLine(DeviceData.Quality);
+                System.Console.WriteLine(DeviceData.PayMethod);
+                System.Console.WriteLine(DeviceData.Storage);
+                System.Console.WriteLine(DeviceData.Color);
+                // TODO: get data, make label, print label
+            });
+        }
+
+        private void CheckDevice()
         {
             if (!IsDeviceConnected())
-                {
-                    UpdateNotification = "No device connected.";
-                    return;
-                }
-                if (!IsDeviceTrusted())
-                {
-                    UpdateNotification = "Device not trusted.";
-                    return;
-                }
-                if (AutoActivate && !IsActivated())
-                {
-                    UpdateNotification = "Device not activated.";
-                    Activation.ActivationService.SkipActivation(SelectedDevice);
-                    UpdateNotification = "Device activated.";
-                    return;
-                }
+            {
+                UpdateNotificationSafe("No device connected.");
+                return;
+            }
+            if (!IsDeviceTrusted())
+            {
+                UpdateNotificationSafe("Device not trusted.");
+                return;
+            }
         }
+
+        private void HandleActivation()
+        {
+            if (AutoActivate && !IsActivated())
+            {
+                UpdateNotificationSafe("Device not activated, activating ..."); // TODO: Fix Not showing up
+                System.Console.WriteLine($"Key = {SelectedDeviceKey}");
+                string activationResult = Activation.ActivationService.SkipActivation(SelectedDeviceKey);
+                UpdateNotificationSafe(activationResult);
+                return;
+            }
+        }   
 
     }
 }

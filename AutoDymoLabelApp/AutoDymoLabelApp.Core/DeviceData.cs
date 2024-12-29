@@ -9,4 +9,5 @@
          public string Model { get; set; } = "NO MODEL";
          public string Quality { get; set; } = "NO QUALITY";
          public string PayMethod { get; set; } = "NO PAYMENTMETHOD";
+         public string DeviceId { get; set; } = "NO DEVICEID";
      }

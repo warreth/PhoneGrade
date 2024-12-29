@@ -12,7 +12,7 @@ namespace DeviceService
             //init
         }*/
 
-        public static bool IsDeviceConnected() //TODO: Does this work ?
+        public static bool IsDeviceConnected() //TODO: Fix thiss
         {
             if (ExecuteCommand("ideviceinfo", "").Contains("ERROR")) { return false; }
             else return true;
@@ -24,8 +24,8 @@ namespace DeviceService
         }
         public static bool IsActivated()
         {
-            if (ExecuteCommand("ideviceinfo", "-k ActivationState").Contains("Activated")) { return true; }
-            else return false;
+            if (ExecuteCommand("ideviceinfo", "-k ActivationState").Contains("Unactivated")) { return false; }
+            else return true;
         }
 
         public static Dictionary<string, string> GetConnectedDevices()
@@ -57,7 +57,8 @@ namespace DeviceService
                 BatteryHealth = GetBatteryHealth(deviceId),
                 Color = GetColor(deviceId),
                 Storage = GetStorage(deviceId),
-                Model = GetModel(deviceId)
+                Model = GetModel(deviceId),
+                DeviceId = deviceId
             };
         }
 

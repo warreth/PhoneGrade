@@ -8,8 +8,10 @@ var connectedDevices = GetConnectedDevices();
 
 foreach (var device in connectedDevices)
 {
-    System.Console.WriteLine(device.Value);
+    System.Console.WriteLine($"{device.Key}: {device.Value}");
 }
+
+
 /*
 DeviceData deviceData = GetDeviceData(firstDeviceId);
 

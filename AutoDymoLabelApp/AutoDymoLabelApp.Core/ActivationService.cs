@@ -6,8 +6,8 @@ public static class ActivationService
     {
         try
         {
-            ExecuteCommand("ideviceactivation", $"-u {deviceId} activate -b");
-            return "Device activated";
+            System.Console.WriteLine($"Activating device: {deviceId}");
+            return ExecuteCommand("ideviceactivation", $"-u {deviceId} activate -b");
         }
         catch(Exception ex)
         {
