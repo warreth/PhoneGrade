@@ -1,7 +1,7 @@
 {
-  "AutoActivate": false,
-  "SelectedDeviceKey": "84400a0b71d2eb8ca06ebe15e8",
+  "AutoActivate": true,
+  "SelectedDeviceKey": "NO OUTPUT",
   "Enable85PercentChecker": true,
-  "UseDymoAPI": true,
-  "EnableDataEditor": true
+  "UseDymoAPI": false,
+  "EnableDataEditor": false
 }

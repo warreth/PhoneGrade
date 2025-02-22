@@ -42,13 +42,6 @@
                                  FontWeight="Bold" />
                     </Border>
 
-                    <!-- Text Viewer and Editor -->
-                    <TextBlock Text="Edit Data:" />
-                    <TextBox Text="{Binding Data}" 
-                            IsEnabled="{Binding IsEditorEnabled}" 
-                            AcceptsReturn="True" 
-                            Height="150" />
-
                     <!-- Advanced Settings Section -->
                     <Expander Header="Settings" IsExpanded="False">
                         <StackPanel Spacing="10">
@@ -160,6 +153,40 @@
                             HorizontalAlignment="Stretch"
                             Background="#0078D4"
                             Foreground="White"/>
+                </StackPanel>
+            </Border>
+        </Panel>
+
+        <!-- Edit Data Popup -->
+        <Panel IsVisible="{Binding IsEditDataPopupVisible}">
+            <Rectangle Fill="Black" Opacity="0.7"/>
+            <Border Background="#333333" 
+                    CornerRadius="5" 
+                    Width="300" 
+                    Height="150" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    Margin="20"
+                    BoxShadow="0 4 8 8 #80000000">
+                <StackPanel Spacing="10" Margin="20">
+                    <TextBlock Text="Would you like to edit the data?" 
+                              HorizontalAlignment="Center" 
+                              FontSize="18" 
+                              FontWeight="Bold"
+                              Foreground="White"/>
+                    <StackPanel Orientation="Horizontal" 
+                              HorizontalAlignment="Center" 
+                              Spacing="10" 
+                              Margin="0,20,0,0">
+                        <Button Content="Edit Data" 
+                                Command="{Binding OpenDataEditorCommand}"
+                                Background="#0078D4"
+                                Foreground="White"/>
+                        <Button Content="Open Label" 
+                                Command="{Binding ShowLabelCommand}"
+                                Background="#0078D4"
+                                Foreground="White"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Panel>

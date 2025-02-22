@@ -6,9 +6,9 @@ namespace AutoDymoLabelApp.UI.Models
 {
     public class AppSettings
     {
-        public bool AutoActivate { get; set; } = false;
+        public bool AutoActivate { get; set; } = true;
         public string SelectedDeviceKey { get; set; } = string.Empty;
-        public bool Enable85PercentChecker { get; set; } = false;
+        public bool Enable85PercentChecker { get; set; } = true;
         public bool UseDymoAPI { get; set; } = false;
         public bool EnableDataEditor { get; set; } = true;
 

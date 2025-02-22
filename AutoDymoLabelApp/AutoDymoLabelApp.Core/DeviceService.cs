@@ -3,34 +3,33 @@ using Mappings;
 using static CommandExecution.CommandExecution;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+
 namespace DeviceService
 {
     public static class DeviceService
     {
-        /*public DeviceService()
+        public static async Task<bool> IsDeviceConnectedAsync() //TODO: Fix thiss
         {
-            //init
-        }*/
-
-        public static bool IsDeviceConnected() //TODO: Fix thiss
-        {
-            if (ExecuteCommand("ideviceinfo", "").Contains("ERROR")) { return false; }
-            else return true;
-        }
-        public static bool IsDeviceTrusted()
-        {
-            if (ExecuteCommand("ideviceinfo", "").Contains("ERROR: Could not connect to lockdownd)")) { return false; }
-            else return true;
-        }
-        public static bool IsActivated()
-        {
-            if (ExecuteCommand("ideviceinfo", "-k ActivationState").Contains("Unactivated")) { return false; }
-            else return true;
+            var result = await ExecuteCommandAsync("ideviceinfo", "");
+            return !result.Contains("ERROR");
         }
 
-        public static Dictionary<string, string> GetConnectedDevices()
+        public static async Task<bool> IsDeviceTrustedAsync()
         {
-            string output = ExecuteCommand("idevice_id", "-l");
+            var result = await ExecuteCommandAsync("ideviceinfo", "");
+            return !result.Contains("ERROR: Could not connect to lockdownd");
+        }
+
+        public static async Task<bool> IsActivatedAsync()
+        {
+            var result = await ExecuteCommandAsync("ideviceinfo", "-k ActivationState");
+            return !result.Contains("Unactivated");
+        }
+
+        public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync()
+        {
+            string output = await ExecuteCommandAsync("idevice_id", "-l");
             if (string.IsNullOrEmpty(output))
             {
                 return new Dictionary<string, string>();
@@ -41,37 +40,39 @@ namespace DeviceService
 
             foreach (var deviceId in deviceIds)
             {
-                string deviceName = ExecuteCommand("ideviceinfo", $"-u {deviceId} -k DeviceName").Trim();
-                string ModelName = GetModel(deviceId);
-                string Key = $"{deviceName}: {ModelName}";
-                devices[deviceId] = Key;
+                string deviceName = (await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k DeviceName")).Trim();
+                string modelName = await GetModelAsync(deviceId);
+                string key = $"{deviceName}: {modelName}";
+                devices[deviceId] = key;
             }
 
             return devices;
         }
-        public static DeviceData GetDeviceData(string deviceId)
+
+        public static async Task<DeviceData> GetDeviceDataAsync(string deviceId)
         {
             return new DeviceData
             {
-                Identifier = GetIdentifier(deviceId),
-                BatteryHealth = GetBatteryHealth(deviceId),
-                Color = GetColor(deviceId),
-                Storage = GetStorage(deviceId),
-                Model = GetModel(deviceId),
+                Identifier = await GetIdentifierAsync(deviceId),
+                BatteryHealth = await GetBatteryHealthAsync(deviceId),
+                Color = await GetColorAsync(deviceId),
+                Storage = await GetStorageAsync(deviceId),
+                Model = await GetModelAsync(deviceId),
                 DeviceId = deviceId
             };
         }
 
-        private static string GetBatteryHealth(string deviceId)
+        private static async Task<string> GetBatteryHealthAsync(string deviceId)
         {
             // Attempt the first command
-            string output1 = ExecuteCommand("idevicediagnostics", $"-u {deviceId} ioregentry AppleARMPMUCharger");
+            string output1 = await ExecuteCommandAsync("idevicediagnostics", $"-u {deviceId} ioregentry AppleARMPMUCharger");
 
             // Attempt the second command if the first one fails
-            string output2 = ExecuteCommand("idevicediagnostics", $"-u {deviceId} ioregentry AppleSmartBattery");
+            string output2 = await ExecuteCommandAsync("idevicediagnostics", $"-u {deviceId} ioregentry AppleSmartBattery");
+
             // Use the first successful output
-            string? plistOutput = !string.IsNullOrEmpty(output1) ? output1 
-                            : !string.IsNullOrEmpty(output2) ? output2 
+            string? plistOutput = !string.IsNullOrEmpty(output1) ? output1
+                            : !string.IsNullOrEmpty(output2) ? output2
                             : null;
 
             // Parse the battery health
@@ -85,35 +86,42 @@ namespace DeviceService
             }
         }
 
-        
-
-        private static string GetColor(string deviceId)
+        private static async Task<string> GetColorAsync(string deviceId)
         {
             ColorMapper colorMapper = new();
-            return colorMapper.MapColor(ExecuteCommand("ideviceinfo", $"-u {deviceId} -k DeviceEnclosureColor"));
+            string color = await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k DeviceEnclosureColor");
+            return colorMapper.MapColor(color);
         }
-        
 
-        private static string GetStorage(string deviceId)
+        private static async Task<string> GetStorageAsync(string deviceId)
         {
-            ParsingStorage.ParseStorage(ExecuteCommand("ideviceinfo", $"-u {deviceId} -q com.apple.disk_usage"), out string totalDiskCapacityGB);
-            return totalDiskCapacityGB;        
+            string output = await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -q com.apple.disk_usage");
+            ParsingStorage.ParseStorage(output, out string totalDiskCapacityGB);
+            return totalDiskCapacityGB;
         }
-        
 
-        private static string GetModel(string deviceId)
+        private static async Task<string> GetModelAsync(string deviceId)
         {
             ModelMapper modelMapper = new();
-            return modelMapper.MapModel(ExecuteCommand("ideviceinfo", $"-u {deviceId} -k ProductType"));
+            string model = await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k ProductType");
+            return modelMapper.MapModel(model);
         }
 
-        private static string GetImei(string deviceId)
-        => ExecuteCommand("ideviceinfo", $"-u {deviceId} -k InternationalMobileEquipmentIdentity"); 
+        private static async Task<string> GetImeiAsync(string deviceId)
+        {
+            return await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k InternationalMobileEquipmentIdentity");
+        }
 
-        private static string GetSerialNumber(string deviceId)
-        => ExecuteCommand("ideviceinfo", $"-u {deviceId} -k SerialNumber");
+        private static async Task<string> GetSerialNumberAsync(string deviceId)
+        {
+            return await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k SerialNumber");
+        }
 
-        private static string GetIdentifier(string deviceId)
-        => ParsingDeviceIdentifier.ParseDeviceIdentifier(GetImei(deviceId), GetSerialNumber(deviceId), out string identifier) ? identifier : "NOID";
+        private static async Task<string> GetIdentifierAsync(string deviceId)
+        {
+            string imei = await GetImeiAsync(deviceId);
+            string serialNumber = await GetSerialNumberAsync(deviceId);
+            return ParsingDeviceIdentifier.ParseDeviceIdentifier(imei, serialNumber, out string identifier) ? identifier : "NOID";
+        }
     }
 }

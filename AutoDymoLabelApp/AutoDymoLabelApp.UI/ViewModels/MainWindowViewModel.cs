@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using ReactiveUI;
 using Avalonia.Threading;
 using AutoDymoLabelApp.UI.Models;
+using AutoDymoLabelApp.UI.Views;
 using System;
 using static DeviceService.DeviceService;
 
@@ -14,6 +15,10 @@ namespace AutoDymoLabelApp.UI.ViewModels
 {
     public class MainWindowViewModel : ReactiveObject
     {
+        // Singleton instance
+        public static MainWindowViewModel Instance { get; private set; } = null!;
+
+        #region Properties
         private readonly AppSettings _settings;
 
         // Private backing fields
@@ -33,6 +38,12 @@ namespace AutoDymoLabelApp.UI.ViewModels
         private bool _isQualityPopupVisible;
         private bool _isPaymentPopupVisible;
         private bool _isFileDialogVisible;
+        private bool _isEditDataPopupVisible;
+        public bool IsEditDataPopupVisible
+        {
+            get => _isEditDataPopupVisible;
+            set => this.RaiseAndSetIfChanged(ref _isEditDataPopupVisible, value);
+        }
 
         public bool EnableDataEditor
         {
@@ -153,9 +164,14 @@ namespace AutoDymoLabelApp.UI.ViewModels
         public ReactiveCommand<string, Unit> SetQualityCommand { get; }
         public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
         public ReactiveCommand<Unit, Unit> ShowLabelCommand { get; }
+        public ReactiveCommand<Unit, Unit> OpenDataEditorCommand { get; }
 
+        #endregion
+        #region Methods
         public MainWindowViewModel()
         {
+            Instance = this;
+
             _settings = AppSettings.Load();
 
             // Initialize backing fields from settings
@@ -178,8 +194,8 @@ namespace AutoDymoLabelApp.UI.ViewModels
                 outputScheduler: mainThreadScheduler
             );
 
-            StartCommand = ReactiveCommand.Create(
-                StartProcess,
+            StartCommand = ReactiveCommand.CreateFromTask(
+                StartProcessAsync,
                 outputScheduler: mainThreadScheduler
             );
 
@@ -201,13 +217,15 @@ namespace AutoDymoLabelApp.UI.ViewModels
                 HandleLabelOpening,
                 outputScheduler: mainThreadScheduler
             );
+
+            OpenDataEditorCommand = ReactiveCommand.Create(OpenDataEditor);
         }
 
         private async Task RefreshDeviceList()
         {
             try
             {
-                var devices = await Task.Run(() => GetConnectedDevices());
+                var devices = await Task.Run(() => GetConnectedDevicesAsync());
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -255,15 +273,29 @@ namespace AutoDymoLabelApp.UI.ViewModels
                 DeviceData.PayMethod = method;
                 UpdateProgressSafe(90, $"Payment method set to: {method}");
                 IsPaymentPopupVisible = false;
-                
-                // Generate label after all data is collected
-                LabelService.GenerateLabel(DeviceData);
-                UpdateProgressSafe(95, "Label generated...");
-                
-                IsFileDialogVisible = true;
+
+                if (EnableDataEditor)
+                {
+                    // Open data editor window directly
+                    OpenDataEditor();
+                }
+                else
+                {
+                    // Show edit data popup
+                    IsEditDataPopupVisible = true;
+                }
             });
         }
 
+        private void OpenDataEditor()
+        {
+            IsEditDataPopupVisible = false; // Close the popup
+            var editorWindow = new DataEditorWindow
+            {
+                DataContext = new DataEditorViewModel(DeviceData)
+            };
+            editorWindow.Show();
+        }
         private void UpdateProgressSafe(int progress, string? message = null)
         {
             Dispatcher.UIThread.Post(() =>
@@ -276,7 +308,7 @@ namespace AutoDymoLabelApp.UI.ViewModels
             });
         }
 
-        private void UpdateNotificationSafe(string message)
+        public void UpdateNotificationSafe(string message)
         {
             Dispatcher.UIThread.Post(() =>
             {
@@ -285,52 +317,63 @@ namespace AutoDymoLabelApp.UI.ViewModels
             });
         }
 
-        private void StartProcess()
+        private async Task StartProcessAsync()
         {
-            Dispatcher.UIThread.Post(() =>
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 UpdateProgressSafe(0, "Process started...");
-                CheckDevice();
-                UpdateProgressSafe(25, "Device checked...");
-                HandleActivation();
-                UpdateProgressSafe(40, "Activation handled...");
-                
-                DeviceData = GetDeviceData(SelectedDeviceKey);
+            });
+
+            if (!await CheckDeviceAsync())
+            {
+                return;
+            }
+
+            await HandleActivation();
+
+            DeviceData = await GetDeviceDataAsync(SelectedDeviceKey);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
                 UpdateProgressSafe(50, "Device data retrieved...");
-                IsQualityPopupVisible = true; //show the quality popup
-                
+                IsQualityPopupVisible = true; // Show the quality popup.
             });
         }
 
-        private void CheckDevice()
+        private async Task<bool> CheckDeviceAsync()
         {
-            if (!IsDeviceConnected())
+            if (!await IsDeviceConnectedAsync())
             {
                 UpdateNotificationSafe("No device connected.");
-                return;
+                return false;
             }
-            if (!IsDeviceTrusted())
+            if (!await IsDeviceTrustedAsync())
             {
                 UpdateNotificationSafe("Device not trusted.");
-                return;
+                return false;
             }
+            return true;
         }
 
-        private void HandleActivation()
+        private async Task HandleActivation()
         {
-            if (AutoActivate && !IsActivated())
+            if (AutoActivate && !await IsActivatedAsync())
             {
                 UpdateNotificationSafe("Device not activated, activating ...");
-                string activationResult = Activation.ActivationService.SkipActivation(SelectedDeviceKey);
+                string activationResult = await Activation.ActivationService.SkipActivationAsync(SelectedDeviceKey);
                 UpdateNotificationSafe(activationResult);
                 return;
             }
         }
 
-        private void HandleLabelOpening()
+        private async void HandleLabelOpening()
         {
-            IsFileDialogVisible = false;
-            UpdateProgressSafe(100, OpenLabel.OpenLabelFile());
+            IsEditDataPopupVisible = false;
+            LabelService.GenerateLabel(DeviceData);
+            string result = await OpenLabel.OpenLabelFileAsync();
+            UpdateNotificationSafe(result);
+            Progress = 0; // Reset progress bar to 0
         }
+        #endregion
     }
 }
