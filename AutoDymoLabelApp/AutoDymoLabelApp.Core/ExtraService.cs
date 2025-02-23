@@ -142,6 +142,7 @@ public class ColorMapper
 
 }
 
+// TODO: Fix Not working with output2
 namespace Parsing
 {
 public static class ParsingBatteryHealth
@@ -151,7 +152,6 @@ public static class ParsingBatteryHealth
         batteryHealth = 0; // Initialize the out parameter
 
         double? calculatedHealth = CalculateBatteryHealth(plistOutput);
-
         if (calculatedHealth.HasValue)
         {
             batteryHealth = calculatedHealth.Value; // Set the out parameter
@@ -160,6 +160,7 @@ public static class ParsingBatteryHealth
 
         return false; // Return failure if no valid health data
     }
+
     private static double? CalculateBatteryHealth(string plistOutput)
     {
         int? appleRawMaxCapacity = null;
@@ -216,8 +217,8 @@ public static class ParsingBatteryHealth
         }
         return null;
     }
-
 }
+
 public static class ParsingDeviceIdentifier
 {
     public static bool ParseDeviceIdentifier(string imei, string serial, out string outDeviceIdentifier)

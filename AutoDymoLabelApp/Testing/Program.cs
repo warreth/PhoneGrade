@@ -3,7 +3,11 @@
 using Parsing;
 using static CommandExecution.CommandExecution;
 
-DeviceData deviceData = GetDeviceData();
+
+System.Console.WriteLine(OpenLabel.OpenLabelFile());
+
+/*
+DeviceData deviceData = GetDeviceData(firstDeviceId);
 
 
 System.Console.WriteLine(deviceData.BatteryHealth);
@@ -17,3 +21,4 @@ System.Console.WriteLine(deviceData.PayMethod);
 
 System.Console.WriteLine(deviceData.Storage);
 System.Console.WriteLine(deviceData.Color);
+*/

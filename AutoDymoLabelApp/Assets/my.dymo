@@ -55,7 +55,7 @@
           <IsOutlined>False</IsOutlined>
           <BorderStyle>SolidLine</BorderStyle>
           <Margin>
-            <DYMOThickness Left="0" Top="0" Right="0" Bottom="0" />
+            <DYMOThickness Left="0" Top="0" Right="0" Bottom="0"/>
           </Margin>
           <HorizontalAlignment>Center</HorizontalAlignment>
           <VerticalAlignment>Middle</VerticalAlignment>
@@ -68,7 +68,7 @@
             <IsVertical>False</IsVertical>
             <LineTextSpan>
               <TextSpan>
-                <Text>MODEL STORAGEGB PCOLOR QUALITY BATTERY% PAYM</Text>
+                <Text>MODEL STORAGEGB PCOLOR QUALITY BATTERY PAYM</Text>
                 <FontInfo>
                   <FontName>Helvetica</FontName>
                   <FontSize>8.7</FontSize>
@@ -124,7 +124,7 @@
           <IsOutlined>False</IsOutlined>
           <BorderStyle>SolidLine</BorderStyle>
           <Margin>
-            <DYMOThickness Left="0" Top="0" Right="0" Bottom="0" />
+            <DYMOThickness Left="0" Top="0" Right="0" Bottom="0"/>
           </Margin>
           <BarcodeFormat>Code39</BarcodeFormat>
           <Data>

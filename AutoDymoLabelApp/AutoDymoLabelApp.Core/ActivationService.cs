@@ -1,25 +1,24 @@
 using static CommandExecution.CommandExecution;
-
-public class ActivationService
+namespace Activation;
+public static class ActivationService
 {
-    public string SkipActivation()
+    public static async Task<string> SkipActivationAsync(string deviceId)
     {
         try
         {
-            ExecuteCommand("ideviceactivation", "activate -b");
-            return "Device activated";
+            System.Console.WriteLine($"Activating device: {deviceId}");
+            return await ExecuteCommandAsync("ideviceactivation", $"-u {deviceId} activate -b");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            if (ex.Message.Contains("drmHandshake")) 
-            { 
-                return "Please connect to the internet and try again"; 
-            } 
+            if (ex.Message.Contains("drmHandshake"))
+            {
+                return "Please connect to the internet and try again";
+            }
             else
             {
                 return ex.Message;
             }
         }
-
     }
 }
