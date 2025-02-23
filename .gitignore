@@ -31,3 +31,5 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+AutoDymoLabelApp/Assets/gen_label.dymo
+AutoDymoLabelApp/AutoDymoLabelApp.UI/settings.json

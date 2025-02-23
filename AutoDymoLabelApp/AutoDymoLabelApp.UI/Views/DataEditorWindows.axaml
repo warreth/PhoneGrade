@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AutoDymoLabelApp.UI.ViewModels"
+        x:Class="AutoDymoLabelApp.UI.Views.DataEditorWindow"
+        x:DataType="vm:DataEditorViewModel"
+        Title="Edit Device Data"
+        Width="500" Height="600">
+    
+    <StackPanel Margin="20">
+        <TextBlock Text="Edit Device Information" FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
+        
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="5">
+            <!-- Identifier -->
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Identifier:" VerticalAlignment="Center" Margin="0,0,10,5"/>
+            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding DeviceData.Identifier}" Margin="0,0,0,5"/>
+            
+            <!-- Battery Health -->
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Battery Health:" VerticalAlignment="Center" Margin="0,0,10,5"/>
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DeviceData.BatteryHealth}" Margin="0,0,0,5"/>
+            
+            <!-- Color -->
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Color:" VerticalAlignment="Center" Margin="0,0,10,5"/>
+            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DeviceData.Color}" Margin="0,0,0,5"/>
+            
+            <!-- Storage -->
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Storage:" VerticalAlignment="Center" Margin="0,0,10,5"/>
+            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DeviceData.Storage}" Margin="0,0,0,5"/>
+            
+            <!-- Model -->
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Model:" VerticalAlignment="Center" Margin="0,0,10,5"/>
+            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding DeviceData.Model}" Margin="0,0,0,5"/>
+            
+            <!-- Quality -->
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="Quality:" VerticalAlignment="Center" Margin="0,0,10,5"/>
+            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding DeviceData.Quality}" Margin="0,0,0,5"/>
+            
+            <!-- Payment Method -->
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="Payment Method:" VerticalAlignment="Center" Margin="0,0,10,5"/>
+            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding DeviceData.PayMethod}" Margin="0,0,0,5"/>
+        </Grid>
+
+        <Button Content="Save &amp; Open Label" 
+                Command="{Binding SaveAndOpenLabelCommand}"
+                HorizontalAlignment="Center"
+                Margin="0,20,0,0"
+                Padding="20,10"/>
+    </StackPanel>
+</Window>
