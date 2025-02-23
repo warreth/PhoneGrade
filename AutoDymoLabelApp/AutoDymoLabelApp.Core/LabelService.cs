@@ -16,11 +16,13 @@ public static class LabelService
 
         var content = File.ReadAllText(outputPath);
 
+        string batteryHealth = data.BatteryHealth.Contains("X") ? data.BatteryHealth : data.BatteryHealth + "%";
+
         content = content
             .Replace("IDENTIFIER", data.Identifier)
             .Replace("MODEL", data.Model)
             .Replace("PCOLOR", data.Color)
-            .Replace("BATTERY", data.BatteryHealth)
+            .Replace("BATTERY", batteryHealth)
             .Replace("QUALITY", data.Quality)
             .Replace("PAYM", data.PayMethod)
             .Replace("STORAGE", data.Storage);
@@ -53,11 +55,8 @@ public static class OpenLabel
                 UseShellExecute = true
             };
 
-            // Start the process.
-            Process.Start(psi);
-
-            // Optionally await a short delay to simulate async behavior.
-            await Task.Delay(100);
+            // Start the process on a background thread.
+            await Task.Run(() => Process.Start(psi));
 
             return "Successfully opened label file.";
         }

@@ -333,6 +333,12 @@ namespace AutoDymoLabelApp.UI.ViewModels
 
             DeviceData = await GetDeviceDataAsync(SelectedDeviceKey);
 
+            // Check and update battery health if Enable85PercentChecker is true
+            if (Enable85PercentChecker && int.TryParse(DeviceData.BatteryHealth, out int batteryHealth) && batteryHealth < 85)
+            {
+                DeviceData.BatteryHealth = "100%-X";
+            }
+
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 UpdateProgressSafe(50, "Device data retrieved...");
