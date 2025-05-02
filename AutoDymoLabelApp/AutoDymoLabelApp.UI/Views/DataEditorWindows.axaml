@@ -36,68 +36,70 @@
         </Style>
     </Window.Styles>
     
-    <Border Margin="20" 
-            Background="#252525" 
-            CornerRadius="8" 
-            BoxShadow="0 4 8 0 #1A1A1A">
-        <StackPanel Margin="30">
-            <TextBlock Text="Edit Device Information" 
-                     FontSize="24" 
-                     FontWeight="Bold" 
-                     Margin="0,0,0,20"
-                     HorizontalAlignment="Center"/>
-            
-            <!-- Data Fields -->
-            <Border Background="#2D2D2D" 
-                    CornerRadius="6" 
-                    Padding="20" 
-                    Margin="0,0,0,20">
-                <StackPanel Spacing="15">
-                    <!-- Field Groups -->
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Identifier" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding DeviceData.Identifier}"/>
+    <ScrollViewer>
+        <Border Margin="20" 
+                Background="#252525" 
+                CornerRadius="8" 
+                BoxShadow="0 4 8 0 #1A1A1A">
+            <StackPanel Margin="30">
+                <TextBlock Text="Edit Device Information" 
+                         FontSize="24" 
+                         FontWeight="Bold" 
+                         Margin="0,0,0,20"
+                         HorizontalAlignment="Center"/>
+                
+                <!-- Data Fields -->
+                <Border Background="#2D2D2D" 
+                        CornerRadius="6" 
+                        Padding="20" 
+                        Margin="0,0,0,20">
+                    <StackPanel Spacing="15">
+                        <!-- Field Groups -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Identifier" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding DeviceData.Identifier}"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Battery Health" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Color" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding DeviceData.Color}"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Storage" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding DeviceData.Storage}"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Model" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding DeviceData.Model}"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Quality" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding DeviceData.Quality}"/>
+                        </StackPanel>
+                        
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Payment Method" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding DeviceData.PayMethod}"/>
+                        </StackPanel>
                     </StackPanel>
-                    
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Battery Health" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
-                    </StackPanel>
-                    
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Color" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding DeviceData.Color}"/>
-                    </StackPanel>
-                    
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Storage" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding DeviceData.Storage}"/>
-                    </StackPanel>
-                    
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Model" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding DeviceData.Model}"/>
-                    </StackPanel>
-                    
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Quality" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding DeviceData.Quality}"/>
-                    </StackPanel>
-                    
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="Payment Method" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding DeviceData.PayMethod}"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
+                </Border>
 
-            <!-- Action Button -->
-            <Button Content="Save &amp; Open Label" 
-                    Command="{Binding SaveAndOpenLabelCommand}"
-                    HorizontalAlignment="Center"
-                    Margin="0,20,0,0"
-                    Width="200"
-                    FontWeight="SemiBold"/>
-        </StackPanel>
-    </Border>
+                <!-- Action Button -->
+                <Button Content="Save &amp; Open Label" 
+                        Command="{Binding SaveAndOpenLabelCommand}"
+                        HorizontalAlignment="Center"
+                        Margin="0,20,0,0"
+                        Width="200"
+                        FontWeight="SemiBold"/>
+            </StackPanel>
+        </Border>
+    </ScrollViewer>
 </Window>

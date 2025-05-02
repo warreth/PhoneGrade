@@ -35,29 +35,29 @@
         </Style>
     </Window.Styles>
 
-    <Panel>
-        <Grid RowDefinitions="Auto,*" Margin="20">
-            <!-- Header -->
-            <StackPanel Grid.Row="0" Margin="0,30,0,20">
-                <TextBlock Text="AutoDymoLabel"
-                         FontSize="24"
-                         FontWeight="Bold"
-                         Foreground="White"
-                         HorizontalAlignment="Center"/>
-                <TextBlock Text="© WaTh.dev"
-                         FontSize="14"
-                         Foreground="#888888"
-                         HorizontalAlignment="Center"
-                         Margin="0,5"/>
-            </StackPanel>
+    <ScrollViewer>
+        <Panel>
+            <Grid RowDefinitions="Auto,*" Margin="20">
+                <!-- Header -->
+                <StackPanel Grid.Row="0" Margin="0,30,0,20">
+                    <TextBlock Text="AutoDymoLabel"
+                             FontSize="24"
+                             FontWeight="Bold"
+                             Foreground="White"
+                             HorizontalAlignment="Center"/>
+                    <TextBlock Text="© WaTh.dev"
+                             FontSize="14"
+                             Foreground="#888888"
+                             HorizontalAlignment="Center"
+                             Margin="0,5"/>
+                </StackPanel>
 
-            <!-- Main Content -->
-            <Border Grid.Row="1" 
-                    Background="#252525" 
-                    CornerRadius="8" 
-                    Padding="20"
-                    BoxShadow="0 4 8 0 #1A1A1A">
-                <ScrollViewer>
+                <!-- Main Content -->
+                <Border Grid.Row="1" 
+                        Background="#252525" 
+                        CornerRadius="8" 
+                        Padding="20"
+                        BoxShadow="0 4 8 0 #1A1A1A">
                     <StackPanel Spacing="20">
                         <!-- Device Selection Card -->
                         <Border Background="#2D2D2D" CornerRadius="6" Padding="15">
@@ -86,7 +86,7 @@
                                            Background="#0078D4"
                                            Width="100">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <PathIcon 
+                                            <PathIcon 
                                                     Data="M12 4V1L8 5l4 4V6c3.3 0 6 2.7 6 6 0 2.5-1.5 4.6-3.7 5.5l1.4 1.4C18.1 17.5 20 14.9 20 12c0-4.4-3.6-8-8-8zm-6.3 3.5L4.3 6.1C2.2 7 1 9.1 1 12c0 4.4 3.6 8 8 8v3l4-4-4-4v3c-3.3 0-6-2.7-6-6 0-1.7.7-3.3 1.7-4.5z" />
                                             <TextBlock Text="Refresh" 
                                                      VerticalAlignment="Center"/>
@@ -183,157 +183,157 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                </ScrollViewer>
-            </Border>
-        </Grid>
+                </Border>
+            </Grid>
 
-        <!-- Quality Selection Popup -->
-        <Panel IsVisible="{Binding IsQualityPopupVisible}">
-            <Rectangle Fill="Black" Opacity="0.5"/>
-            <Border Background="#2D2D2D" 
-                    CornerRadius="8" 
-                    Width="300" 
-                    Height="220"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    BoxShadow="0 8 32 0 #000000">
-                <StackPanel Spacing="15" Margin="20">
-                    <TextBlock Text="Select Device Quality" 
-                             HorizontalAlignment="Center" 
-                             FontSize="18" 
-                             FontWeight="Bold"
-                             Foreground="White"/>
-                    <StackPanel Spacing="8">
-                        <Button Content="Quality A" 
-                                Command="{Binding SetQualityCommand}" 
-                                CommandParameter="A" 
-                                HorizontalAlignment="Stretch"
-                                Background="#22A559"
-                                Height="45">
-                            <Button.Styles>
-                                <Style Selector="Button:pointerover">
-                                    <Setter Property="Background" Value="#1B8047"/>
-                                </Style>
-                            </Button.Styles>
-                        </Button>
-                        <Button Content="Quality B" 
-                                Command="{Binding SetQualityCommand}" 
-                                CommandParameter="B" 
-                                HorizontalAlignment="Stretch"
-                                Background="#F7BA00"
-                                Height="45">
-                            <Button.Styles>
-                                <Style Selector="Button:pointerover">
-                                    <Setter Property="Background" Value="#C69500"/>
-                                </Style>
-                            </Button.Styles>
-                        </Button>
-                        <Button Content="Quality C" 
-                                Command="{Binding SetQualityCommand}" 
-                                CommandParameter="C" 
-                                HorizontalAlignment="Stretch"
-                                Background="#DC3545"
-                                Height="45">
-                            <Button.Styles>
-                                <Style Selector="Button:pointerover">
-                                    <Setter Property="Background" Value="#B02A37"/>
-                                </Style>
-                            </Button.Styles>
-                        </Button>
+            <!-- Quality Selection Popup -->
+            <Panel IsVisible="{Binding IsQualityPopupVisible}">
+                <Rectangle Fill="Black" Opacity="0.5"/>
+                <Border Background="#2D2D2D" 
+                        CornerRadius="8" 
+                        Width="300" 
+                        Height="220"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        BoxShadow="0 8 32 0 #000000">
+                    <StackPanel Spacing="15" Margin="20">
+                        <TextBlock Text="Select Device Quality" 
+                                 HorizontalAlignment="Center" 
+                                 FontSize="18" 
+                                 FontWeight="Bold"
+                                 Foreground="White"/>
+                        <StackPanel Spacing="8">
+                            <Button Content="Quality A" 
+                                    Command="{Binding SetQualityCommand}" 
+                                    CommandParameter="A" 
+                                    HorizontalAlignment="Stretch"
+                                    Background="#22A559"
+                                    Height="45">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="#1B8047"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            <Button Content="Quality B" 
+                                    Command="{Binding SetQualityCommand}" 
+                                    CommandParameter="B" 
+                                    HorizontalAlignment="Stretch"
+                                    Background="#F7BA00"
+                                    Height="45">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="#C69500"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            <Button Content="Quality C" 
+                                    Command="{Binding SetQualityCommand}" 
+                                    CommandParameter="C" 
+                                    HorizontalAlignment="Stretch"
+                                    Background="#DC3545"
+                                    Height="45">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="#B02A37"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
-            </Border>
-        </Panel>
+                </Border>
+            </Panel>
 
-        <!-- Payment Method Popup -->
-        <Panel IsVisible="{Binding IsPaymentPopupVisible}">
-            <Rectangle Fill="Black" Opacity="0.5"/>
-            <Border Background="#2D2D2D" 
-                    CornerRadius="8" 
-                    Width="350" 
-                    Height="165"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    BoxShadow="0 8 32 0 #000000">
-                <StackPanel Spacing="15" Margin="20">
-                    <TextBlock Text="Payment Method" 
-                             HorizontalAlignment="Center" 
-                             FontSize="18" 
-                             FontWeight="Bold"
-                             Foreground="White"/>
-                    <StackPanel Spacing="8">
-                        <Button Content="Paid with cash/card (Marge)" 
-                                Command="{Binding SetPaymentMethodCommand}" 
-                                CommandParameter="Marge" 
-                                HorizontalAlignment="Stretch"
-                                Background="#0078D4"
-                                Height="45">
-                            <Button.Styles>
-                                <Style Selector="Button:pointerover">
-                                    <Setter Property="Background" Value="#006CBD"/>
-                                </Style>
-                            </Button.Styles>
-                        </Button>
-                        <Button Content="Paid using an Order (BTW)" 
-                                Command="{Binding SetPaymentMethodCommand}" 
-                                CommandParameter="BTW" 
-                                HorizontalAlignment="Stretch"
-                                Background="#0078D4"
-                                Height="45">
-                            <Button.Styles>
-                                <Style Selector="Button:pointerover">
-                                    <Setter Property="Background" Value="#006CBD"/>
-                                </Style>
-                            </Button.Styles>
-                        </Button>
+            <!-- Payment Method Popup -->
+            <Panel IsVisible="{Binding IsPaymentPopupVisible}">
+                <Rectangle Fill="Black" Opacity="0.5"/>
+                <Border Background="#2D2D2D" 
+                        CornerRadius="8" 
+                        Width="350" 
+                        Height="165"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        BoxShadow="0 8 32 0 #000000">
+                    <StackPanel Spacing="15" Margin="20">
+                        <TextBlock Text="Payment Method" 
+                                 HorizontalAlignment="Center" 
+                                 FontSize="18" 
+                                 FontWeight="Bold"
+                                 Foreground="White"/>
+                        <StackPanel Spacing="8">
+                            <Button Content="Paid with cash/card (Marge)" 
+                                    Command="{Binding SetPaymentMethodCommand}" 
+                                    CommandParameter="Marge" 
+                                    HorizontalAlignment="Stretch"
+                                    Background="#0078D4"
+                                    Height="45">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="#006CBD"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            <Button Content="Paid using an Order (BTW)" 
+                                    Command="{Binding SetPaymentMethodCommand}" 
+                                    CommandParameter="BTW" 
+                                    HorizontalAlignment="Stretch"
+                                    Background="#0078D4"
+                                    Height="45">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="#006CBD"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
-            </Border>
-        </Panel>
+                </Border>
+            </Panel>
 
-        <!-- Edit Data Popup -->
-        <Panel IsVisible="{Binding IsEditDataPopupVisible}">
-            <Rectangle Fill="Black" Opacity="0.5"/>
-            <Border Background="#2D2D2D" 
-                    CornerRadius="8" 
-                    Width="300" 
-                    Height="160"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    BoxShadow="0 8 32 0 #000000">
-                <StackPanel Spacing="15" Margin="20">
-                    <TextBlock Text="Edit Data Options" 
-                             HorizontalAlignment="Center" 
-                             FontSize="18" 
-                             FontWeight="Bold"
-                             Foreground="White"/>
-                    <StackPanel Spacing="8">
-                        <Button Content="Edit Data" 
-                                Command="{Binding OpenDataEditorCommand}"
-                                HorizontalAlignment="Stretch"
-                                Background="#0078D4"
-                                Height="45">
-                            <Button.Styles>
-                                <Style Selector="Button:pointerover">
-                                    <Setter Property="Background" Value="#006CBD"/>
-                                </Style>
-                            </Button.Styles>
-                        </Button>
-                        <Button Content="Open Label" 
-                                Command="{Binding ShowLabelCommand}"
-                                HorizontalAlignment="Stretch"
-                                Background="#6C757D"
-                                Height="45">
-                            <Button.Styles>
-                                <Style Selector="Button:pointerover">
-                                    <Setter Property="Background" Value="#565E64"/>
-                                </Style>
-                            </Button.Styles>
-                        </Button>
+            <!-- Edit Data Popup -->
+            <Panel IsVisible="{Binding IsEditDataPopupVisible}">
+                <Rectangle Fill="Black" Opacity="0.5"/>
+                <Border Background="#2D2D2D" 
+                        CornerRadius="8" 
+                        Width="300" 
+                        Height="160"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        BoxShadow="0 8 32 0 #000000">
+                    <StackPanel Spacing="15" Margin="20">
+                        <TextBlock Text="Edit Data Options" 
+                                 HorizontalAlignment="Center" 
+                                 FontSize="18" 
+                                 FontWeight="Bold"
+                                 Foreground="White"/>
+                        <StackPanel Spacing="8">
+                            <Button Content="Edit Data" 
+                                    Command="{Binding OpenDataEditorCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#0078D4"
+                                    Height="45">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="#006CBD"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                            <Button Content="Open Label" 
+                                    Command="{Binding ShowLabelCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#6C757D"
+                                    Height="45">
+                                <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                        <Setter Property="Background" Value="#565E64"/>
+                                    </Style>
+                                </Button.Styles>
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
-            </Border>
-        </Panel>
+                </Border>
+            </Panel>
 
-    </Panel>
+        </Panel>
+    </ScrollViewer>
 </Window>
