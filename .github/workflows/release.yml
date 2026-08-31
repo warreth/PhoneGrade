@@ -17,6 +17,7 @@ permissions:
 jobs:
   release:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -68,15 +69,18 @@ jobs:
         env:
           GITHUB_REF_NAME: ${{ github.event.release.tag_name || github.ref_name }}
 
-      # Stamp the tag version into the assembly so the app reports what build
-      # it is; without this every installer says the csproj fallback (1.1.0).
+      # .NET bootstrap via --framework is Windows-only (per Velopack docs), so
+      # macOS and Linux publish self-contained instead.
       - name: Publish app
-        run: >
-          dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj
-          -c Release -r ${{ matrix.rid }}
-          --self-contained false
-          -p:Version=${{ env.APP_VERSION }}
-          -o ${{ matrix.packDir }}
+        shell: bash
+        run: |
+          SELF_CONTAINED=false
+          if [ "${{ runner.os }}" != "Windows" ]; then SELF_CONTAINED=true; fi
+          dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj \
+            -c Release -r ${{ matrix.rid }} \
+            --self-contained "$SELF_CONTAINED" \
+            -p:Version=${{ env.APP_VERSION }} \
+            -o ${{ matrix.packDir }}
 
       # Bundle the libimobiledevice CLI tools next to the app exe so a fresh
       # install works without any manual setup (ToolRunner looks in ./idevice-tools).
@@ -93,6 +97,8 @@ jobs:
       # Homebrew exes link against dylibs in the Homebrew prefix; copy both the
       # tools and every non-system dylib they need, then rewrite the load paths
       # so the bundle works on machines without libimobiledevice installed.
+      # brew's libimobiledevice ships no ideviceactivation (separate project),
+      # so that one is built from its release tarball.
       - name: Bundle libimobiledevice tools (macOS)
         if: runner.os == 'macOS'
         shell: bash
@@ -101,6 +107,11 @@ jobs:
           brew install libimobiledevice
           tools_dir="${{ matrix.packDir }}/idevice-tools"
           mkdir -p "$tools_dir"
+
+          # Homebrew dylibs referenced by a binary, one per line (header stripped).
+          brew_libs() {
+            otool -L "$1" | tail -n +2 | awk '{print $1}' | grep -E '^/opt/homebrew|^/usr/local' || true
+          }
 
           # Copy a binary's Homebrew dylibs (recursively) into the bundle.
           copy_dylibs() {
@@ -112,24 +123,24 @@ jobs:
                 cp -L "$lib" "$tools_dir/$name"
                 copy_dylibs "$tools_dir/$name"
               fi
-            done < <(otool -L "$bin" | awk '{print $1}' | grep -E '^/opt/homebrew|^/usr/local' || true)
+            done < <(brew_libs "$bin")
           }
 
-          # Rewrite every Homebrew load path in a bundled binary to @loader_path
-          # (resolves next to the file doing the loading, so both the tool exes
+          # Rewrite every Homebrew load path in a bundled binary to @rpath with
+          # @loader_path (resolves next to the loading file, so the tool exes
           # and the dylibs find their siblings in idevice-tools/).
           rewrite_paths() {
             local bin="$1"
             install_name_tool -add_rpath '@loader_path' "$bin" 2>/dev/null || true
             while read -r lib; do
               install_name_tool -change "$lib" "@rpath/$(basename "$lib")" "$bin"
-            done < <(otool -L "$bin" | awk '{print $1}' | grep -E '^/opt/homebrew|^/usr/local' || true)
+            done < <(brew_libs "$bin")
           }
 
           for t in idevice_id ideviceinfo idevicediagnostics ideviceactivation idevicecrashreport idevicepair; do
-            bin="$(command -v "$t")"
+            bin="$(command -v "$t" || true)"
             if [ -z "$bin" ]; then
-              echo "ERROR: $t not found after brew install" >&2
+              echo "ERROR: $t not found" >&2
               exit 1
             fi
             cp "$bin" "$tools_dir/"
@@ -144,35 +155,48 @@ jobs:
 
           ls "$tools_dir"
           # Smoke test: no un-rewritten Homebrew paths may remain.
-          bad=$(otool -L "$tools_dir/idevice_id" | grep -E '^/opt/homebrew|^/usr/local' || true)
+          bad=$(brew_libs "$tools_dir/idevice_id")
           if [ -n "$bad" ]; then
             echo "unresolved Homebrew paths: $bad" >&2
             exit 1
           fi
 
-      # libimobiledevice on Linux: Ubuntu ships the tools; copy them plus their
-      # non-glibc shared libs next to the app (ToolRunner looks in ./idevice-tools).
+      # libimobiledevice on Linux: Ubuntu ships the tools (except
+      # ideviceactivation, built from its release tarball); copy them plus
+      # their non-system shared libs next to the app (ToolRunner looks in
+      # ./idevice-tools) and point their rpath at the bundle.
       - name: Bundle libimobiledevice tools (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
           set -e
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libimobiledevice-utils usbmuxd
+          sudo apt-get install -y -qq libimobiledevice-utils usbmuxd patchelf \
+            build-essential pkg-config autoconf automake libtool-bin \
+            libplist-dev libusbmuxd-dev libimobiledevice-dev libimobiledevice-glue-dev \
+            libtatsu-dev libxml2-dev libcurl4-openssl-dev
           tools_dir="${{ matrix.packDir }}/idevice-tools"
           mkdir -p "$tools_dir"
 
-          # Copy a binary's non-system shared libs (recursively) into the bundle.
+          # ideviceactivation is not packaged by Ubuntu; build from source.
+          curl -sL "https://github.com/libimobiledevice/libideviceactivation/archive/refs/tags/1.1.1.tar.gz" -o act.tar.gz
+          mkdir act-src && tar -xzf act.tar.gz -C act-src --strip-components=1
+          ( cd act-src && ./autogen.sh && make -j"$(nproc)" && sudo make install )
+
+          # Shared libs a binary needs, minus the glibc core (vdso and friends
+          # print no path column; libc/ld/m/pthread stay on the host).
           copy_deps() {
             local bin="$1"
             while read -r lib; do
+              [ -n "$lib" ] || continue
               local name
               name="$(basename "$lib")"
               if [ ! -f "$tools_dir/$name" ]; then
                 sudo cp -L "$lib" "$tools_dir/$name"
                 copy_deps "$tools_dir/$name"
               fi
-            done < <(ldd "$bin" | awk '{print $3}' | grep -vE '^/lib|^/usr/lib' || true)
+            done < <(ldd "$bin" | awk '/=> \// {print $3}' \
+                     | grep -vE '/(libc|libm|libdl|librt|libpthread|libgcc_s|libstdc\+\+)\.so([.0-9-]|$)' || true)
           }
 
           for t in idevice_id ideviceinfo idevicediagnostics ideviceactivation idevicecrashreport idevicepair; do
@@ -182,23 +206,29 @@ jobs:
             copy_deps "$bin"
           done
 
+          # Make each bundled binary find its siblings next to itself.
+          for f in "$tools_dir"/*; do
+            sudo patchelf --set-rpath '$ORIGIN' "$f" 2>/dev/null || true
+          done
+
           ls "$tools_dir"
-          test -x "$tools_dir/idevice_id" -a -x "$tools_dir/ideviceinfo"
+          test -x "$tools_dir/idevice_id" -a -x "$tools_dir/ideviceactivation"
 
       - name: Build Velopack installer
         shell: bash
         run: |
           VERSION="${{ env.APP_VERSION }}"
           if [ "${{ runner.os }}" = "Windows" ]; then
+            # Only Windows can bootstrap the .NET runtime from the installer.
             FRAMEWORK_ARGS=(-framework "net8.0-x64-desktop")
             ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico"
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            FRAMEWORK_ARGS=(-framework "net8.0-${{ matrix.rid == 'osx-x64' && 'x64' || 'arm64' }}-desktop")
-            ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns"
           else
-            # Linux AppImages must be self-contained; no --framework there.
-            FRAMEWORK_ARGS=()
-            ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png"
+            FRAMEWORK_ARGS=() # self-contained publish: nothing to bootstrap
+            if [ "${{ runner.os }}" = "macOS" ]; then
+              ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns"
+            else
+              ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png"
+            fi
           fi
           vpk pack
             --packId AutoDymoLabel
