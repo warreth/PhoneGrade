@@ -24,3 +24,26 @@ jobs:
 
       - name: Run tests (xUnit + headless Avalonia)
         run: dotnet test AutoDymoLabelApp/Tests/Tests.csproj -c Release --no-build
+
+      # Smoke test the release packaging path on each OS: publish + vpk pack.
+      # Catches bundle/tool breakage before a tag is cut.
+      - name: Packaging smoke test (vpk)
+        shell: bash
+        run: |
+          set -e
+          dotnet tool install --global vpk --version 1.2.0 || dotnet tool update --global vpk --version 1.2.0
+          if [ "$RUNNER_OS" = "Windows" ]; then RID=win-x64; else RID=osx-arm64; fi
+          dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj \
+            -c Release -r "$RID" --self-contained false -o pkg-smoke
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            mkdir -p pkg-smoke/idevice-tools
+            curl -sL "https://github.com/L1ghtmann/libimobiledevice/releases/latest/download/libimobile-suite-latest_x86_64-mingw64.tar.xz" -o suite.tar.xz
+            tar -xJf suite.tar.xz -C pkg-smoke/idevice-tools --strip-components=1
+            test -f pkg-smoke/idevice-tools/idevice_id.exe
+          fi
+          ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico
+          if [ "$RUNNER_OS" = "macOS" ]; then ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns; fi
+          vpk pack --packId SmokeTest --packVersion 0.0.1 --packDir pkg-smoke \
+            --mainExe AutoDymoLabelApp.UI --channel ci --outputDir releases-smoke \
+            --delta None --icon "$ICON"
+          ls releases-smoke
