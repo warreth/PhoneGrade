@@ -22,5 +22,5 @@ jobs:
       - name: Build (Release)
         run: dotnet build AutoDymoLabelApp/AutoDymoLabelApp.sln -c Release
 
-      - name: Run self-check tests
-        run: dotnet run --project AutoDymoLabelApp/Tests -c Release --no-build
+      - name: Run tests (xUnit + headless Avalonia)
+        run: dotnet test AutoDymoLabelApp/Tests/Tests.csproj -c Release --no-build
