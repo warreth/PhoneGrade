@@ -62,7 +62,12 @@ jobs:
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             V="${{ inputs.version }}"
+            V="${V#v}"   # tolerate 'v5.0' typed into the input
+            case "$V" in
+              ''|*[!0-9.]*) echo "ERROR: invalid version '$V'" >&2; exit 1 ;;
+            esac
           else
+            # Tags may carry prerelease suffixes (v5.0-beta1); pass through.
             V="${GITHUB_REF_NAME#v}"
           fi
           echo "APP_VERSION=$V" >> "$GITHUB_ENV"
