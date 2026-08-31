@@ -4,55 +4,56 @@
         x:Class="AutoDymoLabelApp.UI.Views.DataEditorWindow"
         x:DataType="vm:DataEditorViewModel"
         Title="Gegevens bewerken"
-        Width="560" MinWidth="480" MaxWidth="900"
-        Height="720" MinHeight="560"
-        SizeToContent="Height"
-        MaxHeight="900"
+        Width="580" Height="700"
+        MinWidth="480" MinHeight="540"
+        CanResize="True"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource AppBgBrush}"
-        TransparencyLevelHint="AcrylicBlur"
-        ExtendClientAreaToDecorationsHint="True"
-        SystemDecorations="BorderOnly">
+        ShowInTaskbar="False">
 
-    <!-- Scroll wheel fix: plain ScrollViewer with no nested layout that eats mouse
-         wheel events, and controls that don't mark wheel input as handled. -->
+    <!-- Native chrome (close/min/max + resize work everywhere incl. Wayland). -->
+    <!-- Scroll wheel fix: single flat ScrollViewer, no nested scroll containers. -->
+
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <Border Margin="16,40,16,16" Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="24">
-            <StackPanel Spacing="14">
-                <TextBlock Text="Toestelgegevens" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center"/>
+        <Border Classes="card" Margin="20" Padding="26">
+            <StackPanel Spacing="16">
+                <StackPanel Spacing="4" Margin="0,0,0,6">
+                    <TextBlock Text="Toestelgegevens" FontSize="20" FontWeight="Bold"/>
+                    <TextBlock Classes="dim" Text="Controleer en pas aan — dit gaat zo op het label" FontSize="12"/>
+                </StackPanel>
 
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Identifier (IMEI/Serienummer)"/>
+                <!-- Field blocks reuse one implicit style: label above, input below -->
+                <StackPanel Spacing="7">
+                    <TextBlock Classes="dim" Text="Identifier (IMEI / serienummer)" FontSize="12" FontWeight="Medium"/>
                     <TextBox Text="{Binding DeviceData.Identifier}"/>
                 </StackPanel>
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Model"/>
+                <StackPanel Spacing="7">
+                    <TextBlock Classes="dim" Text="Model" FontSize="12" FontWeight="Medium"/>
                     <TextBox Text="{Binding DeviceData.Model}"/>
                 </StackPanel>
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Kleur"/>
+                <StackPanel Spacing="7">
+                    <TextBlock Classes="dim" Text="Kleur" FontSize="12" FontWeight="Medium"/>
                     <TextBox Text="{Binding DeviceData.Color}"/>
                 </StackPanel>
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Opslag"/>
+                <StackPanel Spacing="7">
+                    <TextBlock Classes="dim" Text="Opslag" FontSize="12" FontWeight="Medium"/>
                     <TextBox Text="{Binding DeviceData.Storage}"/>
                 </StackPanel>
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Batterij"/>
+                <StackPanel Spacing="7">
+                    <TextBlock Classes="dim" Text="Batterij" FontSize="12" FontWeight="Medium"/>
                     <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
                 </StackPanel>
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Kwaliteit"/>
+                <StackPanel Spacing="7">
+                    <TextBlock Classes="dim" Text="Kwaliteit" FontSize="12" FontWeight="Medium"/>
                     <TextBox Text="{Binding DeviceData.Quality}"/>
                 </StackPanel>
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Betaalmethode"/>
+                <StackPanel Spacing="7">
+                    <TextBlock Classes="dim" Text="Betaalmethode" FontSize="12" FontWeight="Medium"/>
                     <TextBox Text="{Binding DeviceData.PayMethod}"/>
                 </StackPanel>
 
-                <Button Classes="accent" Content="Opslaan &amp; label openen"
+                <Button Classes="cta" Content="Opslaan &amp; label openen"
                         Command="{Binding SaveAndOpenLabelCommand}"
-                        HorizontalAlignment="Stretch" Margin="0,10,0,0" Height="44"/>
+                        HorizontalAlignment="Stretch" Margin="0,10,0,0" Height="46"/>
             </StackPanel>
         </Border>
     </ScrollViewer>

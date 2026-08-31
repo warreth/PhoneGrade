@@ -1,28 +1,28 @@
-using Avalonia.ReactiveUI;
+using Avalonia.Controls;
 using AutoDymoLabelApp.UI.ViewModels;
-using ReactiveUI;
 using System.Reactive;
-using System.Reactive.Disposables;
 
 namespace AutoDymoLabelApp.UI.Views;
 
-public partial class DataEditorWindow : ReactiveWindow<DataEditorViewModel>
+/// <summary>Data editor window. Plain Window (not ReactiveWindow): the close
+/// interaction is registered when the ViewModel arrives, which keeps the
+/// window constructible in headless tests without a platform activator.</summary>
+public partial class DataEditorWindow : Window
 {
     public DataEditorWindow()
     {
         InitializeComponent();
+        DataContextChanged += InstallCloseHook;
+    }
 
-        this.WhenActivated(disposables =>
+    private void InstallCloseHook(object? sender, EventArgs e)
+    {
+        if (DataContext is not DataEditorViewModel vm) return;
+
+        vm.CloseWindowInteraction.RegisterHandler(interaction =>
         {
-            if (DataContext is DataEditorViewModel vm)
-            {
-                vm.SaveAndOpenLabelCommand.Subscribe(_ => Close());
-                vm.CloseWindowInteraction.RegisterHandler(interaction =>
-                {
-                    Close();
-                    interaction.SetOutput(Unit.Default);
-                }).DisposeWith(disposables);
-            }
+            Close();
+            interaction.SetOutput(Unit.Default);
         });
     }
 }

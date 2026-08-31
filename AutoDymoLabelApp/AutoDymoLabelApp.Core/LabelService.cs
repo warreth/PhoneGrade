@@ -29,7 +29,7 @@ public static class LabelService
         ];
         foreach (string c in candidates) if (File.Exists(c)) return c;
         throw new FileNotFoundException(
-            $"Label template my.dymo not found. Looked in: {string.Join(", ", candidates)}");
+            $"Label template my.dymo not found. Looked in: {ConfiguredTemplatePath}, {string.Join(", ", candidates)}");
     }
 
     /// <summary>Generates the .dymo label file from the template. Returns the output path.</summary>

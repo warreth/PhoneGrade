@@ -129,8 +129,15 @@ public class MainWindowViewModel : ReactiveObject
     public DeviceData DeviceData
     {
         get => _deviceData;
-        set => this.RaiseAndSetIfChanged(ref _deviceData, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _deviceData, value);
+            this.RaisePropertyChanged(nameof(HasDevice));
+        }
     }
+
+    /// <summary>True once real device data has been read — drives the summary grid.</summary>
+    public bool HasDevice => DeviceData is { Model: not "NOMODEL", Identifier: not "NOID" };
 
     // Popups kept minimal: only quality & payment, and only when no default is set.
     private bool _isQualityPopupVisible;
@@ -191,9 +198,14 @@ public class MainWindowViewModel : ReactiveObject
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ =>
             {
-                if (Busy) return;
+                if (Busy) { return; }
                 if (SelectedDevice.Key is { Length: > 0 })
-                    RunFlowAsync(); // fire-and-forget; errors surface via Status
+                {
+                    // Fire-and-forget: RunFlowAsync reports all failures through Status.
+#pragma warning disable CS4014
+                    RunFlowAsync();
+#pragma warning restore CS4014
+                }
             });
     }
 
