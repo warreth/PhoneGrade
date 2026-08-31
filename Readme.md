@@ -16,10 +16,15 @@ page:
   rights needed.
 - **macOS**: `AutoDymoLabel-osx-arm64-*.pkg` (Apple Silicon) or
   `AutoDymoLabel-osx-x64-*.pkg` (Intel). Drag into Applications.
+- **Linux**: `AutoDymoLabel-linux-*.AppImage`. `chmod +x` and run.
 
 The installers bundle the `libimobiledevice` command line tools
 (`ideviceinfo`, `idevicediagnostics`, `idevicecrashreport`, and friends) so
 there is nothing to set up yourself.
+
+Once installed, the app updates itself. On startup it checks the GitHub
+releases for a newer version and installs it silently ([Velopack](https://docs.velopack.io/getting-started/csharp)
+`UpdateManager` with a `GithubSource`). No action needed.
 
 ### Requirements
 
@@ -110,6 +115,11 @@ GitHub Actions builds on every `v*` tag:
   releases bundled in.
 - **macOS (Apple Silicon and Intel)**: publish, Homebrew tools copied in with
   their dylibs and load paths rewritten, then a `.pkg`.
+- **Linux**: Ubuntu tools plus their shared libraries copied in, packed as a
+  self-updating `.AppImage`.
+
+The tag version is stamped into the app build (`-p:Version`), so the app
+always knows what build it is running.
 
 You can also trigger a build by hand from the Actions tab with a version
 number.

@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,11 @@ jobs:
         run: |
           set -e
           dotnet tool install --global vpk --version 1.2.0 || dotnet tool update --global vpk --version 1.2.0
-          if [ "$RUNNER_OS" = "Windows" ]; then RID=win-x64; else RID=osx-arm64; fi
+          case "$RUNNER_OS" in
+            Windows) RID=win-x64;    ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico; EXTRA=(-framework net8.0-x64-desktop) ;;
+            macOS)   RID=osx-arm64;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns;   EXTRA=(-framework net8.0-arm64-desktop) ;;
+            Linux)   RID=linux-x64;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png;    EXTRA=() ;;
+          esac
           dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj \
             -c Release -r "$RID" --self-contained false -o pkg-smoke
           if [ "$RUNNER_OS" = "Windows" ]; then
@@ -41,9 +45,7 @@ jobs:
             tar -xJf suite.tar.xz -C pkg-smoke/idevice-tools --strip-components=1
             test -f pkg-smoke/idevice-tools/idevice_id.exe
           fi
-          ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico
-          if [ "$RUNNER_OS" = "macOS" ]; then ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns; fi
           vpk pack --packId SmokeTest --packVersion 0.0.1 --packDir pkg-smoke \
             --mainExe AutoDymoLabelApp.UI --channel ci --outputDir releases-smoke \
-            --delta None --icon "$ICON"
+            --delta None --icon "$ICON" "${EXTRA[@]}"
           ls releases-smoke
