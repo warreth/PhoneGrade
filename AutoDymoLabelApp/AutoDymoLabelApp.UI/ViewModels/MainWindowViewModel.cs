@@ -1,385 +1,368 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using ReactiveUI;
-using Avalonia.Threading;
+using AutoDymoLabel.Core;
+using AutoDymoLabel.Core.Diagnostics;
 using AutoDymoLabelApp.UI.Models;
-using AutoDymoLabelApp.UI.Views;
-using System;
-using static DeviceService.DeviceService;
+using Avalonia.Threading;
+using DynamicData;
+using ReactiveUI;
 
+namespace AutoDymoLabelApp.UI.ViewModels;
 
-namespace AutoDymoLabelApp.UI.ViewModels
+/// <summary>
+/// Main window logic. One button for the user: the flow starts automatically when a
+/// device is plugged in (when AutoDetectOnPlug is on), walks connect → activate →
+/// read → diagnose → label, and asks only the questions settings can't answer
+/// (quality, payment) unless defaults are configured.
+/// </summary>
+public class MainWindowViewModel : ReactiveObject
 {
-    public class MainWindowViewModel : ReactiveObject
+    private readonly AppSettings _settings;
+    private CancellationTokenSource? _flowCts;
+    private IDisposable? _watcher;
+
+    public ObservableCollection<DiagnosticIssue> Issues { get; } = [];
+
+    private ObservableCollection<KeyValuePair<string, string>> _devices = [];
+    public ObservableCollection<KeyValuePair<string, string>> Devices
     {
-        // Singleton instance
-        public static MainWindowViewModel Instance { get; private set; } = null!;
+        get => _devices;
+        set => this.RaiseAndSetIfChanged(ref _devices, value);
+    }
 
-        #region Properties
-        private readonly AppSettings _settings;
+    private KeyValuePair<string, string> _selectedDevice;
+    public KeyValuePair<string, string> SelectedDevice
+    {
+        get => _selectedDevice;
+        set => this.RaiseAndSetIfChanged(ref _selectedDevice, value);
+    }
 
-        // Private backing fields
-        private bool _autoActivate;
-        private string _selectedDeviceKey = string.Empty;
-        private bool _enable85PercentChecker;
-        private bool _useDymoAPI;
-        private DeviceData _deviceData = new();
-        private Dictionary<string, string> _devices = [];
-        private int _progress;
-        private string _data = string.Empty;
-        private bool _isEditorEnabled = true;
-        private bool _enableDataEditor = true;
+    private int _progress;
+    public int Progress { get => _progress; set => this.RaiseAndSetIfChanged(ref _progress, value); }
 
-        private string _updateNotification = "Welcome to AutoDymoLabel!";
-        private bool _isUpdateNotifierVisible = true;
-        private bool _isQualityPopupVisible;
-        private bool _isPaymentPopupVisible;
-        private bool _isFileDialogVisible;
-        private bool _isEditDataPopupVisible;
-        public bool IsEditDataPopupVisible
+    private string _status = "Plug een iPhone/iPad in om te starten…";
+    public string Status
+    {
+        get => _status;
+        set => this.RaiseAndSetIfChanged(ref _status, value);
+    }
+
+    private string _theme = "Dark";
+    public string Theme
+    {
+        get => _theme;
+        set
         {
-            get => _isEditDataPopupVisible;
-            set => this.RaiseAndSetIfChanged(ref _isEditDataPopupVisible, value);
+            _settings.Theme = value;
+            _settings.Save();
+            AutoDymoLabel.UI.App.ApplyTheme(value);
+            this.RaiseAndSetIfChanged(ref _theme, value);
         }
+    }
 
-        public bool EnableDataEditor
+    private bool _autoActivate = true;
+    public bool AutoActivate
+    {
+        get => _autoActivate;
+        set { _settings.AutoActivate = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _autoActivate, value); }
+    }
+
+    private bool _autoDetectOnPlug = true;
+    public bool AutoDetectOnPlug
+    {
+        get => _autoDetectOnPlug;
+        set
         {
-            get => _enableDataEditor;
-            set
+            _settings.AutoDetectOnPlug = value;
+            _settings.Save();
+            this.RaiseAndSetIfChanged(ref _autoDetectOnPlug, value);
+            if (value) StartWatcher(); else StopWatcher();
+        }
+    }
+
+    private bool _runDiagnostics = true;
+    public bool RunDiagnostics
+    {
+        get => _runDiagnostics;
+        set { _settings.RunDiagnostics = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _runDiagnostics, value); }
+    }
+
+    private bool _enable85PercentChecker = true;
+    public bool Enable85PercentChecker
+    {
+        get => _enable85PercentChecker;
+        set { _settings.Enable85PercentChecker = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _enable85PercentChecker, value); }
+    }
+
+    private bool _openEditorBeforePrint;
+    public bool OpenEditorBeforePrint
+    {
+        get => _openEditorBeforePrint;
+        set { _settings.OpenEditorBeforePrint = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _openEditorBeforePrint, value); }
+    }
+
+    private string _defaultQuality = "";
+    public string DefaultQuality
+    {
+        get => _defaultQuality;
+        set { _settings.DefaultQuality = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _defaultQuality, value); }
+    }
+
+    private string _defaultPaymentMethod = "";
+    public string DefaultPaymentMethod
+    {
+        get => _defaultPaymentMethod;
+        set { _settings.DefaultPaymentMethod = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _defaultPaymentMethod, value); }
+    }
+
+    private bool _busy;
+    public bool Busy
+    {
+        get => _busy;
+        set => this.RaiseAndSetIfChanged(ref _busy, value);
+    }
+
+    private DeviceData _deviceData = new();
+    public DeviceData DeviceData
+    {
+        get => _deviceData;
+        set => this.RaiseAndSetIfChanged(ref _deviceData, value);
+    }
+
+    // Popups kept minimal: only quality & payment, and only when no default is set.
+    private bool _isQualityPopupVisible;
+    public bool IsQualityPopupVisible { get => _isQualityPopupVisible; set => this.RaiseAndSetIfChanged(ref _isQualityPopupVisible, value); }
+
+    private bool _isPaymentPopupVisible;
+    public bool IsPaymentPopupVisible { get => _isPaymentPopupVisible; set => this.RaiseAndSetIfChanged(ref _isPaymentPopupVisible, value); }
+
+    private bool _hasIssues;
+    public bool HasIssues { get => _hasIssues; set => this.RaiseAndSetIfChanged(ref _hasIssues, value); }
+
+    public string[] ThemeOptions { get; } = ["Dark", "Light", "System"];
+    public string[] QualityOptions { get; } = ["", "A", "B", "C"];
+    public string[] PaymentOptions { get; } = ["", "Marge", "BTW"];
+
+    public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
+    public ReactiveCommand<Unit, Unit> StartCommand { get; }
+    public ReactiveCommand<string, Unit> SetQualityCommand { get; }
+    public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenLabelCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenEditorCommand { get; }
+
+    public event Action<DeviceData>? DataEditorRequested;
+
+    public MainWindowViewModel()
+    {
+        _settings = AppSettings.Load();
+        _theme = _settings.Theme;
+        _autoActivate = _settings.AutoActivate;
+        _autoDetectOnPlug = _settings.AutoDetectOnPlug;
+        _runDiagnostics = _settings.RunDiagnostics;
+        _enable85PercentChecker = _settings.Enable85PercentChecker;
+        _openEditorBeforePrint = _settings.OpenEditorBeforePrint;
+        _defaultQuality = _settings.DefaultQuality;
+        _defaultPaymentMethod = _settings.DefaultPaymentMethod;
+        LabelService.ConfiguredTemplatePath = _settings.TemplatePath;
+
+        var canStart = this.WhenAnyValue(x => x.Busy).Select(b => !b);
+        RefreshDevicesCommand = ReactiveCommand.CreateFromTask(RefreshDeviceListAsync);
+        StartCommand = ReactiveCommand.CreateFromTask(() => RunFlowAsync(), canStart);
+        SetQualityCommand = ReactiveCommand.Create<string>(q => _ = ContinueAfterQualityAsync(q));
+        SetPaymentMethodCommand = ReactiveCommand.Create<string>(p => ContinueAfterPaymentAsync(p));
+        OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
+        OpenEditorCommand = ReactiveCommand.Create(() => DataEditorRequested?.Invoke(DeviceData));
+
+        _ = RefreshDeviceListAsync();
+        if (_autoDetectOnPlug) StartWatcher();
+    }
+
+    /// <summary>Polls for device changes every 2s; starts the auto flow on first sight of a device.</summary>
+    private void StartWatcher()
+    {
+        StopWatcher();
+        _watcher = Observable.Interval(TimeSpan.FromSeconds(2))
+            .ObserveOn(RxApp.TaskpoolScheduler)
+            .SelectMany(_ => Observable.FromAsync(RefreshDeviceListSilentAsync))
+            .Where(c => c > 0)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ =>
             {
-                _settings.EnableDataEditor = value;
-                _settings.Save();
-                this.RaiseAndSetIfChanged(ref _enableDataEditor, value);
-            }
-        }
-        public bool AutoActivate
-        {
-            get => _autoActivate;
-            set
-            {
-                _settings.AutoActivate = value;
-                _settings.Save();
-                this.RaiseAndSetIfChanged(ref _autoActivate, value);
-            }
-        }
-
-        public string SelectedDeviceKey
-        {
-            get => _selectedDeviceKey;
-            set
-            {
-                _settings.SelectedDeviceKey = value;
-                _settings.Save();
-                this.RaiseAndSetIfChanged(ref _selectedDeviceKey, value);
-            }
-        }
-
-        public bool Enable85PercentChecker
-        {
-            get => _enable85PercentChecker;
-            set
-            {
-                _settings.Enable85PercentChecker = value;
-                _settings.Save();
-                this.RaiseAndSetIfChanged(ref _enable85PercentChecker, value);
-            }
-        }
-
-        public bool UseDymoAPI
-        {
-            get => _useDymoAPI;
-            set
-            {
-                _settings.UseDymoAPI = value;
-                _settings.Save();
-                this.RaiseAndSetIfChanged(ref _useDymoAPI, value);
-            }
-        }
-
-        public DeviceData DeviceData
-        {
-            get => _deviceData;
-            set => this.RaiseAndSetIfChanged(ref _deviceData, value);
-        }
-
-        public Dictionary<string, string> Devices
-        {
-            get => _devices;
-            set => this.RaiseAndSetIfChanged(ref _devices, value);
-        }
-
-        public int Progress
-        {
-            get => _progress;
-            set => this.RaiseAndSetIfChanged(ref _progress, value);
-        }
-
-        public string Data
-        {
-            get => _data;
-            set => this.RaiseAndSetIfChanged(ref _data, value);
-        }
-
-        public bool IsEditorEnabled
-        {
-            get => _isEditorEnabled;
-            set => this.RaiseAndSetIfChanged(ref _isEditorEnabled, value);
-        }
-
-        public string UpdateNotification
-        {
-            get => _updateNotification;
-            set => this.RaiseAndSetIfChanged(ref _updateNotification, value);
-        }
-
-        public bool IsUpdateNotifierVisible
-        {
-            get => _isUpdateNotifierVisible;
-            set => this.RaiseAndSetIfChanged(ref _isUpdateNotifierVisible, value);
-        }
-
-        public bool IsQualityPopupVisible
-        {
-            get => _isQualityPopupVisible;
-            set => this.RaiseAndSetIfChanged(ref _isQualityPopupVisible, value);
-        }
-
-        public bool IsPaymentPopupVisible
-        {
-            get => _isPaymentPopupVisible;
-            set => this.RaiseAndSetIfChanged(ref _isPaymentPopupVisible, value);
-        }
-
-        public bool IsFileDialogVisible
-        {
-            get => _isFileDialogVisible;
-            set => this.RaiseAndSetIfChanged(ref _isFileDialogVisible, value);
-        }
-
-        public ReactiveCommand<Unit, Unit> StartCommand { get; }
-        public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
-        public ReactiveCommand<string, Unit> SetQualityCommand { get; }
-        public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
-        public ReactiveCommand<Unit, Unit> ShowLabelCommand { get; }
-        public ReactiveCommand<Unit, Unit> OpenDataEditorCommand { get; }
-
-        #endregion
-        #region Methods
-        public MainWindowViewModel()
-        {
-            Instance = this;
-
-            _settings = AppSettings.Load();
-
-            // Initialize backing fields from settings
-            _autoActivate = _settings.AutoActivate;
-            _selectedDeviceKey = _settings.SelectedDeviceKey;
-            _enable85PercentChecker = _settings.Enable85PercentChecker;
-            _useDymoAPI = _settings.UseDymoAPI;
-            _enableDataEditor = _settings.EnableDataEditor;
-
-
-            var mainThreadScheduler = RxApp.MainThreadScheduler;
-
-            RefreshDevicesCommand = ReactiveCommand.CreateFromTask(
-                RefreshDeviceList,
-                outputScheduler: mainThreadScheduler
-            );
-
-            SetQualityCommand = ReactiveCommand.Create<string>(
-                SetQuality,
-                outputScheduler: mainThreadScheduler
-            );
-
-            StartCommand = ReactiveCommand.CreateFromTask(
-                StartProcessAsync,
-                outputScheduler: mainThreadScheduler
-            );
-
-            RefreshDevicesCommand.ThrownExceptions
-                .ObserveOn(mainThreadScheduler)
-                .Subscribe(ex =>
-                {
-                    UpdateNotification = $"Error: {ex.Message}";
-                });
-
-            RefreshDevicesCommand.Execute().Subscribe();
-
-            SetPaymentMethodCommand = ReactiveCommand.Create<string>(
-                SetPaymentMethod,
-                outputScheduler: mainThreadScheduler
-            );
-
-            ShowLabelCommand = ReactiveCommand.Create(
-                HandleLabelOpening,
-                outputScheduler: mainThreadScheduler
-            );
-
-            OpenDataEditorCommand = ReactiveCommand.Create(OpenDataEditor);
-        }
-
-        private async Task RefreshDeviceList()
-        {
-            try
-            {
-                var devices = await Task.Run(() => GetConnectedDevicesAsync());
-
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    Devices = devices ?? new Dictionary<string, string>();
-
-                    int deviceCount = Devices.Count;
-
-                    if (deviceCount == 1)
-                    {
-                        SelectedDeviceKey = Devices.Keys.First();
-                        UpdateNotification = "One device found and selected automatically.";
-                    }
-                    else
-                    {
-                        UpdateNotification = deviceCount > 0
-                            ? $"Found {deviceCount} connected devices."
-                            : "No devices found.";
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    UpdateNotification = $"Error refreshing devices: {ex.Message}";
-                });
-            }
-        }
-
-        private void SetQuality(string quality)
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                DeviceData.Quality = quality;
-                UpdateProgressSafe(85, $"Device Quality set to: {quality}");
-                IsQualityPopupVisible = false;
-                IsPaymentPopupVisible = true; //show the payment popup
+                if (Busy) return;
+                if (SelectedDevice.Key is { Length: > 0 })
+                    RunFlowAsync(); // fire-and-forget; errors surface via Status
             });
-        }
+    }
 
-        private void SetPaymentMethod(string method)
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                DeviceData.PayMethod = method;
-                UpdateProgressSafe(90, $"Payment method set to: {method}");
-                IsPaymentPopupVisible = false;
+    private void StopWatcher() => _watcher?.Dispose();
 
-                if (EnableDataEditor)
-                {
-                    // Open data editor window directly
-                    OpenDataEditor();
-                }
-                else
-                {
-                    // Show edit data popup
-                    IsEditDataPopupVisible = true;
-                }
-            });
-        }
-
-        private void OpenDataEditor()
+    /// <summary>True when a device list refresh surfaced exactly one usable device.</summary>
+    private async Task<int> RefreshDeviceListSilentAsync()
+    {
+        try
         {
-            IsEditDataPopupVisible = false; // Close the popup
-            var editorWindow = new DataEditorWindow
-            {
-                DataContext = new DataEditorViewModel(DeviceData)
-            };
-            editorWindow.Show();
-        }
-        private void UpdateProgressSafe(int progress, string? message = null)
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                Progress = progress;
-                if (!string.IsNullOrEmpty(message))
-                {
-                    UpdateNotificationSafe(message);
-                }
-            });
-        }
-
-        public void UpdateNotificationSafe(string message)
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                UpdateNotification = message;
-                IsUpdateNotifierVisible = true;
-            });
-        }
-
-        private async Task StartProcessAsync()
-        {
+            var devices = await DeviceService.GetConnectedDevicesAsync();
+            if (devices.Count == 0) return 0;
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                UpdateProgressSafe(0, "Process started...");
+                Devices = new ObservableCollection<KeyValuePair<string, string>>(devices);
+                // auto-select the single/first device
+                if (devices.ContainsKey(SelectedDevice.Key) is false)
+                    SelectedDevice = Devices[0];
             });
+            return devices.Count;
+        }
+        catch { return 0; }
+    }
 
-            if (!await CheckDeviceAsync())
+    public async Task RefreshDeviceListAsync()
+    {
+        int count = await RefreshDeviceListSilentAsync();
+        Status = count switch
+        {
+            0 => "Geen toestel gevonden. Kabel/poort proberen of toestel ontgrendelen en 'Vertrouwen' tikken.",
+            1 => "Eén toestel gevonden en geselecteerd.",
+            _ => $"{count} toestellen gevonden — kies er één.",
+        };
+    }
+
+    /// <summary>The whole pipeline for one device.</summary>
+    private async Task RunFlowAsync()
+    {
+        string? udid = SelectedDevice.Key;
+        if (udid is not { Length: > 0 })
+        {
+            Status = "Geen toestel geselecteerd.";
+            return;
+        }
+
+        Busy = true;
+        _flowCts = new CancellationTokenSource();
+        Issues.Clear();
+        HasIssues = false;
+        Progress = 5;
+        try
+        {
+            // 1. Trust / connectivity
+            Status = "Verbinding controleren…";
+            var state = await DeviceService.GetConnectionStateAsync(udid);
+            if (state == DeviceService.ConnectionState.NotTrusted)
             {
+                Status = "Toestel niet vertrouwd: ontgrendel en tik 'Vertrouwen'.";
                 return;
             }
-
-            await HandleActivation();
-
-            DeviceData = await GetDeviceDataAsync(SelectedDeviceKey);
-
-            // Check and update battery health if Enable85PercentChecker is true
-            if (Enable85PercentChecker && int.TryParse(DeviceData.BatteryHealth, out int batteryHealth) && batteryHealth < 85)
+            if (state != DeviceService.ConnectionState.Connected)
             {
+                Status = "Toestel niet bereikbaar — andere kabel/poort proberen.";
+                return;
+            }
+            Progress = 20;
+
+            // 2. Activation bypass (optional)
+            if (AutoActivate && state == DeviceService.ConnectionState.NotActivated ||
+                AutoActivate && await NeedsActivationAsync(udid))
+            {
+                Status = "Toestel activeren (bypass)…";
+                string result = await ActivationService.SkipActivationAsync(udid);
+                Status = result;
+            }
+            Progress = 40;
+
+            // 3. Read device data
+            Status = "Toesteldata uitlezen…";
+            DeviceData = await DeviceService.GetDeviceDataAsync(udid);
+            Progress = 60;
+
+            // 4. Battery checker
+            if (Enable85PercentChecker && int.TryParse(DeviceData.BatteryHealth, out int health) && health < 85)
                 DeviceData.BatteryHealth = "100%-X";
-            }
 
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            // 5. Diagnostics (panic logs & sensors) — advisory, not blocking
+            if (RunDiagnostics)
             {
-                UpdateProgressSafe(50, "Device data retrieved...");
-                IsQualityPopupVisible = true; // Show the quality popup.
-            });
-        }
+                Status = "Diagnostiek draaien (panic-logs)…";
+                foreach (var issue in await DiagnosticService.DiagnoseAsync(udid))
+                    Issues.Add(issue);
+                HasIssues = Issues.Count > 0;
+            }
+            Progress = 75;
 
-        private async Task<bool> CheckDeviceAsync()
+            // 6. Quality + payment: defaults from settings, else popup
+            if (DefaultQuality is { Length: > 0 })
+                await ContinueAfterQualityAsync(DefaultQuality);
+            else
+            {
+                IsQualityPopupVisible = true;
+                Status = "Kies de kwaliteit…";
+            }
+        }
+        catch (Exception ex)
         {
-            if (!await IsDeviceConnectedAsync())
-            {
-                UpdateNotificationSafe("No device connected.");
-                return false;
-            }
-            if (!await IsDeviceTrustedAsync())
-            {
-                UpdateNotificationSafe("Device not trusted.");
-                return false;
-            }
-            return true;
+            Status = $"Fout: {ex.Message}";
+        }
+        finally
+        {
+            Busy = false;
+        }
+    }
+
+    private async Task<bool> NeedsActivationAsync(string udid) =>
+        (await DeviceService.GetKeyAsync(udid, "ActivationState")).Contains("Unactivated");
+
+    private async Task ContinueAfterQualityAsync(string quality)
+    {
+        DeviceData.Quality = quality;
+        Progress = 85;
+        if (DefaultPaymentMethod is { Length: > 0 })
+            await ContinueAfterPaymentAsync(DefaultPaymentMethod);
+        else
+        {
+            IsQualityPopupVisible = false;
+            IsPaymentPopupVisible = true;
+        }
+    }
+
+    private Task ContinueAfterPaymentAsync(string method)
+    {
+        DeviceData.PayMethod = method;
+        IsQualityPopupVisible = false;
+        IsPaymentPopupVisible = false;
+        Progress = 95;
+
+        if (OpenEditorBeforePrint)
+        {
+            DataEditorRequested?.Invoke(DeviceData);
+            return Task.CompletedTask;
         }
 
-        private async Task HandleActivation()
-        {
-            if (AutoActivate && !await IsActivatedAsync())
-            {
-                UpdateNotificationSafe("Device not activated, activating ...");
-                string activationResult = await Activation.ActivationService.SkipActivationAsync(SelectedDeviceKey);
-                UpdateNotificationSafe(activationResult);
-                return;
-            }
-        }
+        FinishLabel();
+        return Task.CompletedTask;
+    }
 
-        private async void HandleLabelOpening()
+    /// <summary>Generate + open the label; single click path for the user.</summary>
+    public void FinishLabel()
+    {
+        try
         {
-            IsEditDataPopupVisible = false;
-            LabelService.GenerateLabel(DeviceData);
-            string result = await OpenLabel.OpenLabelFileAsync();
-            UpdateNotificationSafe(result);
-            Progress = 0; // Reset progress bar to 0
+            Status = "Label genereren…";
+            string path = LabelService.GenerateLabel(DeviceData);
+            Status = LabelService.OpenLabelFile(path);
+            Progress = 100;
         }
-        #endregion
+        catch (Exception ex)
+        {
+            Status = $"Label mislukt: {ex.Message}";
+        }
+    }
+
+    private void OpenLabel()
+    {
+        if (File.Exists(LabelService.OutputPath))
+            Status = LabelService.OpenLabelFile();
+        else
+            Status = "Nog geen label gegenereerd.";
     }
 }

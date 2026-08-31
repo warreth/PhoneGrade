@@ -1,24 +1,13 @@
-using static CommandExecution.CommandExecution;
-namespace Activation;
+namespace AutoDymoLabel.Core;
+
+/// <summary>Bypasses the activation screen (ideviceactivation activate -b).</summary>
 public static class ActivationService
 {
-    public static async Task<string> SkipActivationAsync(string deviceId)
+    public static async Task<string> SkipActivationAsync(string udid)
     {
-        try
-        {
-            System.Console.WriteLine($"Activating device: {deviceId}");
-            return await ExecuteCommandAsync("ideviceactivation", $"-u {deviceId} activate -b");
-        }
-        catch (Exception ex)
-        {
-            if (ex.Message.Contains("drmHandshake"))
-            {
-                return "Please connect to the internet and try again";
-            }
-            else
-            {
-                return ex.Message;
-            }
-        }
+        var (output, exit) = await ToolRunner.RunAsync("ideviceactivation", $"-u {udid} activate -b", 60_000);
+        if (output.Contains("drmHandshake"))
+            return "Activation failed: no internet connection. Connect the device to Wi-Fi or ethernet and retry.";
+        return exit == 0 && !output.StartsWith("ERROR:") ? "Device activated." : output;
     }
 }

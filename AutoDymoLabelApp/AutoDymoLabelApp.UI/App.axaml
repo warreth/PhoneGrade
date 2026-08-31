@@ -1,15 +1,88 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="AutoDymoLabel.UI.App"
-             xmlns:local="using:AutoDymoLabel.UI"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
 
-    <Application.DataTemplates>
-        <local:ViewLocator/>
-    </Application.DataTemplates>
-  
+    <Application.Resources>
+        <!-- Palette shared by all windows; referenced via DynamicResource so the
+             dark/light switch is instant without recreating the visual tree. -->
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBgBrush" Color="#1B1B1F"/>
+                    <SolidColorBrush x:Key="CardBrush" Color="#26262B"/>
+                    <SolidColorBrush x:Key="CardDeepBrush" Color="#2E2E35"/>
+                    <SolidColorBrush x:Key="TextBrush" Color="#F2F2F4"/>
+                    <SolidColorBrush x:Key="TextDimBrush" Color="#9A9AA3"/>
+                    <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6"/>
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#60A5FA"/>
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#22A559"/>
+                    <SolidColorBrush x:Key="WarnBrush" Color="#F7BA00"/>
+                    <SolidColorBrush x:Key="DangerBrush" Color="#DC3545"/>
+                    <SolidColorBrush x:Key="InputBgBrush" Color="#35353D"/>
+                    <SolidColorBrush x:Key="TrackBrush" Color="#3C3C46"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBgBrush" Color="#F3F4F6"/>
+                    <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="CardDeepBrush" Color="#F0F1F4"/>
+                    <SolidColorBrush x:Key="TextBrush" Color="#1A1B1E"/>
+                    <SolidColorBrush x:Key="TextDimBrush" Color="#5A5B62"/>
+                    <SolidColorBrush x:Key="AccentBrush" Color="#2563EB"/>
+                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#3B82F6"/>
+                    <SolidColorBrush x:Key="SuccessBrush" Color="#16A34A"/>
+                    <SolidColorBrush x:Key="WarnBrush" Color="#D97706"/>
+                    <SolidColorBrush x:Key="DangerBrush" Color="#DC2626"/>
+                    <SolidColorBrush x:Key="InputBgBrush" Color="#E5E7EB"/>
+                    <SolidColorBrush x:Key="TrackBrush" Color="#D1D5DB"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
-        <FluentTheme />
+        <FluentTheme/>
+        <!-- Readability: control foregrounds follow the theme instead of hardcoded white. -->
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="{DynamicResource InputBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,7"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource InputBgBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+        <Style Selector="ComboBox:item TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{DynamicResource CardDeepBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+        <Style Selector="Button.accent">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.accent:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+        </Style>
+        <Style Selector="Separator">
+            <Setter Property="Background" Value="{DynamicResource TrackBrush}"/>
+        </Style>
+        <!-- Data validation errors shouldn't be invisible in light mode -->
+        <Style Selector="DataValidationErrors &gt; TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+        </Style>
     </Application.Styles>
 </Application>

@@ -1,14 +1,23 @@
 using Avalonia.Controls;
+using AutoDymoLabel.Core;
 using AutoDymoLabelApp.UI.ViewModels;
 
-namespace AutoDymoLabel.UI.Views
+namespace AutoDymoLabelApp.UI.Views;
+
+public partial class MainWindow : Window
 {
-    public partial class MainWindow : Window
+    public MainWindow()
     {
-        public MainWindow()
+        InitializeComponent();
+
+        var vm = new MainWindowViewModel();
+        DataContext = vm;
+
+        // Data editor requests arrive from the view model; keep a single editor instance.
+        vm.DataEditorRequested += data =>
         {
-            InitializeComponent();
-            DataContext = new MainWindowViewModel(); // Set the ViewModel as DataContext
-        }
+            var editor = new DataEditorWindow { DataContext = new DataEditorViewModel(data) };
+            editor.Show();
+        };
     }
 }
