@@ -4,6 +4,10 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.1.0)'
+        required: true
 
 permissions:
   contents: write
@@ -18,10 +22,15 @@ jobs:
             channel: win
             packDir: publish-win
             mainExe: AutoDymoLabelApp.UI.exe
-          - os: macos-latest
+          - os: macos-15-intel
             rid: osx-x64
-            channel: osx
-            packDir: publish-mac
+            channel: osx-x64
+            packDir: publish-osx-x64
+            mainExe: AutoDymoLabelApp.UI
+          - os: macos-latest
+            rid: osx-arm64
+            channel: osx-arm64
+            packDir: publish-osx-arm64
             mainExe: AutoDymoLabelApp.UI
     runs-on: ${{ matrix.os }}
     steps:
@@ -32,8 +41,10 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      # Pin vpk to the same version as the Velopack NuGet package; mixing
+      # versions is unsupported and breaks updates.
       - name: Install vpk (Velopack CLI)
-        run: dotnet tool update -g vpk
+        run: dotnet tool install --global vpk --version 1.2.0 || dotnet tool update --global vpk --version 1.2.0
 
       - name: Publish app
         run: >
@@ -44,6 +55,7 @@ jobs:
 
       # Bundle the libimobiledevice CLI tools next to the app exe so a fresh
       # install works without any manual setup (ToolRunner looks in ./idevice-tools).
+      # The Windows tarball ships the exes plus all required DLLs.
       - name: Bundle libimobiledevice tools (Windows)
         if: runner.os == 'Windows'
         shell: bash
@@ -51,30 +63,94 @@ jobs:
           mkdir -p ${{ matrix.packDir }}/idevice-tools
           curl -sL "https://github.com/L1ghtmann/libimobiledevice/releases/latest/download/libimobile-suite-latest_x86_64-mingw64.tar.xz" -o suite.tar.xz
           tar -xJf suite.tar.xz -C ${{ matrix.packDir }}/idevice-tools --strip-components=1
-          ls ${{ matrix.packDir }}/idevice-tools
+          test -f ${{ matrix.packDir }}/idevice-tools/idevice_id.exe
 
+      # Homebrew exes link against dylibs in the Homebrew prefix; copy both the
+      # tools and every non-system dylib they need, then rewrite the load paths
+      # so the bundle works on machines without libimobiledevice installed.
       - name: Bundle libimobiledevice tools (macOS)
         if: runner.os == 'macOS'
+        shell: bash
         run: |
+          set -e
           brew install libimobiledevice
-          mkdir -p ${{ matrix.packDir }}/idevice-tools
+          tools_dir="${{ matrix.packDir }}/idevice-tools"
+          mkdir -p "$tools_dir"
+
+          # Copy a binary's Homebrew dylibs (recursively) into the bundle.
+          copy_dylibs() {
+            local bin="$1"
+            while read -r lib; do
+              local name
+              name=$(basename "$lib")
+              if [ ! -f "$tools_dir/$name" ]; then
+                cp -L "$lib" "$tools_dir/$name"
+                copy_dylibs "$tools_dir/$name"
+              fi
+            done < <(otool -L "$bin" | awk '{print $1}' | grep -E '^/opt/homebrew|^/usr/local' || true)
+          }
+
+          # Rewrite every Homebrew load path in a bundled binary to @loader_path
+          # (resolves next to the file doing the loading, so both the tool exes
+          # and the dylibs find their siblings in idevice-tools/).
+          rewrite_paths() {
+            local bin="$1"
+            install_name_tool -add_rpath '@loader_path' "$bin" 2>/dev/null || true
+            while read -r lib; do
+              install_name_tool -change "$lib" "@rpath/$(basename "$lib")" "$bin"
+            done < <(otool -L "$bin" | awk '{print $1}' | grep -E '^/opt/homebrew|^/usr/local' || true)
+          }
+
           for t in idevice_id ideviceinfo idevicediagnostics ideviceactivation idevicecrashreport idevicepair; do
-            cp "$(command -v $t)" ${{ matrix.packDir }}/idevice-tools/ || true
+            bin="$(command -v "$t")"
+            if [ -z "$bin" ]; then
+              echo "ERROR: $t not found after brew install" >&2
+              exit 1
+            fi
+            cp "$bin" "$tools_dir/"
+            copy_dylibs "$bin"
+            rewrite_paths "$tools_dir/$(basename "$bin")"
           done
-          ls ${{ matrix.packDir }}/idevice-tools
+
+          # The copied dylibs reference each other via absolute paths too.
+          for dylib in "$tools_dir"/*.dylib; do
+            rewrite_paths "$dylib"
+          done
+
+          ls "$tools_dir"
+          # Smoke test: no un-rewritten Homebrew paths may remain.
+          bad=$(otool -L "$tools_dir/idevice_id" | grep -E '^/opt/homebrew|^/usr/local' || true)
+          if [ -n "$bad" ]; then
+            echo "unresolved Homebrew paths: $bad" >&2
+            exit 1
+          fi
 
       - name: Build Velopack installer
-        run: >
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            FRAMEWORK="net8.0-x64-desktop"
+            ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico"
+          else
+            FRAMEWORK="net8.0-${{ matrix.rid == 'osx-x64' && 'x64' || 'arm64' }}-desktop"
+            ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns"
+          fi
           vpk pack
-          --packId AutoDymoLabel
-          --packVersion ${GITHUB_REF_NAME#v}
-          --packTitle AutoDymoLabel
-          --packAuthors WaTh.dev
-          --packDir ${{ matrix.packDir }}
-          --mainExe ${{ matrix.mainExe }}
-          --channel ${{ matrix.channel }}
-          --outputDir releases
-          --delta None
+            --packId AutoDymoLabel
+            --packVersion "$VERSION"
+            --packTitle AutoDymoLabel
+            --packAuthors WaTh.dev
+            --packDir ${{ matrix.packDir }}
+            --mainExe ${{ matrix.mainExe }}
+            --framework "$FRAMEWORK"
+            --channel ${{ matrix.channel }}
+            --outputDir releases
+            --delta None
+            --icon "$ICON"
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
@@ -82,3 +158,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: releases/*
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
