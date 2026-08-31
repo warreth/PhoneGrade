@@ -92,56 +92,13 @@ Every option can also be changed in the app under Settings.
 
 ```bash
 dotnet build AutoDymoLabelApp/AutoDymoLabelApp.sln
-dotnet test AutoDymoLabelApp/Tests/Tests.csproj     # 62 tests, headless Avalonia included
+dotnet test AutoDymoLabelApp/Tests/Tests.csproj
 dotnet run --project AutoDymoLabelApp/AutoDymoLabelApp.UI
 ```
 
 Without bundled tools the app looks for them on PATH (`brew install
 libimobiledevice` on macOS).
 
-To render screenshots of every window and state:
 
-```bash
-dotnet run --project AutoDymoLabelApp/Tests -- /tmp/shots
-```
-
-## Building releases
-
-GitHub Actions builds on every `v*` tag:
-
-- **Windows**: `vpk pack` turns the publish output into a Velopack installer
-  (`.exe`) plus a portable zip, with the libimobiledevice tools from
-  [L1ghtmann/libimobiledevice](https://github.com/L1ghtmann/libimobiledevice)
-  releases bundled in.
-- **macOS (Apple Silicon and Intel)**: publish, Homebrew tools copied in with
-  their dylibs and load paths rewritten, then a `.pkg`.
-- **Linux**: Ubuntu tools plus their shared libraries copied in, packed as a
-  self-updating `.AppImage`.
-
-The tag version is stamped into the app build (`-p:Version`), so the app
-always knows what build it is running.
-
-You can also trigger a build by hand from the Actions tab with a version
-number.
-
-```bash
-git tag v1.1.0 && git push --tags
-```
-
-## Layout
-
-```
-AutoDymoLabelApp/
-├── AutoDymoLabelApp.Core/       # device tools, parsers, diagnostics, labels
-│   ├── Diagnostics/             # PanicRules (knowledge base) + DiagnosticService
-│   ├── DeviceService.cs         # libimobiledevice wrappers
-│   ├── LabelService.cs          # fills the .dymo template
-│   ├── Mappers.cs / Parsers.cs  # model/color/storage mapping
-│   └── ToolRunner.cs            # tool resolution + safe process running
-├── AutoDymoLabelApp.UI/         # Avalonia UI (MVVM, ReactiveUI)
-└── Tests/                       # xUnit suite, headless UI + visual theme tests
-```
-
-## License
-
-MIT, see [LICENSE](LICENSE).
+# License
+[AGPLv3](LICENSE)
