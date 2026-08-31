@@ -3,6 +3,8 @@ name: Release installers
 on:
   push:
     tags: ['v*']
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -32,6 +34,11 @@ jobs:
             channel: osx-arm64
             packDir: publish-osx-arm64
             mainExe: AutoDymoLabelApp.UI
+          - os: ubuntu-latest
+            rid: linux-x64
+            channel: linux-x64
+            packDir: publish-linux
+            mainExe: AutoDymoLabelApp.UI
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -46,11 +53,29 @@ jobs:
       - name: Install vpk (Velopack CLI)
         run: dotnet tool install --global vpk --version 1.2.0 || dotnet tool update --global vpk --version 1.2.0
 
+      # Single source of truth for the version: tag name (push/release events,
+      # 'v' prefix stripped) or the dispatch input. Used both to stamp the
+      # assembly and to version the packages.
+      - name: Compute version
+        shell: bash
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            V="${{ inputs.version }}"
+          else
+            V="${GITHUB_REF_NAME#v}"
+          fi
+          echo "APP_VERSION=$V" >> "$GITHUB_ENV"
+        env:
+          GITHUB_REF_NAME: ${{ github.event.release.tag_name || github.ref_name }}
+
+      # Stamp the tag version into the assembly so the app reports what build
+      # it is; without this every installer says the csproj fallback (1.1.0).
       - name: Publish app
         run: >
           dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj
           -c Release -r ${{ matrix.rid }}
           --self-contained false
+          -p:Version=${{ env.APP_VERSION }}
           -o ${{ matrix.packDir }}
 
       # Bundle the libimobiledevice CLI tools next to the app exe so a fresh
@@ -125,19 +150,55 @@ jobs:
             exit 1
           fi
 
+      # libimobiledevice on Linux: Ubuntu ships the tools; copy them plus their
+      # non-glibc shared libs next to the app (ToolRunner looks in ./idevice-tools).
+      - name: Bundle libimobiledevice tools (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -e
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libimobiledevice-utils usbmuxd
+          tools_dir="${{ matrix.packDir }}/idevice-tools"
+          mkdir -p "$tools_dir"
+
+          # Copy a binary's non-system shared libs (recursively) into the bundle.
+          copy_deps() {
+            local bin="$1"
+            while read -r lib; do
+              local name
+              name="$(basename "$lib")"
+              if [ ! -f "$tools_dir/$name" ]; then
+                sudo cp -L "$lib" "$tools_dir/$name"
+                copy_deps "$tools_dir/$name"
+              fi
+            done < <(ldd "$bin" | awk '{print $3}' | grep -vE '^/lib|^/usr/lib' || true)
+          }
+
+          for t in idevice_id ideviceinfo idevicediagnostics ideviceactivation idevicecrashreport idevicepair; do
+            bin="$(command -v "$t")"
+            [ -n "$bin" ] || { echo "ERROR: $t not found" >&2; exit 1; }
+            sudo cp "$bin" "$tools_dir/"
+            copy_deps "$bin"
+          done
+
+          ls "$tools_dir"
+          test -x "$tools_dir/idevice_id" -a -x "$tools_dir/ideviceinfo"
+
       - name: Build Velopack installer
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          fi
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            FRAMEWORK="net8.0-x64-desktop"
+          VERSION="${{ env.APP_VERSION }}"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            FRAMEWORK_ARGS=(-framework "net8.0-x64-desktop")
             ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico"
-          else
-            FRAMEWORK="net8.0-${{ matrix.rid == 'osx-x64' && 'x64' || 'arm64' }}-desktop"
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            FRAMEWORK_ARGS=(-framework "net8.0-${{ matrix.rid == 'osx-x64' && 'x64' || 'arm64' }}-desktop")
             ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns"
+          else
+            # Linux AppImages must be self-contained; no --framework there.
+            FRAMEWORK_ARGS=()
+            ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png"
           fi
           vpk pack
             --packId AutoDymoLabel
@@ -146,14 +207,11 @@ jobs:
             --packAuthors WaTh.dev
             --packDir ${{ matrix.packDir }}
             --mainExe ${{ matrix.mainExe }}
-            --framework "$FRAMEWORK"
             --channel ${{ matrix.channel }}
             --outputDir releases
             --delta None
             --icon "$ICON"
-        env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-
+            "${FRAMEWORK_ARGS[@]}"
       - name: Upload to GitHub release
         uses: softprops/action-gh-release@v2
         with:

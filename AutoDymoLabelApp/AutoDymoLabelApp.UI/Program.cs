@@ -15,6 +15,7 @@ sealed class Program
         // Must run before anything else, or the installed app won't respond to
         // install/update arguments.
         Velopack.VelopackApp.Build().Run();
+        _ = AutoUpdater.CheckAndApplyAsync(); // fire and forget: never block startup
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
