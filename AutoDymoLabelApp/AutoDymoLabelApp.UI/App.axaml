@@ -4,37 +4,43 @@
              RequestedThemeVariant="Dark">
 
     <Application.Resources>
-        <!-- Palette shared by all windows; referenced via DynamicResource so the
-             dark/light switch is instant without recreating the visual tree. -->
         <ResourceDictionary>
+            <!-- Severity brushes for the diagnostics dot (converter keys) -->
+            <SolidColorBrush x:Key="SeverityOkBrush" Color="{DynamicResource SuccessColor}"/>
+            <SolidColorBrush x:Key="SeverityWarningBrush" Color="{DynamicResource WarnColor}"/>
+            <SolidColorBrush x:Key="SeverityErrorBrush" Color="{DynamicResource DangerColor}"/>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="AppBgBrush" Color="#1B1B1F"/>
-                    <SolidColorBrush x:Key="CardBrush" Color="#26262B"/>
-                    <SolidColorBrush x:Key="CardDeepBrush" Color="#2E2E35"/>
-                    <SolidColorBrush x:Key="TextBrush" Color="#F2F2F4"/>
-                    <SolidColorBrush x:Key="TextDimBrush" Color="#9A9AA3"/>
-                    <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6"/>
-                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#60A5FA"/>
-                    <SolidColorBrush x:Key="SuccessBrush" Color="#22A559"/>
-                    <SolidColorBrush x:Key="WarnBrush" Color="#F7BA00"/>
-                    <SolidColorBrush x:Key="DangerBrush" Color="#DC3545"/>
-                    <SolidColorBrush x:Key="InputBgBrush" Color="#35353D"/>
-                    <SolidColorBrush x:Key="TrackBrush" Color="#3C3C46"/>
+                    <Color x:Key="AppBgColor">#141417</Color>
+                    <Color x:Key="CardColor">#1E1E24</Color>
+                    <Color x:Key="CardDeepColor">#26262E</Color>
+                    <Color x:Key="CardBorderColor">#2E2E38</Color>
+                    <Color x:Key="InputBgColor">#2A2A33</Color>
+                    <Color x:Key="TrackColor">#33333D</Color>
+                    <Color x:Key="TextColor">#F2F2F5</Color>
+                    <Color x:Key="TextDimColor">#9B9BA6</Color>
+                    <Color x:Key="AccentColor">#4F8CFF</Color>
+                    <Color x:Key="AccentHoverColor">#6B9FFF</Color>
+                    <Color x:Key="SuccessColor">#2FBF71</Color>
+                    <Color x:Key="WarnColor">#F5A623</Color>
+                    <Color x:Key="DangerColor">#F0564A</Color>
+                    <Color x:Key="OverlayColor">#99101014</Color>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="AppBgBrush" Color="#F3F4F6"/>
-                    <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF"/>
-                    <SolidColorBrush x:Key="CardDeepBrush" Color="#F0F1F4"/>
-                    <SolidColorBrush x:Key="TextBrush" Color="#1A1B1E"/>
-                    <SolidColorBrush x:Key="TextDimBrush" Color="#5A5B62"/>
-                    <SolidColorBrush x:Key="AccentBrush" Color="#2563EB"/>
-                    <SolidColorBrush x:Key="AccentHoverBrush" Color="#3B82F6"/>
-                    <SolidColorBrush x:Key="SuccessBrush" Color="#16A34A"/>
-                    <SolidColorBrush x:Key="WarnBrush" Color="#D97706"/>
-                    <SolidColorBrush x:Key="DangerBrush" Color="#DC2626"/>
-                    <SolidColorBrush x:Key="InputBgBrush" Color="#E5E7EB"/>
-                    <SolidColorBrush x:Key="TrackBrush" Color="#D1D5DB"/>
+                    <Color x:Key="AppBgColor">#EEF0F4</Color>
+                    <Color x:Key="CardColor">#FFFFFF</Color>
+                    <Color x:Key="CardDeepColor">#F5F6FA</Color>
+                    <Color x:Key="CardBorderColor">#E2E4EA</Color>
+                    <Color x:Key="InputBgColor">#E9EBF1</Color>
+                    <Color x:Key="TrackColor">#D8DAE2</Color>
+                    <Color x:Key="TextColor">#17181C</Color>
+                    <Color x:Key="TextDimColor">#5E6068</Color>
+                    <Color x:Key="AccentColor">#2E6BE6</Color>
+                    <Color x:Key="AccentHoverColor">#4A83F0</Color>
+                    <Color x:Key="SuccessColor">#1FA35A</Color>
+                    <Color x:Key="WarnColor">#C77E00</Color>
+                    <Color x:Key="DangerColor">#DC3528</Color>
+                    <Color x:Key="OverlayColor">#9910141A</Color>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -42,47 +48,131 @@
 
     <Application.Styles>
         <FluentTheme/>
-        <!-- Readability: control foregrounds follow the theme instead of hardcoded white. -->
-        <Style Selector="TextBox">
-            <Setter Property="Background" Value="{DynamicResource InputBgBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="10,7"/>
-        </Style>
-        <Style Selector="ComboBox">
-            <Setter Property="Background" Value="{DynamicResource InputBgBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="CornerRadius" Value="6"/>
-        </Style>
-        <Style Selector="ComboBox:item TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-        </Style>
-        <Style Selector="CheckBox">
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+
+        <!-- ============ Design system: one source of truth for every control ============ -->
+
+        <!-- Surfaces & text -->
+        <Style Selector="Window, UserControl">
+            <Setter Property="Background" Value="{DynamicResource AppBgColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
         </Style>
         <Style Selector="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
         </Style>
+        <Style Selector="TextBlock.dim">
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+
+        <!-- Cards: the single container style used everywhere -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{DynamicResource CardColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="20"/>
+        </Style>
+        <Style Selector="Border.card /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource TextColor}"/>
+        </Style>
+
+        <!-- Section headers inside cards -->
+        <Style Selector="TextBlock.cardTitle">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+
+        <!-- Primary / secondary buttons -->
         <Style Selector="Button">
-            <Setter Property="Background" Value="{DynamicResource CardDeepBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="Padding" Value="16,9"/>
-            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Background" Value="{DynamicResource InputBgColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
         </Style>
-        <Style Selector="Button.accent">
-            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+        </Style>
+        <Style Selector="Button:pressed">
+            <Setter Property="Background" Value="{DynamicResource CardBorderColor}"/>
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
-        <Style Selector="Button.accent:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+        <Style Selector="Button.primary:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentHoverColor}"/>
         </Style>
+        <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.big">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Padding" Value="20,13"/>
+        </Style>
+        <!-- big primary: needs both classes; keep one combined class to stay explicit -->
+        <Style Selector="Button.cta">
+            <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,13"/>
+        </Style>
+        <Style Selector="Button.cta:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentHoverColor}"/>
+        </Style>
+
+        <!-- Inputs -->
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="{DynamicResource InputBgColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource AccentColor}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,8"/>
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource InputBgColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="ComboBox:item">
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+        </Style>
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+        </Style>
+
+        <!-- Progress -->
+        <Style Selector="ProgressBar">
+            <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+            <Setter Property="Height" Value="6"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+
+        <!-- Separator -->
         <Style Selector="Separator">
-            <Setter Property="Background" Value="{DynamicResource TrackBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource CardBorderColor}"/>
         </Style>
-        <!-- Data validation errors shouldn't be invisible in light mode -->
+
+        <!-- Data validation errors must never disappear -->
         <Style Selector="DataValidationErrors &gt; TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerColor}"/>
         </Style>
     </Application.Styles>
 </Application>
