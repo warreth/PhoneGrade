@@ -8,9 +8,6 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <Version>1.1.0</Version>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- publish files land next to the exe; vpk packs that dir together with the
-         bundled idevice-tools directory into the installer. -->
-    <PublishDir Condition="'$(PackTools)' == 'true'">$(OutDir)</PublishDir>
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
