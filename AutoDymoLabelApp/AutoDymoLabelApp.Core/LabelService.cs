@@ -1,69 +1,77 @@
-// Handles label generation
-using static CommandExecution.CommandExecution;
-using System;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Threading;
 using System.Diagnostics;
 
+namespace AutoDymoLabel.Core;
+
+/// <summary>
+/// Generates DYMO labels by filling the my.dymo template, and opens them in the DYMO Label app.
+/// </summary>
 public static class LabelService
 {
-    static string templatePath = Path.GetFullPath("../Assets/my.dymo");
-    public static string outputPath = Path.GetFullPath("../Assets/gen_label.dymo");
-    public static void GenerateLabel(DeviceData data)
+    /// <summary>Template search order: configured path, app-dir Assets, cwd. Set by UI settings.</summary>
+    public static string? ConfiguredTemplatePath { get; set; }
+
+    public static string OutputPath { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "AutoDymoLabel", "gen_label.dymo");
+
+    /// <summary>Finds the label template shipped with the app, or the configured override.</summary>
+    public static string FindTemplate()
     {
-        File.Copy(templatePath, outputPath, true);
+        if (ConfiguredTemplatePath is { Length: > 0 } && File.Exists(ConfiguredTemplatePath))
+            return ConfiguredTemplatePath;
 
-        var content = File.ReadAllText(outputPath);
+        string exeDir = AppContext.BaseDirectory;
+        string[] candidates =
+        [
+            Path.Combine(exeDir, "Assets", "my.dymo"),
+            Path.Combine(exeDir, "my.dymo"),
+            Path.Combine(Directory.GetCurrentDirectory(), "Assets", "my.dymo"),
+        ];
+        foreach (string c in candidates) if (File.Exists(c)) return c;
+        throw new FileNotFoundException(
+            $"Label template my.dymo not found. Looked in: {string.Join(", ", candidates)}");
+    }
 
-        string batteryHealth = data.BatteryHealth.Contains("X") ? data.BatteryHealth : data.BatteryHealth + "%";
+    /// <summary>Generates the .dymo label file from the template. Returns the output path.</summary>
+    public static string GenerateLabel(DeviceData data)
+    {
+        string template = FindTemplate();
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputPath)!);
 
-        content = content
+        string battery = data.BatteryHealth.Contains('%') || data.BatteryHealth.Contains("NOBATT")
+            ? data.BatteryHealth
+            : $"{data.BatteryHealth}%";
+
+        string content = File.ReadAllText(template)
             .Replace("IDENTIFIER", data.Identifier)
             .Replace("MODEL", data.Model)
             .Replace("PCOLOR", data.Color)
-            .Replace("BATTERY", batteryHealth)
+            .Replace("BATTERY", battery)
             .Replace("QUALITY", data.Quality)
             .Replace("PAYM", data.PayMethod)
             .Replace("STORAGE", data.Storage);
 
-        File.WriteAllText(outputPath, content);
+        File.WriteAllText(OutputPath, content);
+        return OutputPath;
     }
 
-}
-
-public static class OpenLabel
-{
-    public static async Task<string> OpenLabelFileAsync()
+    /// <summary>Opens a file with the OS default handler (DYMO Label on .dymo).</summary>
+    public static string OpenLabelFile(string? path = null)
     {
-        string outputPath = LabelService.outputPath;
+        string file = path ?? OutputPath;
+        if (!File.Exists(file)) return $"ERROR: label file not found at {file}";
         try
         {
-            // Convert the relative path to an absolute path.
-            string absolutePath = Path.GetFullPath(outputPath);
-
-            // Check if the file exists.
-            if (!File.Exists(absolutePath))
+            using var _ = Process.Start(new ProcessStartInfo
             {
-                return $"Error: File not found at {absolutePath}";
-            }
-
-            // Create a ProcessStartInfo with UseShellExecute enabled.
-            var psi = new ProcessStartInfo
-            {
-                FileName = absolutePath,
-                UseShellExecute = true
-            };
-
-            // Start the process on a background thread.
-            await Task.Run(() => Process.Start(psi));
-
-            return "Successfully opened label file.";
+                FileName = file,
+                UseShellExecute = true,
+            });
+            return "Label opened in DYMO Label.";
         }
         catch (Exception ex)
         {
-            // Return detailed error information.
-            return $"Error: {ex.Message}\nStack Trace: {ex.StackTrace}";
+            return $"ERROR opening label: {ex.Message}";
         }
     }
 }

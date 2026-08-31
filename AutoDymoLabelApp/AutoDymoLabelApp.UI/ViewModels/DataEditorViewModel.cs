@@ -1,43 +1,26 @@
-using ReactiveUI;
 using System.Reactive;
-using System.Threading.Tasks;
+using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Threading.Tasks;
+using AutoDymoLabel.Core;
+using ReactiveUI;
 
-namespace AutoDymoLabelApp.UI.ViewModels
+namespace AutoDymoLabelApp.UI.ViewModels;
+
+/// <summary>Editable view of the device data that will land on the label.</summary>
+public class DataEditorViewModel(DeviceData deviceData, Action<DeviceData>? onSave = null)
 {
-    public class DataEditorViewModel : ReactiveObject
+    public DeviceData DeviceData { get; } = deviceData;
+    public ReactiveCommand<Unit, Unit> SaveAndOpenLabelCommand { get; }
+    public Interaction<Unit, Unit> CloseWindowInteraction { get; } = new();
+
+    public DataEditorViewModel() : this(new DeviceData()) { }
+
+    public async Task SaveAndOpenLabelAsync()
     {
-        private DeviceData _deviceData;
-        public DeviceData DeviceData
-        {
-            get => _deviceData;
-            set => this.RaiseAndSetIfChanged(ref _deviceData, value);
-        }
-
-        public ReactiveCommand<Unit, Unit> SaveAndOpenLabelCommand { get; }
-        public Interaction<Unit, Unit> CloseWindowInteraction { get; } = new Interaction<Unit, Unit>();
-
-        public DataEditorViewModel(DeviceData deviceData)
-        {
-            _deviceData = deviceData;
-            SaveAndOpenLabelCommand = ReactiveCommand.CreateFromTask(HandleSaveAndOpenLabelAsync);
-        }
-
-        private async Task HandleSaveAndOpenLabelAsync()
-        {
-            LabelService.GenerateLabel(DeviceData);
-            string result = await OpenLabel.OpenLabelFileAsync();
-
-            MainWindowViewModel.Instance.Progress = 0;
-            MainWindowViewModel.Instance.UpdateNotificationSafe(result);
-
-            // Signal the view to close; convert IObservable<Unit> to Task using ToTask()
-            await CloseWindowInteraction.Handle(Unit.Default).ToTask();
-        }
-    }
-
-    public interface ICloseable
-    {
-        void Close();
+        LabelService.GenerateLabel(DeviceData);
+        LabelService.OpenLabelFile();
+        onSave?.Invoke(DeviceData);
+        await CloseWindowInteraction.Handle(Unit.Default).ToTask();
     }
 }

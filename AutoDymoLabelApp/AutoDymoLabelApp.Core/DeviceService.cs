@@ -1,127 +1,104 @@
-using Parsing;
-using Mappings;
-using static CommandExecution.CommandExecution;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+namespace AutoDymoLabel.Core;
 
-namespace DeviceService
+/// <summary>High-level device operations via the bundled libimobiledevice tools.</summary>
+public static class DeviceService
 {
-    public static class DeviceService
+    /// <summary>All connected devices: UDID → "Name: Model" for display.</summary>
+    public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync()
     {
-        public static async Task<bool> IsDeviceConnectedAsync() //TODO: Fix thiss
+        var (output, _) = await ToolRunner.RunAsync("idevice_id", "-l");
+        if (!output.StartsWith("ERROR:") && output != "NO OUTPUT")
         {
-            var result = await ExecuteCommandAsync("ideviceinfo", "");
-            return !result.Contains("ERROR");
-        }
-
-        public static async Task<bool> IsDeviceTrustedAsync()
-        {
-            var result = await ExecuteCommandAsync("ideviceinfo", "");
-            return !result.Contains("ERROR: Could not connect to lockdownd");
-        }
-
-        public static async Task<bool> IsActivatedAsync()
-        {
-            var result = await ExecuteCommandAsync("ideviceinfo", "-k ActivationState");
-            return !result.Contains("Unactivated");
-        }
-
-        public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync()
-        {
-            string output = await ExecuteCommandAsync("idevice_id", "-l");
-            if (string.IsNullOrEmpty(output))
-            {
-                return new Dictionary<string, string>();
-            }
-
-            var deviceIds = output.Split('\n').Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
             var devices = new Dictionary<string, string>();
-
-            foreach (var deviceId in deviceIds)
+            foreach (var udid in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
-                string deviceName = (await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k DeviceName")).Trim();
-                string modelName = await GetModelAsync(deviceId);
-                string key = $"{deviceName}: {modelName}";
-                devices[deviceId] = key;
+                string id = udid.Trim();
+                if (id.Length == 0) continue;
+                string name = (await GetKeyAsync(id, "DeviceName")).Trim();
+                string model = Mappers.MapModel(await GetKeyAsync(id, "ProductType"));
+                devices[id] = string.IsNullOrWhiteSpace(name) ? model : $"{name} ({model})";
             }
-
             return devices;
         }
 
-        public static async Task<DeviceData> GetDeviceDataAsync(string deviceId)
+        // idevice_id unavailable — fall back to a full-blown tool that reports connectivity.
+        string probe = await GetKeyAsync("", "DeviceName");
+        return probe.StartsWith("ERROR:") || probe == "NO OUTPUT" || string.IsNullOrWhiteSpace(probe)
+            ? []
+            : throw new InvalidOperationException("idevice_id missing but lockdownd reachable");
+    }
+
+    /// <summary>Reads a single value from the lockdown domain. Returns "ERROR: ..." on failure.</summary>
+    public static async Task<string> GetKeyAsync(string udid, string key)
+    {
+        string udidArg = udid.Length > 0 ? $"-u {udid} " : "";
+        var (output, _) = await ToolRunner.RunAsync("ideviceinfo", $"{udidArg}-k {key}");
+        return output;
+    }
+
+    /// <summary>Device state summary used by the auto-flow and UI.</summary>
+    public enum ConnectionState { Connected, NotTrusted, NotActivated, NotFound, ToolsMissing }
+
+    public static async Task<ConnectionState> GetConnectionStateAsync(string? udid = null)
+    {
+        var (devices, _) = await ListUdidsSafeAsync();
+        if (devices.Length == 0) return ConnectionState.NotFound;
+        if (udid != null && !devices.Contains(udid)) return ConnectionState.NotFound;
+
+        string info = await GetKeyAsync(udid ?? devices[0], "ProductType");
+        if (info.Contains("Could not connect to lockdownd"))
+            return ConnectionState.NotTrusted;
+        if (info.StartsWith("ERROR:") || info == "NO OUTPUT")
+            return ConnectionState.ToolsMissing;
+        string activation = await GetKeyAsync(udid ?? devices[0], "ActivationState");
+        return activation.Contains("Unactivated") ? ConnectionState.NotActivated : ConnectionState.Connected;
+    }
+
+    private static async Task<(string[] Udids, string Raw)> ListUdidsSafeAsync()
+    {
+        var (output, _) = await ToolRunner.RunAsync("idevice_id", "-l");
+        if (output.StartsWith("ERROR:") || output == "NO OUTPUT") return ([], output);
+        return (output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(), output);
+    }
+
+    /// <summary>Collects all label + diagnostic data for one device.</summary>
+    public static async Task<DeviceData> GetDeviceDataAsync(string udid)
+    {
+        string productType = (await GetKeyAsync(udid, "ProductType")).Trim();
+        string imei = await GetKeyAsync(udid, "InternationalMobileEquipmentIdentity");
+        string serial = await GetKeyAsync(udid, "SerialNumber");
+
+        var data = new DeviceData
         {
-            return new DeviceData
-            {
-                Identifier = await GetIdentifierAsync(deviceId),
-                BatteryHealth = await GetBatteryHealthAsync(deviceId),
-                Color = await GetColorAsync(deviceId),
-                Storage = await GetStorageAsync(deviceId),
-                Model = await GetModelAsync(deviceId),
-                DeviceId = deviceId
-            };
-        }
+            DeviceId = udid,
+            ProductType = productType,
+            Model = Mappers.MapModel(productType),
+            Identifier = Parsers.ParseIdentifier(imei, serial),
+            Color = Mappers.MapColor(await GetKeyAsync(udid, "DeviceEnclosureColor")),
+            IosVersion = (await GetKeyAsync(udid, "ProductVersion")).Trim(),
+        };
 
-        private static async Task<string> GetBatteryHealthAsync(string deviceId)
-        {
-            // Attempt the first command
-            string output1 = await ExecuteCommandAsync("idevicediagnostics", $"-u {deviceId} ioregentry AppleARMPMUCharger");
+        data.Storage = await GetStorageAsync(udid);
+        data.BatteryHealth = await GetBatteryHealthAsync(udid);
+        return data;
+    }
 
-            // Attempt the second command if the first one fails
-            string output2 = await ExecuteCommandAsync("idevicediagnostics", $"-u {deviceId} ioregentry AppleSmartBattery");
+    private static async Task<string> GetBatteryHealthAsync(string udid)
+    {
+        var (plist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleSmartBattery");
+        if (plist.StartsWith("ERROR:")) return "NOBATT";
+        string health = Parsers.ParseBatteryHealth(plist);
+        if (health != "NOBATT") return health;
 
-            // Use the first successful output
-            string? plistOutput = !string.IsNullOrEmpty(output1) ? output1
-                            : !string.IsNullOrEmpty(output2) ? output2
-                            : null;
+        // Older devices expose the charger entry instead.
+        (plist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleARMPMUCharger");
+        return plist.StartsWith("ERROR:") ? "NOBATT" : Parsers.ParseBatteryHealth(plist);
+    }
 
-            // Parse the battery health
-            if (plistOutput != null && ParsingBatteryHealth.ParseBatteryHealth(plistOutput, out double? batteryHealth))
-            {
-                return $"{batteryHealth:F0}";
-            }
-            else
-            {
-                return "NOBATT";
-            }
-        }
-
-        private static async Task<string> GetColorAsync(string deviceId)
-        {
-            ColorMapper colorMapper = new();
-            string color = await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k DeviceEnclosureColor");
-            return colorMapper.MapColor(color);
-        }
-
-        private static async Task<string> GetStorageAsync(string deviceId)
-        {
-            string output = await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -q com.apple.disk_usage");
-            ParsingStorage.ParseStorage(output, out string totalDiskCapacityGB);
-            return totalDiskCapacityGB;
-        }
-
-        private static async Task<string> GetModelAsync(string deviceId)
-        {
-            ModelMapper modelMapper = new();
-            string model = await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k ProductType");
-            return modelMapper.MapModel(model);
-        }
-
-        private static async Task<string> GetImeiAsync(string deviceId)
-        {
-            return await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k InternationalMobileEquipmentIdentity");
-        }
-
-        private static async Task<string> GetSerialNumberAsync(string deviceId)
-        {
-            return await ExecuteCommandAsync("ideviceinfo", $"-u {deviceId} -k SerialNumber");
-        }
-
-        private static async Task<string> GetIdentifierAsync(string deviceId)
-        {
-            string imei = await GetImeiAsync(deviceId);
-            string serialNumber = await GetSerialNumberAsync(deviceId);
-            return ParsingDeviceIdentifier.ParseDeviceIdentifier(imei, serialNumber, out string identifier) ? identifier : "NOID";
-        }
+    private static async Task<string> GetStorageAsync(string udid)
+    {
+        var (output, _) = await ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.disk_usage");
+        string? raw = Parsers.KeyValue(output, "TotalDiskCapacity");
+        return long.TryParse(raw, out long bytes) ? Mappers.MapStorage(bytes) : "NOSTORAGE";
     }
 }
