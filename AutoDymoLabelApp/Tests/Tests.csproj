@@ -5,11 +5,27 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <OutputType>Exe</OutputType>
+    <!-- ProjectReference to a WinExe suppresses transitive package copy;
+         force it so testhost can resolve Avalonia from this bin dir. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <!-- ScreenshotRunner.Main is the single entry point; the xUnit test classes
+         run via the VSTest adapter without needing Main. -->
+    <StartupObject>ScreenshotRunner</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AutoDymoLabelApp.Core\AutoDymoLabelApp.Core.csproj" />
+    <ProjectReference Include="..\AutoDymoLabelApp.UI\AutoDymoLabelApp.UI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.2.3" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.14.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
   </ItemGroup>
 
 </Project>
