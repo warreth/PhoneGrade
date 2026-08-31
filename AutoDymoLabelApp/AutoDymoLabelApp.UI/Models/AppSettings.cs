@@ -18,8 +18,10 @@ public class AppSettings
     public string? TemplatePath { get; set; }             // custom my.dymo override
 
     [JsonIgnore]
-    private static string SettingsDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AutoDymoLabel");
+    private static string SettingsDir =>
+        Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR") is { Length: > 0 } overrideDir
+            ? overrideDir
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AutoDymoLabel");
     [JsonIgnore]
     private static string SettingsPath => Path.Combine(SettingsDir, "settings.json");
 
