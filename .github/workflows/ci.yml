@@ -32,13 +32,15 @@ jobs:
         run: |
           set -e
           dotnet tool install --global vpk --version 1.2.0 || dotnet tool update --global vpk --version 1.2.0
+          # .NET bootstrap is Windows-only (Velopack docs); mac/linux go
+          # self-contained and skip --framework.
           case "$RUNNER_OS" in
-            Windows) RID=win-x64;    ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico; EXTRA=(-framework net8.0-x64-desktop) ;;
-            macOS)   RID=osx-arm64;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns;   EXTRA=(-framework net8.0-arm64-desktop) ;;
-            Linux)   RID=linux-x64;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png;    EXTRA=() ;;
+            Windows) RID=win-x64;   SC=false; ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico; EXTRA=(-framework net8.0-x64-desktop) ;;
+            macOS)   RID=osx-arm64; SC=true;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns;    EXTRA=() ;;
+            Linux)   RID=linux-x64; SC=true;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png;      EXTRA=() ;;
           esac
           dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj \
-            -c Release -r "$RID" --self-contained false -o pkg-smoke
+            -c Release -r "$RID" --self-contained "$SC" -o pkg-smoke
           if [ "$RUNNER_OS" = "Windows" ]; then
             mkdir -p pkg-smoke/idevice-tools
             curl -sL "https://github.com/L1ghtmann/libimobiledevice/releases/latest/download/libimobile-suite-latest_x86_64-mingw64.tar.xz" -o suite.tar.xz
