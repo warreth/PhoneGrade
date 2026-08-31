@@ -1,0 +1,84 @@
+name: Release installers
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            channel: win
+            packDir: publish-win
+            mainExe: AutoDymoLabelApp.UI.exe
+          - os: macos-latest
+            rid: osx-x64
+            channel: osx
+            packDir: publish-mac
+            mainExe: AutoDymoLabelApp.UI
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install vpk (Velopack CLI)
+        run: dotnet tool update -g vpk
+
+      - name: Publish app
+        run: >
+          dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj
+          -c Release -r ${{ matrix.rid }}
+          --self-contained false
+          -o ${{ matrix.packDir }}
+
+      # Bundle the libimobiledevice CLI tools next to the app exe so a fresh
+      # install works without any manual setup (ToolRunner looks in ./idevice-tools).
+      - name: Bundle libimobiledevice tools (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p ${{ matrix.packDir }}/idevice-tools
+          curl -sL "https://github.com/L1ghtmann/libimobiledevice/releases/latest/download/libimobile-suite-latest_x86_64-mingw64.tar.xz" -o suite.tar.xz
+          tar -xJf suite.tar.xz -C ${{ matrix.packDir }}/idevice-tools --strip-components=1
+          ls ${{ matrix.packDir }}/idevice-tools
+
+      - name: Bundle libimobiledevice tools (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install libimobiledevice
+          mkdir -p ${{ matrix.packDir }}/idevice-tools
+          for t in idevice_id ideviceinfo idevicediagnostics ideviceactivation idevicecrashreport idevicepair; do
+            cp "$(command -v $t)" ${{ matrix.packDir }}/idevice-tools/ || true
+          done
+          ls ${{ matrix.packDir }}/idevice-tools
+
+      - name: Build Velopack installer
+        run: >
+          vpk pack
+          --packId AutoDymoLabel
+          --packVersion ${GITHUB_REF_NAME#v}
+          --packTitle AutoDymoLabel
+          --packAuthors WaTh.dev
+          --packDir ${{ matrix.packDir }}
+          --mainExe ${{ matrix.mainExe }}
+          --channel ${{ matrix.channel }}
+          --outputDir releases
+          --delta None
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Upload to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: releases/*
