@@ -246,6 +246,9 @@ jobs:
       - name: Build Velopack installer
         shell: bash
         run: |
+          # ~/.dotnet/tools is on PATH on GitHub runners but not everywhere
+          # (e.g. local runs with nektos/act); export it so vpk always resolves.
+          export PATH="$PATH:$HOME/.dotnet/tools"
           VERSION="${{ env.APP_VERSION }}"
           if [ "${{ runner.os }}" = "Windows" ]; then
             # Only Windows can bootstrap the .NET runtime from the installer.
@@ -259,17 +262,17 @@ jobs:
               ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png"
             fi
           fi
-          vpk pack
-            --packId AutoDymoLabel
-            --packVersion "$VERSION"
-            --packTitle AutoDymoLabel
-            --packAuthors WaTh.dev
-            --packDir ${{ matrix.packDir }}
-            --mainExe ${{ matrix.mainExe }}
-            --channel ${{ matrix.channel }}
-            --outputDir releases
-            --delta None
-            --icon "$ICON"
+          vpk pack \
+            --packId AutoDymoLabel \
+            --packVersion "$VERSION" \
+            --packTitle AutoDymoLabel \
+            --packAuthors WaTh.dev \
+            --packDir ${{ matrix.packDir }} \
+            --mainExe ${{ matrix.mainExe }} \
+            --channel ${{ matrix.channel }} \
+            --outputDir releases \
+            --delta None \
+            --icon "$ICON" \
             "${FRAMEWORK_ARGS[@]}"
       - name: Upload to GitHub release
         uses: softprops/action-gh-release@v2

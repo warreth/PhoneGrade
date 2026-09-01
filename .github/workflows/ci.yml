@@ -31,6 +31,10 @@ jobs:
         shell: bash
         run: |
           set -e
+          # ~/.dotnet/tools is on PATH on GitHub runners but not everywhere
+          # (e.g. local runs with nektos/act); export it so vpk always resolves.
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          if [ "$RUNNER_OS" = "Linux" ]; then sudo apt-get update -qq && sudo apt-get install -y -qq squashfs-tools; fi
           dotnet tool install --global vpk --version 1.2.0 || dotnet tool update --global vpk --version 1.2.0
           # .NET bootstrap is Windows-only (Velopack docs); mac/linux go
           # self-contained and skip --framework.
