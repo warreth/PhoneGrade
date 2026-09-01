@@ -252,7 +252,7 @@ jobs:
           VERSION="${{ env.APP_VERSION }}"
           if [ "${{ runner.os }}" = "Windows" ]; then
             # Only Windows can bootstrap the .NET runtime from the installer.
-            FRAMEWORK_ARGS=(-framework "net8.0-x64-desktop")
+            FRAMEWORK_ARGS=(--framework "net8.0-x64-desktop")
             ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico"
           else
             FRAMEWORK_ARGS=() # self-contained publish: nothing to bootstrap
