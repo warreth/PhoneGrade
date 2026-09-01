@@ -70,6 +70,16 @@ jobs:
             # Tags may carry prerelease suffixes (v5.0-beta1); pass through.
             V="${GITHUB_REF_NAME#v}"
           fi
+          # vpk requires 3-part SemVer2; pad '5.0' to '5.0.0', keep any
+          # prerelease suffix ('5.0-beta1' becomes '5.0.0-beta1').
+          S=""
+          case "$V" in *-*) S="${V#*-}"; V="${V%%-*}";; esac
+          case "$V" in
+            *.*.*) ;;
+            *.*)  V="$V.0" ;;
+            *)    V="$V.0.0" ;;
+          esac
+          [ -n "$S" ] && V="$V-$S"
           echo "APP_VERSION=$V" >> "$GITHUB_ENV"
         env:
           GITHUB_REF_NAME: ${{ github.event.release.tag_name || github.ref_name }}
@@ -109,9 +119,19 @@ jobs:
         shell: bash
         run: |
           set -e
-          brew install libimobiledevice
+          brew install libimobiledevice libtool autoconf automake pkg-config
           tools_dir="${{ matrix.packDir }}/idevice-tools"
           mkdir -p "$tools_dir"
+
+          # ideviceactivation is a separate project, not in Homebrew's
+          # libimobiledevice; build it from the release tarball.
+          curl -sL "https://github.com/libimobiledevice/libideviceactivation/archive/refs/tags/1.1.1.tar.gz" -o /tmp/act.tar.gz
+          mkdir /tmp/act-src && tar -xzf /tmp/act.tar.gz -C /tmp/act-src --strip-components=1
+          ( cd /tmp/act-src && NOCONFIGURE=1 ./autogen.sh && ./configure --prefix=/tmp/act-inst \
+              && make -j"$(sysctl -n hw.ncpu)" && make install )
+          # Homebrew's libxml2/libcurl satisfy the activation deps; they are
+          # picked up by brew_libs below and bundled automatically.
+          export PATH="/tmp/act-inst/bin:$PATH"
 
           # Homebrew dylibs referenced by a binary, one per line (header stripped).
           brew_libs() {
@@ -175,15 +195,19 @@ jobs:
         shell: bash
         run: |
           set -e
+          # Only packages that actually exist in noble (libimobiledevice-glue-dev
+          # and libtatsu-dev are not in Ubuntu; libideviceactivation needs
+          # neither, just libimobiledevice/libplist/libcurl/libxml2).
           sudo apt-get update -qq
           sudo apt-get install -y -qq libimobiledevice-utils usbmuxd patchelf \
             build-essential pkg-config autoconf automake libtool-bin \
-            libplist-dev libusbmuxd-dev libimobiledevice-dev libimobiledevice-glue-dev \
-            libtatsu-dev libxml2-dev libcurl4-openssl-dev
+            libplist-dev libusbmuxd-dev libimobiledevice-dev \
+            libxml2-dev libcurl4-openssl-dev squashfs-tools
           tools_dir="${{ matrix.packDir }}/idevice-tools"
           mkdir -p "$tools_dir"
 
-          # ideviceactivation is not packaged by Ubuntu; build from source.
+          # ideviceactivation is not packaged by Ubuntu; build from source
+          # (needs libimobiledevice >= 1.3.0; noble ships exactly that).
           curl -sL "https://github.com/libimobiledevice/libideviceactivation/archive/refs/tags/1.1.1.tar.gz" -o act.tar.gz
           mkdir act-src && tar -xzf act.tar.gz -C act-src --strip-components=1
           ( cd act-src && ./autogen.sh && make -j"$(nproc)" && sudo make install )
