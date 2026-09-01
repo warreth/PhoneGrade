@@ -35,9 +35,9 @@ jobs:
           # .NET bootstrap is Windows-only (Velopack docs); mac/linux go
           # self-contained and skip --framework.
           case "$RUNNER_OS" in
-            Windows) RID=win-x64;   SC=false; ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico; EXTRA=(-framework net8.0-x64-desktop) ;;
-            macOS)   RID=osx-arm64; SC=true;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns;    EXTRA=() ;;
-            Linux)   RID=linux-x64; SC=true;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png;      EXTRA=() ;;
+            Windows) RID=win-x64;   SC=false; ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico; MAIN=AutoDymoLabelApp.UI.exe; EXTRA=(--framework net8.0-x64-desktop) ;;
+            macOS)   RID=osx-arm64; SC=true;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns;    MAIN=AutoDymoLabelApp.UI;    EXTRA=() ;;
+            Linux)   RID=linux-x64; SC=true;  ICON=AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png;      MAIN=AutoDymoLabelApp.UI;    EXTRA=() ;;
           esac
           dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj \
             -c Release -r "$RID" --self-contained "$SC" -o pkg-smoke
@@ -48,6 +48,6 @@ jobs:
             test -f pkg-smoke/idevice-tools/idevice_id.exe
           fi
           vpk pack --packId SmokeTest --packVersion 0.0.1 --packDir pkg-smoke \
-            --mainExe AutoDymoLabelApp.UI --channel ci --outputDir releases-smoke \
+            --mainExe "$MAIN" --channel ci --outputDir releases-smoke \
             --delta None --icon "$ICON" "${EXTRA[@]}"
           ls releases-smoke
