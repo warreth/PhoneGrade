@@ -9,6 +9,7 @@
             <SolidColorBrush x:Key="SeverityOkBrush" Color="{DynamicResource SuccessColor}"/>
             <SolidColorBrush x:Key="SeverityWarningBrush" Color="{DynamicResource WarnColor}"/>
             <SolidColorBrush x:Key="SeverityErrorBrush" Color="{DynamicResource DangerColor}"/>
+            <SolidColorBrush x:Key="ComponentUnknownBrush" Color="{DynamicResource CardBorderColor}"/>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
                     <Color x:Key="AppBgColor">#141417</Color>

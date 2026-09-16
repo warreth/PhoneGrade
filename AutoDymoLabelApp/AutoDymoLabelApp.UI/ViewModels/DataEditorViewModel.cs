@@ -31,6 +31,7 @@ public class DataEditorViewModel
     public async Task SaveAndOpenLabelAsync()
     {
         LabelService.GenerateLabel(DeviceData);
+        AuditLogService.ExportAuditLog(DeviceData);
         LabelService.OpenLabelFile();
         await CloseWindowInteraction.Handle(Unit.Default).ToTask();
     }
