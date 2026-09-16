@@ -115,6 +115,17 @@ public class UiTests : IDisposable
         Assert.NotNull(c.Convert(null, typeof(IBrush), null, null)); // unknown → fallback
     }
 
+    [AvaloniaFact]
+    public void ComponentStatusConverter_MapsAllStatusesToBrushes()
+    {
+        var c = ComponentStatusToBrushConverter.Instance;
+        Assert.NotNull(c.Convert(ComponentStatusType.Match, typeof(IBrush), null, null));
+        Assert.NotNull(c.Convert(ComponentStatusType.Mismatch, typeof(IBrush), null, null));
+        Assert.NotNull(c.Convert(ComponentStatusType.Untrusted, typeof(IBrush), null, null));
+        Assert.NotNull(c.Convert(ComponentStatusType.Unknown, typeof(IBrush), null, null));
+        Assert.NotNull(c.Convert(null, typeof(IBrush), null, null));
+    }
+
     public void Dispose()
     {
         if (_origOverride is null)

@@ -66,6 +66,87 @@ public class ParsersTests
     [Fact]
     public void KeyValue_MissingKey_ReturnsNull()
         => Assert.Null(Parsers.KeyValue("nothing here", "TotalDiskCapacity"));
+
+    [Fact]
+    public void PlistString_ExtractsStringValue()
+    {
+        string plist = "<key>Serial</key><string>F1734892AA</string><key>Other</key><string>XYZ</string>";
+        Assert.Equal("F1734892AA", Parsers.PlistString(plist, "Serial"));
+    }
+
+    [Fact]
+    public void PlistData_ExtractsDataContent()
+    {
+        string plist = "<key>NvramData</key><data>MDEyMzQ1Njc4OQ==</data>";
+        Assert.Equal("MDEyMzQ1Njc4OQ==", Parsers.PlistData(plist, "NvramData"));
+    }
+
+    [Fact]
+    public void ParseKeyValues_ParsesBothColonAndEquals()
+    {
+        string output = "OriginalBatterySerialNumber: F8Y1234567\nDisplaySerialNumber = DTM98765432\nInvalidLine";
+        var dict = Parsers.ParseKeyValues(output);
+        Assert.Equal("F8Y1234567", dict["OriginalBatterySerialNumber"]);
+        Assert.Equal("DTM98765432", dict["DisplaySerialNumber"]);
+        Assert.False(dict.ContainsKey("InvalidLine"));
+    }
+
+    [Fact]
+    public void CleanSerial_DecodesHexAscii()
+    {
+        // "F8Y51234ABCD" in hex is 463859353132333441424344
+        string hex = "463859353132333441424344";
+        Assert.Equal("F8Y51234ABCD", Parsers.CleanSerial(hex));
+    }
+
+    [Fact]
+    public void CleanSerial_DecodesBase64()
+    {
+        // "F8Y51234ABCD" in base64 is RjhZNTEyMzRBQkNE
+        string b64 = "RjhZNTEyMzRBQkNE";
+        Assert.Equal("F8Y51234ABCD", Parsers.CleanSerial(b64));
+    }
+
+    [Fact]
+    public void CleanSerial_PreservesPlainSerial()
+    {
+        Assert.Equal("F8Y51234ABCD", Parsers.CleanSerial("  F8Y51234ABCD  "));
+    }
+
+    [Theory]
+    [InlineData("F8Y1234", "F8Y1234", ComponentStatusType.Match)]
+    [InlineData("f8y1234", "F8Y1234", ComponentStatusType.Match)] // Case-insensitive
+    [InlineData("F8Y1234", "F8Y9999", ComponentStatusType.Mismatch)]
+    [InlineData("[MASKED]", "F8Y1234", ComponentStatusType.Untrusted)]
+    [InlineData("F8Y1234", "UNAVAILABLE", ComponentStatusType.Untrusted)]
+    [InlineData("MASKED", "F8Y1234", ComponentStatusType.Untrusted)]
+    [InlineData("F8Y1234", "PROTECTED", ComponentStatusType.Untrusted)]
+    [InlineData("NOT_PAIRED", "F8Y1234", ComponentStatusType.Untrusted)]
+    [InlineData("", "F8Y1234", ComponentStatusType.Unknown)]
+    [InlineData("F8Y1234", null, ComponentStatusType.Unknown)]
+    [InlineData(null, null, ComponentStatusType.Unknown)]
+    public void VerifyComponent_EvaluatesCorrectly(string? live, string? factory, ComponentStatusType expected)
+    {
+        Assert.Equal(expected, Parsers.VerifyComponent(live, factory));
+    }
+
+    [Fact]
+    public void BatteryMetrics_ExtendedParsingFromPlist()
+    {
+        string plist = """
+            <dict>
+                <key>CycleCount</key><integer>321</integer>
+                <key>DesignCapacity</key><integer>3227</integer>
+                <key>AppleRawMaxCapacity</key><integer>2980</integer>
+                <key>BatterySerialNumber</key><string>F8Y8324ABC1</string>
+            </dict>
+            """;
+
+        Assert.Equal(321, Parsers.PlistInt(plist, "CycleCount"));
+        Assert.Equal(3227, Parsers.PlistInt(plist, "DesignCapacity"));
+        Assert.Equal(2980, Parsers.PlistInt(plist, "AppleRawMaxCapacity"));
+        Assert.Equal("F8Y8324ABC1", Parsers.PlistString(plist, "BatterySerialNumber"));
+    }
 }
 
 public class MappersTests
@@ -237,5 +318,77 @@ public class LabelServiceTests : IDisposable
     {
         if (File.Exists(_template)) File.Delete(_template);
         LabelService.ConfiguredTemplatePath = null;
+    }
+}
+
+public class AuditLogServiceTests : IDisposable
+{
+    private readonly string _tempDir;
+
+    public AuditLogServiceTests()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), $"audit-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_tempDir);
+    }
+
+    [Fact]
+    public void ExportAuditLog_CreatesJsonFileWithAllFields()
+    {
+        var deviceData = new DeviceData
+        {
+            Identifier = "356938035643809",
+            DeviceId = "00008110-001234567890",
+            Model = "13Pro",
+            ProductType = "iPhone14,2",
+            Color = "Wit",
+            Storage = "256GB",
+            BatteryHealth = "94",
+            Quality = "A",
+            PayMethod = "Marge",
+            IosVersion = "17.4",
+            BatteryCycleCount = 142,
+            BatteryDesignCapacity = 3095,
+            BatteryCurrentCapacity = 2900,
+            BatterySerialNumber = "F8Y12345678",
+            OriginalBatterySerialNumber = "F8Y12345678",
+            DisplaySerialNumber = "DTM98765432",
+            CoverGlassSerialNumber = "CG123456",
+            FrontCameraSerialNumber = "FCAM999",
+            RearCameraSerialNumber = "RCAM888",
+            MotherboardSerialNumber = "C39ZX01",
+            ComponentChecks =
+            [
+                new ComponentStatus
+                {
+                    Name = "Batterij",
+                    SerialRead = "F8Y12345678",
+                    SerialOriginal = "F8Y12345678",
+                    Status = ComponentStatusType.Match
+                },
+                new ComponentStatus
+                {
+                    Name = "Scherm (LCM)",
+                    SerialRead = "DTM98765432",
+                    SerialOriginal = "DTM00000000",
+                    Status = ComponentStatusType.Mismatch
+                }
+            ]
+        };
+
+        string exportedPath = AuditLogService.ExportAuditLog(deviceData, _tempDir);
+
+        Assert.True(File.Exists(exportedPath));
+        string content = File.ReadAllText(exportedPath);
+        Assert.Contains("356938035643809", content);
+        Assert.Contains("F8Y12345678", content);
+        Assert.Contains("Match", content);
+        Assert.Contains("Mismatch", content);
+        Assert.Contains("\"BatteryCycleCount\": 142", content);
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_tempDir))
+            Directory.Delete(_tempDir, true);
     }
 }
