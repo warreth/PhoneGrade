@@ -25,6 +25,7 @@ public class MainWindowViewModel : ReactiveObject
     private IDisposable? _watcher;
 
     public ObservableCollection<DiagnosticIssue> Issues { get; } = [];
+    public ObservableCollection<ComponentStatus> ComponentChecks { get; } = [];
 
     private ObservableCollection<KeyValuePair<string, string>> _devices = [];
     public ObservableCollection<KeyValuePair<string, string>> Devices
@@ -254,6 +255,7 @@ public class MainWindowViewModel : ReactiveObject
         Busy = true;
         _flowCts = new CancellationTokenSource();
         Issues.Clear();
+        ComponentChecks.Clear();
         HasIssues = false;
         Progress = 5;
         try
@@ -286,6 +288,9 @@ public class MainWindowViewModel : ReactiveObject
             // 3. Read device data
             Status = "Toesteldata uitlezen…";
             DeviceData = await DeviceService.GetDeviceDataAsync(udid);
+            ComponentChecks.Clear();
+            foreach (var check in DeviceData.ComponentChecks)
+                ComponentChecks.Add(check);
             Progress = 60;
 
             // 4. Battery checker
@@ -361,6 +366,7 @@ public class MainWindowViewModel : ReactiveObject
         {
             Status = "Label genereren…";
             string path = LabelService.GenerateLabel(DeviceData);
+            AuditLogService.ExportAuditLog(DeviceData);
             Status = LabelService.OpenLabelFile(path);
             Progress = 100;
         }
