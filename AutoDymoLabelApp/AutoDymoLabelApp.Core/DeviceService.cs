@@ -36,6 +36,14 @@ public static class DeviceService
         return output;
     }
 
+    /// <summary>Reads domain-specific output from ideviceinfo. Returns empty string on failure.</summary>
+    public static async Task<string> GetDomainAsync(string udid, string domain)
+    {
+        string udidArg = udid.Length > 0 ? $"-u {udid} " : "";
+        var (output, _) = await ToolRunner.RunAsync("ideviceinfo", $"{udidArg}-q {domain}");
+        return output.StartsWith("ERROR:") ? "" : output;
+    }
+
     /// <summary>Device state summary used by the auto-flow and UI.</summary>
     public enum ConnectionState { Connected, NotTrusted, NotActivated, NotFound, ToolsMissing }
 
@@ -76,23 +84,178 @@ public static class DeviceService
             Identifier = Parsers.ParseIdentifier(imei, serial),
             Color = Mappers.MapColor(await GetKeyAsync(udid, "DeviceEnclosureColor")),
             IosVersion = (await GetKeyAsync(udid, "ProductVersion")).Trim(),
+            MotherboardSerialNumber = serial.StartsWith("ERROR:") ? "" : serial.Trim(),
         };
 
         data.Storage = await GetStorageAsync(udid);
-        data.BatteryHealth = await GetBatteryHealthAsync(udid);
+        await PopulateBatteryMetricsAsync(udid, data);
+        await PopulateHardwareSerialsAndChecksAsync(udid, data);
+
         return data;
     }
 
-    private static async Task<string> GetBatteryHealthAsync(string udid)
+    /// <summary>Extracts extended battery metrics from ioregentry and com.apple.mobile.battery.</summary>
+    public static async Task PopulateBatteryMetricsAsync(string udid, DeviceData data)
     {
         var (plist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleSmartBattery");
-        if (plist.StartsWith("ERROR:")) return "NOBATT";
-        string health = Parsers.ParseBatteryHealth(plist);
-        if (health != "NOBATT") return health;
+        if (plist.StartsWith("ERROR:") || string.IsNullOrWhiteSpace(plist))
+        {
+            (plist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleARMPMUCharger");
+        }
 
-        // Older devices expose the charger entry instead.
-        (plist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleARMPMUCharger");
-        return plist.StartsWith("ERROR:") ? "NOBATT" : Parsers.ParseBatteryHealth(plist);
+        bool hasIoreg = !plist.StartsWith("ERROR:") && !string.IsNullOrWhiteSpace(plist);
+
+        int? cycle = hasIoreg ? Parsers.PlistInt(plist, "CycleCount") : null;
+        int? design = hasIoreg ? Parsers.PlistInt(plist, "DesignCapacity") : null;
+        int? rawMax = hasIoreg ? Parsers.PlistInt(plist, "AppleRawMaxCapacity")
+                              ?? Parsers.PlistInt(plist, "MaxCapacity")
+                              ?? Parsers.PlistInt(plist, "NominalChargeCapacity") : null;
+        string? battSerial = hasIoreg ? Parsers.PlistString(plist, "Serial")
+                                     ?? Parsers.PlistString(plist, "BatterySerialNumber") : null;
+
+        // Fall back to lockdown com.apple.mobile.battery domain if values missing
+        if (cycle == null || design == null || rawMax == null || string.IsNullOrEmpty(battSerial))
+        {
+            string battDomain = await GetDomainAsync(udid, "com.apple.mobile.battery");
+            if (!string.IsNullOrWhiteSpace(battDomain))
+            {
+                cycle ??= int.TryParse(Parsers.KeyValue(battDomain, "CycleCount"), out int c) ? c : null;
+                design ??= int.TryParse(Parsers.KeyValue(battDomain, "DesignCapacity"), out int d) ? d : null;
+                rawMax ??= int.TryParse(Parsers.KeyValue(battDomain, "AppleRawMaxCapacity")
+                                     ?? Parsers.KeyValue(battDomain, "NominalChargeCapacity"), out int cur) ? cur : null;
+                battSerial ??= Parsers.KeyValue(battDomain, "Serial")
+                              ?? Parsers.KeyValue(battDomain, "BatterySerialNumber");
+            }
+        }
+
+        data.BatteryCycleCount = cycle ?? 0;
+        data.BatteryDesignCapacity = design ?? 0;
+        data.BatteryCurrentCapacity = rawMax ?? 0;
+        data.BatterySerialNumber = Parsers.CleanSerial(battSerial);
+
+        if (hasIoreg)
+        {
+            string health = Parsers.ParseBatteryHealth(plist);
+            data.BatteryHealth = health;
+        }
+
+        if (data.BatteryHealth == "NOBATT" && data.BatteryDesignCapacity > 0 && data.BatteryCurrentCapacity > 0)
+        {
+            data.BatteryHealth = $"{Math.Min((double)data.BatteryCurrentCapacity / data.BatteryDesignCapacity * 100, 100):F0}";
+        }
+    }
+
+    /// <summary>Queries OEM component serials and performs verification comparisons.</summary>
+    public static async Task PopulateHardwareSerialsAndChecksAsync(string udid, DeviceData data)
+    {
+        // 1. Diagnostics / chargethrough / factory serials via lockdown domains
+        string diagDomain = await GetDomainAsync(udid, "com.apple.mobile.diagnostics");
+        string chargeDictStr = await GetDomainAsync(udid, "com.apple.mobile.chargethrough");
+
+        var diagDict = Parsers.ParseKeyValues(diagDomain);
+        var chargeDict = Parsers.ParseKeyValues(chargeDictStr);
+
+        // 2. Query ioregentry for display/LCD and camera details
+        var (displayPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleCLCD2");
+        if (displayPlist.StartsWith("ERROR:"))
+        {
+            (displayPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry IOMobileFramebuffer");
+        }
+
+        var (camPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleH10CamIn");
+        if (camPlist.StartsWith("ERROR:"))
+        {
+            (camPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleH6CamIn");
+        }
+
+        // Live serials
+        string displaySerial = Parsers.CleanSerial(
+            Parsers.PlistString(displayPlist, "DisplaySerial") ??
+            Parsers.PlistString(displayPlist, "SerialNumber") ??
+            FindDictValue(diagDict, "DisplaySerialNumber", "ScreenSerial", "LCDSerial"));
+
+        string coverGlass = Parsers.CleanSerial(
+            Parsers.PlistString(displayPlist, "CoverGlassSerial") ??
+            FindDictValue(diagDict, "CoverGlassSerialNumber"));
+
+        string frontCam = Parsers.CleanSerial(
+            Parsers.PlistString(camPlist, "FrontCameraSerial") ??
+            FindDictValue(diagDict, "FrontCameraSerialNumber", "FrontCameraSerial"));
+
+        string rearCam = Parsers.CleanSerial(
+            Parsers.PlistString(camPlist, "RearCameraSerial") ??
+            FindDictValue(diagDict, "RearCameraSerialNumber", "RearCameraSerial", "BackCameraSerialNumber"));
+
+        // Factory original serials from syscfg / chargethrough / lockdown
+        string origBatt = Parsers.CleanSerial(
+            FindDictValue(chargeDict, "OriginalBatterySerialNumber", "BatterySerial", "OriginalSerial") ??
+            FindDictValue(diagDict, "OriginalBatterySerialNumber", "FactoryBatterySerialNumber"));
+
+        string origDisplay = Parsers.CleanSerial(
+            FindDictValue(diagDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber", "OriginalScreenSerial"));
+
+        string origFrontCam = Parsers.CleanSerial(
+            FindDictValue(diagDict, "OriginalFrontCameraSerialNumber", "FactoryFrontCameraSerialNumber"));
+
+        string origRearCam = Parsers.CleanSerial(
+            FindDictValue(diagDict, "OriginalRearCameraSerialNumber", "FactoryRearCameraSerialNumber"));
+
+        data.DisplaySerialNumber = displaySerial;
+        data.CoverGlassSerialNumber = coverGlass;
+        data.FrontCameraSerialNumber = frontCam;
+        data.RearCameraSerialNumber = rearCam;
+        data.OriginalBatterySerialNumber = origBatt;
+
+        // Perform ComponentChecks
+        var checks = new List<ComponentStatus>();
+
+        // Battery Check
+        checks.Add(new ComponentStatus
+        {
+            Name = "Batterij",
+            SerialRead = data.BatterySerialNumber,
+            SerialOriginal = data.OriginalBatterySerialNumber,
+            Status = Parsers.VerifyComponent(data.BatterySerialNumber, data.OriginalBatterySerialNumber)
+        });
+
+        // Display Check
+        checks.Add(new ComponentStatus
+        {
+            Name = "Scherm (LCM)",
+            SerialRead = data.DisplaySerialNumber,
+            SerialOriginal = origDisplay,
+            Status = Parsers.VerifyComponent(data.DisplaySerialNumber, origDisplay)
+        });
+
+        // Front Camera Check
+        checks.Add(new ComponentStatus
+        {
+            Name = "Camera Voor",
+            SerialRead = data.FrontCameraSerialNumber,
+            SerialOriginal = origFrontCam,
+            Status = Parsers.VerifyComponent(data.FrontCameraSerialNumber, origFrontCam)
+        });
+
+        // Rear Camera Check
+        checks.Add(new ComponentStatus
+        {
+            Name = "Camera Achter",
+            SerialRead = data.RearCameraSerialNumber,
+            SerialOriginal = origRearCam,
+            Status = Parsers.VerifyComponent(data.RearCameraSerialNumber, origRearCam)
+        });
+
+        data.ComponentChecks = checks;
+    }
+
+    private static string? FindDictValue(Dictionary<string, string> dict, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (dict.TryGetValue(key, out var val) && !string.IsNullOrWhiteSpace(val))
+                return val;
+        }
+        return null;
     }
 
     private static async Task<string> GetStorageAsync(string udid)

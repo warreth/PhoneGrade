@@ -13,6 +13,39 @@ public class DeviceData
     public string DeviceId { get; set; } = "NODEVICEID";
     public string ProductType { get; set; } = "";          // raw, e.g. iPhone14,2 — used by diagnostics
     public string? IosVersion { get; set; }
+
+    // Extended battery metrics
+    public int BatteryCycleCount { get; set; }
+    public int BatteryDesignCapacity { get; set; }
+    public int BatteryCurrentCapacity { get; set; }
+    public string BatterySerialNumber { get; set; } = "";
+
+    // Factory / original component serials
+    public string OriginalBatterySerialNumber { get; set; } = "";
+    public string DisplaySerialNumber { get; set; } = "";
+    public string CoverGlassSerialNumber { get; set; } = "";
+    public string FrontCameraSerialNumber { get; set; } = "";
+    public string RearCameraSerialNumber { get; set; } = "";
+    public string MotherboardSerialNumber { get; set; } = "";
+
+    // Component audit verification list
+    public List<ComponentStatus> ComponentChecks { get; set; } = [];
+}
+
+public enum ComponentStatusType
+{
+    Match,
+    Mismatch,
+    Untrusted,
+    Unknown
+}
+
+public class ComponentStatus
+{
+    public required string Name { get; init; }
+    public string? SerialRead { get; init; }
+    public string? SerialOriginal { get; init; }
+    public ComponentStatusType Status { get; init; } = ComponentStatusType.Unknown;
 }
 
 /// <summary>A diagnostic finding for the device, e.g. from a panic log.</summary>
