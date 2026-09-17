@@ -112,7 +112,13 @@ class TestRunner {
             new MicrophoneTest(),
             new SpeakerTest(),
             new CameraTest(),
-            new SensorTest()
+            new SensorTest(),
+            new ScreenRotationTest(),
+            new ScreenBrightnessTest(),
+            new AudioFrequencyTest(),
+            new BatteryStatusTest(),
+            new StorageTest(),
+            new VibrationTest()
         ];
         this.currentTestIndex = -1;
         this.isRunning = false;
