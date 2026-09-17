@@ -1,120 +1,148 @@
 import { DeviceTest } from './DeviceTest.js';
 
-/**
- * MicrophoneTest: Uses Web Audio API to detect decibel input spikes from speech.
- */
 export class MicrophoneTest extends DeviceTest {
     constructor() {
-        super('microphone', 'Microfoon Test', 'Praat om de microfoon te testen');
-        this.audioContext = null;
-        this.analyser = null;
-        this.microphone = null;
-        this.maxDecibels = -Infinity;
-        this.threshold = -30; // dB threshold for detecting speech
-        this.detectionCount = 0;
+        super('microphone', 'Microphone Array', 'Test all available microphones with playback');
+        this.results = [];
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Microfoon toegang vragen...');
+        this.reportProgress(wsClient, 0, 'Checking media devices...');
 
         try {
-            // Request microphone access
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            await navigator.mediaDevices.getUserMedia({ audio: true });
             
-            this.reportProgress(wsClient, 20, 'Microfoon geactiveerd...');
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioInputs = devices.filter(d => d.kind === 'audioinput');
 
-            // Create audio context and analyser
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            this.analyser = this.audioContext.createAnalyser();
-            this.analyser.fftSize = 256;
-            
-            this.microphone = this.audioContext.createMediaStreamSource(stream);
-            this.microphone.connect(this.analyser);
+            if (audioInputs.length === 0) {
+                this.fail('No microphones detected');
+                return;
+            }
 
-            // Create UI
             container.innerHTML = `
-                <h3 style="color: #00ff88; margin-bottom: 16px;">Microfoon Test</h3>
-                <p class="test-instructions">Praat in de microfoon. De balk moet bewegen wanneer je geluid maakt.</p>
-                <div class="audio-visualizer" style="width: 100%; height: 120px; background: #1a1a1a; border-radius: 8px; margin: 16px 0; position: relative; overflow: hidden;">
-                    <div id="audio-level-bar" style="height: 100%; background: #00ff88; width: 0%; transition: width 0.05s;"></div>
-                </div>
-                <p id="mic-status" style="text-align: center; margin: 16px 0;">Wachten op geluid...</p>
-                <p id="mic-db" style="text-align: center; font-size: 24px; font-weight: 600; color: #00ff88;">0 dB</p>
+                <h3 style="color: var(--color-accent); margin-bottom: 16px;">Multi-Microphone Test</h3>
+                <p class="test-instructions" style="margin-bottom: 24px;">We will record a short clip from each microphone and play it back to you.</p>
+                <div id="mic-container"></div>
             `;
 
-            const levelBar = container.querySelector('#audio-level-bar');
-            const statusText = container.querySelector('#mic-status');
-            const dbText = container.querySelector('#mic-db');
+            const micContainer = container.querySelector('#mic-container');
 
-            // Analyze audio for 5 seconds
-            const duration = 5000;
-            const startTime = Date.now();
-            const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+            for (let i = 0; i < audioInputs.length; i++) {
+                const device = audioInputs[i];
+                const micName = device.label || `Microphone ${i + 1}`;
+                
+                this.reportProgress(wsClient, (i / audioInputs.length) * 100, `Testing ${micName}...`);
+                
+                const micUI = document.createElement('div');
+                micUI.style.cssText = 'background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px;';
+                
+                micUI.innerHTML = `
+                    <p style="font-weight: 600; margin-bottom: 12px;">${micName}</p>
+                    <div id="mic-status-${i}" style="margin-bottom: 16px; color: var(--color-text-secondary); font-size: 14px;">Waiting to record...</div>
+                    <button id="btn-record-${i}" class="btn btn-primary" style="width: 100%; margin-bottom: 12px;">Start Recording (3s)</button>
+                    <div id="playback-section-${i}" style="display: none; flex-direction: column; gap: 12px;">
+                        <audio id="audio-player-${i}" controls style="width: 100%; margin-bottom: 12px;"></audio>
+                        <p style="font-size: 14px; text-align: center;">Was the recording clear?</p>
+                        <div style="display: flex; gap: 12px;">
+                            <button id="btn-yes-${i}" class="btn btn-success" style="flex: 1; background: var(--color-success); color: #000; border: none;">Yes, clear</button>
+                            <button id="btn-no-${i}" class="btn btn-error" style="flex: 1; background: var(--color-error); color: #fff; border: none;">No / Distorted</button>
+                        </div>
+                    </div>
+                `;
+                
+                micContainer.appendChild(micUI);
 
-            return new Promise((resolve) => {
-                const analyze = () => {
-                    const elapsed = Date.now() - startTime;
-                    
-                    if (elapsed >= duration) {
-                        // Cleanup
-                        stream.getTracks().forEach(track => track.stop());
-                        this.audioContext.close();
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { deviceId: { exact: device.deviceId } } 
+                });
+                
+                const passed = await this.recordAndVerify(micUI, stream, i);
+                stream.getTracks().forEach(t => t.stop());
 
-                        if (this.detectionCount > 0) {
-                            this.pass(`Microfoon werkt - max ${Math.round(this.maxDecibels)} dB gedetecteerd`);
-                            this.details.maxDecibels = Math.round(this.maxDecibels);
-                            this.details.detections = this.detectionCount;
-                        } else {
-                            this.fail('Geen geluid gedetecteerd - microfoon mogelijk defect');
-                        }
-                        resolve();
-                        return;
-                    }
+                this.results.push({
+                    name: micName,
+                    id: device.deviceId,
+                    passed: passed
+                });
+                
+                micUI.style.opacity = '0.6';
+            }
 
-                    // Get audio data
-                    this.analyser.getByteFrequencyData(dataArray);
-                    
-                    // Calculate average volume
-                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                    
-                    // Convert to decibels (approximate)
-                    const decibels = average > 0 ? 20 * Math.log10(average / 255) * 2 : -Infinity;
-                    
-                    if (decibels > this.maxDecibels) {
-                        this.maxDecibels = decibels;
-                    }
+            this.reportProgress(wsClient, 100, 'Evaluation complete');
 
-                    // Check if above threshold
-                    if (decibels > this.threshold) {
-                        this.detectionCount++;
-                        statusText.textContent = 'Geluid gedetecteerd!';
-                        statusText.style.color = '#00ff88';
-                    }
+            const passedCount = this.results.filter(r => r.passed).length;
+            if (passedCount === audioInputs.length) {
+                this.pass('All microphones passed');
+            } else if (passedCount > 0) {
+                this.fail(`${passedCount} of ${audioInputs.length} microphones passed`);
+            } else {
+                this.fail('All microphones failed or were unclear');
+            }
 
-                    // Update UI
-                    const percentage = Math.max(0, Math.min(100, (decibels + 60) * 1.67));
-                    levelBar.style.width = percentage + '%';
-                    dbText.textContent = Math.round(decibels) + ' dB';
-
-                    // Update progress
-                    const progress = 20 + (elapsed / duration) * 80;
-                    this.reportProgress(wsClient, progress, 'Luisteren...');
-
-                    requestAnimationFrame(analyze);
-                };
-
-                analyze();
-            });
+            this.details.microphones = this.results;
 
         } catch (error) {
-            if (error.name === 'NotAllowedError') {
-                this.skip('Microfoon toegang geweigerd door gebruiker');
-            } else if (error.name === 'NotFoundError') {
-                this.skip('Geen microfoon gevonden op dit apparaat');
-            } else {
-                this.fail('Microfoon fout: ' + error.message);
-            }
+            this.fail('Microphone API error: ' + error.message);
         }
+    }
+
+    async recordAndVerify(uiContainer, stream, index) {
+        return new Promise((resolve) => {
+            const recordBtn = uiContainer.querySelector(`#btn-record-${index}`);
+            const statusDiv = uiContainer.querySelector(`#mic-status-${index}`);
+            const playbackSection = uiContainer.querySelector(`#playback-section-${index}`);
+            const audioPlayer = uiContainer.querySelector(`#audio-player-${index}`);
+            const btnYes = uiContainer.querySelector(`#btn-yes-${index}`);
+            const btnNo = uiContainer.querySelector(`#btn-no-${index}`);
+
+            let mediaRecorder;
+            let audioChunks = [];
+
+            recordBtn.onclick = () => {
+                recordBtn.style.display = 'none';
+                statusDiv.textContent = 'Recording... Speak now!';
+                statusDiv.style.color = 'var(--color-accent)';
+                
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayer.src = audioUrl;
+                    
+                    statusDiv.textContent = 'Playback testing';
+                    statusDiv.style.color = 'var(--color-text-secondary)';
+                    playbackSection.style.display = 'flex';
+                };
+                
+                mediaRecorder.start();
+                setTimeout(() => {
+                    if (mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                }, 3000);
+            };
+
+            btnYes.onclick = () => {
+                statusDiv.textContent = 'Passed';
+                statusDiv.style.color = 'var(--color-success)';
+                playbackSection.style.pointerEvents = 'none';
+                resolve(true);
+            };
+
+            btnNo.onclick = () => {
+                statusDiv.textContent = 'Failed';
+                statusDiv.style.color = 'var(--color-error)';
+                playbackSection.style.pointerEvents = 'none';
+                resolve(false);
+            };
+        });
     }
 }
