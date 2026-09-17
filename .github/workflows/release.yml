@@ -24,22 +24,22 @@ jobs:
             rid: win-x64
             channel: win
             packDir: publish-win
-            mainExe: AutoDymoLabelApp.UI.exe
+            mainExe: PhoneGrade.UI.exe
           - os: macos-15-intel
             rid: osx-x64
             channel: osx-x64
             packDir: publish-osx-x64
-            mainExe: AutoDymoLabelApp.UI
+            mainExe: PhoneGrade.UI
           - os: macos-latest
             rid: osx-arm64
             channel: osx-arm64
             packDir: publish-osx-arm64
-            mainExe: AutoDymoLabelApp.UI
+            mainExe: PhoneGrade.UI
           - os: ubuntu-latest
             rid: linux-x64
             channel: linux-x64
             packDir: publish-linux
-            mainExe: AutoDymoLabelApp.UI
+            mainExe: PhoneGrade.UI
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -91,7 +91,7 @@ jobs:
         run: |
           SELF_CONTAINED=false
           if [ "${{ runner.os }}" != "Windows" ]; then SELF_CONTAINED=true; fi
-          dotnet publish AutoDymoLabelApp/AutoDymoLabelApp.UI/AutoDymoLabelApp.UI.csproj \
+          dotnet publish PhoneGradeApp/PhoneGrade.UI/PhoneGrade.UI.csproj \
             -c Release -r ${{ matrix.rid }} \
             --self-contained "$SELF_CONTAINED" \
             -p:Version=${{ env.APP_VERSION }} \
@@ -253,19 +253,19 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             # Only Windows can bootstrap the .NET runtime from the installer.
             FRAMEWORK_ARGS=(--framework "net8.0-x64-desktop")
-            ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/avalonia-logo.ico"
+            ICON="PhoneGradeApp/PhoneGrade.UI/Assets/avalonia-logo.ico"
           else
             FRAMEWORK_ARGS=() # self-contained publish: nothing to bootstrap
             if [ "${{ runner.os }}" = "macOS" ]; then
-              ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.icns"
+              ICON="PhoneGradeApp/PhoneGrade.UI/Assets/app-icon.icns"
             else
-              ICON="AutoDymoLabelApp/AutoDymoLabelApp.UI/Assets/app-icon.png"
+              ICON="PhoneGradeApp/PhoneGrade.UI/Assets/app-icon.png"
             fi
           fi
           vpk pack \
-            --packId AutoDymoLabel \
+            --packId PhoneGrade \
             --packVersion "$VERSION" \
-            --packTitle AutoDymoLabel \
+            --packTitle PhoneGrade \
             --packAuthors WaTh.dev \
             --packDir ${{ matrix.packDir }} \
             --mainExe ${{ matrix.mainExe }} \
