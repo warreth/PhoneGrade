@@ -197,6 +197,8 @@ public class DiagnosticIssue
     public required string Fix { get; init; }
     /// <summary>OK / Warning / Error. Errors block the auto flow; warnings show a hint.</summary>
     public Severity Level { get; init; } = Severity.Warning;
+    /// <summary>Raw sensor identifier or hardware failure code if applicable.</summary>
+    public string? SensorCode { get; init; }
 }
 
 public enum Severity { Ok, Warning, Error }
