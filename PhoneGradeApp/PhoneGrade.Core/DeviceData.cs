@@ -34,6 +34,14 @@ public class DeviceData
     /// <summary>Interactive web test results recorded during mobile test session.</summary>
     public InteractiveTestSuiteResult? InteractiveTests { get; set; }
 
+    // Security & Lock Status
+    public SecurityServices.ActivationLockService.ActivationLockStatus? ActivationLock { get; set; }
+    public SecurityServices.JailbreakDetectionService.JailbreakStatus? Jailbreak { get; set; }
+    public SecurityServices.RootDetectionService.RootStatus? Root { get; set; }
+    public SecurityServices.ActivationLockService.CarrierLockStatus? CarrierLockIOS { get; set; }
+    public SecurityServices.FrpLockService.CarrierLockStatus? CarrierLockAndroid { get; set; }
+    public SecurityServices.BlacklistCheckService.BlacklistStatus? Blacklist { get; set; }
+
     /// <summary>Merges interactive test results into diagnostic issue list.</summary>
     public List<DiagnosticIssue> MergeInteractiveResults(List<DiagnosticIssue>? existingIssues = null)
     {
