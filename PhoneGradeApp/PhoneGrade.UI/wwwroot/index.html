@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>PhoneGrade Test Runner</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>PhoneGrade Test Runner</h1>
+            <div id="status" class="status connecting">Verbinden...</div>
+        </header>
+
+        <main id="main-content">
+            <div id="welcome-screen" class="screen active">
+                <div class="welcome-card">
+                    <h2>Welkom bij de PhoneGrade Test Suite</h2>
+                    <p>Deze test controleert alle belangrijke hardware-functies van dit toestel:</p>
+                    <ul>
+                        <li>Touchscreen (dode zones detectie)</li>
+                        <li>Display (dode pixels en backlight bleeding)</li>
+                        <li>Microfoon (geluidsniveau detectie)</li>
+                        <li>Speakers (stereo balans)</li>
+                        <li>Camera's (voor- en achterkant)</li>
+                        <li>Sensoren (accelerometer en gyroscoop)</li>
+                    </ul>
+                    <button id="start-suite-btn" class="btn-primary">Start Test Suite</button>
+                </div>
+            </div>
+
+            <div id="test-screen" class="screen">
+                <div id="test-list" class="test-list"></div>
+                <div id="current-test" class="current-test"></div>
+            </div>
+
+            <div id="results-screen" class="screen">
+                <div class="results-card">
+                    <h2>Test Resultaten</h2>
+                    <div id="results-summary"></div>
+                    <div id="results-details"></div>
+                    <button id="restart-btn" class="btn-secondary">Opnieuw Testen</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div id="session-info"></div>
+        </footer>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+</body>
+</html>
