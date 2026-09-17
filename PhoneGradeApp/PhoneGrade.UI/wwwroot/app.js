@@ -114,10 +114,7 @@ class TestRunner {
             new CameraTest(),
             new SensorTest(),
             new ScreenRotationTest(),
-            new ScreenBrightnessTest(),
-            new AudioFrequencyTest(),
-            new BatteryStatusTest(),
-            new StorageTest(),
+            new ScreenBrightnessTest()
             new VibrationTest()
         ];
         this.currentTestIndex = -1;
