@@ -1,0 +1,505 @@
+/* PhoneGrade Test Runner Styles - Responsive iPhone/iPad */
+:root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2a2a2a;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --accent-color: #00ff88;
+    --error-color: #ff4444;
+    --warning-color: #ffaa00;
+    --success-color: #00ff88;
+    --border-color: #3a3a3a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    height: 100dvh; /* Dynamic viewport height for mobile */
+}
+
+/* Header */
+header {
+    padding: 16px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.status.connecting {
+    background: var(--warning-color);
+    color: var(--bg-primary);
+}
+
+.status.connected {
+    background: var(--success-color);
+    color: var(--bg-primary);
+}
+
+.status.error {
+    background: var(--error-color);
+    color: white;
+}
+
+/* Main content area */
+main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+}
+
+.screen {
+    display: none;
+    padding: 20px;
+    min-height: 100%;
+}
+
+.screen.active {
+    display: block;
+}
+
+/* Welcome screen */
+.welcome-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.welcome-card h2 {
+    font-size: 24px;
+    margin-bottom: 16px;
+    color: var(--accent-color);
+}
+
+.welcome-card p {
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.welcome-card ul {
+    list-style: none;
+    margin-bottom: 24px;
+}
+
+.welcome-card li {
+    padding: 8px 0;
+    padding-left: 24px;
+    position: relative;
+    color: var(--text-secondary);
+}
+
+.welcome-card li:before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+/* Buttons */
+.btn-primary, .btn-secondary {
+    width: 100%;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: var(--bg-primary);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-primary:active, .btn-secondary:active {
+    transform: scale(0.98);
+    opacity: 0.8;
+}
+
+.btn-primary:disabled, .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Test list */
+.test-list {
+    max-width: 600px;
+    margin: 0 auto 20px;
+}
+
+.test-item {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.test-status-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+}
+
+.test-status-icon.pending {
+    background: var(--border-color);
+    color: var(--text-secondary);
+}
+
+.test-status-icon.running {
+    background: var(--warning-color);
+    color: var(--bg-primary);
+    animation: pulse 1.5s infinite;
+}
+
+.test-status-icon.passed {
+    background: var(--success-color);
+    color: var(--bg-primary);
+}
+
+.test-status-icon.failed {
+    background: var(--error-color);
+    color: white;
+}
+
+.test-status-icon.skipped {
+    background: var(--border-color);
+    color: var(--text-secondary);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.test-info {
+    flex: 1;
+}
+
+.test-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.test-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Current test area */
+.current-test {
+    max-width: 600px;
+    margin: 0 auto;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.current-test h3 {
+    font-size: 20px;
+    margin-bottom: 16px;
+    color: var(--accent-color);
+}
+
+.test-instructions {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.test-controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.test-controls button {
+    flex: 1;
+}
+
+/* Test-specific containers */
+.test-container {
+    width: 100%;
+    min-height: 300px;
+    position: relative;
+}
+
+/* Touch test grid */
+.touch-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 2px;
+    width: 100%;
+    height: 400px;
+    margin: 16px 0;
+}
+
+.touch-cell {
+    background: var(--border-color);
+    border: 1px solid var(--bg-primary);
+    transition: background 0.2s;
+}
+
+.touch-cell.touched {
+    background: var(--success-color);
+}
+
+/* Display test fullscreen */
+.display-test-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.display-test-info {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 16px 24px;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    text-align: center;
+}
+
+/* Audio visualizer */
+.audio-visualizer {
+    width: 100%;
+    height: 120px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    margin: 16px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.audio-level-bar {
+    height: 100%;
+    background: var(--success-color);
+    transition: width 0.1s;
+}
+
+/* Camera preview */
+.camera-preview {
+    width: 100%;
+    max-height: 400px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0;
+}
+
+.camera-preview video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Sensor display */
+.sensor-values {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.sensor-value {
+    background: var(--bg-primary);
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.sensor-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.sensor-number {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+/* Results screen */
+.results-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.results-card h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: var(--accent-color);
+}
+
+#results-summary {
+    margin-bottom: 24px;
+}
+
+.summary-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-stat:last-child {
+    border-bottom: none;
+}
+
+.summary-label {
+    color: var(--text-secondary);
+}
+
+.summary-value {
+    font-weight: 600;
+}
+
+.summary-value.passed {
+    color: var(--success-color);
+}
+
+.summary-value.failed {
+    color: var(--error-color);
+}
+
+#results-details {
+    margin-bottom: 24px;
+}
+
+.result-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.result-item.passed {
+    background: rgba(0, 255, 136, 0.1);
+    border-color: var(--success-color);
+}
+
+.result-item.failed {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: var(--error-color);
+}
+
+.result-item.skipped {
+    background: rgba(255, 170, 0, 0.1);
+    border-color: var(--warning-color);
+}
+
+.result-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.result-notes {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Footer */
+footer {
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+#session-info {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* iPad landscape adjustments */
+@media (min-width: 768px) and (orientation: landscape) {
+    .welcome-card, .current-test, .results-card {
+        max-width: 800px;
+    }
+    
+    .touch-grid {
+        height: 500px;
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+    }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+    header {
+        padding-top: calc(16px + env(safe-area-inset-top));
+    }
+    
+    footer {
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+}
