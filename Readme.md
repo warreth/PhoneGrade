@@ -1,5 +1,5 @@
-# Auto Dymo Label
-# Auto Dymo Label
+# PhoneGrade
+# PhoneGrade
 
 Plug an iPhone or iPad into USB and the sales label comes out by itself. The
 app reads the device with **libimobiledevice**, runs **diagnostics** over the
@@ -16,9 +16,9 @@ software.
 ## Installing (Windows and macOS)
 ## Installing (Windows and macOS)
 
-Grab the installer from the [Releases](https://github.com/warreth/Auto-Dymo-Label/releases)
+Grab the installer from the [Releases](https://github.com/warreth/PhoneGrade/releases)
 page:
-Grab the installer from the [Releases](https://github.com/warreth/Auto-Dymo-Label/releases)
+Grab the installer from the [Releases](https://github.com/warreth/PhoneGrade/releases)
 page:
 
 - **Windows**: `PhoneGrade-win-Setup.exe`. Velopack installer, no admin
