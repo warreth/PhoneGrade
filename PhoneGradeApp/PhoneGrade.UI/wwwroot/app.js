@@ -6,17 +6,14 @@ import { SpeakerTest } from './modules/SpeakerTest.js';
 import { CameraTest } from './modules/CameraTest.js';
 import { SensorTest } from './modules/SensorTest.js';
 
-/**
- * WebSocket client for communicating with the desktop app's Kestrel server.
- */
 class WebSocketClient {
-    constructor(url) {
-        this.url = url;
+    constructor() {
         this.socket = null;
         this.sessionId = this.getUrlParam('sessionId') || 'UNKNOWN';
         this.connected = false;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
+        this.messageQueue = [];
     }
 
     getUrlParam(name) {
@@ -33,13 +30,17 @@ class WebSocketClient {
         this.socket.onopen = () => {
             this.connected = true;
             this.reconnectAttempts = 0;
-            this.updateStatus('connected', 'Verbonden met test server');
+            this.updateConnectionStatus('connected', 'Connected');
             this.send({ type: 'init', sessionId: this.sessionId });
+            
+            while (this.messageQueue.length > 0) {
+                this.send(this.messageQueue.shift());
+            }
         };
 
         this.socket.onclose = () => {
             this.connected = false;
-            this.updateStatus('disconnected', 'Verbinding verbroken');
+            this.updateConnectionStatus('disconnected', 'Disconnected');
             
             if (this.reconnectAttempts < this.maxReconnectAttempts) {
                 this.reconnectAttempts++;
@@ -47,9 +48,8 @@ class WebSocketClient {
             }
         };
 
-        this.socket.onerror = (error) => {
-            this.updateStatus('error', 'WebSocket fout');
-            console.error('WebSocket error:', error);
+        this.socket.onerror = () => {
+            this.updateConnectionStatus('error', 'Connection Error');
         };
 
         this.socket.onmessage = (event) => {
@@ -69,39 +69,40 @@ class WebSocketClient {
     send(message) {
         if (this.isConnected()) {
             this.socket.send(JSON.stringify(message));
+        } else {
+            this.messageQueue.push(message);
         }
     }
 
-    updateStatus(status, message) {
-        const statusEl = document.getElementById('status');
+    updateConnectionStatus(status, message) {
+        const statusEl = document.getElementById('connection-status');
         if (statusEl) {
-            statusEl.className = 'status ' + status;
-            statusEl.textContent = message;
+            statusEl.className = 'connection-status ' + status;
+            const textEl = statusEl.querySelector('.status-text');
+            if (textEl) {
+                textEl.textContent = message;
+            }
         }
     }
 
     handleMessage(data) {
         switch (data.type) {
             case 'pong':
-                // Keep-alive response
                 break;
             case 'test_start':
-                // Desktop requests a specific test to start
-                this.testRunner.startTest(data.testId);
+                if (window.testRunner) {
+                    window.testRunner.startTest(data.testId);
+                }
                 break;
             case 'stop_suite':
-                // Desktop requests to stop the test suite
-                this.testRunner.stopSuite();
+                if (window.testRunner) {
+                    window.testRunner.stopSuite();
+                }
                 break;
-            default:
-                console.log('Unknown message type:', data.type);
         }
     }
 }
 
-/**
- * Test runner orchestrator.
- */
 class TestRunner {
     constructor(wsClient) {
         this.wsClient = wsClient;
@@ -114,84 +115,69 @@ class TestRunner {
             new SensorTest()
         ];
         this.currentTestIndex = -1;
-        this.completedTests = [];
         this.isRunning = false;
+        this.startTime = null;
     }
 
     async startSuite() {
         this.isRunning = true;
+        this.startTime = Date.now();
         this.currentTestIndex = 0;
         
-        // Show test list
+        this.showScreen('test-screen');
         this.updateTestListUI();
         
-        // Start first test
-        await this.startNextTest();
+        await this.runNextTest();
     }
 
-    async startNextTest() {
+    async runNextTest() {
         if (this.currentTestIndex >= this.tests.length) {
             await this.finishSuite();
             return;
         }
 
-        this.currentTestIndex++;
-        await this.runCurrentTest();
-    }
-
-    async runCurrentTest() {
-        if (this.currentTestIndex >= this.tests.length) return;
-
         const test = this.tests[this.currentTestIndex];
+        test.start();
+        
         this.updateTestListUI();
+        this.updateTestHeader(test);
         
-        // Show current test UI
-        const currentTestDiv = document.getElementById('current-test');
-        currentTestDiv.innerHTML = '';
-        currentTestDiv.className = 'current-test';
-        currentTestDiv.innerHTML = `
-            <h3>${test.name}</h3>
-            <p class="test-instructions">${test.description}</p>
-            <div id="test-container"></div>
-        `;
-        
-        const container = currentTestDiv.querySelector('#test-container');
+        const container = document.getElementById('test-container');
+        container.innerHTML = '';
 
         try {
             await test.run(this.wsClient, container);
-            this.completedTests.push(test);
-            await this.startNextTest();
+            
+            this.wsClient.send({
+                type: 'test_complete',
+                sessionId: this.wsClient.sessionId,
+                testId: test.id,
+                testName: test.name,
+                status: test.status
+            });
         } catch (error) {
             test.fail('Exception: ' + error.message);
-            this.completedTests.push(test);
-            await this.startNextTest();
+            console.error('Test error:', error);
         }
-    }
 
-    startTest(testId) {
-        const testIndex = this.tests.findIndex(t => t.id === testId);
-        if (testIndex !== -1) {
-            this.currentTestIndex = testIndex;
-            this.runCurrentTest();
-        }
-    }
-
-    stopSuite() {
-        this.isRunning = false;
+        this.currentTestIndex++;
+        
+        setTimeout(() => {
+            this.runNextTest();
+        }, 500);
     }
 
     async finishSuite() {
         this.isRunning = false;
         
-        // Send final results to desktop
         const suiteResult = {
             sessionId: this.wsClient.sessionId,
             deviceUdid: this.wsClient.sessionId,
             userAgent: navigator.userAgent,
             platform: this.getPlatform(),
-            startedAt: new Date(Date.now() - this.totalDuration).toISOString(),
+            startedAt: new Date(this.startTime).toISOString(),
             completedAt: new Date().toISOString(),
-            tests: this.completedTests.map(t => t.toJSON())
+            tests: this.tests.map(t => t.toJSON())
         };
 
         this.wsClient.send({
@@ -200,80 +186,48 @@ class TestRunner {
             payload: suiteResult
         });
 
-        // Show results screen
         this.showResultsScreen(suiteResult);
-        
-        // Update test list to show all completed
-        this.updateTestListUI();
     }
 
     getPlatform() {
         const ua = navigator.userAgent;
-        if (/iPhone|iPad/.test(ua)) return 'iOS';
+        if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
         if (/Android/.test(ua)) return 'Android';
         if (/Macintosh/.test(ua)) return 'macOS';
         if (/Windows/.test(ua)) return 'Windows';
         return 'Unknown';
     }
 
-    showResultsScreen(suiteResult) {
-        const testScreen = document.getElementById('test-screen');
-        const resultsScreen = document.getElementById('results-screen');
+    stopSuite() {
+        this.isRunning = false;
+    }
+
+    updateTestHeader(test) {
+        const nameEl = document.getElementById('current-test-name');
+        const descEl = document.getElementById('current-test-description');
+        const counterEl = document.getElementById('test-counter');
+        const currentNum = document.getElementById('current-test-num');
+        const totalTests = document.getElementById('total-tests');
+        const progressFill = document.getElementById('test-progress-fill');
+
+        if (nameEl) nameEl.textContent = test.name;
+        if (descEl) descEl.textContent = test.description;
+        if (currentNum) currentNum.textContent = this.currentTestIndex + 1;
+        if (totalTests) totalTests.textContent = this.tests.length;
         
-        testScreen.classList.remove('active');
-        resultsScreen.classList.add('active');
-
-        const resultsSummary = document.getElementById('results-summary');
-        const resultsDetails = document.getElementById('results-details');
-
-        const passed = suiteResult.tests.filter(t => t.status === 'passed').length;
-        const failed = suiteResult.tests.filter(t => t.status === 'failed').length;
-        const skipped = suiteResult.tests.filter(t => t.status === 'skipped').length;
-
-        resultsSummary.innerHTML = `
-            <div class="summary-stat">
-                <span class="summary-label">Totaal tests</span>
-                <span class="summary-value">${suiteResult.tests.length}</span>
-            </div>
-            <div class="summary-stat">
-                <span class="summary-label">Geslaagd</span>
-                <span class="summary-value passed">${passed}</span>
-            </div>
-            <div class="summary-stat">
-                <span class="summary-label">Gefaald</span>
-                <span class="summary-value failed">${failed}</span>
-            </div>
-            <div class="summary-stat">
-                <span class="summary-label">Overgeslagen</span>
-                <span class="summary-value">${skipped}</span>
-            </div>
-            <div class="summary-stat">
-                <span class="summary-label">Duur</span>
-                <span class="summary-value">${suiteResult.tests.reduce((sum, t) => sum + t.durationMs, 0)} ms</span>
-            </div>
-        `;
-
-        resultsDetails.innerHTML = suiteResult.tests.map(t => `<div class="result-item ${t.status}">
-            <div class="result-title">${t.name}: <strong>${t.status}</strong></div>
-            ${t.notes ? '<div class="result-notes">' + t.notes + '</div>' : ''}
-            <div class="result-notes" style="margin-top: 4px;">${t.durationMs} ms</div>
-        </div>`).join('');
-
-        document.getElementById('restart-btn').onclick = () => {
-            resultsScreen.classList.remove('active');
-            document.getElementById('welcome-screen').classList.add('active');
-        };
+        const progress = ((this.currentTestIndex + 1) / this.tests.length) * 100;
+        if (progressFill) {
+            progressFill.style.width = progress + '%';
+        }
     }
 
     updateTestListUI() {
         const testList = document.getElementById('test-list');
         if (!testList) return;
 
-        const currentTest = this.currentTestIndex < this.tests.length ? this.tests[this.currentTestIndex] : null;
-
         testList.innerHTML = this.tests.map((test, index) => {
             let statusClass = 'pending';
-            let icon = '●';
+            let icon = '○';
             
             if (test.status === 'running') {
                 statusClass = 'running';
@@ -286,56 +240,149 @@ class TestRunner {
                 icon = '✗';
             } else if (test.status === 'skipped') {
                 statusClass = 'skipped';
-                icon = '○';
+                icon = '−';
             }
 
             return `
-                <div class="test-item">
-                    <div class="test-status-icon ${statusClass}">${icon}</div>
-                    <div class="test-info">
-                        <div class="test-name">${test.name}</div>
-                        <div class="test-description">${test.description}</div>
-                    </div>
+                <div class="test-item ${statusClass}" role="listitem">
+                    <div class="test-status-icon">${icon}</div>
+                    <div class="test-name">${test.name.replace(' Test', '')}</div>
                 </div>
             `;
         }).join('');
+    }
 
-        // Highlight current test
-        if (currentTest) {
-            const items = testList.querySelectorAll('.test-item');
-            if (items[this.currentTestIndex]) {
-                items[this.currentTestIndex].style.background = 'rgba(0, 255, 136, 0.1)';
-            }
+    showResultsScreen(suiteResult) {
+        this.showScreen('results-screen');
+
+        const passed = suiteResult.tests.filter(t => t.status === 'passed').length;
+        const failed = suiteResult.tests.filter(t => t.status === 'failed').length;
+        const skipped = suiteResult.tests.filter(t => t.status === 'skipped').length;
+        const allPassed = failed === 0 && passed > 0;
+
+        const statusIcon = document.getElementById('results-status-icon');
+        const resultsTitle = document.getElementById('results-title');
+        
+        if (statusIcon) {
+            statusIcon.textContent = allPassed ? '✓' : '⚠';
+            statusIcon.style.color = allPassed ? 'var(--color-success)' : 'var(--color-warning)';
+        }
+        
+        if (resultsTitle) {
+            resultsTitle.textContent = allPassed ? 'All Tests Passed!' : 'Tests Complete';
+        }
+
+        document.getElementById('total-count').textContent = suiteResult.tests.length;
+        document.getElementById('passed-count').textContent = passed;
+        document.getElementById('failed-count').textContent = failed;
+        document.getElementById('skipped-count').textContent = skipped;
+
+        const resultsDetails = document.getElementById('results-details');
+        resultsDetails.innerHTML = suiteResult.tests.map(t => `
+            <div class="result-item ${t.status}" role="listitem">
+                <div class="result-title">
+                    ${t.name}
+                    <span class="result-status-badge ${t.status}">${t.status}</span>
+                </div>
+                ${t.notes ? '<div class="result-notes">' + t.notes + '</div>' : ''}
+                <div class="result-duration">${t.durationMs}ms</div>
+            </div>
+        `).join('');
+
+        document.getElementById('export-results-btn').onclick = () => {
+            const blob = new Blob([JSON.stringify(suiteResult, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `phonegrade-results-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        document.getElementById('restart-btn').onclick = () => {
+            this.tests.forEach(t => {
+                t.status = 'pending';
+                t.notes = '';
+                t.startTime = null;
+                t.endTime = null;
+            });
+            this.currentTestIndex = 0;
+            this.showScreen('welcome-screen');
+        };
+    }
+
+    showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('screen-active');
+        });
+        const screen = document.getElementById(screenId);
+        if (screen) {
+            screen.classList.add('screen-active');
         }
     }
 }
 
-// Initialize app
-let wsClient, testRunner;
+function detectDevice() {
+    const ua = navigator.userAgent;
+    let device = 'Unknown Device';
+    let browser = 'Unknown Browser';
+
+    if (/iPhone/.test(ua)) device = 'iPhone';
+    else if (/iPad/.test(ua)) device = 'iPad';
+    else if (/Android/.test(ua)) device = 'Android';
+    else if (/Macintosh/.test(ua)) device = 'Mac';
+    else if (/Windows/.test(ua)) device = 'Windows PC';
+
+    if (/Safari/.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
+    else if (/Chrome/.test(ua)) browser = 'Chrome';
+    else if (/Firefox/.test(ua)) browser = 'Firefox';
+    else if (/Edge/.test(ua)) browser = 'Edge';
+
+    return { device, browser };
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-    const startBtn = document.getElementById('start-suite-btn');
+    const { device, browser } = detectDevice();
     
-    if (startBtn) {
-        startBtn.onclick = async () => {
-            document.getElementById('welcome-screen').classList.remove('active');
-            document.getElementById('test-screen').classList.add('active');
+    document.getElementById('device-type').textContent = device;
+    document.getElementById('browser-info').textContent = browser;
 
-            wsClient = new WebSocketClient();
-            testRunner = new TestRunner(wsClient);
-            wsClient.testRunner = testRunner;
-            
-            wsClient.connect();
-            
-            // Start suite after connection established
-            setTimeout(() => {
-                testRunner.startSuite();
-            }, 500);
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('sessionId') || 'DEMO';
+    
+    const sessionInfo = document.getElementById('session-info');
+    if (sessionInfo) {
+        sessionInfo.textContent = `Session: ${sessionId}`;
+    }
+
+    const wsClient = new WebSocketClient();
+    const testRunner = new TestRunner(wsClient);
+    
+    window.testRunner = testRunner;
+    window.wsClient = wsClient;
+
+    wsClient.connect();
+
+    const startBtn = document.getElementById('start-suite-btn');
+    if (startBtn) {
+        startBtn.onclick = () => {
+            testRunner.startSuite();
+        };
+    }
+
+    const skipBtn = document.getElementById('skip-test-btn');
+    if (skipBtn) {
+        skipBtn.onclick = () => {
+            if (testRunner.isRunning && testRunner.currentTestIndex < testRunner.tests.length) {
+                const currentTest = testRunner.tests[testRunner.currentTestIndex];
+                currentTest.skip('Skipped by user');
+                testRunner.currentTestIndex++;
+                testRunner.runNextTest();
+            }
         };
     }
 });
 
-// Add touch gesture handlers for better touch experience
 document.addEventListener('touchmove', (e) => {
     if (e.target.closest('.touch-grid')) {
         e.preventDefault();
