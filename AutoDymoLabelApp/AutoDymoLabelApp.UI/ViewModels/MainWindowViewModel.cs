@@ -234,11 +234,31 @@ public class MainWindowViewModel : ReactiveObject
     public async Task RefreshDeviceListAsync()
     {
         int count = await RefreshDeviceListSilentAsync();
+        if (count == 0)
+        {
+            var (_, _, diagState) = await DeviceService.ListUdidsSafeAsync();
+            Status = diagState switch
+            {
+                DeviceService.ConnectionState.PermissionDenied =>
+                    "Executable permissions missing: voer chmod +x uit op de tools of controleer Gatekeeper.",
+                DeviceService.ConnectionState.DriverMissing =>
+                    "Apple USB Driver missing: installeer iTunes of Apple Mobile Device Support.",
+                DeviceService.ConnectionState.DaemonStopped =>
+                    OperatingSystem.IsWindows()
+                        ? "Apple Mobile Device Service is gestopt: start de Windows service 'Apple Mobile Device Service'."
+                        : "usbmuxd daemon draait niet: start usbmuxd via launchctl of systemctl.",
+                DeviceService.ConnectionState.NotTrusted =>
+                    "Waiting for trust confirmation on device: ontgrendel toestel en tik op 'Vertrouwen'.",
+                _ =>
+                    "Geen toestel gevonden. Kabel/poort proberen of toestel ontgrendelen en 'Vertrouwen' tikken."
+            };
+            return;
+        }
+
         Status = count switch
         {
-            0 => "Geen toestel gevonden. Kabel/poort proberen of toestel ontgrendelen en 'Vertrouwen' tikken.",
             1 => "Eén toestel gevonden en geselecteerd.",
-            _ => $"{count} toestellen gevonden — kies er één.",
+            _ => $"{count} toestellen gevonden: kies er één.",
         };
     }
 
@@ -265,12 +285,29 @@ public class MainWindowViewModel : ReactiveObject
             var state = await DeviceService.GetConnectionStateAsync(udid);
             if (state == DeviceService.ConnectionState.NotTrusted)
             {
-                Status = "Toestel niet vertrouwd: ontgrendel en tik 'Vertrouwen'.";
+                Status = "Waiting for trust confirmation on device: ontgrendel toestel en tik op 'Vertrouwen'.";
+                return;
+            }
+            if (state == DeviceService.ConnectionState.PermissionDenied)
+            {
+                Status = "Executable permissions missing: bestandspermissies ontoereikend.";
+                return;
+            }
+            if (state == DeviceService.ConnectionState.DriverMissing)
+            {
+                Status = "Apple USB Driver missing: installeer Apple Mobile Device Support.";
+                return;
+            }
+            if (state == DeviceService.ConnectionState.DaemonStopped)
+            {
+                Status = OperatingSystem.IsWindows()
+                    ? "Apple Mobile Device Service is gestopt: start de service in Windows Services."
+                    : "usbmuxd daemon draait niet: start usbmuxd.";
                 return;
             }
             if (state != DeviceService.ConnectionState.Connected)
             {
-                Status = "Toestel niet bereikbaar — andere kabel/poort proberen.";
+                Status = "Toestel niet bereikbaar: andere kabel/poort proberen.";
                 return;
             }
             Progress = 20;
