@@ -243,6 +243,31 @@ public static class DeviceService
         await PopulateBatteryMetricsAsync(udid, data);
         await PopulateHardwareSerialsAndChecksAsync(udid, data);
 
+        // Security checks: iOS vs Android detection
+        bool isIOS = productType.Contains("iPhone", StringComparison.OrdinalIgnoreCase) || 
+                     productType.Contains("iPad", StringComparison.OrdinalIgnoreCase) ||
+                     productType.Contains("iPod", StringComparison.OrdinalIgnoreCase);
+
+        if (isIOS)
+        {
+            data.ActivationLock = await SecurityServices.ActivationLockService.DetectAsync(udid);
+            data.Jailbreak = await SecurityServices.JailbreakDetectionService.DetectAsync(udid);
+            data.CarrierLockIOS = await SecurityServices.ActivationLockService.DetectCarrierLockAsync(udid);
+            
+            // Enhanced component verification with AST2
+            var verification = await SecurityServices.ComponentVerificationService.VerifyComponentsAsync(udid, data);
+            data.ComponentChecks = verification.ComponentChecks;
+        }
+        else
+        {
+            // Android device
+            data.Root = await SecurityServices.RootDetectionService.DetectAsync(udid);
+            data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(udid);
+        }
+
+        // Optional: Blacklist check (requires configured provider)
+        // data.Blacklist = await new SecurityServices.BlacklistCheckService.NoOpBlacklistProvider().CheckAsync(data.Identifier);
+
         return data;
     }
 
