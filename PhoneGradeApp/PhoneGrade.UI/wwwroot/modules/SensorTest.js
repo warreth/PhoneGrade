@@ -1,187 +1,123 @@
 import { DeviceTest } from './DeviceTest.js';
 
-/**
- * SensorTest: Accelerometer and gyroscope orientation check.
- */
 export class SensorTest extends DeviceTest {
     constructor() {
-        super('sensor', 'Sensor Test', 'Test versnellingssensor en gyroscoop');
-        this.accelerationData = [];
-        this.rotationData = [];
-        this.threshold = 0.5; // m/s² for acceleration, deg/s for rotation
-        this.minReadings = 50; // Minimum sensor readings required
+        super('sensor', 'Motion Sensors', 'Test accelerometer and device orientation');
+        this.threshold = 1.0; 
+        this.accelWorking = false;
+        this.gyroWorking = false;
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Sensor toegang vragen...');
-
-        // Check if sensor APIs are available
-        const hasAccelerometer = 'Accelerometer' in window;
-        const hasGyroscope = 'Gyroscope' in window;
+        this.reportProgress(wsClient, 0, 'Awaiting sensor permission...');
 
         container.innerHTML = `
-            <h3 style="color: #00ff88; margin-bottom: 16px;">Sensor Test</h3>
-            <p class="test-instructions">Houd het toestel stil, schud het langzaam, draai het.</p>
-            <p style="margin-bottom: 16px; font-size: 12px; color: #b0b0b0;">Dit test de versnellingssensor en gyroscoop.</p>
+            <h3 style="color: var(--color-accent); margin-bottom: 16px;">Motion Sensors</h3>
+            <p class="test-instructions">Shake and tilt your device. iOS requires permission to access motion sensors.</p>
             
-            <div class="sensor-values">
-                <div class="sensor-value">
-                    <div class="sensor-label">X (X-as)</div>
-                    <div class="sensor-number" id="accel-x">0.00</div>
-                </div>
-                <div class="sensor-value">
-                    <div class="sensor-label">Y (Y-as)</div>
-                    <div class="sensor-number" id="accel-y">0.00</div>
-                </div>
-                <div class="sensor-value">
-                    <div class="sensor-label">Z (Z-as)</div>
-                    <div class="sensor-number" id="accel-z">0.00</div>
-                </div>
-                <div class="sensor-value">
-                    <div class="sensor-label">Rotatie X</div>
-                    <div class="sensor-number" id="gyro-x">0.0</div>
-                </div>
-                <div class="sensor-value">
-                    <div class="sensor-label">Rotatie Y</div>
-                    <div class="sensor-number" id="gyro-y">0.0</div>
-                </div>
-                <div class="sensor-value">
-                    <div class="sensor-label">Rotatie Z</div>
-                    <div class="sensor-number" id="gyro-z">0.0</div>
-                </div>
+            <div id="sensor-permission-area" style="text-align: center; margin-bottom: 24px;">
+                <button id="btn-request-sensors" class="btn btn-primary">Enable Motion Sensors</button>
             </div>
             
-            <div id="sensor-status" style="text-align: center; margin: 16px 0; color: #b0b0b0;">Wachten op sensor data...</div>
-            <p style="text-align: center; font-size: 12px; color: #b0b0b0;">Voor: ${hasAccelerometer ? 'Accelerometer beschikbaar' : 'Geen accelerometer'} | Gyroscoop: ${hasGyroscope ? 'Beschikbaar' : 'Geen gyroscoop'}</p>
+            <div id="sensor-data-area" style="display: none; grid-template-columns: 1fr; gap: 16px; margin-top: 16px;">
+                <div style="background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: 16px; border: 1px solid var(--color-border); text-align: center;">
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px;">Accelerometer (Shake)</p>
+                    <div id="accel-status" style="font-size: 18px; font-weight: bold; color: var(--color-warning);">Waiting for movement...</div>
+                </div>
+                <div style="background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: 16px; border: 1px solid var(--color-border); text-align: center;">
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px;">Orientation (Tilt)</p>
+                    <div id="gyro-status" style="font-size: 18px; font-weight: bold; color: var(--color-warning);">Waiting for tilt...</div>
+                </div>
+            </div>
         `;
 
-        if (!hasAccelerometer && !hasGyroscope) {
-            this.skip('Geen sensor ondersteuning op deze browser/device');
-            return;
-        }
-
-        this.reportProgress(wsClient, 20, 'Sensor data verzamelen...');
-
-        // Read sensor for 5 seconds
-        const duration = 5000;
-        const startTime = Date.now();
-        const readings = [];
-        const readThreshold = 30;
+        const btnRequest = container.querySelector('#btn-request-sensors');
+        const permissionArea = container.querySelector('#sensor-permission-area');
+        const dataArea = container.querySelector('#sensor-data-area');
+        const accelStatus = container.querySelector('#accel-status');
+        const gyroStatus = container.querySelector('#gyro-status');
 
         return new Promise((resolve) => {
-            let accelerometer, gyroscope;
-            let readingCount = 0;
-
-            // Setup accelerometer if available
-            if (hasAccelerometer) {
-                accelerometer = new Accelerometer({ frequency: 60 });
-                accelerometer.addEventListener('reading', () => {
-                    const x = accelerometer.acceleration.x || 0;
-                    const y = accelerometer.acceleration.y || 0;
-                    const z = accelerometer.acceleration.z || 0;
-
-                    readings.push({ x, y, z, t: Date.now() });
-
-                    // Update UI
-                    container.querySelector('#accel-x').textContent = x.toFixed(2);
-                    container.querySelector('#accel-y').textContent = y.toFixed(2);
-                    container.querySelector('#accel-z').textContent = z.toFixed(2);
-
-                    readingCount++;
-                });
-                accelerometer.start();
-            }
-
-            // Setup gyroscope if available
-            if (hasGyroscope) {
-                gyroscope = new Gyroscope({ frequency: 60 });
-                gyroscope.addEventListener('reading', () => {
-                    const x = gyroscope.rotationX || 0;
-                    const y = gyroscope.rotationY || 0;
-                    const z = gyroscope.rotationZ || 0;
-
-                    readings.push({ x, y, z, t: Date.now() });
-
-                    // Update UI
-                    container.querySelector('#gyro-x').textContent = x.toFixed(1);
-                    container.querySelector('#gyro-y').textContent = y.toFixed(1);
-                    container.querySelector('#gyro-z').textContent = z.toFixed(1);
-
-                    readingCount++;
-                });
-                gyroscope.start();
-            }
-
-            // Check status periodically
-            const checkStatus = () => {
-                const elapsed = Date.now() - startTime;
-                const progress = 20 + (elapsed / duration) * 80;
-                this.reportProgress(wsClient, progress, 'Sensor data...');
-
-                if (readingCount >= readThreshold) {
-                    container.querySelector('#sensor-status').textContent = 'Data verzameld!';
-                    container.querySelector('#sensor-status').style.color = '#00ff88';
-                }
-
-                if (elapsed >= duration) {
-                    // Cleanup
-                    if (accelerometer) accelerometer.stop();
-                    if (gyroscope) gyroscope.stop();
-
-                    // Analyze results
-                    const accelData = readings.filter(r => r.hasOwnProperty('x'));
-                    const gyroData = readings.filter(r => r.hasOwnProperty('x') && !r.hasOwnProperty('acceleration'));
-
-                    if (accelerometer) {
-                        const hasMotion = accelData.some(r => 
-                            Math.abs(r.x) > this.threshold || 
-                            Math.abs(r.y) > this.threshold || 
-                            Math.abs(r.z) > (this.threshold + 9.8) // Gravity offset
-                        );
-
-                        this.frontWorking = hasMotion;
-                    }
-
-                    if (gyroscope) {
-                        const hasRotation = gyroData.some(r => 
-                            Math.abs(r.x) > this.threshold || 
-                            Math.abs(r.y) > this.threshold || 
-                            Math.abs(r.z) > this.threshold
-                        );
-
-                        this.backWorking = hasRotation;
-                    }
-
-                    if (hasAccelerometer && hasGyroscope) {
-                        const accelWorks = this.frontWorking;
-                        const gyroWorks = this.backWorking;
-
-                        if (accelWorks && gyroWorks) {
-                            this.pass('Alle sensoren detecteren beweging');
-                            this.details.accelerometer = 'working';
-                            this.details.gyroscope = 'working';
-                        } else if (accelWorks || gyroWorks) {
-                            const working = accelWorks ? 'versnellingssensor' : 'gyroscoop';
-                            this.fail(`Alleen ${working} werkt`);
-                            this.details.accelerometer = accelWorks ? 'working' : 'failed';
-                            this.details.gyroscope = gyroWorks ? 'working' : 'failed';
-                        } else {
-                            this.fail('Geen sensoren detecteren beweging');
-                            this.details.accelerometer = 'failed';
-                            this.details.gyroscope = 'failed';
-                        }
-                    } else {
-                        this.skip('Niet alle sensoren beschikbaar');
-                    }
-
-                    resolve();
-                } else {
-                    setTimeout(checkStatus, 100);
+            const handleMotion = (event) => {
+                if (event.acceleration && (Math.abs(event.acceleration.x) > this.threshold || 
+                                           Math.abs(event.acceleration.y) > this.threshold || 
+                                           Math.abs(event.acceleration.z) > this.threshold)) {
+                    this.accelWorking = true;
+                    accelStatus.textContent = 'Movement Detected!';
+                    accelStatus.style.color = 'var(--color-success)';
+                    checkCompletion();
                 }
             };
 
-            checkStatus();
+            const handleOrientation = (event) => {
+                if (event.alpha !== null && event.beta !== null && event.gamma !== null) {
+                    if (Math.abs(event.beta) > 10 || Math.abs(event.gamma) > 10) {
+                        this.gyroWorking = true;
+                        gyroStatus.textContent = 'Tilt Detected!';
+                        gyroStatus.style.color = 'var(--color-success)';
+                        checkCompletion();
+                    }
+                }
+            };
+
+            const checkCompletion = () => {
+                if (this.accelWorking && this.gyroWorking) {
+                    window.removeEventListener('devicemotion', handleMotion);
+                    window.removeEventListener('deviceorientation', handleOrientation);
+                    this.pass('Accelerometer and Orientation sensors are fully functional');
+                    this.details.accelerometer = true;
+                    this.details.orientation = true;
+                    setTimeout(() => resolve(), 1000);
+                }
+            };
+
+            const initSensors = () => {
+                permissionArea.style.display = 'none';
+                dataArea.style.display = 'grid';
+                window.addEventListener('devicemotion', handleMotion);
+                window.addEventListener('deviceorientation', handleOrientation);
+                
+                setTimeout(() => {
+                    if (!this.accelWorking || !this.gyroWorking) {
+                        window.removeEventListener('devicemotion', handleMotion);
+                        window.removeEventListener('deviceorientation', handleOrientation);
+                        
+                        if (this.accelWorking || this.gyroWorking) {
+                            this.fail(`Only ${this.accelWorking ? 'Accelerometer' : 'Orientation'} detected movement`);
+                        } else {
+                            this.fail('No sensor movement detected within time limit');
+                        }
+                        this.details.accelerometer = this.accelWorking;
+                        this.details.orientation = this.gyroWorking;
+                        resolve();
+                    }
+                }, 15000);
+            };
+
+            btnRequest.addEventListener('click', () => {
+                if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                    DeviceMotionEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') {
+                                initSensors();
+                            } else {
+                                this.fail('Sensor permission denied');
+                                resolve();
+                            }
+                        })
+                        .catch(e => {
+                            this.fail('Error requesting sensor permission: ' + e.message);
+                            resolve();
+                        });
+                } else {
+                    initSensors();
+                }
+            });
+            
+            if (typeof DeviceMotionEvent === 'undefined' || typeof DeviceMotionEvent.requestPermission !== 'function') {
+                btnRequest.textContent = 'Start Sensor Test';
+            }
         });
     }
 }
