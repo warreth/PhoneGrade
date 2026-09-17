@@ -1,56 +1,178 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#1a1a1a">
-    <title>PhoneGrade Test Runner</title>
+    <meta name="theme-color" content="#0f1419">
+    <meta name="description" content="PhoneGrade Hardware Test Suite">
+    <title>PhoneGrade Test Suite</title>
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%230f1419' width='180' height='180'/%3E%3Ctext x='90' y='100' text-anchor='middle' font-size='80' fill='%2300d9ff' font-family='system-ui' font-weight='bold'%3EPG%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <div id="app">
-        <header>
-            <h1>PhoneGrade Test Runner</h1>
-            <div id="status" class="status connecting">Verbinden...</div>
+    <div id="app" class="app-container">
+        <header class="app-header" role="banner">
+            <div class="header-content">
+                <div class="logo">
+                    <svg viewBox="0 0 100 100" width="40" height="40">
+                        <rect fill="#0f1419" width="100" height="100" rx="12"/>
+                        <text x="50" y="65" text-anchor="middle" font-size="60" fill="#00d9ff" font-family="system-ui" font-weight="bold">PG</text>
+                    </svg>
+                    <h1>PhoneGrade</h1>
+                </div>
+                <div class="connection-status" id="connection-status" aria-live="polite">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
+            </div>
         </header>
 
-        <main id="main-content">
-            <div id="welcome-screen" class="screen active">
-                <div class="welcome-card">
-                    <h2>Welkom bij de PhoneGrade Test Suite</h2>
-                    <p>Deze test controleert alle belangrijke hardware-functies van dit toestel:</p>
-                    <ul>
-                        <li>Touchscreen (dode zones detectie)</li>
-                        <li>Display (dode pixels en backlight bleeding)</li>
-                        <li>Microfoon (geluidsniveau detectie)</li>
-                        <li>Speakers (stereo balans)</li>
-                        <li>Camera's (voor- en achterkant)</li>
-                        <li>Sensoren (accelerometer en gyroscoop)</li>
-                    </ul>
-                    <button id="start-suite-btn" class="btn-primary">Start Test Suite</button>
-                </div>
-            </div>
+        <main id="main-content" class="main-content" role="main">
+            <!-- Welcome Screen -->
+            <section id="welcome-screen" class="screen screen-active" role="region" aria-label="Welcome screen">
+                <div class="screen-content">
+                    <div class="welcome-card">
+                        <div class="card-header">
+                            <h2>Welcome to PhoneGrade</h2>
+                            <p class="subtitle">Professional Hardware Testing</p>
+                        </div>
 
-            <div id="test-screen" class="screen">
-                <div id="test-list" class="test-list"></div>
-                <div id="current-test" class="current-test"></div>
-            </div>
+                        <div class="device-info" id="device-info">
+                            <div class="info-row">
+                                <span class="label">Device:</span>
+                                <span class="value" id="device-type">Detecting...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="label">Browser:</span>
+                                <span class="value" id="browser-info">Detecting...</span>
+                            </div>
+                        </div>
 
-            <div id="results-screen" class="screen">
-                <div class="results-card">
-                    <h2>Test Resultaten</h2>
-                    <div id="results-summary"></div>
-                    <div id="results-details"></div>
-                    <button id="restart-btn" class="btn-secondary">Opnieuw Testen</button>
+                        <div class="test-overview">
+                            <p>This test suite will verify:</p>
+                            <ul class="feature-list">
+                                <li>
+                                    <svg viewBox="0 0 24 24" width="20" height="20">
+                                        <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                                    </svg>
+                                    <span>Touch Response</span>
+                                </li>
+                                <li>
+                                    <svg viewBox="0 0 24 24" width="20" height="20">
+                                        <path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                                    </svg>
+                                    <span>Display Quality</span>
+                                </li>
+                                <li>
+                                    <svg viewBox="0 0 24 24" width="20" height="20">
+                                        <path fill="currentColor" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                                    </svg>
+                                    <span>Audio Systems</span>
+                                </li>
+                                <li>
+                                    <svg viewBox="0 0 24 24" width="20" height="20">
+                                        <path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-5-9l-2.5 3 3.5 4.5h5L16 10z"/>
+                                    </svg>
+                                    <span>Cameras</span>
+                                </li>
+                                <li>
+                                    <svg viewBox="0 0 24 24" width="20" height="20">
+                                        <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                                    </svg>
+                                    <span>Motion Sensors</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <button id="start-suite-btn" class="btn btn-primary btn-large" aria-label="Start test suite">
+                            <span>Begin Test Suite</span>
+                            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                                <path fill="currentColor" d="M8 5v14l11-7z"/>
+                            </svg>
+                        </button>
+
+                        <p class="disclaimer">All tests are non-destructive and safe to run.</p>
+                    </div>
                 </div>
-            </div>
+            </section>
+
+            <!-- Test Progress Screen -->
+            <section id="test-screen" class="screen" role="region" aria-label="Test execution screen">
+                <div class="test-header">
+                    <div class="test-title-block">
+                        <h2 id="current-test-name">Loading Test...</h2>
+                        <p id="current-test-description" class="test-description">Please wait...</p>
+                    </div>
+                    <div class="test-counter" id="test-counter" aria-live="polite">
+                        <span id="current-test-num">0</span>/<span id="total-tests">0</span>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="test-progress-fill"></div>
+                </div>
+
+                <div id="test-list" class="test-list" role="list"></div>
+
+                <div id="test-container" class="test-container" role="region" aria-label="Current test interface"></div>
+
+                <div class="test-footer">
+                    <button id="skip-test-btn" class="btn btn-secondary" aria-label="Skip this test">Skip Test</button>
+                </div>
+            </section>
+
+            <!-- Results Screen -->
+            <section id="results-screen" class="screen" role="region" aria-label="Test results screen">
+                <div class="results-header">
+                    <div id="results-status-icon" class="status-icon" aria-hidden="true"></div>
+                    <h2 id="results-title">Test Suite Complete</h2>
+                </div>
+
+                <div class="results-summary">
+                    <div class="summary-card">
+                        <div class="summary-stat">
+                            <span class="stat-label">Total Tests</span>
+                            <span class="stat-value" id="total-count">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-card success-card">
+                        <div class="summary-stat">
+                            <span class="stat-label">Passed</span>
+                            <span class="stat-value passed" id="passed-count">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-stat">
+                            <span class="stat-label">Failed</span>
+                            <span class="stat-value failed" id="failed-count">0</span>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-stat">
+                            <span class="stat-label">Skipped</span>
+                            <span class="stat-value" id="skipped-count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="results-details" class="results-details" role="list"></div>
+
+                <div class="results-actions">
+                    <button id="export-results-btn" class="btn btn-secondary" aria-label="Export results as JSON">
+                        Export Results
+                    </button>
+                    <button id="restart-btn" class="btn btn-primary" aria-label="Restart test suite">
+                        Run Again
+                    </button>
+                </div>
+            </section>
         </main>
 
-        <footer>
-            <div id="session-info"></div>
+        <footer class="app-footer" role="contentinfo">
+            <div id="session-info" class="session-info" aria-live="polite"></div>
         </footer>
     </div>
 
