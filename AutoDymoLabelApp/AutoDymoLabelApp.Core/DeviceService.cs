@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace AutoDymoLabel.Core;
 
 /// <summary>High-level device operations via the bundled libimobiledevice tools.</summary>
@@ -6,13 +8,12 @@ public static class DeviceService
     /// <summary>All connected devices: UDID → "Name: Model" for display.</summary>
     public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync()
     {
-        var (output, _) = await ToolRunner.RunAsync("idevice_id", "-l");
-        if (!output.StartsWith("ERROR:") && output != "NO OUTPUT")
+        var (udids, _, _) = await ListUdidsSafeAsync();
+        if (udids.Length > 0)
         {
             var devices = new Dictionary<string, string>();
-            foreach (var udid in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            foreach (var id in udids)
             {
-                string id = udid.Trim();
                 if (id.Length == 0) continue;
                 string name = (await GetKeyAsync(id, "DeviceName")).Trim();
                 string model = Mappers.MapModel(await GetKeyAsync(id, "ProductType"));
@@ -21,7 +22,7 @@ public static class DeviceService
             return devices;
         }
 
-        // idevice_id unavailable — fall back to a full-blown tool that reports connectivity.
+        // idevice_id unavailable or errored — fallback probe
         string probe = await GetKeyAsync("", "DeviceName");
         return probe.StartsWith("ERROR:") || probe == "NO OUTPUT" || string.IsNullOrWhiteSpace(probe)
             ? []
@@ -45,28 +46,179 @@ public static class DeviceService
     }
 
     /// <summary>Device state summary used by the auto-flow and UI.</summary>
-    public enum ConnectionState { Connected, NotTrusted, NotActivated, NotFound, ToolsMissing }
+    public enum ConnectionState
+    {
+        Connected,
+        NotTrusted,
+        NotActivated,
+        NotFound,
+        ToolsMissing,
+        DaemonStopped,
+        PermissionDenied,
+        DriverMissing
+    }
+
+    /// <summary>Detailed diagnostic report of usbmuxd / Apple Mobile Device Service.</summary>
+    public record DaemonDiagnosis(bool IsRunning, string StatusMessage, string Remediation);
+
+    /// <summary>Checks whether usbmuxd or Apple Mobile Device Service is running and responding.</summary>
+    public static Task<DaemonDiagnosis> CheckDaemonStatusAsync()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return Task.FromResult(CheckWindowsDaemonStatus());
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            return Task.FromResult(CheckMacDaemonStatus());
+        }
+        else
+        {
+            // Linux check: /var/run/usbmuxd socket or process
+            bool socketExists = File.Exists("/var/run/usbmuxd");
+            bool processRunning = Process.GetProcessesByName("usbmuxd").Length > 0;
+            if (socketExists || processRunning)
+                return Task.FromResult(new DaemonDiagnosis(true, "usbmuxd is actief", ""));
+
+            return Task.FromResult(new DaemonDiagnosis(false, "usbmuxd daemon draait niet",
+                "Start usbmuxd via systemctl: sudo systemctl start usbmuxd"));
+        }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static DaemonDiagnosis CheckWindowsServiceStatus()
+    {
+        string[] serviceNames = ["Apple Mobile Device Service", "usbmuxd"];
+        bool anyFound = false;
+
+        foreach (var svcName in serviceNames)
+        {
+            try
+            {
+                using var sc = new System.ServiceProcess.ServiceController(svcName);
+                anyFound = true;
+                if (sc.Status == System.ServiceProcess.ServiceControllerStatus.Running)
+                    return new DaemonDiagnosis(true, $"{svcName} is actief", "");
+                if (sc.Status == System.ServiceProcess.ServiceControllerStatus.Stopped)
+                    return new DaemonDiagnosis(false, $"{svcName} is gestopt",
+                        $"Start de service via Services (services.msc) of run: net start \"{svcName}\"");
+            }
+            catch
+            {
+                // Service may not exist with this exact name, try next
+            }
+        }
+
+        return new DaemonDiagnosis(false, "Apple Mobile Device Service niet gevonden", anyFound ? "Service gestopt" : "");
+    }
+
+    private static DaemonDiagnosis CheckWindowsDaemonStatus()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var svcCheck = CheckWindowsServiceStatus();
+            if (svcCheck.IsRunning) return svcCheck;
+            if (!string.IsNullOrEmpty(svcCheck.Remediation)) return svcCheck;
+        }
+
+        // Process probe fallback for AppleMobileDeviceProcess or usbmuxd
+        var procMatches = Process.GetProcesses().Where(p =>
+        {
+            try { return p.ProcessName.Contains("AppleMobileDevice") || p.ProcessName.Contains("usbmuxd"); }
+            catch { return false; }
+        }).ToArray();
+
+        if (procMatches.Length > 0)
+            return new DaemonDiagnosis(true, "Apple Mobile Device proces gevonden", "");
+
+        return new DaemonDiagnosis(false, "Apple USB Driver / Mobile Device Service ontbreekt of is gestopt",
+            "Installeer iTunes of Apple Devices (of stand-alone Apple Mobile Device Support) om de drivers te installeren.");
+    }
+
+    private static DaemonDiagnosis CheckMacDaemonStatus()
+    {
+        bool socketExists = File.Exists("/var/run/usbmuxd");
+        bool processRunning = Process.GetProcessesByName("usbmuxd").Length > 0;
+
+        if (socketExists || processRunning)
+            return new DaemonDiagnosis(true, "usbmuxd is actief", "");
+
+        return new DaemonDiagnosis(false, "usbmuxd socket /var/run/usbmuxd niet gevonden",
+            "Controleer of de usbmuxd daemon draait of herstart via: sudo launchctl kickstart -k system/com.apple.usbmuxd");
+    }
 
     public static async Task<ConnectionState> GetConnectionStateAsync(string? udid = null)
     {
-        var (devices, _) = await ListUdidsSafeAsync();
+        var (devices, _, diagState) = await ListUdidsSafeAsync();
+        if (diagState != ConnectionState.Connected && devices.Length == 0)
+            return diagState;
+
         if (devices.Length == 0) return ConnectionState.NotFound;
         if (udid != null && !devices.Contains(udid)) return ConnectionState.NotFound;
 
-        string info = await GetKeyAsync(udid ?? devices[0], "ProductType");
-        if (info.Contains("Could not connect to lockdownd"))
+        string targetUdid = udid ?? devices[0];
+        string info = await GetKeyAsync(targetUdid, "ProductType");
+        if (info.Contains("Could not connect to lockdownd") || info.Contains("PasswordProtected") || info.Contains("PairingDialogResponsePending"))
             return ConnectionState.NotTrusted;
         if (info.StartsWith("ERROR:") || info == "NO OUTPUT")
             return ConnectionState.ToolsMissing;
-        string activation = await GetKeyAsync(udid ?? devices[0], "ActivationState");
+
+        string activation = await GetKeyAsync(targetUdid, "ActivationState");
         return activation.Contains("Unactivated") ? ConnectionState.NotActivated : ConnectionState.Connected;
     }
 
-    private static async Task<(string[] Udids, string Raw)> ListUdidsSafeAsync()
+    /// <summary>Lists UDIDs inspecting stdout and stderr, falling back to ideviceinfo -s on error.</summary>
+    public static async Task<(string[] Udids, string Raw, ConnectionState DiagnosticState)> ListUdidsSafeAsync()
     {
-        var (output, _) = await ToolRunner.RunAsync("idevice_id", "-l");
-        if (output.StartsWith("ERROR:") || output == "NO OUTPUT") return ([], output);
-        return (output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray(), output);
+        var (stdout, stderr, exitCode) = await ToolRunner.ExecuteAsync("idevice_id", "-l");
+
+        if (exitCode == 0 && !string.IsNullOrWhiteSpace(stdout))
+        {
+            var list = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                             .Select(s => s.Trim())
+                             .Where(s => s.Length > 0)
+                             .ToArray();
+            return (list, stdout, ConnectionState.Connected);
+        }
+
+        // Check if stderr indicates specific daemon or permission errors
+        string combinedErr = (stderr + " " + stdout).Trim();
+        if (combinedErr.Contains("Permission denied") || combinedErr.Contains("Operation not permitted"))
+        {
+            return ([], combinedErr, ConnectionState.PermissionDenied);
+        }
+        if (combinedErr.Contains("No device found") || combinedErr.Contains("No devices found"))
+        {
+            return ([], combinedErr, ConnectionState.NotFound);
+        }
+        if (combinedErr.Contains("usbmuxd") || combinedErr.Contains("Could not connect to usbmuxd") || combinedErr.Contains("Connection refused"))
+        {
+            var daemon = await CheckDaemonStatusAsync();
+            return ([], combinedErr, daemon.IsRunning ? ConnectionState.DriverMissing : ConnectionState.DaemonStopped);
+        }
+
+        // Fallback probe using ideviceinfo -s when idevice_id exits with error or empty
+        var (infoOut, infoErr, infoExit) = await ToolRunner.ExecuteAsync("ideviceinfo", "-s");
+        if (infoExit == 0 && !string.IsNullOrWhiteSpace(infoOut))
+        {
+            string? fallbackUdid = Parsers.KeyValue(infoOut, "UniqueDeviceID");
+            if (!string.IsNullOrWhiteSpace(fallbackUdid))
+            {
+                return ([fallbackUdid.Trim()], fallbackUdid.Trim(), ConnectionState.Connected);
+            }
+        }
+
+        string fallbackErr = (infoErr + " " + combinedErr).Trim();
+        if (fallbackErr.Contains("Could not connect to lockdownd"))
+        {
+            return ([], fallbackErr, ConnectionState.NotTrusted);
+        }
+        if (fallbackErr.Contains("usbmuxd") || fallbackErr.Contains("Could not connect to usbmuxd"))
+        {
+            return ([], fallbackErr, ConnectionState.DaemonStopped);
+        }
+
+        return ([], combinedErr.Length == 0 ? "NO OUTPUT" : combinedErr, ConnectionState.NotFound);
     }
 
     /// <summary>Collects all label + diagnostic data for one device.</summary>
