@@ -1,10 +1,17 @@
 import { DeviceTest } from './modules/DeviceTest.js';
 import { TouchTest } from './modules/TouchTest.js';
+import { DigitizerTest } from './modules/DigitizerTest.js';
+import { ForceTouchTest } from './modules/ForceTouchTest.js';
 import { DisplayTest } from './modules/DisplayTest.js';
-import { MicrophoneTest } from './modules/MicrophoneTest.js';
+import { ScreenRotationTest } from './modules/ScreenRotationTest.js';
+import { ScreenBrightnessTest } from './modules/ScreenBrightnessTest.js';
 import { SpeakerTest } from './modules/SpeakerTest.js';
+import { MicrophoneTest } from './modules/MicrophoneTest.js';
+import { CallTest } from './modules/CallTest.js';
 import { CameraTest } from './modules/CameraTest.js';
 import { SensorTest } from './modules/SensorTest.js';
+import { LocationTest } from './modules/LocationTest.js';
+import { VibrationTest } from './modules/VibrationTest.js';
 
 class WebSocketClient {
     constructor() {
@@ -108,13 +115,17 @@ class TestRunner {
         this.wsClient = wsClient;
         this.tests = [
             new TouchTest(),
+            new DigitizerTest(),
+            new ForceTouchTest(),
             new DisplayTest(),
-            new MicrophoneTest(),
+            new ScreenRotationTest(),
+            new ScreenBrightnessTest(),
             new SpeakerTest(),
+            new MicrophoneTest(),
+            new CallTest(),
             new CameraTest(),
             new SensorTest(),
-            new ScreenRotationTest(),
-            new ScreenBrightnessTest()
+            new LocationTest(),
             new VibrationTest()
         ];
         this.currentTestIndex = -1;
