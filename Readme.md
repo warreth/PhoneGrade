@@ -21,16 +21,16 @@ page:
 Grab the installer from the [Releases](https://github.com/warreth/Auto-Dymo-Label/releases)
 page:
 
-- **Windows**: `AutoDymoLabel-win-Setup.exe`. Velopack installer, no admin
+- **Windows**: `PhoneGrade-win-Setup.exe`. Velopack installer, no admin
   rights needed.
-- **macOS**: `AutoDymoLabel-osx-arm64-*.pkg` (Apple Silicon) or
-  `AutoDymoLabel-osx-x64-*.pkg` (Intel). Drag into Applications.
-- **Linux**: `AutoDymoLabel-linux-*.AppImage`. `chmod +x` and run.
-- **Windows**: `AutoDymoLabel-win-Setup.exe`. Velopack installer, no admin
+- **macOS**: `PhoneGrade-osx-arm64-*.pkg` (Apple Silicon) or
+  `PhoneGrade-osx-x64-*.pkg` (Intel). Drag into Applications.
+- **Linux**: `PhoneGrade-linux-*.AppImage`. `chmod +x` and run.
+- **Windows**: `PhoneGrade-win-Setup.exe`. Velopack installer, no admin
   rights needed.
-- **macOS**: `AutoDymoLabel-osx-arm64-*.pkg` (Apple Silicon) or
-  `AutoDymoLabel-osx-x64-*.pkg` (Intel). Drag into Applications.
-- **Linux**: `AutoDymoLabel-linux-*.AppImage`. `chmod +x` and run.
+- **macOS**: `PhoneGrade-osx-arm64-*.pkg` (Apple Silicon) or
+  `PhoneGrade-osx-x64-*.pkg` (Intel). Drag into Applications.
+- **Linux**: `PhoneGrade-linux-*.AppImage`. `chmod +x` and run.
 
 The installers bundle the `libimobiledevice` command line tools
 (`ideviceinfo`, `idevicediagnostics`, `idevicecrashreport`, and friends) so
@@ -124,8 +124,8 @@ battery SFI data, low battery condition (below 80%), and missing tools.
 ## Settings
 ## Settings
 
-Stored at `%LOCALAPPDATA%/AutoDymoLabel/settings.json`:
-Stored at `%LOCALAPPDATA%/AutoDymoLabel/settings.json`:
+Stored at `%LOCALAPPDATA%/PhoneGrade/settings.json`:
+Stored at `%LOCALAPPDATA%/PhoneGrade/settings.json`:
 
 ```json
 {
@@ -161,14 +161,14 @@ Every option can also be changed in the app under Settings.
 ## Developing
 
 ```bash
-dotnet build AutoDymoLabelApp/AutoDymoLabelApp.sln
-dotnet test AutoDymoLabelApp/Tests/Tests.csproj
-dotnet run --project AutoDymoLabelApp/AutoDymoLabelApp.UI
+dotnet build PhoneGradeApp/PhoneGrade.sln
+dotnet test PhoneGradeApp/Tests/Tests.csproj
+dotnet run --project PhoneGradeApp/PhoneGrade.UI
 ```
 ```bash
-dotnet build AutoDymoLabelApp/AutoDymoLabelApp.sln
-dotnet test AutoDymoLabelApp/Tests/Tests.csproj
-dotnet run --project AutoDymoLabelApp/AutoDymoLabelApp.UI
+dotnet build PhoneGradeApp/PhoneGrade.sln
+dotnet test PhoneGradeApp/Tests/Tests.csproj
+dotnet run --project PhoneGradeApp/PhoneGrade.UI
 ```
 
 Without bundled tools the app looks for them on PATH (`brew install
