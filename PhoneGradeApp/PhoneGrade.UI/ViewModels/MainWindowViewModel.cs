@@ -369,6 +369,8 @@ public class MainWindowViewModel : ReactiveObject
             var (_, _, diagState) = await DeviceService.ListUdidsSafeAsync();
             Status = diagState switch
             {
+                DeviceService.ConnectionState.Unauthorized =>
+                    "ADB unauthorized: ontgrendel Android toestel en accepteer USB-foutopsporing (RSA-sleutel).",
                 DeviceService.ConnectionState.PermissionDenied =>
                     "Executable permissions missing: voer chmod +x uit op de tools of controleer Gatekeeper.",
                 DeviceService.ConnectionState.DriverMissing =>
@@ -413,6 +415,11 @@ public class MainWindowViewModel : ReactiveObject
             // 1. Trust / connectivity
             Status = "Verbinding controleren…";
             var state = await DeviceService.GetConnectionStateAsync(udid);
+            if (state == DeviceService.ConnectionState.Unauthorized)
+            {
+                Status = "ADB unauthorized: ontgrendel Android toestel en accepteer USB-foutopsporing (RSA-sleutel).";
+                return;
+            }
             if (state == DeviceService.ConnectionState.NotTrusted)
             {
                 Status = "Waiting for trust confirmation on device: ontgrendel toestel en tik op 'Vertrouwen'.";
