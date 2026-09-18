@@ -138,6 +138,36 @@
                     </StackPanel>
                 </Border>
 
+                <!-- ============ Web Test Runner (PWA) ============ -->
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="INTERACTIEVE WEBTEST (PWA)" Classes="cardTitle"/>
+                                <TextBlock Classes="dim" Text="Test touchscreen, display, audio en sensoren via mobiele Safari/Chrome" FontSize="12"/>
+                            </StackPanel>
+                            <Border Grid.Column="1" Background="{DynamicResource CardBgColor}" CornerRadius="4" Padding="6,2" BorderBrush="{DynamicResource BorderSubtleColor}" BorderThickness="1">
+                                <TextBlock Text="{Binding InteractiveSessionStatus}" FontSize="11" Foreground="{DynamicResource PrimaryColor}" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="140,*" Margin="0,4,0,0">
+                            <!-- QR Code Preview -->
+                            <Border Grid.Column="0" Width="130" Height="130" Background="White" CornerRadius="8" Padding="6" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                <Image Source="{Binding QrCodeBitmap}" Stretch="Uniform"/>
+                            </Border>
+
+                            <!-- Instructions & Link -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                                <TextBlock Text="Scan met de camera van het toestel:" FontWeight="SemiBold" FontSize="13"/>
+                                <SelectableTextBlock Text="{Binding WebRunnerUrl}" Foreground="{DynamicResource PrimaryColor}" FontSize="13" TextWrapping="Wrap"/>
+                                <TextBlock Text="Geen profielen of certificaten vereist. Verbind met dezelfde Wi-Fi of USB proxy." Classes="dim" FontSize="12" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding InteractiveTestSummary}" Foreground="{DynamicResource SuccessColor}" FontWeight="Medium" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
                 <!-- ============ Settings ============ -->
                 <Border Classes="card">
                     <Expander IsExpanded="False">

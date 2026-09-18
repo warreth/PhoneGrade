@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 using PhoneGrade.Core;
 using PhoneGrade.Core.Diagnostics;
 using PhoneGrade.UI.Models;
+using PhoneGrade.UI.Services;
+using PhoneGrade.UI.Web;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using DynamicData;
 using ReactiveUI;
@@ -38,7 +41,41 @@ public class MainWindowViewModel : ReactiveObject
     public KeyValuePair<string, string> SelectedDevice
     {
         get => _selectedDevice;
-        set => this.RaiseAndSetIfChanged(ref _selectedDevice, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedDevice, value);
+            UpdateWebRunnerSession(value.Key);
+        }
+    }
+
+    // Web Test Runner (PWA) Properties
+    private TestRunnerServer? _webServer;
+    private string _webRunnerUrl = "";
+    public string WebRunnerUrl
+    {
+        get => _webRunnerUrl;
+        set => this.RaiseAndSetIfChanged(ref _webRunnerUrl, value);
+    }
+
+    private Bitmap? _qrCodeBitmap;
+    public Bitmap? QrCodeBitmap
+    {
+        get => _qrCodeBitmap;
+        set => this.RaiseAndSetIfChanged(ref _qrCodeBitmap, value);
+    }
+
+    private string _interactiveSessionStatus = "Web runner standby";
+    public string InteractiveSessionStatus
+    {
+        get => _interactiveSessionStatus;
+        set => this.RaiseAndSetIfChanged(ref _interactiveSessionStatus, value);
+    }
+
+    private string _interactiveTestSummary = "";
+    public string InteractiveTestSummary
+    {
+        get => _interactiveTestSummary;
+        set => this.RaiseAndSetIfChanged(ref _interactiveTestSummary, value);
     }
 
     private int _progress;
@@ -186,6 +223,99 @@ public class MainWindowViewModel : ReactiveObject
 
         _ = RefreshDeviceListAsync();
         if (_autoDetectOnPlug) StartWatcher();
+        StartWebRunnerServer();
+    }
+
+    private void StartWebRunnerServer()
+    {
+        try
+        {
+            _webServer = new TestRunnerServer(5055);
+            _webServer.DeviceConnected += (s, e) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    InteractiveSessionStatus = $"Toestel verbonden voor webtest ({e.SessionId})";
+                });
+            };
+
+            _webServer.MessageReceived += (s, e) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (e.Message?.Type == "test_progress")
+                    {
+                        InteractiveSessionStatus = $"Test bezig: {e.Message.TestName} ({e.Message.Progress}%)";
+                    }
+                    else if (e.Message?.Type == "test_complete")
+                    {
+                        InteractiveSessionStatus = $"Test afgerond: {e.Message.TestName} -> {e.Message.Status}";
+                    }
+                });
+            };
+
+            _webServer.SuiteCompleted += (s, e) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (e.Message?.Payload != null)
+                    {
+                        ApplyInteractiveResults(e.Message.Payload);
+                    }
+                });
+            };
+
+            _ = _webServer.StartAsync().ContinueWith(t =>
+            {
+                if (t.IsCompletedSuccessfully)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        UpdateWebRunnerSession(SelectedDevice.Key);
+                    });
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            InteractiveSessionStatus = $"Web runner fout: {ex.Message}";
+        }
+    }
+
+    public void UpdateWebRunnerSession(string? udid)
+    {
+        try
+        {
+            var ip = QrCodeService.GetLocalIpAddress();
+            int port = _webServer?.BoundPort > 0 ? _webServer.BoundPort : 5055;
+            var sessionUdid = !string.IsNullOrWhiteSpace(udid) ? udid : (DeviceData.Identifier != "NOID" ? DeviceData.Identifier : "DEMO");
+            WebRunnerUrl = QrCodeService.GenerateSessionUrl(ip, port, sessionUdid);
+            QrCodeBitmap = QrCodeService.GenerateQrCodeBitmap(WebRunnerUrl);
+            InteractiveSessionStatus = $"Scan QR of open: {WebRunnerUrl}";
+        }
+        catch (Exception ex)
+        {
+            InteractiveSessionStatus = $"QR fout: {ex.Message}";
+        }
+    }
+
+    public void ApplyInteractiveResults(InteractiveTestSuiteResult suite)
+    {
+        DeviceData.InteractiveTests = suite;
+        var newIssues = DeviceData.MergeInteractiveResults(Issues.ToList());
+        Issues.Clear();
+        foreach (var iss in newIssues)
+        {
+            Issues.Add(iss);
+        }
+        HasIssues = Issues.Count > 0;
+
+        int passed = suite.Tests.Count(t => t.Status == TestStatus.Passed);
+        int failed = suite.Tests.Count(t => t.Status == TestStatus.Failed);
+        InteractiveTestSummary = $"Interactieve tests: {passed} geslaagd, {failed} gefaald ({suite.Platform})";
+        InteractiveSessionStatus = suite.AllPassed
+            ? "Interactieve hardwaretest: Alles geslaagd!"
+            : $"Interactieve hardwaretest voltooid: {failed} fout(en)";
     }
 
     /// <summary>Polls for device changes every 2s; starts the auto flow on first sight of a device.</summary>
