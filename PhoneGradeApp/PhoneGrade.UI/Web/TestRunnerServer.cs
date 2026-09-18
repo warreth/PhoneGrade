@@ -24,6 +24,18 @@ public class DeviceSessionEventArgs : EventArgs
     public DeviceSessionMessage? Message { get; init; }
 }
 
+public class TelemetryEventArgs : EventArgs
+{
+    public required string SessionId { get; init; }
+    public required ClientTelemetry Telemetry { get; init; }
+}
+
+public class LogMessageEventArgs : EventArgs
+{
+    public required string SessionId { get; init; }
+    public required LogEvent LogEvent { get; init; }
+}
+
 /// <summary>
 /// Embedded Kestrel minimal web server serving the PWA test suite and WebSocket hub.
 /// </summary>
@@ -40,7 +52,8 @@ public class TestRunnerServer : IAsyncDisposable
     public event EventHandler<DeviceSessionEventArgs>? DeviceConnected;
     public event EventHandler<DeviceSessionEventArgs>? MessageReceived;
     public event EventHandler<DeviceSessionEventArgs>? SuiteCompleted;
-    public event EventHandler<DeviceSessionEventArgs>? LogEventReceived;
+    public event EventHandler<LogMessageEventArgs>? LogEventReceived;
+    public event EventHandler<TelemetryEventArgs>? TelemetryReceived;
 
     public TestRunnerServer(int preferredPort = 5055, string? contentRootPath = null)
     {
@@ -207,26 +220,37 @@ public class TestRunnerServer : IAsyncDisposable
 
                     if (msg.Type == "client_telemetry")
                     {
-                        LogEventReceived?.Invoke(this, new DeviceSessionEventArgs
+                        try
                         {
-                            SessionId = sessionId,
-                            Message = new DeviceSessionMessage
+                            var telMsg = JsonSerializer.Deserialize<LogEventMessage>(json);
+                            if (telMsg?.ClientTelemetry != null)
                             {
-                                Type = "log_event",
-                                SessionId = sessionId,
-                                Message = "Client telemetry received"
+                                TelemetryReceived?.Invoke(this, new TelemetryEventArgs
+                                {
+                                    SessionId = sessionId,
+                                    Telemetry = telMsg.ClientTelemetry
+                                });
                             }
-                        });
+                        }
+                        catch { }
                         continue;
                     }
 
                     if (msg.Type == "log_event")
                     {
-                        LogEventReceived?.Invoke(this, new DeviceSessionEventArgs
+                        try
                         {
-                            SessionId = sessionId,
-                            Message = msg
-                        });
+                            var logMsg = JsonSerializer.Deserialize<LogEventMessage>(json);
+                            if (logMsg?.LogEvent != null)
+                            {
+                                LogEventReceived?.Invoke(this, new LogMessageEventArgs
+                                {
+                                    SessionId = sessionId,
+                                    LogEvent = logMsg.LogEvent
+                                });
+                            }
+                        }
+                        catch { }
                         continue;
                     }
 
