@@ -28,7 +28,7 @@ class WebSocketClient {
         return params.get(name);
     }
 
-    connect() {
+        connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/device-session?sessionId=${this.sessionId}`;
 
@@ -43,10 +43,18 @@ class WebSocketClient {
             while (this.messageQueue.length > 0) {
                 this.send(this.messageQueue.shift());
             }
+
+            if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = setInterval(() => {
+                if (this.isConnected()) {
+                    this.send({ type: 'ping', sessionId: this.sessionId });
+                }
+            }, 10000);
         };
 
         this.socket.onclose = () => {
             this.connected = false;
+            if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
             this.updateConnectionStatus('disconnected', 'Disconnected');
             
             if (this.reconnectAttempts < this.maxReconnectAttempts) {
