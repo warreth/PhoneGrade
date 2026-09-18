@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using PhoneGrade.Core;
+using PhoneGrade.UI.Services;
+using PhoneGrade.UI.ViewModels;
 using PhoneGrade.UI.Web;
 using Xunit;
 
