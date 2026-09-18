@@ -12,6 +12,7 @@ import { CameraTest } from './modules/CameraTest.js';
 import { SensorTest } from './modules/SensorTest.js';
 import { LocationTest } from './modules/LocationTest.js';
 import { VibrationTest } from './modules/VibrationTest.js';
+import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 
 class WebSocketClient {
     constructor() {
@@ -21,6 +22,7 @@ class WebSocketClient {
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.messageQueue = [];
+        this.consoleLogger = null;
     }
 
     getUrlParam(name) {
@@ -28,7 +30,7 @@ class WebSocketClient {
         return params.get(name);
     }
 
-        connect() {
+    connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws/device-session?sessionId=${this.sessionId}`;
 
@@ -38,8 +40,19 @@ class WebSocketClient {
             this.connected = true;
             this.reconnectAttempts = 0;
             this.updateConnectionStatus('connected', 'Connected');
+            
+            // Send init with session ID
             this.send({ type: 'init', sessionId: this.sessionId });
             
+            // Capture and send client telemetry immediately
+            this.sendClientTelemetry();
+            
+            // Start remote console logging
+            if (!this.consoleLogger) {
+                this.consoleLogger = new RemoteConsoleLogger(this);
+            }
+            
+            // Drain message queue
             while (this.messageQueue.length > 0) {
                 this.send(this.messageQueue.shift());
             }
@@ -75,6 +88,92 @@ class WebSocketClient {
                 console.error('Failed to parse message:', e);
             }
         };
+    }
+
+    sendClientTelemetry() {
+        const ua = navigator.userAgent;
+        let browser = 'Unknown';
+        let browserVersion = '';
+        let os = 'Unknown';
+        let osVersion = '';
+
+        // Parse browser
+        if (/Chrome/.test(ua) && !/Edge/.test(ua)) {
+            browser = 'Chrome';
+            browserVersion = ua.match(/Chrome\/(\d+)/)?.[1] || '';
+        } else if (/Safari/.test(ua) && !/Chrome/.test(ua)) {
+            browser = 'Safari';
+            browserVersion = ua.match(/Version\/(\d+)/)?.[1] || '';
+        } else if (/Firefox/.test(ua)) {
+            browser = 'Firefox';
+            browserVersion = ua.match(/Firefox\/(\d+)/)?.[1] || '';
+        } else if (/Edg/.test(ua)) {
+            browser = 'Edge';
+            browserVersion = ua.match(/Edg\/(\d+)/)?.[1] || '';
+        }
+
+        // Parse OS
+        if (/iPhone|iPad|iPod/.test(ua)) {
+            os = 'iOS';
+            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || '';
+        } else if (/Android/.test(ua)) {
+            os = 'Android';
+            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || '';
+        } else if (/Macintosh/.test(ua)) {
+            os = 'macOS';
+            osVersion = ua.match(/Mac OS X ([\d_]+)/)?.[1]?.replace(/_/g, '.') || '';
+        } else if (/Windows/.test(ua)) {
+            os = 'Windows';
+        }
+
+        const clientTelemetry = {
+            userAgent: ua,
+            browser: browser,
+            browserVersion: browserVersion,
+            os: os,
+            osVersion: osVersion,
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            pixelRatio: window.devicePixelRatio || 1.0,
+            touchSupport: () => 'ontouchstart' in window || navigator.maxTouchPoints > 0,
+            accelerometerSupport: () => typeof DeviceMotionEvent !== 'undefined',
+            gyroscopeSupport: () => typeof DeviceOrientationEvent !== 'undefined',
+            geolocationSupport: () => 'geolocation' in navigator,
+            webAudioSupport: () => typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined',
+            cameraSupport: () => navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function',
+            microphoneSupport: () => navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function',
+            vibrationSupport: () => typeof navigator.vibrate === 'function',
+            language: navigator.language || 'Unknown',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        };
+
+        // Convert functions to boolean values
+        const telemetry = {
+            userAgent: clientTelemetry.userAgent,
+            browser: clientTelemetry.browser,
+            browserVersion: clientTelemetry.browserVersion,
+            os: clientTelemetry.os,
+            osVersion: clientTelemetry.osVersion,
+            screenWidth: clientTelemetry.screenWidth,
+            screenHeight: clientTelemetry.screenHeight,
+            pixelRatio: clientTelemetry.pixelRatio,
+            touchSupport: clientTelemetry.touchSupport(),
+            accelerometerSupport: clientTelemetry.accelerometerSupport(),
+            gyroscopeSupport: clientTelemetry.gyroscopeSupport(),
+            geolocationSupport: clientTelemetry.geolocationSupport(),
+            webAudioSupport: clientTelemetry.webAudioSupport(),
+            cameraSupport: clientTelemetry.cameraSupport(),
+            microphoneSupport: clientTelemetry.microphoneSupport(),
+            vibrationSupport: clientTelemetry.vibrationSupport(),
+            language: clientTelemetry.language,
+            timezone: clientTelemetry.timezone
+        };
+
+        this.send({
+            type: 'client_telemetry',
+            sessionId: this.sessionId,
+            clientTelemetry: telemetry
+        });
     }
 
     isConnected() {
@@ -220,193 +319,53 @@ class TestRunner {
         return 'Unknown';
     }
 
-    stopSuite() {
-        this.isRunning = false;
-    }
-
-    updateTestHeader(test) {
-        const nameEl = document.getElementById('current-test-name');
-        const descEl = document.getElementById('current-test-description');
-        const counterEl = document.getElementById('test-counter');
-        const currentNum = document.getElementById('current-test-num');
-        const totalTests = document.getElementById('total-tests');
-        const progressFill = document.getElementById('test-progress-fill');
-
-        if (nameEl) nameEl.textContent = test.name;
-        if (descEl) descEl.textContent = test.description;
-        if (currentNum) currentNum.textContent = this.currentTestIndex + 1;
-        if (totalTests) totalTests.textContent = this.tests.length;
-        
-        const progress = ((this.currentTestIndex + 1) / this.tests.length) * 100;
-        if (progressFill) {
-            progressFill.style.width = progress + '%';
-        }
+    showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(el => el.style.display = 'none');
+        const screen = document.getElementById(screenId);
+        if (screen) screen.style.display = 'block';
     }
 
     updateTestListUI() {
         const testList = document.getElementById('test-list');
         if (!testList) return;
+        
+        testList.innerHTML = '';
+        this.tests.forEach((test, index) => {
+            const li = document.createElement('li');
+            li.className = 'test-item ' + test.status;
+            li.textContent = test.name;
+            if (index === this.currentTestIndex) li.classList.add('active');
+            testList.appendChild(li);
+        });
+    }
 
-        testList.innerHTML = this.tests.map((test, index) => {
-            let statusClass = 'pending';
-            let icon = '○';
-            
-            if (test.status === 'running') {
-                statusClass = 'running';
-                icon = '↻';
-            } else if (test.status === 'passed') {
-                statusClass = 'passed';
-                icon = '✓';
-            } else if (test.status === 'failed') {
-                statusClass = 'failed';
-                icon = '✗';
-            } else if (test.status === 'skipped') {
-                statusClass = 'skipped';
-                icon = '−';
-            }
-
-            return `
-                <div class="test-item ${statusClass}" role="listitem">
-                    <div class="test-status-icon">${icon}</div>
-                    <div class="test-name">${test.name.replace(' Test', '')}</div>
-                </div>
-            `;
-        }).join('');
+    updateTestHeader(test) {
+        const header = document.getElementById('current-test-name');
+        if (header) header.textContent = test.name;
     }
 
     showResultsScreen(suiteResult) {
         this.showScreen('results-screen');
-
-        const passed = suiteResult.tests.filter(t => t.status === 'passed').length;
-        const failed = suiteResult.tests.filter(t => t.status === 'failed').length;
-        const skipped = suiteResult.tests.filter(t => t.status === 'skipped').length;
-        const allPassed = failed === 0 && passed > 0;
-
-        const statusIcon = document.getElementById('results-status-icon');
-        const resultsTitle = document.getElementById('results-title');
-        
-        if (statusIcon) {
-            statusIcon.textContent = allPassed ? '✓' : '⚠';
-            statusIcon.style.color = allPassed ? 'var(--color-success)' : 'var(--color-warning)';
-        }
-        
-        if (resultsTitle) {
-            resultsTitle.textContent = allPassed ? 'All Tests Passed!' : 'Tests Complete';
-        }
-
-        document.getElementById('total-count').textContent = suiteResult.tests.length;
-        document.getElementById('passed-count').textContent = passed;
-        document.getElementById('failed-count').textContent = failed;
-        document.getElementById('skipped-count').textContent = skipped;
-
-        const resultsDetails = document.getElementById('results-details');
-        resultsDetails.innerHTML = suiteResult.tests.map(t => `
-            <div class="result-item ${t.status}" role="listitem">
-                <div class="result-title">
-                    ${t.name}
-                    <span class="result-status-badge ${t.status}">${t.status}</span>
-                </div>
-                ${t.notes ? '<div class="result-notes">' + t.notes + '</div>' : ''}
-                <div class="result-duration">${t.durationMs}ms</div>
-            </div>
-        `).join('');
-
-        document.getElementById('export-results-btn').onclick = () => {
-            const blob = new Blob([JSON.stringify(suiteResult, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `phonegrade-results-${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        };
-
-        document.getElementById('restart-btn').onclick = () => {
-            this.tests.forEach(t => {
-                t.status = 'pending';
-                t.notes = '';
-                t.startTime = null;
-                t.endTime = null;
-            });
-            this.currentTestIndex = 0;
-            this.showScreen('welcome-screen');
-        };
-    }
-
-    showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(screen => {
-            screen.classList.remove('screen-active');
-        });
-        const screen = document.getElementById(screenId);
-        if (screen) {
-            screen.classList.add('screen-active');
+        const resultsEl = document.getElementById('test-results');
+        if (resultsEl) {
+            const passedCount = suiteResult.tests.filter(t => t.status === 'passed').length;
+            const totalCount = suiteResult.tests.length;
+            resultsEl.innerHTML = `<h2>Test Suite Complete</h2><p>${passedCount}/${totalCount} tests passed</p>`;
         }
     }
 }
 
-function detectDevice() {
-    const ua = navigator.userAgent;
-    let device = 'Unknown Device';
-    let browser = 'Unknown Browser';
-
-    if (/iPhone/.test(ua)) device = 'iPhone';
-    else if (/iPad/.test(ua)) device = 'iPad';
-    else if (/Android/.test(ua)) device = 'Android';
-    else if (/Macintosh/.test(ua)) device = 'Mac';
-    else if (/Windows/.test(ua)) device = 'Windows PC';
-
-    if (/Safari/.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
-    else if (/Chrome/.test(ua)) browser = 'Chrome';
-    else if (/Firefox/.test(ua)) browser = 'Firefox';
-    else if (/Edge/.test(ua)) browser = 'Edge';
-
-    return { device, browser };
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const { device, browser } = detectDevice();
-    
-    document.getElementById('device-type').textContent = device;
-    document.getElementById('browser-info').textContent = browser;
-
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get('sessionId') || 'DEMO';
-    
-    const sessionInfo = document.getElementById('session-info');
-    if (sessionInfo) {
-        sessionInfo.textContent = `Session: ${sessionId}`;
-    }
-
+// Initialize on page load
+window.addEventListener('DOMContentLoaded', () => {
     const wsClient = new WebSocketClient();
-    const testRunner = new TestRunner(wsClient);
-    
-    window.testRunner = testRunner;
-    window.wsClient = wsClient;
-
     wsClient.connect();
-
-    const startBtn = document.getElementById('start-suite-btn');
+    
+    window.testRunner = new TestRunner(wsClient);
+    
+    const startBtn = document.getElementById('start-test-btn');
     if (startBtn) {
-        startBtn.onclick = () => {
-            testRunner.startSuite();
-        };
-    }
-
-    const skipBtn = document.getElementById('skip-test-btn');
-    if (skipBtn) {
-        skipBtn.onclick = () => {
-            if (testRunner.isRunning && testRunner.currentTestIndex < testRunner.tests.length) {
-                const currentTest = testRunner.tests[testRunner.currentTestIndex];
-                currentTest.skip('Skipped by user');
-                testRunner.currentTestIndex++;
-                testRunner.runNextTest();
-            }
-        };
+        startBtn.addEventListener('click', () => {
+            window.testRunner.startSuite();
+        });
     }
 });
-
-document.addEventListener('touchmove', (e) => {
-    if (e.target.closest('.touch-grid')) {
-        e.preventDefault();
-    }
-}, { passive: false });

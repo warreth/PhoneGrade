@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using PhoneGrade.Core;
 
 namespace PhoneGrade.UI.Web;
@@ -41,6 +40,7 @@ public class TestRunnerServer : IAsyncDisposable
     public event EventHandler<DeviceSessionEventArgs>? DeviceConnected;
     public event EventHandler<DeviceSessionEventArgs>? MessageReceived;
     public event EventHandler<DeviceSessionEventArgs>? SuiteCompleted;
+    public event EventHandler<DeviceSessionEventArgs>? LogEventReceived;
 
     public TestRunnerServer(int preferredPort = 5055, string? contentRootPath = null)
     {
@@ -54,7 +54,6 @@ public class TestRunnerServer : IAsyncDisposable
         var candidate1 = Path.Combine(appBase, "wwwroot");
         if (Directory.Exists(candidate1)) return candidate1;
 
-        // Dev/source path fallback
         var candidate2 = Path.GetFullPath(Path.Combine(appBase, "..", "..", "..", "wwwroot"));
         if (Directory.Exists(candidate2)) return candidate2;
 
@@ -78,11 +77,6 @@ public class TestRunnerServer : IAsyncDisposable
             try
             {
                 var builder = Host.CreateDefaultBuilder()
-                    .ConfigureLogging(logging =>
-                    {
-                        logging.ClearProviders();
-                        logging.SetMinimumLevel(LogLevel.Warning);
-                    })
                     .ConfigureWebHostDefaults(webBuilder =>
                     {
                         webBuilder.UseKestrel(options =>
@@ -104,7 +98,7 @@ public class TestRunnerServer : IAsyncDisposable
 
                             app.UseWebSockets(new WebSocketOptions
                             {
-                                KeepAliveInterval = TimeSpan.FromSeconds(5) // More aggressive keep-alive
+                                KeepAliveInterval = TimeSpan.FromSeconds(5)
                             });
 
                             app.Use(async (context, next) =>
@@ -162,6 +156,7 @@ public class TestRunnerServer : IAsyncDisposable
     private async Task HandleSessionWebSocketAsync(string sessionId, WebSocket webSocket)
     {
         _sockets[sessionId] = webSocket;
+        
         DeviceConnected?.Invoke(this, new DeviceSessionEventArgs
         {
             SessionId = sessionId,
@@ -210,6 +205,31 @@ public class TestRunnerServer : IAsyncDisposable
                 {
                     msg.SessionId ??= sessionId;
 
+                    if (msg.Type == "client_telemetry")
+                    {
+                        LogEventReceived?.Invoke(this, new DeviceSessionEventArgs
+                        {
+                            SessionId = sessionId,
+                            Message = new DeviceSessionMessage
+                            {
+                                Type = "log_event",
+                                SessionId = sessionId,
+                                Message = "Client telemetry received"
+                            }
+                        });
+                        continue;
+                    }
+
+                    if (msg.Type == "log_event")
+                    {
+                        LogEventReceived?.Invoke(this, new DeviceSessionEventArgs
+                        {
+                            SessionId = sessionId,
+                            Message = msg
+                        });
+                        continue;
+                    }
+
                     if (msg.Type == "ping")
                     {
                         var pong = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new DeviceSessionMessage
@@ -237,9 +257,9 @@ public class TestRunnerServer : IAsyncDisposable
                 }
             }
         }
-        catch (WebSocketException)
+        catch (Exception ex)
         {
-            // Client abruptly disconnected
+            System.Diagnostics.Debug.WriteLine($"WebSocket error for session {sessionId}: {ex.Message}");
         }
         finally
         {
@@ -247,34 +267,13 @@ public class TestRunnerServer : IAsyncDisposable
         }
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken = default)
+    public async ValueTask DisposeAsync()
     {
         if (_host != null)
         {
-            foreach (var kvp in _sockets)
-            {
-                try
-                {
-                    if (kvp.Value.State == WebSocketState.Open)
-                    {
-                        await kvp.Value.CloseAsync(WebSocketCloseStatus.NormalClosure, "Server stopping", CancellationToken.None);
-                    }
-                }
-                catch
-                {
-                }
-            }
-            _sockets.Clear();
-
-            await _host.StopAsync(cancellationToken);
+            await _host.StopAsync(TimeSpan.FromSeconds(5));
             _host.Dispose();
             _host = null;
         }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await StopAsync();
-        GC.SuppressFinalize(this);
     }
 }
