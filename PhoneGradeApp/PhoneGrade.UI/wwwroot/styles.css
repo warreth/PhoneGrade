@@ -62,8 +62,12 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    touch-action: none;
     overflow: hidden;
+}
+
+.main-content, .test-container, .results-details, .screen {
+    touch-action: pan-y;
 }
 
 .app-container {
