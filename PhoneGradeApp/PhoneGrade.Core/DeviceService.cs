@@ -5,28 +5,74 @@ namespace PhoneGrade.Core;
 /// <summary>High-level device operations via the bundled libimobiledevice tools.</summary>
 public static class DeviceService
 {
-    /// <summary>All connected devices: UDID → "Name: Model" for display.</summary>
+    /// <summary>All connected devices: UDID → "Name: Model" for display (iOS and Android).</summary>
     public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync()
     {
         var (udids, _, _) = await ListUdidsSafeAsync();
+        var devices = new Dictionary<string, string>();
+
         if (udids.Length > 0)
         {
-            var devices = new Dictionary<string, string>();
             foreach (var id in udids)
             {
-                if (id.Length == 0) continue;
-                string name = (await GetKeyAsync(id, "DeviceName")).Trim();
-                string model = Mappers.MapModel(await GetKeyAsync(id, "ProductType"));
-                devices[id] = string.IsNullOrWhiteSpace(name) ? model : $"{name} ({model})";
+                if (string.IsNullOrWhiteSpace(id)) continue;
+
+                // Check if this is an Android serial or iOS UDID
+                if (await IsAndroidDeviceAsync(id))
+                {
+                    string model = await GetAndroidPropAsync(id, "ro.product.model");
+                    string brand = await GetAndroidPropAsync(id, "ro.product.brand");
+                    string display = string.IsNullOrWhiteSpace(brand) ? model : $"{brand} {model}".Trim();
+                    devices[id] = string.IsNullOrWhiteSpace(display) ? $"Android Device ({id})" : $"{display} (Android)";
+                    SystemEventLogger.Info(LogSource.UsbDetector, $"Identified Android device: {id} -> {devices[id]}", id);
+                }
+                else
+                {
+                    string name = (await GetKeyAsync(id, "DeviceName")).Trim();
+                    string model = Mappers.MapModel(await GetKeyAsync(id, "ProductType"));
+                    devices[id] = string.IsNullOrWhiteSpace(name) ? model : $"{name} ({model})";
+                    SystemEventLogger.Info(LogSource.UsbDetector, $"Identified iOS device: {id} -> {devices[id]}", id);
+                }
             }
             return devices;
         }
 
-        // idevice_id unavailable or errored — fallback probe
+        // idevice_id unavailable or errored — fallback probe for iOS
         string probe = await GetKeyAsync("", "DeviceName");
-        return probe.StartsWith("ERROR:") || probe == "NO OUTPUT" || string.IsNullOrWhiteSpace(probe)
-            ? []
-            : throw new InvalidOperationException("idevice_id missing but lockdownd reachable");
+        if (!probe.StartsWith("ERROR:") && probe != "NO OUTPUT" && !string.IsNullOrWhiteSpace(probe))
+        {
+            throw new InvalidOperationException("idevice_id missing but lockdownd reachable");
+        }
+
+        return devices;
+    }
+
+    /// <summary>Checks whether a given device identifier corresponds to an authorized Android device.</summary>
+    public static async Task<bool> IsAndroidDeviceAsync(string id)
+    {
+        try
+        {
+            var (output, _, exitCode) = await ToolRunner.ExecuteAsync("adb", $"-s {id} get-state");
+            return exitCode == 0 && output.Trim() == "device";
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Reads an Android system property via adb shell getprop.</summary>
+    public static async Task<string> GetAndroidPropAsync(string serial, string propName)
+    {
+        try
+        {
+            var (output, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell getprop {propName}");
+            return output.Trim();
+        }
+        catch
+        {
+            return "";
+        }
     }
 
     /// <summary>Reads a single value from the lockdown domain. Returns "ERROR: ..." on failure.</summary>
@@ -50,6 +96,7 @@ public static class DeviceService
     {
         Connected,
         NotTrusted,
+        Unauthorized,
         NotActivated,
         NotFound,
         ToolsMissing,
@@ -157,44 +204,129 @@ public static class DeviceService
         if (udid != null && !devices.Contains(udid)) return ConnectionState.NotFound;
 
         string targetUdid = udid ?? devices[0];
+
+        // Check if Android device
+        if (await IsAndroidDeviceAsync(targetUdid))
+        {
+            SystemEventLogger.Info(LogSource.UsbDetector, $"Connected state confirmed for Android: {targetUdid}", targetUdid);
+            return ConnectionState.Connected;
+        }
+
+        // Android unauthorized check
+        try
+        {
+            var (adbState, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {targetUdid} get-state");
+            if (adbState.Contains("unauthorized"))
+            {
+                SystemEventLogger.Warning(LogSource.UsbDetector, $"Android device {targetUdid} is unauthorized: waiting for RSA trust prompt", targetUdid);
+                return ConnectionState.Unauthorized;
+            }
+        }
+        catch { }
+
+        // iOS checks
         string info = await GetKeyAsync(targetUdid, "ProductType");
         if (info.Contains("Could not connect to lockdownd") || info.Contains("PasswordProtected") || info.Contains("PairingDialogResponsePending"))
+        {
+            SystemEventLogger.Warning(LogSource.UsbDetector, $"iOS device {targetUdid} requires Trust confirmation", targetUdid);
             return ConnectionState.NotTrusted;
+        }
         if (info.StartsWith("ERROR:") || info == "NO OUTPUT")
             return ConnectionState.ToolsMissing;
 
         string activation = await GetKeyAsync(targetUdid, "ActivationState");
-        return activation.Contains("Unactivated") ? ConnectionState.NotActivated : ConnectionState.Connected;
+        if (activation.Contains("Unactivated"))
+        {
+            SystemEventLogger.Info(LogSource.UsbDetector, $"iOS device {targetUdid} is not activated", targetUdid);
+            return ConnectionState.NotActivated;
+        }
+
+        SystemEventLogger.Info(LogSource.UsbDetector, $"iOS device {targetUdid} is connected and ready", targetUdid);
+        return ConnectionState.Connected;
     }
 
-    /// <summary>Lists UDIDs inspecting stdout and stderr, falling back to ideviceinfo -s on error.</summary>
+    /// <summary>Lists UDIDs (iOS and Android), inspecting stdout and stderr, with precise error diagnostics.</summary>
     public static async Task<(string[] Udids, string Raw, ConnectionState DiagnosticState)> ListUdidsSafeAsync()
     {
+        // 1. Probe iOS devices via idevice_id
         var (stdout, stderr, exitCode) = await ToolRunner.ExecuteAsync("idevice_id", "-l");
 
         if (exitCode == 0 && !string.IsNullOrWhiteSpace(stdout))
         {
-            var list = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            var list = stdout.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                              .Select(s => s.Trim())
                              .Where(s => s.Length > 0)
                              .ToArray();
-            return (list, stdout, ConnectionState.Connected);
+            if (list.Length > 0)
+            {
+                SystemEventLogger.Info(LogSource.UsbDetector, $"Discovered {list.Length} iOS device(s) via idevice_id: {string.Join(", ", list)}");
+                return (list, stdout, ConnectionState.Connected);
+            }
         }
 
-        // Check if stderr indicates specific daemon or permission errors
+        // 2. Probe Android devices via adb devices
+        try
+        {
+            var (adbOut, adbErr, adbExit) = await ToolRunner.ExecuteAsync("adb", "devices");
+            if (adbExit == 0 && !string.IsNullOrWhiteSpace(adbOut))
+            {
+                var lines = adbOut.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                                  .Select(l => l.Trim())
+                                  .Where(l => !l.StartsWith("List of devices") && l.Length > 0)
+                                  .ToList();
+
+                var androidDevices = new List<string>();
+                bool hasUnauthorized = false;
+
+                foreach (var line in lines)
+                {
+                    var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 2)
+                    {
+                        string serial = parts[0];
+                        string state = parts[1];
+                        if (state.Equals("device", StringComparison.OrdinalIgnoreCase))
+                        {
+                            androidDevices.Add(serial);
+                        }
+                        else if (state.Equals("unauthorized", StringComparison.OrdinalIgnoreCase))
+                        {
+                            hasUnauthorized = true;
+                            SystemEventLogger.Warning(LogSource.UsbDetector, $"Android device {serial} connected but unauthorized (waiting for RSA trust prompt)", serial);
+                        }
+                    }
+                }
+
+                if (androidDevices.Count > 0)
+                {
+                    SystemEventLogger.Info(LogSource.UsbDetector, $"Discovered {androidDevices.Count} Android device(s) via adb: {string.Join(", ", androidDevices)}");
+                    return (androidDevices.ToArray(), adbOut, ConnectionState.Connected);
+                }
+
+                if (hasUnauthorized)
+                {
+                    return ([], adbOut, ConnectionState.Unauthorized);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Debug(LogSource.UsbDetector, $"ADB probe note: {ex.Message}");
+        }
+
+        // 3. Check if stderr indicates specific daemon or permission errors for iOS
         string combinedErr = (stderr + " " + stdout).Trim();
         if (combinedErr.Contains("Permission denied") || combinedErr.Contains("Operation not permitted"))
         {
+            SystemEventLogger.Error(LogSource.UsbDetector, "USB access permission denied: bestandspermissies ontoereikend");
             return ([], combinedErr, ConnectionState.PermissionDenied);
-        }
-        if (combinedErr.Contains("No device found") || combinedErr.Contains("No devices found"))
-        {
-            return ([], combinedErr, ConnectionState.NotFound);
         }
         if (combinedErr.Contains("usbmuxd") || combinedErr.Contains("Could not connect to usbmuxd") || combinedErr.Contains("Connection refused"))
         {
             var daemon = await CheckDaemonStatusAsync();
-            return ([], combinedErr, daemon.IsRunning ? ConnectionState.DriverMissing : ConnectionState.DaemonStopped);
+            var state = daemon.IsRunning ? ConnectionState.DriverMissing : ConnectionState.DaemonStopped;
+            SystemEventLogger.Warning(LogSource.UsbDetector, $"Daemon issue detected: {daemon.StatusMessage}. State: {state}");
+            return ([], combinedErr, state);
         }
 
         // Fallback probe using ideviceinfo -s when idevice_id exits with error or empty
@@ -204,6 +336,7 @@ public static class DeviceService
             string? fallbackUdid = Parsers.KeyValue(infoOut, "UniqueDeviceID");
             if (!string.IsNullOrWhiteSpace(fallbackUdid))
             {
+                SystemEventLogger.Info(LogSource.UsbDetector, $"Discovered device via ideviceinfo fallback: {fallbackUdid}");
                 return ([fallbackUdid.Trim()], fallbackUdid.Trim(), ConnectionState.Connected);
             }
         }
@@ -211,19 +344,67 @@ public static class DeviceService
         string fallbackErr = (infoErr + " " + combinedErr).Trim();
         if (fallbackErr.Contains("Could not connect to lockdownd"))
         {
+            SystemEventLogger.Warning(LogSource.UsbDetector, "Waiting for trust confirmation on device (Could not connect to lockdownd)");
             return ([], fallbackErr, ConnectionState.NotTrusted);
         }
         if (fallbackErr.Contains("usbmuxd") || fallbackErr.Contains("Could not connect to usbmuxd"))
         {
+            SystemEventLogger.Warning(LogSource.UsbDetector, "usbmuxd daemon is stopped or unreachable");
             return ([], fallbackErr, ConnectionState.DaemonStopped);
         }
 
         return ([], combinedErr.Length == 0 ? "NO OUTPUT" : combinedErr, ConnectionState.NotFound);
     }
 
+    /// <summary>Extracts full device and security data for an Android device via ADB.</summary>
+    public static async Task<DeviceData> GetAndroidDeviceDataAsync(string serial)
+    {
+        SystemEventLogger.Info(LogSource.UsbDetector, $"Reading Android device data for {serial}", serial);
+        string model = await GetAndroidPropAsync(serial, "ro.product.model");
+        string brand = await GetAndroidPropAsync(serial, "ro.product.brand");
+        string androidVer = await GetAndroidPropAsync(serial, "ro.build.version.release");
+        string hardwareSerial = await GetAndroidPropAsync(serial, "ro.serialno");
+        string displayModel = string.IsNullOrWhiteSpace(brand) ? model : $"{brand} {model}".Trim();
+
+        var data = new DeviceData
+        {
+            DeviceId = serial,
+            ProductType = $"Android ({displayModel})",
+            Model = string.IsNullOrWhiteSpace(displayModel) ? "Android Device" : displayModel,
+            Identifier = string.IsNullOrWhiteSpace(hardwareSerial) ? serial : hardwareSerial,
+            Color = "NOCOLOR",
+            IosVersion = string.IsNullOrWhiteSpace(androidVer) ? "Android" : $"Android {androidVer}",
+            MotherboardSerialNumber = hardwareSerial,
+        };
+
+        // Battery level from dumpsys battery
+        try
+        {
+            var (battOut, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell dumpsys battery");
+            var match = System.Text.RegularExpressions.Regex.Match(battOut, @"level:\s*(\d+)");
+            if (match.Success)
+            {
+                data.BatteryHealth = $"{match.Groups[1].Value}%";
+            }
+        }
+        catch { }
+
+        // Security checks
+        data.Root = await SecurityServices.RootDetectionService.DetectAsync(serial);
+        data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(serial);
+
+        SystemEventLogger.Info(LogSource.UsbDetector, $"Android data collected: {data.Model}, Battery: {data.BatteryHealth}, Root: {data.Root.IsRooted}", serial);
+        return data;
+    }
+
     /// <summary>Collects all label + diagnostic data for one device.</summary>
     public static async Task<DeviceData> GetDeviceDataAsync(string udid)
     {
+        if (await IsAndroidDeviceAsync(udid))
+        {
+            return await GetAndroidDeviceDataAsync(udid);
+        }
+
         string productType = (await GetKeyAsync(udid, "ProductType")).Trim();
         string imei = await GetKeyAsync(udid, "InternationalMobileEquipmentIdentity");
         string serial = await GetKeyAsync(udid, "SerialNumber");

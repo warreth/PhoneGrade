@@ -137,6 +137,7 @@ public class ToolRunnerAndDeviceTests : IDisposable
     }
 
     [Theory]
+    [InlineData(DeviceService.ConnectionState.Unauthorized, "ADB unauthorized")]
     [InlineData(DeviceService.ConnectionState.PermissionDenied, "Executable permissions missing")]
     [InlineData(DeviceService.ConnectionState.DriverMissing, "Apple USB Driver missing")]
     [InlineData(DeviceService.ConnectionState.NotTrusted, "Waiting for trust confirmation on device")]
@@ -144,6 +145,8 @@ public class ToolRunnerAndDeviceTests : IDisposable
     {
         string status = state switch
         {
+            DeviceService.ConnectionState.Unauthorized =>
+                "ADB unauthorized: ontgrendel Android toestel en accepteer USB-foutopsporing (RSA-sleutel).",
             DeviceService.ConnectionState.PermissionDenied =>
                 "Executable permissions missing: voer chmod +x uit op de tools of controleer Gatekeeper.",
             DeviceService.ConnectionState.DriverMissing =>
