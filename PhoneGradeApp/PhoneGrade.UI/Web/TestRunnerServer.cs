@@ -104,7 +104,7 @@ public class TestRunnerServer : IAsyncDisposable
 
                             app.UseWebSockets(new WebSocketOptions
                             {
-                                KeepAliveInterval = TimeSpan.FromSeconds(15)
+                                KeepAliveInterval = TimeSpan.FromSeconds(5) // More aggressive keep-alive
                             });
 
                             app.Use(async (context, next) =>
