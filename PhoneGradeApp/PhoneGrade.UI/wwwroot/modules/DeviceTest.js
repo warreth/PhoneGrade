@@ -47,6 +47,16 @@ export class DeviceTest {
     start() {
         this.status = 'running';
         this.startTime = Date.now();
+        
+        // Failsafe timeout for all tests (90 seconds max)
+        this._globalTimeout = setTimeout(() => {
+            if (this.status === 'running') {
+                this.fail('Test timed out (90s limit reached)');
+                console.warn(`Test ${this.id} timed out.`);
+                // Note: The specific test runner loop won't know this aborted it internally, 
+                // but setting status will at least mark the payload appropriately.
+            }
+        }, 90000);
     }
 
     /**
@@ -54,6 +64,7 @@ export class DeviceTest {
      * @param {string} notes - Optional notes about the test
      */
     pass(notes = '') {
+        if (this._globalTimeout) clearTimeout(this._globalTimeout);
         this.status = 'passed';
         this.endTime = Date.now();
         this.notes = notes;
@@ -64,6 +75,7 @@ export class DeviceTest {
      * @param {string} notes - Explanation of what failed
      */
     fail(notes = '') {
+        if (this._globalTimeout) clearTimeout(this._globalTimeout);
         this.status = 'failed';
         this.endTime = Date.now();
         this.notes = notes;
@@ -74,6 +86,7 @@ export class DeviceTest {
      * @param {string} reason - Why the test was skipped
      */
     skip(reason = '') {
+        if (this._globalTimeout) clearTimeout(this._globalTimeout);
         this.status = 'skipped';
         this.endTime = Date.now();
         this.notes = reason;
