@@ -268,17 +268,21 @@ class TestRunner {
 
         try {
             await test.run(this.wsClient, container);
-            
+        } catch (error) {
+            test.fail('Exception: ' + error.message);
+            console.error('Test error:', error);
+        } finally {
+            // Guarantee immediate test_complete dispatch to host even on error/exception
             this.wsClient.send({
                 type: 'test_complete',
                 sessionId: this.wsClient.sessionId,
                 testId: test.id,
                 testName: test.name,
-                status: test.status
+                status: test.status,
+                notes: test.notes,
+                durationMs: test.getDuration(),
+                details: test.details
             });
-        } catch (error) {
-            test.fail('Exception: ' + error.message);
-            console.error('Test error:', error);
         }
 
         this.currentTestIndex++;
