@@ -1,9 +1,5 @@
 import { DeviceTest } from './DeviceTest.js';
 
-/**
- * ScreenRotationTest: Verify device orientation detection and transitions.
- * Tests landscape/portrait mode switching and safe-area handling on notched devices.
- */
 export class ScreenRotationTest extends DeviceTest {
     constructor() {
         super('rotation', 'Screen Rotation', 'Rotate device to test orientation detection');
@@ -15,23 +11,20 @@ export class ScreenRotationTest extends DeviceTest {
         this.start();
         this.reportProgress(wsClient, 0, 'Starting rotation test...');
 
-        if (!window.screen.orientation) {
-            this.skip('Screen Orientation API not available');
-            return;
-        }
-
+        let isModernApi = !!(window.screen && window.screen.orientation);
+        
         container.innerHTML = `
             <div style="text-align: center; padding: 20px;">
                 <p style="margin-bottom: 20px; color: #cbd5e1;">Current orientation:</p>
                 <div id="orientation-display" style="font-size: 32px; font-weight: 700; color: #00d9ff; margin-bottom: 20px; font-family: monospace;">
-                    ${window.screen.orientation.type}
+                    ${this.getOrientationType(isModernApi)}
                 </div>
                 <p style="color: #cbd5e1; margin-bottom: 10px;">Rotate your device to test</p>
                 <p id="rotation-count" style="font-size: 14px; color: #94a3b8; font-family: monospace;">
                     Rotations detected: 0
                 </p>
                 <p id="safe-area-info" style="font-size: 12px; color: #64748b; margin-top: 20px; font-family: monospace;">
-                    Safe area top: env(safe-area-inset-top)
+                    Safe area top: ${this.getSafeAreaInset('top')}
                 </p>
             </div>
         `;
@@ -42,18 +35,22 @@ export class ScreenRotationTest extends DeviceTest {
 
         // Get initial orientation
         this.orientationHistory.push({
-            type: window.screen.orientation.type,
-            angle: window.screen.orientation.angle,
+            type: this.getOrientationType(isModernApi),
             timestamp: Date.now()
         });
 
-        // Listen for orientation changes
         const handleOrientationChange = () => {
+            const currentType = this.getOrientationType(isModernApi);
             const current = {
-                type: window.screen.orientation.type,
-                angle: window.screen.orientation.angle,
+                type: currentType,
                 timestamp: Date.now()
             };
+            
+            // Only count if it actually changed
+            if (this.orientationHistory.length > 0 && 
+                this.orientationHistory[this.orientationHistory.length - 1].type === currentType) {
+                return;
+            }
             
             this.orientationHistory.push(current);
             this.transitionCount++;
@@ -62,7 +59,7 @@ export class ScreenRotationTest extends DeviceTest {
                 orientationDisplay.textContent = current.type;
             }
             if (rotationCountEl) {
-                rotationCountEl.textContent = `Rotations detected: ${this.transitionCount}`;
+                rotationCountEl.textContent = \`Rotations detected: ${this.transitionCount}\`;
             }
 
             // Update safe area info
@@ -72,14 +69,18 @@ export class ScreenRotationTest extends DeviceTest {
             const leftInset = this.getSafeAreaInset('left');
             
             if (safeAreaEl) {
-                safeAreaEl.textContent = `Safe area - T:${topInset} R:${rightInset} B:${bottomInset} L:${leftInset}`;
+                safeAreaEl.textContent = \`Safe area - T:${topInset} R:${rightInset} B:${bottomInset} L:${leftInset}\`;
             }
 
             const progress = Math.min(50 + (this.transitionCount * 10), 90);
-            this.reportProgress(wsClient, progress, `Detected ${current.type} (${current.angle}°)`);
+            this.reportProgress(wsClient, progress, \`Detected ${current.type}\`);
         };
 
-        window.screen.orientation.addEventListener('change', handleOrientationChange);
+        if (isModernApi) {
+            window.screen.orientation.addEventListener('change', handleOrientationChange);
+        } else {
+            window.addEventListener('orientationchange', handleOrientationChange);
+        }
 
         // Wait for user to rotate device (up to 30 seconds)
         const testDuration = 30000;
@@ -91,14 +92,17 @@ export class ScreenRotationTest extends DeviceTest {
                 const progress = 10 + (elapsed / testDuration) * 80;
                 this.reportProgress(wsClient, Math.min(progress, 90), 'Waiting for rotation...');
 
-                if (elapsed >= testDuration) {
-                    window.screen.orientation.removeEventListener('change', handleOrientationChange);
+                if (elapsed >= testDuration || this.transitionCount >= 2) {
+                    if (isModernApi) {
+                        window.screen.orientation.removeEventListener('change', handleOrientationChange);
+                    } else {
+                        window.removeEventListener('orientationchange', handleOrientationChange);
+                    }
 
                     if (this.transitionCount >= 1) {
-                        this.pass(`Device orientation working - ${this.transitionCount} transitions detected`);
+                        this.pass(\`Device orientation working - ${this.transitionCount} transitions detected\`);
                         this.details.transitionCount = this.transitionCount;
                         this.details.orientationTypes = [...new Set(this.orientationHistory.map(o => o.type))];
-                        this.details.angles = this.orientationHistory.map(o => o.angle);
                     } else {
                         this.fail('No orientation changes detected - try rotating device');
                     }
@@ -113,8 +117,21 @@ export class ScreenRotationTest extends DeviceTest {
         });
     }
 
+    getOrientationType(isModernApi) {
+        if (isModernApi && window.screen.orientation) {
+            return window.screen.orientation.type;
+        }
+        
+        if (typeof window.orientation !== 'undefined') {
+            return Math.abs(window.orientation) === 90 ? 'landscape' : 'portrait';
+        }
+        
+        return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    }
+
     getSafeAreaInset(side) {
-        const value = getComputedStyle(document.documentElement).getPropertyValue(`--safe-area-inset-${side}`).trim();
+        const value = getComputedStyle(document.documentElement).getPropertyValue(\`--safe-area-inset-${side}\`).trim();
         return value || '0px';
     }
+}
 }
