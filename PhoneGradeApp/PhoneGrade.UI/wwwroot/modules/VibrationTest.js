@@ -1,7 +1,7 @@
 import { DeviceTest } from './DeviceTest.js';
 
 /**
- * VibrationTest: Check haptic feedback/vibration capability.
+ * VibrationTest: Check haptic feedback and vibration motor with visual pulses.
  */
 export class VibrationTest extends DeviceTest {
     constructor() {
@@ -10,83 +10,95 @@ export class VibrationTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Initializing vibration API...');
+        this.reportProgress(wsClient, 0, 'Testing vibration engine...');
 
-        // Check if Vibration API is available (iOS Safari does NOT support this currently, Android does)
-        if (!('vibrate' in navigator)) {
-            this.skip('Vibration API not supported on this browser/device (common on iOS)');
-            return;
-        }
+        // Check if Vibration API is available (iOS Safari does not support this)
+        const isSupported = ('vibrate' in navigator);
 
         container.innerHTML = `
-            <div style="padding: 20px; text-align: center;">
-                <p style="margin-bottom: 20px; color: #cbd5e1;">Test the device vibration motor.</p>
+            <div style="padding: 16px; text-align: center; max-width: 320px; margin: 0 auto;">
+                <div style="font-size: 16px; font-weight: bold; margin-bottom: 6px;">Vibration & Haptics</div>
+                <p class="test-instructions" style="margin-bottom: 24px;">Feel for vibration pulses while the visual indicator animates.</p>
                 
-                <div id="vibe-controls" style="display: flex; flex-direction: column; gap: 16px; align-items: center; margin-bottom: 30px;">
-                    <button id="btn-vibe-short" class="btn btn-secondary" style="width: 200px;">Short Vibrate</button>
-                    <button id="btn-vibe-long" class="btn btn-secondary" style="width: 200px;">Long Vibrate</button>
-                    <button id="btn-vibe-pattern" class="btn btn-secondary" style="width: 200px;">Pattern Vibrate</button>
+                <!-- Visual Pulsing Ring -->
+                <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 30px auto; display: flex; align-items: center; justify-content: center;">
+                    <div id="vibe-ring" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--color-accent); opacity: 0; transform: scale(0.8); transition: all 0.3s ease-out;"></div>
+                    <div id="vibe-core" style="width: 70px; height: 70px; border-radius: 50%; background: var(--color-bg-secondary); border: 2px solid var(--color-border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: var(--color-text);">
+                        Vibrate
+                    </div>
                 </div>
 
-                <div id="vibe-feedback" style="display: none; justify-content: center; gap: 12px;">
-                    <button id="btn-yes" class="btn btn-primary" style="width: auto;">I felt it</button>
-                    <button id="btn-no" class="btn btn-error" style="width: auto; background: #f87171; color: white; border: none;">I felt nothing</button>
+                <div id="vibe-controls" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                    <button id="btn-vibe-pulse" class="btn btn-primary" style="width: 100%;">Trigger Vibration</button>
+                </div>
+
+                <div id="vibe-feedback" style="display: none; flex-direction: column; gap: 12px;">
+                    <p style="font-size: 13px; font-weight: 600;">Did you feel the phone vibrate?</p>
+                    <div style="display: flex; gap: 12px;">
+                        <button id="btn-yes" class="btn btn-success" style="flex: 1; background: var(--color-success); color: #000; border: none;">Yes, felt it</button>
+                        <button id="btn-no" class="btn btn-error" style="flex: 1; background: var(--color-error); color: #fff; border: none;">No vibration</button>
+                    </div>
                 </div>
             </div>
         `;
 
-        const btnShort = container.querySelector('#btn-vibe-short');
-        const btnLong = container.querySelector('#btn-vibe-long');
-        const btnPattern = container.querySelector('#btn-vibe-pattern');
+        const ring = container.querySelector('#vibe-ring');
+        const core = container.querySelector('#vibe-core');
+        const btnPulse = container.querySelector('#btn-vibe-pulse');
         const feedbackDiv = container.querySelector('#vibe-feedback');
         const btnYes = container.querySelector('#btn-yes');
         const btnNo = container.querySelector('#btn-no');
 
-        let hasVibrated = false;
+        const triggerPulseAnimation = (duration) => {
+            ring.style.opacity = '1';
+            ring.style.transform = 'scale(1.3)';
+            core.style.borderColor = 'var(--color-accent)';
+            core.style.boxShadow = '0 0 15px var(--color-accent)';
 
-        btnShort.onclick = () => {
-            navigator.vibrate(200);
-            hasVibrated = true;
-            feedbackDiv.style.display = 'flex';
-            this.reportProgress(wsClient, 50, 'Testing short vibration...');
-        };
-
-        btnLong.onclick = () => {
-            navigator.vibrate(1000);
-            hasVibrated = true;
-            feedbackDiv.style.display = 'flex';
-            this.reportProgress(wsClient, 50, 'Testing long vibration...');
-        };
-
-        btnPattern.onclick = () => {
-            navigator.vibrate([200, 100, 200, 100, 500]);
-            hasVibrated = true;
-            feedbackDiv.style.display = 'flex';
-            this.reportProgress(wsClient, 50, 'Testing vibration pattern...');
+            setTimeout(() => {
+                ring.style.opacity = '0';
+                ring.style.transform = 'scale(0.8)';
+                core.style.borderColor = 'var(--color-border)';
+                core.style.boxShadow = 'none';
+            }, duration);
         };
 
         return new Promise((resolve) => {
+            btnPulse.onclick = () => {
+                if (isSupported) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+                triggerPulseAnimation(500);
+
+                feedbackDiv.style.display = 'flex';
+                this.reportProgress(wsClient, 50, 'Awaiting confirmation...');
+            };
+
             btnYes.onclick = () => {
                 this.pass('Vibration motor is working correctly');
                 this.details.working = true;
-                this.reportProgress(wsClient, 100, 'Test complete');
+                this.details.apiSupported = isSupported;
                 resolve();
             };
 
             btnNo.onclick = () => {
-                this.fail('User reported no vibration felt. Motor may be defective.');
+                if (!isSupported) {
+                    this.skip('Vibration API not supported on this browser/OS');
+                } else {
+                    this.fail('User reported no vibration felt: motor may be defective');
+                }
                 this.details.working = false;
-                this.reportProgress(wsClient, 100, 'Test complete');
+                this.details.apiSupported = isSupported;
                 resolve();
             };
-            
-            // Allow skipping if user doesn't interact within 30s
-            setTimeout(() => {
-                if (!hasVibrated) {
-                    this.skip('Test timed out');
-                    resolve();
-                }
-            }, 30000);
+
+            if (!isSupported) {
+                // If on iOS or browser without Vibration API, notify immediately
+                const note = document.createElement('p');
+                note.style.cssText = 'font-size: 11px; color: var(--color-warning); margin-top: 12px;';
+                note.textContent = 'Note: Web Vibration API is not supported on iOS Safari.';
+                container.querySelector('#vibe-controls').appendChild(note);
+            }
         });
     }
 }

@@ -1,6 +1,9 @@
+import { ViewportLocker } from './ViewportLocker.js';
+import { HapticFeedback } from './HapticFeedback.js';
+
 /**
  * Base class for all device hardware tests.
- * Provides common lifecycle methods and WebSocket communication.
+ * Provides common lifecycle methods, WebSocket communication, viewport locking, and haptic feedback.
  */
 export class DeviceTest {
     constructor(id, name, description) {
@@ -12,14 +15,19 @@ export class DeviceTest {
         this.startTime = null;
         this.endTime = null;
         this.details = {};
+        
+        // Shared utilities
+        this.viewportLocker = new ViewportLocker();
+        this.haptic = new HapticFeedback();
     }
 
     /**
      * Called when the test should start. Override in subclasses.
      * @param {WebSocketClient} wsClient - WebSocket client for streaming updates
+     * @param {HTMLElement} container - DOM container for test UI
      * @returns {Promise<void>}
      */
-    async run(wsClient) {
+    async run(wsClient, container) {
         throw new Error('DeviceTest.run() must be overridden in subclass');
     }
 
@@ -42,19 +50,18 @@ export class DeviceTest {
     }
 
     /**
-     * Mark test as started.
+     * Mark test as started and lock viewport.
      */
     start() {
         this.status = 'running';
         this.startTime = Date.now();
+        this.viewportLocker.lock();
         
         // Failsafe timeout for all tests (90 seconds max)
         this._globalTimeout = setTimeout(() => {
             if (this.status === 'running') {
                 this.fail('Test timed out (90s limit reached)');
                 console.warn(`Test ${this.id} timed out.`);
-                // Note: The specific test runner loop won't know this aborted it internally, 
-                // but setting status will at least mark the payload appropriately.
             }
         }, 90000);
     }
@@ -68,6 +75,8 @@ export class DeviceTest {
         this.status = 'passed';
         this.endTime = Date.now();
         this.notes = notes;
+        this.viewportLocker.unlock();
+        this.haptic.success();
     }
 
     /**
@@ -79,6 +88,8 @@ export class DeviceTest {
         this.status = 'failed';
         this.endTime = Date.now();
         this.notes = notes;
+        this.viewportLocker.unlock();
+        this.haptic.error();
     }
 
     /**
@@ -90,6 +101,7 @@ export class DeviceTest {
         this.status = 'skipped';
         this.endTime = Date.now();
         this.notes = reason;
+        this.viewportLocker.unlock();
     }
 
     /**

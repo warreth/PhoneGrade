@@ -841,3 +841,56 @@ svg {
         transition-duration: 0.01ms !important;
     }
 }
+/* UI/UX Animations and Transitions added during PWA redesign */
+
+@keyframes slideInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pulse-ring {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+.animate-slide-up {
+    animation: slideInUp var(--transition-base) forwards;
+}
+
+.animate-fade-in {
+    animation: fadeIn var(--transition-fast) forwards;
+}
+
+.touch-cell {
+    will-change: transform, background-color;
+}
+
+.test-container {
+    will-change: opacity;
+    transition: opacity var(--transition-fast);
+}
+
+/* Ensure no user selection happens during tests */
+.touch-test-wrapper, #digitizer-canvas, .touch-grid {
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    -webkit-touch-callout: none;
+}
+
+/* Status dots */
+.status-dot.connected { background-color: var(--color-success); box-shadow: 0 0 8px var(--color-success); }
+.status-dot.error { background-color: var(--color-error); box-shadow: 0 0 8px var(--color-error); }
+.status-dot.disconnected { background-color: var(--color-warning); box-shadow: 0 0 8px var(--color-warning); }
+
+/* Prevent pull-to-refresh on mobile */
+html {
+    overscroll-behavior-y: none;
+}
+

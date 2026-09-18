@@ -262,4 +262,120 @@ public class WebTestRunnerTests : IAsyncLifetime
         // Assert
         Assert.Contains("http://10.0.0.1:5055/?sessionId=DEVICE%20UDID%2Fwith%20spaces%20%26%20special%20chars", url);
     }
+
+    [Fact]
+    public async Task TestRunnerServer_FiresTelemetryReceivedOnClientTelemetry()
+    {
+        // Arrange
+        var sessionId = "TELEMETRY_TEST";
+        ClientTelemetry? receivedTelemetry = null;
+        var tcs = new TaskCompletionSource<bool>();
+
+        _server!.TelemetryReceived += (s, e) =>
+        {
+            if (e.SessionId == sessionId)
+            {
+                receivedTelemetry = e.Telemetry;
+                tcs.TrySetResult(true);
+            }
+        };
+
+        _clientWebSocket = await ConnectWebSocketAsync(sessionId);
+
+        var telemetryMessage = new LogEventMessage
+        {
+            Type = "client_telemetry",
+            SessionId = sessionId,
+            ClientTelemetry = new ClientTelemetry
+            {
+                Browser = "Safari",
+                BrowserVersion = "17.0",
+                Os = "iOS",
+                OsVersion = "17.2",
+                ScreenWidth = 390,
+                ScreenHeight = 844,
+                PixelRatio = 3.0,
+                TouchSupport = true,
+                VibrationSupport = false
+            }
+        };
+
+        var json = JsonSerializer.Serialize(telemetryMessage);
+        var bytes = Encoding.UTF8.GetBytes(json);
+        await _clientWebSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(3000));
+        Assert.Equal(tcs.Task, completed);
+        Assert.NotNull(receivedTelemetry);
+        Assert.Equal("Safari", receivedTelemetry!.Browser);
+        Assert.Equal("iOS", receivedTelemetry.Os);
+        Assert.Equal(390, receivedTelemetry.ScreenWidth);
+        Assert.True(receivedTelemetry.TouchSupport);
+    }
+
+    [Fact]
+    public async Task TestRunnerServer_FiresLogEventReceivedOnLogMessage()
+    {
+        // Arrange
+        var sessionId = "LOG_TEST";
+        LogEvent? receivedLog = null;
+        var tcs = new TaskCompletionSource<bool>();
+
+        _server!.LogEventReceived += (s, e) =>
+        {
+            if (e.SessionId == sessionId)
+            {
+                receivedLog = e.LogEvent;
+                tcs.TrySetResult(true);
+            }
+        };
+
+        _clientWebSocket = await ConnectWebSocketAsync(sessionId);
+
+        var logMessage = new LogEventMessage
+        {
+            Type = "log_event",
+            SessionId = sessionId,
+            LogEvent = new LogEvent
+            {
+                Level = LogLevel.Warning,
+                Source = LogSource.PwaClient,
+                Message = "User touch delayed",
+                SessionId = sessionId
+            }
+        };
+
+        var json = JsonSerializer.Serialize(logMessage);
+        var bytes = Encoding.UTF8.GetBytes(json);
+        await _clientWebSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(3000));
+        Assert.Equal(tcs.Task, completed);
+        Assert.NotNull(receivedLog);
+        Assert.Equal(LogLevel.Warning, receivedLog!.Level);
+        Assert.Equal("User touch delayed", receivedLog.Message);
+    }
+
+    [Fact]
+    public void SystemEventLogger_PubSubBroadcastsCorrectly()
+    {
+        LogEvent? captured = null;
+        EventHandler<LogEvent> handler = (s, e) => captured = e;
+
+        SystemEventLogger.LogEventEmitted += handler;
+        try
+        {
+            SystemEventLogger.Warning(LogSource.UsbDetector, "Device handshake timeout", "DEV_999");
+
+            Assert.NotNull(captured);
+            Assert.Equal(LogLevel.Warning, captured!.Level);
+            Assert.Equal(LogSource.UsbDetector, captured.Source);
+            Assert.Equal("Device handshake timeout", captured.Message);
+            Assert.Equal("DEV_999", captured.SessionId);
+        }
+        finally
+        {
+            SystemEventLogger.LogEventEmitted -= handler;
+        }
+    }
 }

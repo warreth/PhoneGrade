@@ -2,7 +2,7 @@ import { DeviceTest } from './DeviceTest.js';
 
 export class DigitizerTest extends DeviceTest {
     constructor() {
-        super('digitizer', 'Digitizer & Edges', 'Trace the screen edges to verify full digitizer functionality');
+        super('digitizer', 'Digitizer Edge Test', 'Trace the outer edges of the screen');
     }
 
     async run(wsClient, container) {
@@ -10,12 +10,13 @@ export class DigitizerTest extends DeviceTest {
         this.reportProgress(wsClient, 0, 'Initializing canvas...');
 
         container.innerHTML = `
-            <h3 style="color: var(--color-accent); margin-bottom: 16px;">Digitizer Test</h3>
-            <p class="test-instructions">Trace the red border completely around the screen edge.</p>
-            <div id="canvas-container" style="position: relative; width: 100%; height: 60vh; max-height: 500px; background: #000; border: 2px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; touch-action: none;">
+            <div id="canvas-container" style="position: relative; width: 100%; height: 65vh; max-height: 550px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); overflow: hidden; touch-action: none; box-shadow: inset 0 0 0 2px var(--color-border);">
                 <canvas id="digitizer-canvas" style="display: block; width: 100%; height: 100%; touch-action: none;"></canvas>
+                <div id="digitizer-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 80%;">
+                    <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: var(--color-text);">Trace the Red Border</div>
+                    <div id="digitizer-status" style="font-size: 24px; font-weight: bold; color: var(--color-accent);">0%</div>
+                </div>
             </div>
-            <div id="digitizer-status" style="margin-top: 16px; text-align: center; color: var(--color-text-secondary); font-weight: bold;">0% Traced</div>
         `;
 
         const canvasContainer = container.querySelector('#canvas-container');
@@ -23,6 +24,9 @@ export class DigitizerTest extends DeviceTest {
         const statusDisplay = container.querySelector('#digitizer-status');
         
         const dpr = window.devicePixelRatio || 1;
+        // Wait a frame for layout to settle
+        await new Promise(r => requestAnimationFrame(r));
+        
         const rect = canvasContainer.getBoundingClientRect();
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
@@ -30,12 +34,13 @@ export class DigitizerTest extends DeviceTest {
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
 
-        const pathWidth = 40; 
+        const pathWidth = 35; 
         let isTracing = false;
         
         const blocks = [];
-        const blockSize = 20;
+        const blockSize = 20; // smaller blocks for higher precision requirements
         
+        // Generate edge blocks
         for (let x = 0; x < rect.width; x += blockSize) blocks.push({x, y: 0, w: blockSize, h: pathWidth, hit: false});
         for (let x = 0; x < rect.width; x += blockSize) blocks.push({x, y: rect.height - pathWidth, w: blockSize, h: pathWidth, hit: false});
         for (let y = pathWidth; y < rect.height - pathWidth; y += blockSize) blocks.push({x: 0, y, w: pathWidth, h: blockSize, hit: false});
@@ -47,22 +52,24 @@ export class DigitizerTest extends DeviceTest {
             ctx.clearRect(0, 0, rect.width, rect.height);
             
             blocks.forEach(b => {
-                ctx.fillStyle = b.hit ? 'rgba(74, 222, 128, 0.6)' : 'rgba(248, 113, 113, 0.6)';
+                ctx.fillStyle = b.hit ? 'rgba(74, 222, 128, 0.8)' : 'rgba(248, 113, 113, 0.8)';
                 ctx.fillRect(b.x, b.y, b.w, b.h);
+                
+                // Draw inner borders for the blocks
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(b.x, b.y, b.w, b.h);
             });
-            
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '16px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('Trace the red border', rect.width/2, rect.height/2);
         };
 
         const updateBlocks = (x, y) => {
             let hitAny = false;
-            const hitRadius = 15;
+            // Increase hit radius significantly to make it easier on high-DPI screens without being too loose
+            const hitRadius = 30; 
             
             blocks.forEach(b => {
                 if (!b.hit) {
+                    // Check if point is inside or near the block
                     const closestX = Math.max(b.x, Math.min(x, b.x + b.w));
                     const closestY = Math.max(b.y, Math.min(y, b.y + b.h));
                     
@@ -80,6 +87,7 @@ export class DigitizerTest extends DeviceTest {
 
         return new Promise((resolve) => {
             let lastPos = null;
+            let lastPercent = 0;
 
             const getPointerPos = (e) => {
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -105,9 +113,10 @@ export class DigitizerTest extends DeviceTest {
                 
                 const pos = getPointerPos(e);
                 
+                // Draw bright trail line over the blocks
                 if (lastPos) {
-                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 8;
                     ctx.lineCap = 'round';
                     ctx.beginPath();
                     ctx.moveTo(lastPos.x, lastPos.y);
@@ -118,20 +127,27 @@ export class DigitizerTest extends DeviceTest {
                 lastPos = pos;
 
                 if (updateBlocks(pos.x, pos.y)) {
+                    // Redraw grid (wipes the white line, but the hit blocks turn green)
                     drawGrid();
                     const hitCount = blocks.filter(b => b.hit).length;
                     const percent = Math.floor((hitCount / totalBlocks) * 100);
                     
-                    statusDisplay.textContent = `${percent}% Traced`;
-                    statusDisplay.style.color = percent > 80 ? 'var(--color-success)' : 'var(--color-text-secondary)';
-                    
-                    this.reportProgress(wsClient, percent, `Tracing: ${percent}%`);
+                    if (percent > lastPercent) {
+                        lastPercent = percent;
+                        statusDisplay.textContent = `${percent}%`;
+                        statusDisplay.style.color = percent > 85 ? 'var(--color-success)' : 'var(--color-accent)';
+                        this.reportProgress(wsClient, percent, `Tracing: ${percent}%`);
+                        
+                        // Haptic feedback every 10%
+                        if (percent % 10 === 0) {
+                            this.haptic.progress();
+                        }
+                    }
 
+                    // 92% is acceptable passing threshold for edges which can be tricky with cases
                     if (percent >= 92) {
                         isTracing = false;
-                        canvas.removeEventListener('touchstart', handleStart);
-                        canvas.removeEventListener('touchmove', handleMove);
-                        canvas.removeEventListener('touchend', handleEnd);
+                        cleanup();
                         
                         this.pass('Screen edge digitizer functions normally');
                         this.details.completionPercent = percent;
@@ -144,6 +160,22 @@ export class DigitizerTest extends DeviceTest {
                 e.preventDefault();
                 isTracing = false;
                 lastPos = null;
+                // Redraw to remove white trail segment
+                drawGrid(); 
+            };
+
+            const cleanup = () => {
+                canvas.removeEventListener('touchstart', handleStart);
+                canvas.removeEventListener('touchmove', handleMove);
+                canvas.removeEventListener('touchend', handleEnd);
+                canvas.removeEventListener('touchcancel', handleEnd);
+                canvas.removeEventListener('mousedown', handleStart);
+                canvas.removeEventListener('mousemove', handleMoveMouse);
+                canvas.removeEventListener('mouseup', handleEnd);
+            };
+
+            const handleMoveMouse = (e) => {
+                if (e.buttons > 0) handleMove(e);
             };
 
             canvas.addEventListener('touchstart', handleStart, {passive: false});
@@ -152,7 +184,7 @@ export class DigitizerTest extends DeviceTest {
             canvas.addEventListener('touchcancel', handleEnd, {passive: false});
 
             canvas.addEventListener('mousedown', handleStart);
-            canvas.addEventListener('mousemove', (e) => { if (e.buttons > 0) handleMove(e); });
+            canvas.addEventListener('mousemove', handleMoveMouse, {passive: false});
             canvas.addEventListener('mouseup', handleEnd);
 
             drawGrid();
@@ -160,18 +192,19 @@ export class DigitizerTest extends DeviceTest {
             setTimeout(() => {
                 if (isTracing !== null) {
                     isTracing = null;
+                    cleanup();
                     const hitCount = blocks.filter(b => b.hit).length;
                     const percent = Math.floor((hitCount / totalBlocks) * 100);
                     
                     if (percent >= 85) {
-                        this.pass(`Almost complete (${percent}%)`);
+                        this.pass(`Passed with acceptable margin (${percent}%)`);
                     } else {
                         this.fail(`Only ${percent}% of screen edge was responsive within time limit.`);
                     }
                     this.details.completionPercent = percent;
                     resolve();
                 }
-            }, 60000);
+            }, 45000); // 45 seconds to trace edges
         });
     }
 }
