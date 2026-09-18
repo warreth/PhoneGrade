@@ -12,73 +12,79 @@ export class DigitizerTest extends DeviceTest {
         container.innerHTML = `
             <h3 style="color: var(--color-accent); margin-bottom: 16px;">Digitizer Test</h3>
             <p class="test-instructions">Trace the red border completely around the screen edge.</p>
-            <div id="canvas-container" style="position: relative; width: 100%; height: 350px; background: #000; border: 2px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; touch-action: none;">
-                <canvas id="digitizer-canvas" style="display: block; width: 100%; height: 100%;"></canvas>
+            <div id="canvas-container" style="position: relative; width: 100%; height: 60vh; max-height: 500px; background: #000; border: 2px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; touch-action: none;">
+                <canvas id="digitizer-canvas" style="display: block; width: 100%; height: 100%; touch-action: none;"></canvas>
             </div>
-            <div id="digitizer-status" style="margin-top: 16px; text-align: center; color: var(--color-text-secondary);">0% Traced</div>
+            <div id="digitizer-status" style="margin-top: 16px; text-align: center; color: var(--color-text-secondary); font-weight: bold;">0% Traced</div>
         `;
 
         const canvasContainer = container.querySelector('#canvas-container');
         const canvas = container.querySelector('#digitizer-canvas');
         const statusDisplay = container.querySelector('#digitizer-status');
         
-        // Ensure high-DPI scaling
+        const dpr = window.devicePixelRatio || 1;
         const rect = canvasContainer.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        
         const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
 
-        // Path settings
-        const pathWidth = 30; // Pixel width from edge that needs to be touched
+        const pathWidth = 40; 
         let isTracing = false;
         
-        // Divide perimeter into blocks to check completion
         const blocks = [];
         const blockSize = 20;
         
-        // Top edge
-        for (let x = 0; x < canvas.width; x += blockSize) blocks.push({x, y: 0, w: blockSize, h: pathWidth, hit: false});
-        // Bottom edge
-        for (let x = 0; x < canvas.width; x += blockSize) blocks.push({x, y: canvas.height - pathWidth, w: blockSize, h: pathWidth, hit: false});
-        // Left edge
-        for (let y = pathWidth; y < canvas.height - pathWidth; y += blockSize) blocks.push({x: 0, y, w: pathWidth, h: blockSize, hit: false});
-        // Right edge
-        for (let y = pathWidth; y < canvas.height - pathWidth; y += blockSize) blocks.push({x: canvas.width - pathWidth, y, w: pathWidth, h: blockSize, hit: false});
+        for (let x = 0; x < rect.width; x += blockSize) blocks.push({x, y: 0, w: blockSize, h: pathWidth, hit: false});
+        for (let x = 0; x < rect.width; x += blockSize) blocks.push({x, y: rect.height - pathWidth, w: blockSize, h: pathWidth, hit: false});
+        for (let y = pathWidth; y < rect.height - pathWidth; y += blockSize) blocks.push({x: 0, y, w: pathWidth, h: blockSize, hit: false});
+        for (let y = pathWidth; y < rect.height - pathWidth; y += blockSize) blocks.push({x: rect.width - pathWidth, y, w: pathWidth, h: blockSize, hit: false});
 
         const totalBlocks = blocks.length;
 
         const drawGrid = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, rect.width, rect.height);
             
-            // Draw background blocks (red = untouched, green = touched)
             blocks.forEach(b => {
-                ctx.fillStyle = b.hit ? 'rgba(74, 222, 128, 0.5)' : 'rgba(248, 113, 113, 0.5)';
+                ctx.fillStyle = b.hit ? 'rgba(74, 222, 128, 0.6)' : 'rgba(248, 113, 113, 0.6)';
                 ctx.fillRect(b.x, b.y, b.w, b.h);
             });
             
-            // Draw center hint
-            ctx.fillStyle = '#fff';
-            ctx.font = '14px sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('Trace the border', canvas.width/2, canvas.height/2);
+            ctx.fillText('Trace the red border', rect.width/2, rect.height/2);
         };
 
         const updateBlocks = (x, y) => {
             let hitAny = false;
+            const hitRadius = 15;
+            
             blocks.forEach(b => {
-                if (!b.hit && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
-                    b.hit = true;
-                    hitAny = true;
+                if (!b.hit) {
+                    const closestX = Math.max(b.x, Math.min(x, b.x + b.w));
+                    const closestY = Math.max(b.y, Math.min(y, b.y + b.h));
+                    
+                    const distanceX = x - closestX;
+                    const distanceY = y - closestY;
+                    
+                    if ((distanceX * distanceX + distanceY * distanceY) < (hitRadius * hitRadius)) {
+                        b.hit = true;
+                        hitAny = true;
+                    }
                 }
             });
             return hitAny;
         };
 
         return new Promise((resolve) => {
+            let lastPos = null;
+
             const getPointerPos = (e) => {
-                const rect = canvas.getBoundingClientRect();
                 const clientX = e.touches ? e.touches[0].clientX : e.clientX;
                 const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const rect = canvas.getBoundingClientRect();
                 return {
                     x: clientX - rect.left,
                     y: clientY - rect.top
@@ -89,19 +95,27 @@ export class DigitizerTest extends DeviceTest {
                 e.preventDefault();
                 isTracing = true;
                 const pos = getPointerPos(e);
+                lastPos = pos;
                 if(updateBlocks(pos.x, pos.y)) drawGrid();
             };
 
             const handleMove = (e) => {
                 e.preventDefault();
                 if (!isTracing) return;
+                
                 const pos = getPointerPos(e);
                 
-                // Draw line for trace
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
-                ctx.fill();
+                if (lastPos) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.lineWidth = 6;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(lastPos.x, lastPos.y);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                }
+                
+                lastPos = pos;
 
                 if (updateBlocks(pos.x, pos.y)) {
                     drawGrid();
@@ -109,9 +123,11 @@ export class DigitizerTest extends DeviceTest {
                     const percent = Math.floor((hitCount / totalBlocks) * 100);
                     
                     statusDisplay.textContent = `${percent}% Traced`;
+                    statusDisplay.style.color = percent > 80 ? 'var(--color-success)' : 'var(--color-text-secondary)';
+                    
                     this.reportProgress(wsClient, percent, `Tracing: ${percent}%`);
 
-                    if (percent >= 95) { // Allow slight margin of error
+                    if (percent >= 92) {
                         isTracing = false;
                         canvas.removeEventListener('touchstart', handleStart);
                         canvas.removeEventListener('touchmove', handleMove);
@@ -127,23 +143,27 @@ export class DigitizerTest extends DeviceTest {
             const handleEnd = (e) => {
                 e.preventDefault();
                 isTracing = false;
+                lastPos = null;
             };
 
             canvas.addEventListener('touchstart', handleStart, {passive: false});
             canvas.addEventListener('touchmove', handleMove, {passive: false});
-            canvas.addEventListener('touchend', handleEnd);
-            canvas.addEventListener('touchcancel', handleEnd);
+            canvas.addEventListener('touchend', handleEnd, {passive: false});
+            canvas.addEventListener('touchcancel', handleEnd, {passive: false});
+
+            canvas.addEventListener('mousedown', handleStart);
+            canvas.addEventListener('mousemove', (e) => { if (e.buttons > 0) handleMove(e); });
+            canvas.addEventListener('mouseup', handleEnd);
 
             drawGrid();
 
-            // Set timeout for 60 seconds
             setTimeout(() => {
-                if (isTracing !== null) { // if still active
-                    isTracing = false;
+                if (isTracing !== null) {
+                    isTracing = null;
                     const hitCount = blocks.filter(b => b.hit).length;
                     const percent = Math.floor((hitCount / totalBlocks) * 100);
                     
-                    if (percent >= 90) {
+                    if (percent >= 85) {
                         this.pass(`Almost complete (${percent}%)`);
                     } else {
                         this.fail(`Only ${percent}% of screen edge was responsive within time limit.`);

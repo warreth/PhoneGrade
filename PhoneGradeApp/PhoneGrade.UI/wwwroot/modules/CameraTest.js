@@ -180,7 +180,7 @@ export class CameraTest extends DeviceTest {
                     btnRecord.style.display = 'none';
                     controlsDiv.style.display = 'none';
                     
-                    const blob = new Blob(chunks, { type: 'video/mp4' }); // generic, browser will adapt
+                    const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'video/mp4' });
                     playbackVideo.src = URL.createObjectURL(blob);
                     
                     videoEl.style.display = 'none';

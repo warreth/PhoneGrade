@@ -10,57 +10,65 @@ export class SpeakerTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Initializing audio context...');
+        this.reportProgress(wsClient, 0, 'Ready for audio test...');
 
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-            container.innerHTML = `
-                <h3 style="color: #00d9ff; margin-bottom: 16px;">Audio Output Test</h3>
-                <p class="test-instructions">Follow the instructions to test both the top earpiece and bottom loudspeaker.</p>
-                
-                <div id="speaker-test-area" style="margin: 20px 0;">
-                    <div id="earpiece-section" style="margin-bottom: 24px; padding: 16px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
-                        <p style="margin-bottom: 12px; font-weight: 600;">Top Earpiece Test:</p>
-                        <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">Hold the phone to your ear after pressing play.</p>
-                        <button id="play-earpiece-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">Play Earpiece Tone</button>
-                        <div id="earpiece-feedback" style="display: none; justify-content: center; gap: 12px;">
-                            <button id="earpiece-yes" class="btn btn-success" style="background: var(--color-success); color: #000; border: none;">I heard it</button>
-                            <button id="earpiece-no" class="btn btn-error" style="background: var(--color-error); color: #fff; border: none;">No sound</button>
-                        </div>
-                        <p id="earpiece-status" style="text-align: center; margin-top: 12px; color: var(--color-text-tertiary); font-size: 13px;">Not tested</p>
+        container.innerHTML = `
+            <h3 style="color: #00d9ff; margin-bottom: 16px;">Audio Output Test</h3>
+            <p class="test-instructions">Follow the instructions to test both the top earpiece and bottom loudspeaker.</p>
+            
+            <div id="speaker-test-area" style="margin: 20px 0;">
+                <div id="earpiece-section" style="margin-bottom: 24px; padding: 16px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
+                    <p style="margin-bottom: 12px; font-weight: 600;">Top Earpiece Test:</p>
+                    <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">Hold the phone to your ear after pressing play.</p>
+                    <button id="play-earpiece-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">Play Earpiece Tone</button>
+                    <div id="earpiece-feedback" style="display: none; justify-content: center; gap: 12px;">
+                        <button id="earpiece-yes" class="btn btn-success" style="background: var(--color-success); color: #000; border: none;">I heard it</button>
+                        <button id="earpiece-no" class="btn btn-error" style="background: var(--color-error); color: #fff; border: none;">No sound</button>
                     </div>
-                    
-                    <div id="loudspeaker-section" style="padding: 16px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--color-border); opacity: 0.5; pointer-events: none;">
-                        <p style="margin-bottom: 12px; font-weight: 600;">Loudspeaker Test:</p>
-                        <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">A loud tone will play from the main speaker.</p>
-                        <button id="play-loud-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">Play Loud Tone</button>
-                        <div id="loud-feedback" style="display: none; justify-content: center; gap: 12px;">
-                            <button id="loud-yes" class="btn btn-success" style="background: var(--color-success); color: #000; border: none;">I heard it</button>
-                            <button id="loud-no" class="btn btn-error" style="background: var(--color-error); color: #fff; border: none;">No sound</button>
-                        </div>
-                        <p id="loud-status" style="text-align: center; margin-top: 12px; color: var(--color-text-tertiary); font-size: 13px;">Not tested</p>
-                    </div>
+                    <p id="earpiece-status" style="text-align: center; margin-top: 12px; color: var(--color-text-tertiary); font-size: 13px;">Not tested</p>
                 </div>
-            `;
+                
+                <div id="loudspeaker-section" style="padding: 16px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--color-border); opacity: 0.5; pointer-events: none;">
+                    <p style="margin-bottom: 12px; font-weight: 600;">Loudspeaker Test:</p>
+                    <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">A loud tone will play from the main speaker.</p>
+                    <button id="play-loud-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">Play Loud Tone</button>
+                    <div id="loud-feedback" style="display: none; justify-content: center; gap: 12px;">
+                        <button id="loud-yes" class="btn btn-success" style="background: var(--color-success); color: #000; border: none;">I heard it</button>
+                        <button id="loud-no" class="btn btn-error" style="background: var(--color-error); color: #fff; border: none;">No sound</button>
+                    </div>
+                    <p id="loud-status" style="text-align: center; margin-top: 12px; color: var(--color-text-tertiary); font-size: 13px;">Not tested</p>
+                </div>
+            </div>
+        `;
 
-            const playEarpieceBtn = container.querySelector('#play-earpiece-btn');
-            const playLoudBtn = container.querySelector('#play-loud-btn');
-            
-            const earpieceFeedback = container.querySelector('#earpiece-feedback');
-            const loudFeedback = container.querySelector('#loud-feedback');
-            
-            const earpieceYes = container.querySelector('#earpiece-yes');
-            const earpieceNo = container.querySelector('#earpiece-no');
-            const loudYes = container.querySelector('#loud-yes');
-            const loudNo = container.querySelector('#loud-no');
+        const playEarpieceBtn = container.querySelector('#play-earpiece-btn');
+        const playLoudBtn = container.querySelector('#play-loud-btn');
+        
+        const earpieceFeedback = container.querySelector('#earpiece-feedback');
+        const loudFeedback = container.querySelector('#loud-feedback');
+        
+        const earpieceYes = container.querySelector('#earpiece-yes');
+        const earpieceNo = container.querySelector('#earpiece-no');
+        const loudYes = container.querySelector('#loud-yes');
+        const loudNo = container.querySelector('#loud-no');
 
-            const earpieceStatus = container.querySelector('#earpiece-status');
-            const loudStatus = container.querySelector('#loud-status');
-            const loudSection = container.querySelector('#loudspeaker-section');
+        const earpieceStatus = container.querySelector('#earpiece-status');
+        const loudStatus = container.querySelector('#loud-status');
+        const loudSection = container.querySelector('#loudspeaker-section');
 
-            const testEarpiece = () => new Promise((resolve) => {
+        const initAudioContext = () => {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+        };
+
+        return new Promise(async (resolve) => {
+            const testEarpiece = () => new Promise((res) => {
                 playEarpieceBtn.onclick = () => {
+                    initAudioContext();
                     playEarpieceBtn.disabled = true;
                     earpieceStatus.textContent = 'Playing low volume tone...';
                     this.playTone(800, 3000, 0.05, () => {
@@ -77,7 +85,7 @@ export class SpeakerTest extends DeviceTest {
                     earpieceFeedback.style.display = 'none';
                     loudSection.style.opacity = '1';
                     loudSection.style.pointerEvents = 'auto';
-                    resolve();
+                    res();
                 };
 
                 earpieceNo.onclick = () => {
@@ -87,12 +95,13 @@ export class SpeakerTest extends DeviceTest {
                     earpieceFeedback.style.display = 'none';
                     loudSection.style.opacity = '1';
                     loudSection.style.pointerEvents = 'auto';
-                    resolve();
+                    res();
                 };
             });
 
-            const testLoudspeaker = () => new Promise((resolve) => {
+            const testLoudspeaker = () => new Promise((res) => {
                 playLoudBtn.onclick = () => {
+                    initAudioContext();
                     playLoudBtn.disabled = true;
                     loudStatus.textContent = 'Playing loud tone...';
                     this.playTone(1000, 3000, 1.0, () => {
@@ -107,7 +116,7 @@ export class SpeakerTest extends DeviceTest {
                     loudStatus.textContent = 'Passed';
                     loudStatus.style.color = 'var(--color-success)';
                     loudFeedback.style.display = 'none';
-                    resolve();
+                    res();
                 };
 
                 loudNo.onclick = () => {
@@ -115,7 +124,7 @@ export class SpeakerTest extends DeviceTest {
                     loudStatus.textContent = 'Failed';
                     loudStatus.style.color = 'var(--color-error)';
                     loudFeedback.style.display = 'none';
-                    resolve();
+                    res();
                 };
             });
 
@@ -143,13 +152,12 @@ export class SpeakerTest extends DeviceTest {
             if (this.audioContext) {
                 this.audioContext.close();
             }
-
-        } catch (error) {
-            this.fail('Audio error: ' + error.message);
-        }
+            resolve();
+        });
     }
 
     playTone(frequency, durationMs, volume, onComplete) {
+        if (!this.audioContext) return;
         const oscillator = this.audioContext.createOscillator();
         const gainNode = this.audioContext.createGain();
 
