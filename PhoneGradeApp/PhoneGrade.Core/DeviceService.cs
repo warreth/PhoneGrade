@@ -265,8 +265,54 @@ public static class DeviceService
             data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(udid);
         }
 
-        // Optional: Blacklist check (requires configured provider)
-        // data.Blacklist = await new SecurityServices.BlacklistCheckService.NoOpBlacklistProvider().CheckAsync(data.Identifier);
+        // Optional: IMEI API integration for enhanced activation lock and carrier lock detection
+        if (isIOS && !string.IsNullOrWhiteSpace(data.Identifier) && data.Identifier.Length >= 14)
+        {
+            var apiResult = await SecurityServices.ImeiApiService.CheckActivationLockAsync(data.Identifier);
+            if (apiResult.Status != "Unknown" && apiResult.Status != "Error")
+            {
+                // Override USB-detected activation lock with API result if available
+                if (apiResult.Status.Contains("ON", StringComparison.OrdinalIgnoreCase) || 
+                    apiResult.Status.Contains("Locked", StringComparison.OrdinalIgnoreCase))
+                {
+                    data.ActivationLock = SecurityServices.ActivationLockService.ActivationLockStatus.Locked;
+                }
+                else if (apiResult.Status.Contains("OFF", StringComparison.OrdinalIgnoreCase) || 
+                         apiResult.Status.Contains("Clean", StringComparison.OrdinalIgnoreCase))
+                {
+                    data.ActivationLock = SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked;
+                }
+
+                // Enhance carrier lock detection with API data
+                if (!string.IsNullOrWhiteSpace(apiResult.CarrierLock))
+                {
+                    if (data.CarrierLockIOS == null)
+                        data.CarrierLockIOS = new SecurityServices.ActivationLockService.CarrierLockStatus();
+                    
+                    data.CarrierLockIOS.IsCarrierLocked = apiResult.CarrierLock.Contains("Locked", StringComparison.OrdinalIgnoreCase);
+                }
+
+                // Populate blacklist status from API
+                if (!string.IsNullOrWhiteSpace(apiResult.Blacklisted))
+                {
+                    data.Blacklist = new SecurityServices.BlacklistCheckService.BlacklistStatus
+                    {
+                        IsBlacklisted = apiResult.Blacklisted.Contains("Yes", StringComparison.OrdinalIgnoreCase) ||
+                                       apiResult.Blacklisted.Contains("Blacklisted", StringComparison.OrdinalIgnoreCase),
+                        Reason = apiResult.Message,
+                        Source = apiResult.Source
+                    };
+                }
+            }
+        }
+
+        // Optional: Blacklist check (GSMA provider stub)
+        // Uncomment if GSMA_API_KEY is configured
+        // if (string.IsNullOrWhiteSpace(data.Identifier) == false)
+        // {
+        //     var gsmaProvider = new SecurityServices.BlacklistCheckService.GsmaBlacklistProvider();
+        //     data.Blacklist = await gsmaProvider.CheckAsync(data.Identifier);
+        // }
 
         return data;
     }
