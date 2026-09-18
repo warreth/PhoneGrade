@@ -29,6 +29,14 @@ public class MainWindowViewModel : ReactiveObject
 
     public ObservableCollection<DiagnosticIssue> Issues { get; } = [];
     public ObservableCollection<ComponentStatus> ComponentChecks { get; } = [];
+    public UnifiedLogsViewModel LogsViewModel { get; } = new();
+
+    private ClientTelemetry? _currentTelemetry;
+    public ClientTelemetry? CurrentTelemetry
+    {
+        get => _currentTelemetry;
+        set => this.RaiseAndSetIfChanged(ref _currentTelemetry, value);
+    }
 
     private ObservableCollection<KeyValuePair<string, string>> _devices = [];
     public ObservableCollection<KeyValuePair<string, string>> Devices
@@ -263,6 +271,23 @@ public class MainWindowViewModel : ReactiveObject
                         ApplyInteractiveResults(e.Message.Payload);
                     }
                 });
+            };
+
+            _webServer.LogEventReceived += (s, e) =>
+            {
+                SystemEventLogger.Log(e.LogEvent.Level, LogSource.PwaClient, e.LogEvent.Message ?? "", e.SessionId);
+            };
+
+            _webServer.TelemetryReceived += (s, e) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    CurrentTelemetry = e.Telemetry;
+                });
+                SystemEventLogger.Info(
+                    LogSource.PwaClient,
+                    $"Telemetry received: {e.Telemetry.Browser} {e.Telemetry.BrowserVersion} on {e.Telemetry.Os} {e.Telemetry.OsVersion} ({e.Telemetry.ScreenWidth}x{e.Telemetry.ScreenHeight} @{e.Telemetry.PixelRatio}x, Touch: {e.Telemetry.TouchSupport})",
+                    e.SessionId);
             };
 
             _ = _webServer.StartAsync().ContinueWith(t =>

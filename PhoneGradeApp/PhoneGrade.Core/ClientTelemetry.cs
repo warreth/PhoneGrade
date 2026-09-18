@@ -51,13 +51,13 @@ public class ClientTelemetry
     [JsonPropertyName("cameraSupport")]
     public bool CameraSupport { get; set; }
 
-    [JsonPropertyName("microphone Support")]
+    [JsonPropertyName("microphoneSupport")]
     public bool MicrophoneSupport { get; set; }
 
     [JsonPropertyName("vibrationSupport")]
     public bool VibrationSupport { get; set; }
 
-    [JsonPropertyName("languag")]
+    [JsonPropertyName("language")]
     public string Language { get; set; } = ""; // navigator.language
 
     [JsonPropertyName("timezone")]
