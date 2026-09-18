@@ -1,0 +1,18 @@
+{
+  "name": "PhoneGrade Test Suite",
+  "short_name": "PhoneGrade",
+  "description": "Professional hardware testing for mobile devices",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1419",
+  "theme_color": "#00d9ff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%230f1419' width='180' height='180' rx='32'/%3E%3Ctext x='90' y='115' text-anchor='middle' font-size='90' fill='%2300d9ff' font-family='system-ui' font-weight='bold'%3EPG%3C/text%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

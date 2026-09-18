@@ -71,7 +71,91 @@ public static partial class DiagnosticService
                 Level = Severity.Warning,
             });
 
-        // 3. Panic logs — the main hardware-evidence source
+
+        // 3. Security, Carrier, and Component Validation (from new security services)
+        if (data.ActivationLock == PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked)
+        {
+            issues.Add(new DiagnosticIssue
+            {
+                Title = "Activation Lock (iCloud) actief",
+                Explanation = "Find My iPhone of iCloud-activering is nog ingeschakeld op dit toestel.",
+                Fix = "Vraag de klant om 'Zoek Mijn' uit te schakelen of het toestel te verwijderen uit hun iCloud-account.",
+                Level = Severity.Error
+            });
+        }
+        else if (data.ActivationLock == PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked)
+        {
+            issues.Add(new DiagnosticIssue
+            {
+                Title = "Activation Lock (iCloud) uitgeschakeld",
+                Explanation = "Find My iPhone is niet ingeschakeld.",
+                Fix = "Geen actie nodig.",
+                Level = Severity.Ok
+            });
+        }
+
+        if (data.CarrierLockIOS?.IsCarrierLocked == true || data.CarrierLockAndroid?.IsCarrierLocked == true)
+        {
+            string carrierName = data.CarrierLockIOS?.CarrierName ?? data.CarrierLockAndroid?.CarrierName ?? "Onbekend";
+            issues.Add(new DiagnosticIssue
+            {
+                Title = $"Simlock actief ({carrierName})",
+                Explanation = "Het toestel accepteert alleen simkaarten van een specifieke provider.",
+                Fix = "Ontgrendel via de provider of meld het als simlocked.",
+                Level = Severity.Error
+            });
+        }
+
+        if (data.Jailbreak?.IsJailbroken == true)
+        {
+            issues.Add(new DiagnosticIssue
+            {
+                Title = "Jailbreak gedetecteerd",
+                Explanation = $"Ongeautoriseerde software gevonden: {string.Join(", ", data.Jailbreak.Evidence)}.",
+                Fix = "Voer een DFU-herstel (Restore) uit via iTunes/Finder of 3uTools om de software te overschrijven.",
+                Level = Severity.Warning
+            });
+        }
+
+        if (data.Root?.IsRooted == true)
+        {
+            issues.Add(new DiagnosticIssue
+            {
+                Title = "Android Root gedetecteerd",
+                Explanation = $"Het besturingssysteem is gemodificeerd: {string.Join(", ", data.Root.Evidence)}.",
+                Fix = "Flash officiële stock firmware via fastboot of OEM-tools (Odin, SP Flash Tool, etc.).",
+                Level = Severity.Warning
+            });
+        }
+
+        if (data.ComponentChecks != null)
+        {
+            foreach (var check in data.ComponentChecks)
+            {
+                if (check.Status == ComponentStatusType.Mismatch)
+                {
+                    issues.Add(new DiagnosticIssue
+                    {
+                        Title = $"Vervangen onderdeel: {check.Name}",
+                        Explanation = $"Het serienummer komt niet overeen met het fabrieksorigineel. Gelezen: {check.SerialRead}, Origineel: {check.SerialOriginal}.",
+                        Fix = "Houd hier rekening mee in de grading. Mogelijk third-party reparatie.",
+                        Level = Severity.Warning
+                    });
+                }
+                else if (check.Status == ComponentStatusType.Untrusted)
+                {
+                    issues.Add(new DiagnosticIssue
+                    {
+                        Title = $"Niet-origineel onderdeel: {check.Name}",
+                        Explanation = "Apple AST2-diagnostiek meldt dat dit onderdeel niet als origineel geverifieerd kan worden.",
+                        Fix = "Registreer als third-party reparatie in het systeem.",
+                        Level = Severity.Warning
+                    });
+                }
+            }
+        }
+
+        // 4. Panic logs — the main hardware-evidence source
         issues.AddRange(await AnalyzePanicLogsAsync(udid));
         return issues;
     }
