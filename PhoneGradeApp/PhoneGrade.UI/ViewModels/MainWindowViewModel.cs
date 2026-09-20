@@ -448,6 +448,12 @@ public class MainWindowViewModel : ReactiveObject
             WebRunnerUrl = QrCodeService.GenerateSessionUrl(ip, port, sessionUdid);
             QrCodeBitmap = QrCodeService.GenerateQrCodeBitmap(WebRunnerUrl);
             InteractiveSessionStatus = $"Scan QR of open: {WebRunnerUrl}";
+
+            // If AutoStartWebTest is enabled, send a signal to connected PWA clients to auto-start the test suite
+            if (AutoStartWebTest && _webServer != null)
+            {
+                _webServer.BroadcastMessage(new { type = "auto_start_suite", sessionId = sessionUdid });
+            }
         }
         catch (Exception ex)
         {
@@ -494,14 +500,15 @@ public class MainWindowViewModel : ReactiveObject
                     return;
                 }
 
-                if (Busy) { return; }
+                // Only auto-start if AutoDetectOnPlug is explicitly enabled AND device hasn't started yet
+                if (!AutoDetectOnPlug || Busy) { return; }
+
                 string? udid = SelectedDevice.Key;
                 if (udid is { Length: > 0 })
                 {
-                    // Only run flow if device hasn't already completed testing
-                    if (!DeviceSessionManager.IsDeviceCompleted(udid))
+                    if (!DeviceSessionManager.HasStartedOrCompleted(udid))
                     {
-                        // Fire-and-forget: RunFlowAsync reports all failures through Status.
+                        DeviceSessionManager.MarkStarted(udid);
 #pragma warning disable CS4014
                         RunFlowAsync();
 #pragma warning restore CS4014
@@ -632,6 +639,7 @@ public class MainWindowViewModel : ReactiveObject
 
         Busy = true;
         WorkflowState = AppWorkflowState.Active;
+        DeviceSessionManager.MarkStarted(udid);
         _flowCts = new CancellationTokenSource();
         Issues.Clear();
         ComponentChecks.Clear();
@@ -750,7 +758,7 @@ public class MainWindowViewModel : ReactiveObject
         string? udid = SelectedDevice.Key;
         if (!string.IsNullOrWhiteSpace(udid))
         {
-            DeviceSessionManager.MarkCompleted(udid, wasSuccessful: true);
+            DeviceSessionManager.MarkCompleted(udid);
         }
 
         if (OpenEditorBeforePrint)
