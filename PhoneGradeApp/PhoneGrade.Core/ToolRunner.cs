@@ -179,6 +179,19 @@ public static class ToolRunner
             int exitCode = process.ExitCode;
 
             Log(resolvedPath, arguments, exitCode, stdout, stderr);
+            
+            // Pipe tool output to central logger with category tag
+            string toolName = Path.GetFileNameWithoutExtension(tool);
+            if (!string.IsNullOrWhiteSpace(stdout))
+            {
+                SystemEventLogger.Debug(LogSource.Desktop, $"[{toolName}] stdout: {stdout}");
+            }
+            if (!string.IsNullOrWhiteSpace(stderr))
+            {
+                var level = exitCode == 0 ? LogLevel.Debug : LogLevel.Warning;
+                SystemEventLogger.Log(level, LogSource.Desktop, $"[{toolName}] stderr: {stderr}");
+            }
+            
             return (stdout, stderr, exitCode);
         }
         catch (Exception ex)
