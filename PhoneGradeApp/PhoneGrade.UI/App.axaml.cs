@@ -16,7 +16,14 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
-        ApplyTheme(AppSettings.Load().Theme); // read settings before first frame
+        var settings = AppSettings.Load();
+        ApplyTheme(settings.Theme); // read settings before first frame
+
+        // Boot logging to ensure logs are never empty
+        PhoneGrade.Core.SystemEventLogger.Info(PhoneGrade.Core.LogSource.Desktop, $"PhoneGrade initialized on {System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})");
+        PhoneGrade.Core.SystemEventLogger.Info(PhoneGrade.Core.LogSource.Desktop, $"App directory: {AppContext.BaseDirectory}");
+        PhoneGrade.Core.SystemEventLogger.Info(PhoneGrade.Core.LogSource.Desktop, $"Tools directory: {PhoneGrade.Core.ToolRunner.ToolsDir}");
+        PhoneGrade.Core.SystemEventLogger.Info(PhoneGrade.Core.LogSource.Desktop, $"Log directory: {PhoneGrade.Core.SystemEventLogger.LogDir}");
     }
 
     public override void OnFrameworkInitializationCompleted()

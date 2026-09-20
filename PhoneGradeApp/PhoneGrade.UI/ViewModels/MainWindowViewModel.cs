@@ -30,6 +30,7 @@ public class MainWindowViewModel : ReactiveObject
     public ObservableCollection<DiagnosticIssue> Issues { get; } = [];
     public ObservableCollection<ComponentStatus> ComponentChecks { get; } = [];
     public UnifiedLogsViewModel LogsViewModel { get; } = new();
+    public TroubleshootViewModel TroubleshootViewModel { get; } = new();
 
     private ClientTelemetry? _currentTelemetry;
     public ClientTelemetry? CurrentTelemetry
@@ -383,7 +384,11 @@ public class MainWindowViewModel : ReactiveObject
             });
             return devices.Count;
         }
-        catch { return 0; }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Debug(LogSource.UsbDetector, $"Silent refresh caught error: {ex.Message}");
+            return 0;
+        }
     }
 
     public async Task RefreshDeviceListAsync()
@@ -394,6 +399,8 @@ public class MainWindowViewModel : ReactiveObject
             var (_, _, diagState) = await DeviceService.ListUdidsSafeAsync();
             Status = diagState switch
             {
+                DeviceService.ConnectionState.ToolsMissing =>
+                    "USB tools ontbreken: noch libimobiledevice noch adb is geinstalleerd of vindbaar in PATH. Open de Troubleshoot tab voor installatie-instructies.",
                 DeviceService.ConnectionState.Unauthorized =>
                     "ADB unauthorized: ontgrendel Android toestel en accepteer USB-foutopsporing (RSA-sleutel).",
                 DeviceService.ConnectionState.PermissionDenied =>
