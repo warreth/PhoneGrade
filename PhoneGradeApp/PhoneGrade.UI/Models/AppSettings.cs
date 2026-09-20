@@ -8,6 +8,7 @@ namespace PhoneGrade.UI.Models;
 public class AppSettings
 {
     public string Theme { get; set; } = "Dark";            // "Dark", "Light" or "System"
+    public string Language { get; set; } = "nl";           // "en" (English) or "nl" (Nederlands)
     public bool AutoActivate { get; set; } = true;
     public bool AutoDetectOnPlug { get; set; } = true;    // start the flow the moment a device appears
     public bool RunDiagnostics { get; set; } = true;
