@@ -67,4 +67,18 @@
     <x:String x:Key="Component_Original">Origineel</x:String>
     <x:String x:Key="Component_Status">Status</x:String>
     
+    <x:String x:Key="Settings_DailyOptions">DAGELIJKSE OPTIES</x:String>
+    <x:String x:Key="Settings_Quality">Standaard Kwaliteit</x:String>
+    <x:String x:Key="Settings_Payment">Standaard Factuurmethode</x:String>
+    <x:String x:Key="Settings_AutoStartWebTest">Automatisch interactieve webtest starten</x:String>
+    <x:String x:Key="Settings_RequirePwaTest">PWA Test Verplicht voor afronden</x:String>
+    <x:String x:Key="Settings_ShowSummary">Toon samenvatting voor label printen</x:String>
+    <x:String x:Key="Settings_Advanced">GEAVANCEERDE AUTOMATISERING</x:String>
+    <x:String x:Key="Settings_AutoActivate">Automatisch activeren (bypass)</x:String>
+    <x:String x:Key="Settings_RunDiagnostics">Hardware diagnose draaien (panic-logs)</x:String>
+    <x:String x:Key="Settings_Enable85Checker">85% Batterijcheck (100%-X label)</x:String>
+    <x:String x:Key="Settings_OpenEditor">Label editor openen voor printen</x:String>
+    <x:String x:Key="Btn_Troubleshoot">USB en Driver Diagnose</x:String>
+    <x:String x:Key="Btn_Logs">Systeemlogboeken Bekijken</x:String>
+
 </ResourceDictionary>
