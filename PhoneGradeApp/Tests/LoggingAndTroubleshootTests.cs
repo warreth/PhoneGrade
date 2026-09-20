@@ -196,7 +196,13 @@ public class LoggingAndTroubleshootTests
         // Un-faked, live HTTP HEAD request to ensure the Windows zip and CAB driver URLs exist and are valid.
         using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) };
         
-        // 1. Check libimobiledevice GitHub release asset
+        // 1. Check dynamic GitHub latest release API
+        using var reqApi = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, "https://api.github.com/repos/libimobiledevice-win32/imobiledevice-net/releases/latest");
+        reqApi.Headers.Add("User-Agent", "PhoneGrade-Tests");
+        var resApi = await client.SendAsync(reqApi);
+        Assert.True(resApi.IsSuccessStatusCode, $"GitHub latest releases API failed with {(int)resApi.StatusCode}");
+
+        // 2. Check libimobiledevice GitHub release asset directly
         string libiUrl = "https://github.com/libimobiledevice-win32/imobiledevice-net/releases/download/v1.3.17/libimobiledevice.1.2.1-r1122-win-x64.zip";
         using var req1 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Head, libiUrl);
         var res1 = await client.SendAsync(req1, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);

@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace PhoneGrade.Core;
@@ -24,6 +25,53 @@ public static class ToolInstallerService
         };
     }
 
+    private static async Task<string?> GetLatestLibimobiledeviceAssetUrlAsync(string platform)
+    {
+        try
+        {
+            string apiUrl = "https://api.github.com/repos/libimobiledevice-win32/imobiledevice-net/releases/latest";
+            var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
+            request.Headers.Add("User-Agent", "PhoneGrade-Auto-Installer");
+            
+            var response = await HttpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return null;
+
+            string json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("assets", out var assets)) return null;
+
+            string targetPattern = platform switch
+            {
+                "win-x64" => "libimobiledevice.*-win-x64.zip",
+                "osx-x64" => "libimobiledevice.*-osx-x64.zip",
+                _ => null
+            };
+
+            if (targetPattern == null) return null;
+
+            foreach (var asset in assets.EnumerateArray())
+            {
+                if (asset.TryGetProperty("name", out var name) &&
+                    asset.TryGetProperty("browser_download_url", out var url))
+                {
+                    string assetName = name.GetString() ?? "";
+                    if (System.Text.RegularExpressions.Regex.IsMatch(assetName, targetPattern))
+                    {
+                        return url.GetString();
+                    }
+                }
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static async Task<bool> InstallIdeviceToolsAsync(IProgress<(int Percent, string Message)>? progress = null)
     {
         SystemEventLogger.Info(LogSource.Desktop, "Starting libimobiledevice tools installation...");
@@ -36,13 +84,19 @@ public static class ToolInstallerService
         {
             try
             {
-                progress?.Report((25, "Downloading verified libimobiledevice suite for Windows..."));
-                // Verified active release asset (libimobiledevice 1.2.1 + usbmuxd 64-bit binaries)
-                string zipUrl = "https://github.com/libimobiledevice-win32/imobiledevice-net/releases/download/v1.3.17/libimobiledevice.1.2.1-r1122-win-x64.zip";
-                
+                progress?.Report((20, "Fetching latest libimobiledevice release from GitHub..."));
+                string? zipUrl = await GetLatestLibimobiledeviceAssetUrlAsync("win-x64");
+
+                if (string.IsNullOrEmpty(zipUrl))
+                {
+                    progress?.Report((100, "Could not fetch latest release. Check network connection."));
+                    return false;
+                }
+
+                progress?.Report((30, "Downloading latest libimobiledevice suite for Windows..."));
                 string tempZip = Path.Combine(Path.GetTempPath(), $"idevice-tools-{Guid.NewGuid():N}.zip");
                 
-                await DownloadFileWithProgressAsync(zipUrl, tempZip, progress, 25, 75);
+                await DownloadFileWithProgressAsync(zipUrl, tempZip, progress, 30, 75);
 
                 progress?.Report((80, "Extracting tools to idevice-tools directory..."));
                 ZipFile.ExtractToDirectory(tempZip, toolsDir, overwriteFiles: true);
@@ -84,11 +138,19 @@ public static class ToolInstallerService
                 }
 
                 // Fallback: download macOS portable precompiled binaries
-                progress?.Report((50, "Downloading macOS portable libimobiledevice bundle..."));
-                string macZipUrl = "https://github.com/libimobiledevice-win32/imobiledevice-net/releases/download/v1.3.17/libimobiledevice.1.2.1-r1122-osx-x64.zip";
+                progress?.Report((40, "Fetching latest libimobiledevice release for macOS..."));
+                string? macZipUrl = await GetLatestLibimobiledeviceAssetUrlAsync("osx-x64");
+                
+                if (string.IsNullOrEmpty(macZipUrl))
+                {
+                    progress?.Report((100, "Could not fetch latest macOS release."));
+                    return false;
+                }
+
+                progress?.Report((55, "Downloading macOS portable libimobiledevice bundle..."));
                 string tempZip = Path.Combine(Path.GetTempPath(), $"idevice-tools-mac-{Guid.NewGuid():N}.zip");
                 
-                await DownloadFileWithProgressAsync(macZipUrl, tempZip, progress, 50, 85);
+                await DownloadFileWithProgressAsync(macZipUrl, tempZip, progress, 55, 85);
                 ZipFile.ExtractToDirectory(tempZip, toolsDir, overwriteFiles: true);
                 try { File.Delete(tempZip); } catch { }
 
