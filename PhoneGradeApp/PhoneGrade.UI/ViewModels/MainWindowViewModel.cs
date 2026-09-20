@@ -93,11 +93,32 @@ public class MainWindowViewModel : ReactiveObject
     private int _progress;
     public int Progress { get => _progress; set => this.RaiseAndSetIfChanged(ref _progress, value); }
 
-    private string _status = "Plug een iPhone/iPad in om te starten…";
+    private string _status = "Sluit een toestel aan om te starten...";
     public string Status
     {
         get => _status;
-        set => this.RaiseAndSetIfChanged(ref _status, value);
+        set
+        {
+            string sanitized = SanitizeStatusMessage(value);
+            this.RaiseAndSetIfChanged(ref _status, sanitized);
+        }
+    }
+
+    private static string SanitizeStatusMessage(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "";
+        if (raw.Contains("Could not connect to lockdownd") || raw.Contains("Mux error"))
+            return "Verbindingsfout met toestel (lockdownd).";
+        if (raw.Contains("PairingDialogResponsePending") || raw.Contains("PasswordProtected"))
+            return "Wachten op toestemming op iPhone...";
+        if (raw.Contains("unauthorized"))
+            return "Wachten op RSA-autorisatie op Android...";
+        if (raw.StartsWith("ERROR:") || raw.StartsWith("Fout:"))
+        {
+            if (raw.Contains("timed out")) return "Time-out bij communicatie.";
+            return "Communicatiefout met toestel.";
+        }
+        return raw;
     }
 
     private string _theme = "Dark";
