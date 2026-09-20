@@ -1,0 +1,70 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Window Title -->
+    <x:String x:Key="WindowTitle">PhoneGrade</x:String>
+    
+    <!-- Tab Headers -->
+    <x:String x:Key="Tab_Dashboard">Dashboard</x:String>
+    <x:String x:Key="Tab_InteractiveTests">Interactieve Tests</x:String>
+    <x:String x:Key="Tab_Label">Label</x:String>
+    <x:String x:Key="Tab_Settings">Instellingen</x:String>
+    <x:String x:Key="Tab_Logs">Logs</x:String>
+    <x:String x:Key="Tab_Troubleshoot">Troubleshoot</x:String>
+    
+    <!-- Dashboard Card Titles -->
+    <x:String x:Key="Card_Status">STATUS</x:String>
+    <x:String x:Key="Card_Device">TOESTEL</x:String>
+    <x:String x:Key="Card_ComponentAudit">OEM ONDERDELEN AUDIT</x:String>
+    <x:String x:Key="Card_DiagnosticIssues">DIAGNOSTISCHE PROBLEMEN</x:String>
+    <x:String x:Key="Card_WebRunner">WEB TEST RUNNER</x:String>
+    
+    <!-- Buttons -->
+    <x:String x:Key="Btn_StartManual">Start handmatig</x:String>
+    <x:String x:Key="Btn_Refresh">Verversen</x:String>
+    <x:String x:Key="Btn_OpenLabel">Open label</x:String>
+    <x:String x:Key="Btn_StartWebRunner">Start Web Runner</x:String>
+    <x:String x:Key="Btn_StopWebRunner">Stop Web Runner</x:String>
+    <x:String x:Key="Btn_RunDiagnostics">Voer Diagnose Uit</x:String>
+    <x:String x:Key="Btn_CopyReport">Kopieer Rapport</x:String>
+    <x:String x:Key="Btn_ExportReport">Exporteer Rapport</x:String>
+    <x:String x:Key="Btn_FixAll">Los Alles Op</x:String>
+    <x:String x:Key="Btn_Fix">Oplossen</x:String>
+    <x:String x:Key="Btn_Clear">Wissen</x:String>
+    <x:String x:Key="Btn_Copy">Kopieer</x:String>
+    <x:String x:Key="Btn_Export">Exporteer</x:String>
+    <x:String x:Key="Btn_OpenFolder">Open Map</x:String>
+    
+    <!-- Status Messages -->
+    <x:String x:Key="Status_Ready">Plug een iPhone/iPad in om te starten...</x:String>
+    <x:String x:Key="Status_NoDevice">Geen toestel gevonden. Kabel/poort proberen of toestel ontgrendelen en 'Vertrouwen' tikken.</x:String>
+    <x:String x:Key="Status_ToolsMissing">USB tools ontbreken: noch libimobiledevice noch adb is geinstalleerd of vindbaar in PATH. Open de Troubleshoot tab voor installatie-instructies.</x:String>
+    
+    <!-- Settings -->
+    <x:String x:Key="Settings_Title">INSTELLINGEN</x:String>
+    <x:String x:Key="Settings_Theme">Thema</x:String>
+    <x:String x:Key="Settings_ThemeDesc">Donker, licht of volgens systeem</x:String>
+    <x:String x:Key="Settings_Language">Taal</x:String>
+    <x:String x:Key="Settings_LanguageDesc">Interface taal</x:String>
+    <x:String x:Key="Settings_AutoDetect">Start automatisch bij insteken</x:String>
+    <x:String x:Key="Settings_AutoDetectDesc">Zodra een toestel gedetecteerd wordt, draait het hele proces vanzelf</x:String>
+    
+    <!-- Troubleshoot -->
+    <x:String x:Key="Troubleshoot_Title">APPARAAT DETECTIE &amp; DRIVER ASSISTENT</x:String>
+    <x:String x:Key="Troubleshoot_Desc">Als een toestel niet wordt herkend, scan het systeem om ontbrekende drivers, permissies of daemons te diagnosticeren.</x:String>
+    <x:String x:Key="Troubleshoot_Scanning">Diagnose wordt uitgevoerd, even geduld...</x:String>
+    <x:String x:Key="Troubleshoot_ClickToScan">Klik op Voer Diagnose Uit om je systeem te scannen op USB tools, drivers en aangesloten apparaten.</x:String>
+    
+    <!-- Logs -->
+    <x:String x:Key="Logs_SearchPlaceholder">Zoek logs...</x:String>
+    <x:String x:Key="Logs_FilterDebug">Debug</x:String>
+    <x:String x:Key="Logs_FilterInfo">Info</x:String>
+    <x:String x:Key="Logs_FilterWarning">Waarschuwing</x:String>
+    <x:String x:Key="Logs_FilterError">Fout</x:String>
+    
+    <!-- Component Status -->
+    <x:String x:Key="Component_Read">Gelezen</x:String>
+    <x:String x:Key="Component_Original">Origineel</x:String>
+    <x:String x:Key="Component_Status">Status</x:String>
+    
+</ResourceDictionary>

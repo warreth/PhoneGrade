@@ -1,0 +1,70 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Window Title -->
+    <x:String x:Key="WindowTitle">PhoneGrade</x:String>
+    
+    <!-- Tab Headers -->
+    <x:String x:Key="Tab_Dashboard">Dashboard</x:String>
+    <x:String x:Key="Tab_InteractiveTests">Interactive Tests</x:String>
+    <x:String x:Key="Tab_Label">Label</x:String>
+    <x:String x:Key="Tab_Settings">Settings</x:String>
+    <x:String x:Key="Tab_Logs">Logs</x:String>
+    <x:String x:Key="Tab_Troubleshoot">Troubleshoot</x:String>
+    
+    <!-- Dashboard Card Titles -->
+    <x:String x:Key="Card_Status">STATUS</x:String>
+    <x:String x:Key="Card_Device">DEVICE</x:String>
+    <x:String x:Key="Card_ComponentAudit">OEM COMPONENT AUDIT</x:String>
+    <x:String x:Key="Card_DiagnosticIssues">DIAGNOSTIC ISSUES</x:String>
+    <x:String x:Key="Card_WebRunner">WEB TEST RUNNER</x:String>
+    
+    <!-- Buttons -->
+    <x:String x:Key="Btn_StartManual">Start Manually</x:String>
+    <x:String x:Key="Btn_Refresh">Refresh</x:String>
+    <x:String x:Key="Btn_OpenLabel">Open Label</x:String>
+    <x:String x:Key="Btn_StartWebRunner">Start Web Runner</x:String>
+    <x:String x:Key="Btn_StopWebRunner">Stop Web Runner</x:String>
+    <x:String x:Key="Btn_RunDiagnostics">Run Diagnostics</x:String>
+    <x:String x:Key="Btn_CopyReport">Copy Report</x:String>
+    <x:String x:Key="Btn_ExportReport">Export Report</x:String>
+    <x:String x:Key="Btn_FixAll">Fix All Issues</x:String>
+    <x:String x:Key="Btn_Fix">Fix</x:String>
+    <x:String x:Key="Btn_Clear">Clear</x:String>
+    <x:String x:Key="Btn_Copy">Copy</x:String>
+    <x:String x:Key="Btn_Export">Export</x:String>
+    <x:String x:Key="Btn_OpenFolder">Open Folder</x:String>
+    
+    <!-- Status Messages -->
+    <x:String x:Key="Status_Ready">Plug in an iPhone/iPad to start...</x:String>
+    <x:String x:Key="Status_NoDevice">No device found. Try cable/port or unlock device and tap Trust.</x:String>
+    <x:String x:Key="Status_ToolsMissing">USB tools missing: neither libimobiledevice nor adb is installed or found in PATH. Open the Troubleshoot tab for installation instructions.</x:String>
+    
+    <!-- Settings -->
+    <x:String x:Key="Settings_Title">SETTINGS</x:String>
+    <x:String x:Key="Settings_Theme">Theme</x:String>
+    <x:String x:Key="Settings_ThemeDesc">Dark, light, or system default</x:String>
+    <x:String x:Key="Settings_Language">Language</x:String>
+    <x:String x:Key="Settings_LanguageDesc">Interface language</x:String>
+    <x:String x:Key="Settings_AutoDetect">Auto-detect on plug</x:String>
+    <x:String x:Key="Settings_AutoDetectDesc">Start the process automatically when a device is detected</x:String>
+    
+    <!-- Troubleshoot -->
+    <x:String x:Key="Troubleshoot_Title">DEVICE DETECTION &amp; DRIVER ASSISTANT</x:String>
+    <x:String x:Key="Troubleshoot_Desc">If a device is not recognized, scan the system to diagnose missing drivers, permissions, or daemons.</x:String>
+    <x:String x:Key="Troubleshoot_Scanning">Running diagnostics, please wait...</x:String>
+    <x:String x:Key="Troubleshoot_ClickToScan">Click Run Diagnostics to scan your system for USB tools, drivers, and connected devices.</x:String>
+    
+    <!-- Logs -->
+    <x:String x:Key="Logs_SearchPlaceholder">Search logs...</x:String>
+    <x:String x:Key="Logs_FilterDebug">Debug</x:String>
+    <x:String x:Key="Logs_FilterInfo">Info</x:String>
+    <x:String x:Key="Logs_FilterWarning">Warning</x:String>
+    <x:String x:Key="Logs_FilterError">Error</x:String>
+    
+    <!-- Component Status -->
+    <x:String x:Key="Component_Read">Read</x:String>
+    <x:String x:Key="Component_Original">Original</x:String>
+    <x:String x:Key="Component_Status">Status</x:String>
+    
+</ResourceDictionary>
