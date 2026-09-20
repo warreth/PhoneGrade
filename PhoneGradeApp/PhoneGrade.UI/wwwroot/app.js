@@ -203,6 +203,11 @@ class WebSocketClient {
         switch (data.type) {
             case 'pong':
                 break;
+            case 'auto_start_suite':
+                if (window.testRunner) {
+                    window.testRunner.startSuite();
+                }
+                break;
             case 'test_start':
                 if (window.testRunner) {
                     window.testRunner.startTest(data.testId);
