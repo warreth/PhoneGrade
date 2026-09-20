@@ -67,4 +67,18 @@
     <x:String x:Key="Component_Original">Original</x:String>
     <x:String x:Key="Component_Status">Status</x:String>
     
+    <x:String x:Key="Settings_DailyOptions">DAILY OPTIONS</x:String>
+    <x:String x:Key="Settings_Quality">Default Quality</x:String>
+    <x:String x:Key="Settings_Payment">Default Payment Method</x:String>
+    <x:String x:Key="Settings_AutoStartWebTest">Automatically start interactive web test</x:String>
+    <x:String x:Key="Settings_RequirePwaTest">Require PWA Test before finishing</x:String>
+    <x:String x:Key="Settings_ShowSummary">Show summary before printing label</x:String>
+    <x:String x:Key="Settings_Advanced">ADVANCED AUTOMATION</x:String>
+    <x:String x:Key="Settings_AutoActivate">Auto-activate (bypass)</x:String>
+    <x:String x:Key="Settings_RunDiagnostics">Run hardware diagnostics (panic logs)</x:String>
+    <x:String x:Key="Settings_Enable85Checker">85% Battery check (100%-X label)</x:String>
+    <x:String x:Key="Settings_OpenEditor">Open label editor before printing</x:String>
+    <x:String x:Key="Btn_Troubleshoot">USB and Driver Diagnostics</x:String>
+    <x:String x:Key="Btn_Logs">View System Logs</x:String>
+
 </ResourceDictionary>
