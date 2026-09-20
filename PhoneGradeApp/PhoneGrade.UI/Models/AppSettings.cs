@@ -16,7 +16,7 @@ public class AppSettings
     public bool RunDiagnostics { get; set; } = true;
     public bool Enable85PercentChecker { get; set; } = true;
     public bool OpenEditorBeforePrint { get; set; } = false;
-    public string DefaultQuality { get; set; } = "";       // "", "A", "B", "C" — empty asks
+    public string DefaultQuality { get; set; } = "";       // "", "A", "B", "C": empty asks
     public string DefaultPaymentMethod { get; set; } = "";  // "", "Marge", "BTW"
     public string? TemplatePath { get; set; }             // custom my.dymo override
 

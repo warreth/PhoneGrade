@@ -4,19 +4,19 @@ using Avalonia.Data.Converters;
 
 namespace PhoneGrade.UI.Converters;
 
-/// <summary>Converts placeholder values to user-friendly fallback text.</summary>
+/// <summary>Converts placeholder values to user-friendly fallback text in Dutch.</summary>
 public class PlaceholderToFriendlyConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return "N/A";
+        if (value is not string str) return "Onbekend";
         
         return str switch
         {
-            "NOCOLOR" => "N/A",
-            "NOBATT" => "N/A",
-            "NOQUALITY" => "Pending",
-            "" => "N/A",
+            "NOCOLOR" => "Onbekend",
+            "NOBATT" => "Onbekend",
+            "NOQUALITY" => "In afwachting",
+            "" => "Onbekend",
             _ => str
         };
     }
@@ -25,17 +25,17 @@ public class PlaceholderToFriendlyConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts battery health placeholder to friendly text.</summary>
+/// <summary>Converts battery health placeholder to friendly text in Dutch.</summary>
 public class BatteryHealthConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return "Unknown";
+        if (value is not string str) return "Onbekend";
         
         return str switch
         {
-            "NOBATT" => "Checking...",
-            "" => "Unknown",
+            "NOBATT" => "Controleren...",
+            "" => "Onbekend",
             _ => str
         };
     }
@@ -44,17 +44,17 @@ public class BatteryHealthConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts color placeholder to friendly text.</summary>
+/// <summary>Converts color placeholder to friendly text in Dutch.</summary>
 public class ColorConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return "Not specified";
+        if (value is not string str) return "Niet opgegeven";
         
         return str switch
         {
-            "NOCOLOR" => "Not specified",
-            "" => "Not specified",
+            "NOCOLOR" => "Niet opgegeven",
+            "" => "Niet opgegeven",
             _ => str
         };
     }
@@ -63,17 +63,17 @@ public class ColorConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts quality placeholder to friendly text.</summary>
+/// <summary>Converts quality placeholder to friendly text in Dutch.</summary>
 public class QualityConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return "Not graded";
+        if (value is not string str) return "Niet beoordeeld";
         
         return str switch
         {
-            "NOQUALITY" => "Not graded",
-            "" => "Not graded",
+            "NOQUALITY" => "Niet beoordeeld",
+            "" => "Niet beoordeeld",
             _ => str
         };
     }
