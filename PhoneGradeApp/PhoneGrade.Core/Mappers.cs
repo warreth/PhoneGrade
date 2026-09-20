@@ -64,19 +64,28 @@ public static partial class Mappers
         ["#d0d1d2"] = "Zilver", ["1"] = "Zwart", ["2"] = "Wit", ["3"] = "Goud", ["4"] = "Roze",
         ["5"] = "Grijs", ["6"] = "Rood", ["7"] = "Geel", ["8"] = "Oranje", ["9"] = "Blauw",
         ["17"] = "Paars", ["18"] = "Groen",
+        
+        // Common raw Apple color strings
+        ["black"] = "Zwart", ["white"] = "Wit", ["gold"] = "Goud", ["silver"] = "Zilver",
+        ["rose gold"] = "Rosé Goud", ["space gray"] = "Spacegrijs", ["space grey"] = "Spacegrijs",
+        ["midnight green"] = "Middernachtgroen", ["pacific blue"] = "Pacifisch Blauw",
+        ["graphite"] = "Grafiet", ["sierra blue"] = "Sierra Blauw", ["alpine green"] = "Alpengroen",
+        ["midnight"] = "Middernacht", ["starlight"] = "Sterrenlicht", ["blue"] = "Blauw",
+        ["purple"] = "Paars", ["red"] = "Rood", ["green"] = "Groen", ["yellow"] = "Geel",
+        ["pink"] = "Roze", ["coral"] = "Koraal", ["product(red)"] = "Rood"
     };
 
     /// <summary>ProductType (iPhone14,2) → friendly model. Unknown ProductTypes fall back to the raw value.</summary>
     public static string MapModel(string productType)
     {
         string trimmed = productType.Trim();
-        return Models.TryGetValue(trimmed, out var m) ? m : trimmed.Length > 0 ? trimmed : "NOMODEL";
+        return Models.TryGetValue(trimmed, out var m) ? m : trimmed.Length > 0 ? trimmed : "Onbekend";
     }
 
     /// <summary>Formats the model for UI display with family prefix (e.g., 'iPhone 8' instead of raw '8').</summary>
     public static string FormatDisplayModel(string? model, string? productType = null)
     {
-        if (string.IsNullOrWhiteSpace(model) || model == "NOMODEL") return "Onbekend Toestel";
+        if (string.IsNullOrWhiteSpace(model) || model == "Onbekend") return "Onbekend Toestel";
         if (model.StartsWith("iPhone") || model.StartsWith("iPad") || model.StartsWith("iPod")) return model;
 
         if (productType != null && productType.StartsWith("iPad"))
@@ -89,7 +98,7 @@ public static partial class Mappers
     public static string MapColor(string raw)
     {
         string trimmed = raw.Trim().ToLowerInvariant();
-        return Colors.TryGetValue(trimmed, out var c) ? c : "NOCOLOR";
+        return Colors.TryGetValue(trimmed, out var c) ? c : "Onbekend";
     }
 
     /// <summary>TotalDiskCapacity bytes → nearest marketing bucket (64, 128, 256, 512 GB, 1/2 TB).</summary>
