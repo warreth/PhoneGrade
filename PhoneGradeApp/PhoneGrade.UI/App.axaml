@@ -144,6 +144,93 @@
             <Setter Property="Background" Value="{DynamicResource AccentHoverColor}"/>
         </Style>
 
+        <!-- Status pills / Badges -->
+        <Style Selector="Border.pill">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Border.pill.success">
+            <Setter Property="Background" Value="#202FBF71"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SuccessColor}"/>
+        </Style>
+        <Style Selector="Border.pill.danger">
+            <Setter Property="Background" Value="#20F0564A"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerColor}"/>
+        </Style>
+        <Style Selector="Border.pill.warn">
+            <Setter Property="Background" Value="#20F5A623"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource WarnColor}"/>
+        </Style>
+        <Style Selector="Border.pill.neutral">
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+        </Style>
+        <Style Selector="TextBlock.pillText">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Border.pill.success &gt; TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SuccessColor}"/>
+        </Style>
+        <Style Selector="Border.pill.danger &gt; TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource DangerColor}"/>
+        </Style>
+        <Style Selector="Border.pill.warn &gt; TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource WarnColor}"/>
+        </Style>
+        <Style Selector="Border.pill.neutral &gt; TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+
+        <!-- Kiosk Massive Buttons -->
+        <Style Selector="Button.kioskPrint">
+            <Setter Property="Background" Value="{DynamicResource SuccessColor}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="32,18"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.kioskPrint:pointerover">
+            <Setter Property="Background" Value="#38D480"/>
+        </Style>
+        <Style Selector="Button.kioskPrint:pressed">
+            <Setter Property="Background" Value="#239757"/>
+        </Style>
+
+        <Style Selector="Button.kioskSecondary">
+            <Setter Property="Background" Value="{DynamicResource InputBgColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Setter Property="CornerRadius" Value="10"/>
+        </Style>
+
+        <!-- Icon button (Gear, Close, Refresh) -->
+        <Style Selector="Button.iconBtn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.iconBtn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+        </Style>
+
         <!-- Inputs -->
         <Style Selector="TextBox">
             <Setter Property="Background" Value="{DynamicResource InputBgColor}"/>
