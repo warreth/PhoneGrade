@@ -352,6 +352,18 @@ public static class DeviceService
             SystemEventLogger.Warning(LogSource.UsbDetector, "usbmuxd daemon is stopped or unreachable");
             return ([], fallbackErr, ConnectionState.DaemonStopped);
         }
+        
+        // Explicitly identify if the OS cannot find the executables (mac/linux/win variants)
+        if (fallbackErr.Contains("No such file or directory") || 
+            fallbackErr.Contains("The system cannot find the file specified") ||
+            fallbackErr.Contains("not found") ||
+            fallbackErr.Contains("failed to start process") ||
+            combinedErr.Contains("No such file or directory") ||
+            combinedErr.Contains("The system cannot find the file specified"))
+        {
+            SystemEventLogger.Error(LogSource.UsbDetector, "Critical USB tools (idevice_id / adb) are missing from the system. Cannot detect devices.");
+            return ([], fallbackErr, ConnectionState.ToolsMissing);
+        }
 
         return ([], combinedErr.Length == 0 ? "NO OUTPUT" : combinedErr, ConnectionState.NotFound);
     }
