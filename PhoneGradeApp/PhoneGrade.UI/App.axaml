@@ -19,6 +19,7 @@
             <converters:ActivationLockBrushConverter x:Key="ActivationLockBrushConverter"/>
             <converters:PayMethodConverter x:Key="PayMethodConverter"/>
             <converters:ModelDisplayConverter x:Key="ModelDisplayConverter"/>
+            <converters:ComponentStatusConverter x:Key="ComponentStatusConverter"/>
             
             <!-- Severity brushes for the diagnostics dot (converter keys) -->
             <SolidColorBrush x:Key="SeverityOkBrush" Color="{DynamicResource SuccessColor}"/>
