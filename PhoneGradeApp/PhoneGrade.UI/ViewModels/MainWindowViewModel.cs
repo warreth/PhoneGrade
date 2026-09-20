@@ -46,14 +46,17 @@ public class MainWindowViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _devices, value);
     }
 
-    private KeyValuePair<string, string> _selectedDevice;
+    private KeyValuePair<string, string> _selectedDevice = new KeyValuePair<string, string>("", "");
     public KeyValuePair<string, string> SelectedDevice
     {
         get => _selectedDevice;
         set
         {
             this.RaiseAndSetIfChanged(ref _selectedDevice, value);
-            UpdateWebRunnerSession(value.Key);
+            if (!string.IsNullOrEmpty(value.Key))
+            {
+                UpdateWebRunnerSession(value.Key);
+            }
         }
     }
 
@@ -475,7 +478,15 @@ public class MainWindowViewModel : ReactiveObject
         try
         {
             var devices = await DeviceService.GetConnectedDevicesAsync();
-            if (devices.Count == 0) return 0;
+            if (devices.Count == 0)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    Devices.Clear();
+                    SelectedDevice = new KeyValuePair<string, string>("", "");
+                });
+                return 0;
+            }
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 Devices = new ObservableCollection<KeyValuePair<string, string>>(devices);
