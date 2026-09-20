@@ -181,15 +181,26 @@ public static class ToolRunner
             Log(resolvedPath, arguments, exitCode, stdout, stderr);
             
             // Pipe tool output to central logger with category tag
+            // We use LogThrottler directly here for ALL tool output to debounce continuous polling spam
             string toolName = Path.GetFileNameWithoutExtension(tool);
+            
             if (!string.IsNullOrWhiteSpace(stdout))
             {
-                SystemEventLogger.Debug(LogSource.Desktop, $"[{toolName}] stdout: {stdout}");
+                // Only log tool output if it hasn't been emitted recently (debounce spam)
+                string stdoutMsg = $"[{toolName}] stdout: {stdout}";
+                if (LogThrottler.ShouldLog(stdoutMsg, LogSource.Desktop))
+                {
+                    SystemEventLogger.Debug(LogSource.Desktop, stdoutMsg);
+                }
             }
             if (!string.IsNullOrWhiteSpace(stderr))
             {
-                var level = exitCode == 0 ? LogLevel.Debug : LogLevel.Warning;
-                SystemEventLogger.Log(level, LogSource.Desktop, $"[{toolName}] stderr: {stderr}");
+                string stderrMsg = $"[{toolName}] stderr: {stderr}";
+                if (LogThrottler.ShouldLog(stderrMsg, LogSource.Desktop))
+                {
+                    var level = exitCode == 0 ? LogLevel.Debug : LogLevel.Warning;
+                    SystemEventLogger.Log(level, LogSource.Desktop, stderrMsg);
+                }
             }
             
             return (stdout, stderr, exitCode);
