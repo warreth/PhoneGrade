@@ -323,54 +323,54 @@
                         <Separator/>
 
                         <!-- Daily Operator Needs (Default Simple View) -->
-                        <TextBlock Text="DAGELIJKSE OPTIES" Classes="cardTitle"/>
+                        <TextBlock Text="{DynamicResource Settings_DailyOptions}" Classes="cardTitle"/>
 
                         <StackPanel Spacing="12">
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="Taal (Language)" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Settings_Language}" VerticalAlignment="Center"/>
                                 <ComboBox Grid.Column="1" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}" Width="130"/>
                             </Grid>
 
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="Thema" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Settings_Theme}" VerticalAlignment="Center"/>
                                 <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="130"/>
                             </Grid>
 
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="Standaard Kwaliteit" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Settings_Quality}" VerticalAlignment="Center"/>
                                 <ComboBox Grid.Column="1" ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding DefaultQuality}" Width="130"/>
                             </Grid>
 
                             <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="Standaard Factuurmethode" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Settings_Payment}" VerticalAlignment="Center"/>
                                 <ComboBox Grid.Column="1" ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding DefaultPaymentMethod}" Width="130"/>
                             </Grid>
 
-                            <CheckBox Content="Automatisch starten bij inpluggen" IsChecked="{Binding AutoDetectOnPlug}"/>
-                            <CheckBox Content="Automatisch interactieve webtest starten" IsChecked="{Binding AutoStartWebTest}"/>
-                            <CheckBox Content="PWA Test Verplicht voor afronden" IsChecked="{Binding RequirePwaTest}"/>
-                            <CheckBox Content="Toon samenvatting voor label printen" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
+                            <CheckBox Content="{DynamicResource Settings_AutoDetect}" IsChecked="{Binding AutoDetectOnPlug}"/>
+                            <CheckBox Content="{DynamicResource Settings_AutoStartWebTest}" IsChecked="{Binding AutoStartWebTest}"/>
+                            <CheckBox Content="{DynamicResource Settings_RequirePwaTest}" IsChecked="{Binding RequirePwaTest}"/>
+                            <CheckBox Content="{DynamicResource Settings_ShowSummary}" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
                         </StackPanel>
 
                         <Separator Margin="0,8,0,8"/>
 
                         <!-- Advanced Section Toggle -->
                         <Button Classes="kioskSecondary" Command="{Binding OpenTroubleshootModalCommand}"
-                                Content="USB &amp; Driver Diagnose" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                Content="{DynamicResource Btn_Troubleshoot}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
 
                         <Button Classes="kioskSecondary" Command="{Binding OpenLogsModalCommand}"
-                                Content="Systeemlogboeken Bekijken" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                Content="{DynamicResource Btn_Logs}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
 
                         <Separator Margin="0,8,0,8"/>
 
                         <!-- Advanced Automation (Clean divided list, no accordions) -->
-                        <TextBlock Text="GEAVANCEERDE AUTOMATISERING" Classes="cardTitle" Margin="0,4,0,0"/>
+                        <TextBlock Text="{DynamicResource Settings_Advanced}" Classes="cardTitle" Margin="0,4,0,0"/>
 
                         <StackPanel Spacing="10">
-                            <CheckBox Content="Automatisch activeren (bypass)" IsChecked="{Binding AutoActivate}"/>
-                            <CheckBox Content="Hardware diagnose draaien (panic-logs)" IsChecked="{Binding RunDiagnostics}"/>
-                            <CheckBox Content="85% Batterijcheck (100%-X label)" IsChecked="{Binding Enable85PercentChecker}"/>
-                            <CheckBox Content="Label editor openen voor printen" IsChecked="{Binding OpenEditorBeforePrint}"/>
+                            <CheckBox Content="{DynamicResource Settings_AutoActivate}" IsChecked="{Binding AutoActivate}"/>
+                            <CheckBox Content="{DynamicResource Settings_RunDiagnostics}" IsChecked="{Binding RunDiagnostics}"/>
+                            <CheckBox Content="{DynamicResource Settings_Enable85Checker}" IsChecked="{Binding Enable85PercentChecker}"/>
+                            <CheckBox Content="{DynamicResource Settings_OpenEditor}" IsChecked="{Binding OpenEditorBeforePrint}"/>
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
