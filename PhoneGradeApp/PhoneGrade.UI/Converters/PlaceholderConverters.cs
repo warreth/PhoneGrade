@@ -121,3 +121,36 @@ public class ActivationLockBrushConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+/// <summary>Converts payment method placeholder to friendly Dutch text.</summary>
+public class PayMethodConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string str || string.IsNullOrWhiteSpace(str) || str == "NOPAY") 
+            return "Niet opgegeven";
+            
+        return str switch
+        {
+            "Marge" => "Marge (0% BTW)",
+            "BTW" => "BTW (21%)",
+            _ => str
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>Converts raw model name to full friendly display model (e.g. '8' -> 'iPhone 8').</summary>
+public class ModelDisplayConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string model) return "Onbekend Toestel";
+        return PhoneGrade.Core.Mappers.FormatDisplayModel(model);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

@@ -73,6 +73,18 @@ public static partial class Mappers
         return Models.TryGetValue(trimmed, out var m) ? m : trimmed.Length > 0 ? trimmed : "NOMODEL";
     }
 
+    /// <summary>Formats the model for UI display with family prefix (e.g., 'iPhone 8' instead of raw '8').</summary>
+    public static string FormatDisplayModel(string? model, string? productType = null)
+    {
+        if (string.IsNullOrWhiteSpace(model) || model == "NOMODEL") return "Onbekend Toestel";
+        if (model.StartsWith("iPhone") || model.StartsWith("iPad") || model.StartsWith("iPod")) return model;
+
+        if (productType != null && productType.StartsWith("iPad"))
+            return $"iPad {model}";
+
+        return $"iPhone {model}";
+    }
+
     /// <summary>DeviceEnclosureColor raw value or hex → Dutch color name.</summary>
     public static string MapColor(string raw)
     {

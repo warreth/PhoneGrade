@@ -33,7 +33,7 @@
                     <!-- Center: Current Device Summary (if active) -->
                     <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="True">
                         <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasDevice}">
-                            <TextBlock Text="{Binding DeviceData.Model}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
                             <TextBlock Text="|" Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="12" VerticalAlignment="Center"/>
                             <TextBlock Text="|" Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
@@ -119,7 +119,7 @@
                                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0,4,0,0">
                                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0,0,8,12">
                                             <TextBlock Classes="dim" Text="Model" FontSize="11"/>
-                                            <TextBlock Text="{Binding DeviceData.Model}" FontWeight="Bold" FontSize="13"/>
+                                            <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="13"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2" Margin="0,0,8,12">
                                             <TextBlock Classes="dim" Text="Serienummer" FontSize="11"/>
@@ -237,9 +237,9 @@
                         <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="24">
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
-                                    <TextBlock Text="INSPECTIE RESULTAAT" Classes="cardTitle"/>
-                                    <TextBlock Text="{Binding DeviceData.Model}" FontSize="24" FontWeight="Bold"/>
-                                    <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="13"/>
+                                    <TextBlock Text="INSPECTIELAPPORT" Classes="cardTitle"/>
+                                    <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontSize="24" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding DeviceData.Identifier, StringFormat='IMEI / Serienummer: {0}'}" Classes="dim" FontSize="13"/>
                                 </StackPanel>
 
                                 <!-- Big Quality Grade Pill -->
@@ -269,7 +269,7 @@
                                     </StackPanel>
                                     <StackPanel Grid.Row="0" Grid.Column="2" Spacing="4" Margin="0,0,0,12">
                                         <TextBlock Classes="dim" Text="Factuurmethode" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.PayMethod}" FontWeight="Bold" FontSize="14"/>
+                                        <TextBlock Text="{Binding DeviceData.PayMethod, Converter={StaticResource PayMethodConverter}}" FontWeight="Bold" FontSize="14"/>
                                     </StackPanel>
                                     <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
                                         <TextBlock Classes="dim" Text="Kleur" FontSize="11"/>
