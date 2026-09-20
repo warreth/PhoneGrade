@@ -9,6 +9,8 @@ using DynamicData.Binding;
 using ReactiveUI;
 using PhoneGrade.Core;
 using System.Reactive.Linq;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 
 namespace PhoneGrade.UI.ViewModels;
 
@@ -20,13 +22,13 @@ public class LogEventViewModel : ReactiveObject
     public string Message { get; }
     public string FormattedTime => Timestamp.ToLocalTime().ToString("HH:mm:ss.fff");
     
-    // Hex colors mapped in the View (via Converter or style)
     public string LevelColor => Level switch 
     {
-        LogLevel.Error => "#F0564A", // DangerColor
-        LogLevel.Warning => "#F5A623", // WarnColor
-        LogLevel.Debug => "#9B9BA6", // TextDimColor
-        _ => "#4F8CFF" // AccentColor
+        LogLevel.Critical => "#DC143C",
+        LogLevel.Error => "#F0564A",
+        LogLevel.Warning => "#F5A623",
+        LogLevel.Debug => "#9B9BA6",
+        _ => "#4F8CFF"
     };
 
     public LogEventViewModel(LogEvent e)
@@ -45,7 +47,6 @@ public class UnifiedLogsViewModel : ReactiveObject
 
     public ReadOnlyObservableCollection<LogEventViewModel> Logs => _filteredLogs;
 
-    // Filters
     private bool _showDebug = true;
     public bool ShowDebug { get => _showDebug; set => this.RaiseAndSetIfChanged(ref _showDebug, value); }
 
@@ -61,9 +62,10 @@ public class UnifiedLogsViewModel : ReactiveObject
     private string _searchQuery = "";
     public string SearchQuery { get => _searchQuery; set => this.RaiseAndSetIfChanged(ref _searchQuery, value); }
 
-    // Actions
     public ReactiveCommand<Unit, Unit> ClearLogsCommand { get; }
-    public ReactiveCommand<Unit, string> CopyLogsCommand { get; }
+    public ReactiveCommand<Unit, Unit> CopyLogsCommand { get; }
+    public ReactiveCommand<Unit, Unit> ExportLogsCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenLogFolderCommand { get; }
 
     public UnifiedLogsViewModel()
     {
@@ -76,7 +78,7 @@ public class UnifiedLogsViewModel : ReactiveObject
                     LogLevel.Debug => debug,
                     LogLevel.Info => info,
                     LogLevel.Warning => warn,
-                    LogLevel.Error => err,
+                    LogLevel.Error or LogLevel.Critical => err,
                     _ => true
                 };
 
@@ -93,19 +95,90 @@ public class UnifiedLogsViewModel : ReactiveObject
             .Bind(out _filteredLogs)
             .Subscribe();
 
-        ClearLogsCommand = ReactiveCommand.Create(() => _logSource.Clear());
-        CopyLogsCommand = ReactiveCommand.Create(() => 
+        ClearLogsCommand = ReactiveCommand.Create(() => 
+        {
+            _logSource.Clear();
+            SystemEventLogger.ClearLogs();
+        });
+        
+        CopyLogsCommand = ReactiveCommand.CreateFromTask(async () => 
         {
             var sb = new StringBuilder();
             foreach (var log in _filteredLogs)
             {
                 sb.AppendLine($"[{log.FormattedTime}] [{log.Level}] [{log.Source}] {log.Message}");
             }
-            return sb.ToString();
+            
+            var text = sb.ToString();
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
+                desktop.MainWindow != null)
+            {
+                var clipboard = desktop.MainWindow.Clipboard;
+                if (clipboard != null)
+                {
+                    await clipboard.SetTextAsync(text);
+                }
+            }
         });
 
-        // Subscribe to SystemEventLogger
+        ExportLogsCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            try
+            {
+                var exportPath = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                    $"phonegrade-logs-{DateTime.Now:yyyy-MM-dd-HHmmss}.txt");
+                    
+                var sb = new StringBuilder();
+                foreach (var log in _logSource.Items)
+                {
+                    sb.AppendLine($"[{log.FormattedTime}] [{log.Level}] [{log.Source}] {log.Message}");
+                }
+                
+                await System.IO.File.WriteAllTextAsync(exportPath, sb.ToString());
+                SystemEventLogger.Info(LogSource.Desktop, $"Logs exported to: {exportPath}");
+            }
+            catch (Exception ex)
+            {
+                SystemEventLogger.Error(LogSource.Desktop, $"Failed to export logs: {ex.Message}");
+            }
+        });
+
+        OpenLogFolderCommand = ReactiveCommand.Create(() =>
+        {
+            try
+            {
+                var logDir = SystemEventLogger.LogDir;
+                System.IO.Directory.CreateDirectory(logDir);
+                
+                if (OperatingSystem.IsWindows())
+                {
+                    System.Diagnostics.Process.Start("explorer", logDir);
+                }
+                else if (OperatingSystem.IsMacOS())
+                {
+                    System.Diagnostics.Process.Start("open", logDir);
+                }
+                else if (OperatingSystem.IsLinux())
+                {
+                    System.Diagnostics.Process.Start("xdg-open", logDir);
+                }
+            }
+            catch (Exception ex)
+            {
+                SystemEventLogger.Error(LogSource.Desktop, $"Failed to open log folder: {ex.Message}");
+            }
+        });
+
+        // Subscribe to real-time events
         SystemEventLogger.LogEventEmitted += OnSystemLogEmitted;
+        
+        // Replay existing logs from ring buffer
+        var recentLogs = SystemEventLogger.GetRecentLogs();
+        foreach (var logEvent in recentLogs)
+        {
+            _logSource.Add(new LogEventViewModel(logEvent));
+        }
     }
 
     private void OnSystemLogEmitted(object? sender, LogEvent e)
@@ -113,24 +186,10 @@ public class UnifiedLogsViewModel : ReactiveObject
         Dispatcher.UIThread.Post(() =>
         {
             _logSource.Add(new LogEventViewModel(e));
-            // Auto-prune if too large to prevent memory leaks (keep last 5000)
             if (_logSource.Count > 5000)
             {
                 _logSource.RemoveRange(0, 1000);
             }
         });
-    }
-
-    public void AddLog(LogEvent e)
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            _logSource.Add(new LogEventViewModel(e));
-        });
-    }
-
-    public void Dispose()
-    {
-        SystemEventLogger.LogEventEmitted -= OnSystemLogEmitted;
     }
 }
