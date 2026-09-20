@@ -11,6 +11,8 @@ public class AppSettings
     public string Language { get; set; } = "nl";           // "en" (English) or "nl" (Nederlands)
     public bool AutoActivate { get; set; } = true;
     public bool AutoDetectOnPlug { get; set; } = true;    // start the flow the moment a device appears
+    public bool AutoStartWebTest { get; set; } = false;   // disable automatic web test by default to prevent repeat loops
+    public bool ShowSummaryScreenAfterTesting { get; set; } = true; // show consolidated summary view after hardware tests
     public bool RunDiagnostics { get; set; } = true;
     public bool Enable85PercentChecker { get; set; } = true;
     public bool OpenEditorBeforePrint { get; set; } = false;

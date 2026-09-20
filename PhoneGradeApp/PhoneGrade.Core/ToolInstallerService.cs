@@ -42,7 +42,7 @@ public static class ToolInstallerService
 
             if (!root.TryGetProperty("assets", out var assets)) return null;
 
-            string targetPattern = platform switch
+            string? targetPattern = platform switch
             {
                 "win-x64" => "libimobiledevice.*-win-x64.zip",
                 "osx-x64" => "libimobiledevice.*-osx-x64.zip",
