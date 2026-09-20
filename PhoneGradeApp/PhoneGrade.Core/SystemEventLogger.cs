@@ -134,13 +134,22 @@ public static class SystemEventLogger
     }
 
     public static void Info(LogSource source, string message, string? sessionId = null, Dictionary<string, string>? context = null)
-        => Log(LogLevel.Info, source, message, sessionId, context);
+    {
+        if (source == LogSource.UsbDetector && !LogThrottler.ShouldLog(message, source)) return;
+        Log(LogLevel.Info, source, message, sessionId, context);
+    }
 
     public static void Warning(LogSource source, string message, string? sessionId = null, Dictionary<string, string>? context = null)
-        => Log(LogLevel.Warning, source, message, sessionId, context);
+    {
+        if (source == LogSource.UsbDetector && !LogThrottler.ShouldLog(message, source)) return;
+        Log(LogLevel.Warning, source, message, sessionId, context);
+    }
 
     public static void Error(LogSource source, string message, string? sessionId = null, Dictionary<string, string>? context = null)
-        => Log(LogLevel.Error, source, message, sessionId, context);
+    {
+        if (source == LogSource.UsbDetector && !LogThrottler.ShouldLog(message, source)) return;
+        Log(LogLevel.Error, source, message, sessionId, context);
+    }
 
     public static void Debug(LogSource source, string message, string? sessionId = null, Dictionary<string, string>? context = null)
         => Log(LogLevel.Debug, source, message, sessionId, context);
