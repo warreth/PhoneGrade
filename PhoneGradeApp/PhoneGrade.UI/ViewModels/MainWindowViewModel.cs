@@ -471,10 +471,19 @@ public class MainWindowViewModel : ReactiveObject
         _watcher = Observable.Interval(TimeSpan.FromSeconds(2.5)) // Throttled to prevent lockdownd crashes
             .ObserveOn(RxApp.TaskpoolScheduler)
             .SelectMany(_ => Observable.FromAsync(RefreshDeviceListSilentAsync))
-            .Where(c => c > 0)
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(_ =>
+            .Subscribe(count =>
             {
+                // Hot Unplug Detection
+                if (count == 0)
+                {
+                    if (WorkflowState != AppWorkflowState.Idle)
+                    {
+                        ResetToIdle();
+                    }
+                    return;
+                }
+
                 if (Busy) { return; }
                 string? udid = SelectedDevice.Key;
                 if (udid is { Length: > 0 })
@@ -492,6 +501,27 @@ public class MainWindowViewModel : ReactiveObject
     }
 
     private void StopWatcher() => _watcher?.Dispose();
+
+    private void ResetToIdle()
+    {
+        if (_flowCts != null)
+        {
+            _flowCts.Cancel();
+            _flowCts.Dispose();
+            _flowCts = null;
+        }
+
+        WorkflowState = AppWorkflowState.Idle;
+        Status = "Sluit een toestel aan om te starten...";
+        DeviceData = new DeviceData { Model = "NOMODEL", Identifier = "NOID" };
+        ComponentChecks.Clear();
+        Issues.Clear();
+        HasIssues = false;
+        Progress = 0;
+        Busy = false;
+        IsQualityPopupVisible = false;
+        IsPaymentPopupVisible = false;
+    }
 
     /// <summary>True when a device list refresh surfaced exactly one usable device.</summary>
     private async Task<int> RefreshDeviceListSilentAsync()
