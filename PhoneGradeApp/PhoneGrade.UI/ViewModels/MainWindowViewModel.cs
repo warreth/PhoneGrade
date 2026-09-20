@@ -167,6 +167,20 @@ public class MainWindowViewModel : ReactiveObject
         set { _settings.OpenEditorBeforePrint = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _openEditorBeforePrint, value); }
     }
 
+    private bool _autoStartWebTest;
+    public bool AutoStartWebTest
+    {
+        get => _autoStartWebTest;
+        set { _settings.AutoStartWebTest = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _autoStartWebTest, value); }
+    }
+
+    private bool _showSummaryScreenAfterTesting = true;
+    public bool ShowSummaryScreenAfterTesting
+    {
+        get => _showSummaryScreenAfterTesting;
+        set { _settings.ShowSummaryScreenAfterTesting = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _showSummaryScreenAfterTesting, value); }
+    }
+
     private string _defaultQuality = "";
     public string DefaultQuality
     {
@@ -218,6 +232,7 @@ public class MainWindowViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
     public ReactiveCommand<Unit, Unit> StartCommand { get; }
+    public ReactiveCommand<Unit, Unit> RetestCommand { get; }
     public ReactiveCommand<string, Unit> SetQualityCommand { get; }
     public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenLabelCommand { get; }
@@ -235,6 +250,8 @@ public class MainWindowViewModel : ReactiveObject
         _runDiagnostics = _settings.RunDiagnostics;
         _enable85PercentChecker = _settings.Enable85PercentChecker;
         _openEditorBeforePrint = _settings.OpenEditorBeforePrint;
+        _autoStartWebTest = _settings.AutoStartWebTest;
+        _showSummaryScreenAfterTesting = _settings.ShowSummaryScreenAfterTesting;
         _defaultQuality = _settings.DefaultQuality;
         _defaultPaymentMethod = _settings.DefaultPaymentMethod;
         LabelService.ConfiguredTemplatePath = _settings.TemplatePath;
@@ -242,6 +259,7 @@ public class MainWindowViewModel : ReactiveObject
         var canStart = this.WhenAnyValue(x => x.Busy).Select(b => !b);
         RefreshDevicesCommand = ReactiveCommand.CreateFromTask(RefreshDeviceListAsync);
         StartCommand = ReactiveCommand.CreateFromTask(() => RunFlowAsync(), canStart);
+        RetestCommand = ReactiveCommand.CreateFromTask(RetestCurrentDeviceAsync, canStart);
         SetQualityCommand = ReactiveCommand.Create<string>(q => _ = ContinueAfterQualityAsync(q));
         SetPaymentMethodCommand = ReactiveCommand.Create<string>(p => ContinueAfterPaymentAsync(p));
         OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
@@ -373,12 +391,17 @@ public class MainWindowViewModel : ReactiveObject
             .Subscribe(_ =>
             {
                 if (Busy) { return; }
-                if (SelectedDevice.Key is { Length: > 0 })
+                string? udid = SelectedDevice.Key;
+                if (udid is { Length: > 0 })
                 {
-                    // Fire-and-forget: RunFlowAsync reports all failures through Status.
+                    // Only run flow if device hasn't already completed testing
+                    if (!DeviceSessionManager.IsDeviceCompleted(udid))
+                    {
+                        // Fire-and-forget: RunFlowAsync reports all failures through Status.
 #pragma warning disable CS4014
-                    RunFlowAsync();
+                        RunFlowAsync();
 #pragma warning restore CS4014
+                    }
                 }
             });
     }
@@ -395,9 +418,13 @@ public class MainWindowViewModel : ReactiveObject
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 Devices = new ObservableCollection<KeyValuePair<string, string>>(devices);
-                // auto-select the single/first device
-                if (devices.ContainsKey(SelectedDevice.Key) is false)
-                    SelectedDevice = Devices[0];
+                // auto-select the single/first device if available
+                if (Devices.Count > 0)
+                {
+                    string currentKey = SelectedDevice.Key ?? "";
+                    if (!devices.ContainsKey(currentKey))
+                        SelectedDevice = Devices[0];
+                }
             });
             return devices.Count;
         }
@@ -441,6 +468,17 @@ public class MainWindowViewModel : ReactiveObject
             1 => "Eén toestel gevonden en geselecteerd.",
             _ => $"{count} toestellen gevonden: kies er één.",
         };
+    }
+
+    /// <summary>Resets the current device session and retests it.</summary>
+    private async Task RetestCurrentDeviceAsync()
+    {
+        string? udid = SelectedDevice.Key;
+        if (!string.IsNullOrWhiteSpace(udid))
+        {
+            DeviceSessionManager.ResetDevice(udid);
+            await RunFlowAsync();
+        }
     }
 
     /// <summary>The whole pipeline for one device.</summary>
@@ -579,6 +617,14 @@ public class MainWindowViewModel : ReactiveObject
         }
 
         FinishLabel();
+        
+        // Mark device session as completed to prevent auto-retesting
+        string? udid = SelectedDevice.Key;
+        if (!string.IsNullOrWhiteSpace(udid))
+        {
+            DeviceSessionManager.MarkCompleted(udid, wasSuccessful: true);
+        }
+        
         return Task.CompletedTask;
     }
 

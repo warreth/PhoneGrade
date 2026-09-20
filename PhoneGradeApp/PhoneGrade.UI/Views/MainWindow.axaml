@@ -71,15 +71,15 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" Spacing="2">
                                         <TextBlock Classes="dim" Text="Kleur" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Color}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" FontWeight="SemiBold"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="3" Spacing="2">
                                         <TextBlock Classes="dim" Text="Batterij" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.BatteryHealth}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="SemiBold"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="4" Spacing="2">
                                         <TextBlock Classes="dim" Text="Kwaliteit" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Quality}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding DeviceData.Quality, Converter={StaticResource QualityConverter}}" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Grid>
 
