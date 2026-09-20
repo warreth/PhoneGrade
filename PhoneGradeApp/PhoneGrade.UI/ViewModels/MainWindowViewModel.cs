@@ -216,6 +216,60 @@ public class MainWindowViewModel : ReactiveObject
     /// <summary>True once real device data has been read — drives the summary grid.</summary>
     public bool HasDevice => DeviceData is { Model: not "NOMODEL", Identifier: not "NOID" };
 
+    // Kiosk state-driven workflow properties
+    private AppWorkflowState _workflowState = AppWorkflowState.Idle;
+    public AppWorkflowState WorkflowState
+    {
+        get => _workflowState;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _workflowState, value);
+            this.RaisePropertyChanged(nameof(IsIdleState));
+            this.RaisePropertyChanged(nameof(IsActiveState));
+            this.RaisePropertyChanged(nameof(IsSummaryState));
+        }
+    }
+
+    public bool IsIdleState => WorkflowState == AppWorkflowState.Idle;
+    public bool IsActiveState => WorkflowState == AppWorkflowState.Active;
+    public bool IsSummaryState => WorkflowState == AppWorkflowState.Summary;
+
+    // Overlay Drawer & Modal Flags
+    private bool _isSettingsDrawerOpen;
+    public bool IsSettingsDrawerOpen
+    {
+        get => _isSettingsDrawerOpen;
+        set => this.RaiseAndSetIfChanged(ref _isSettingsDrawerOpen, value);
+    }
+
+    private bool _showAdvancedSettings;
+    public bool ShowAdvancedSettings
+    {
+        get => _showAdvancedSettings;
+        set => this.RaiseAndSetIfChanged(ref _showAdvancedSettings, value);
+    }
+
+    private bool _isLogsModalOpen;
+    public bool IsLogsModalOpen
+    {
+        get => _isLogsModalOpen;
+        set => this.RaiseAndSetIfChanged(ref _isLogsModalOpen, value);
+    }
+
+    private bool _isTroubleshootModalOpen;
+    public bool IsTroubleshootModalOpen
+    {
+        get => _isTroubleshootModalOpen;
+        set => this.RaiseAndSetIfChanged(ref _isTroubleshootModalOpen, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> ToggleSettingsCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenLogsModalCommand { get; }
+    public ReactiveCommand<Unit, Unit> CloseLogsModalCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenTroubleshootModalCommand { get; }
+    public ReactiveCommand<Unit, Unit> CloseTroubleshootModalCommand { get; }
+    public ReactiveCommand<Unit, Unit> BackToIdleCommand { get; }
+
     // Popups kept minimal: only quality & payment, and only when no default is set.
     private bool _isQualityPopupVisible;
     public bool IsQualityPopupVisible { get => _isQualityPopupVisible; set => this.RaiseAndSetIfChanged(ref _isQualityPopupVisible, value); }
@@ -264,6 +318,13 @@ public class MainWindowViewModel : ReactiveObject
         SetPaymentMethodCommand = ReactiveCommand.Create<string>(p => ContinueAfterPaymentAsync(p));
         OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
         OpenEditorCommand = ReactiveCommand.Create(() => DataEditorRequested?.Invoke(DeviceData));
+
+        ToggleSettingsCommand = ReactiveCommand.Create(() => { IsSettingsDrawerOpen = !IsSettingsDrawerOpen; });
+        OpenLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = true; IsSettingsDrawerOpen = false; });
+        CloseLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = false; });
+        OpenTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = true; IsSettingsDrawerOpen = false; });
+        CloseTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = false; });
+        BackToIdleCommand = ReactiveCommand.Create(() => { WorkflowState = AppWorkflowState.Idle; });
 
         _ = RefreshDeviceListAsync();
         if (_autoDetectOnPlug) StartWatcher();
@@ -440,6 +501,12 @@ public class MainWindowViewModel : ReactiveObject
         int count = await RefreshDeviceListSilentAsync();
         if (count == 0)
         {
+            // Transition back to Idle if no device is connected
+            if (WorkflowState != AppWorkflowState.Idle)
+            {
+                WorkflowState = AppWorkflowState.Idle;
+            }
+
             var (_, _, diagState) = await DeviceService.ListUdidsSafeAsync();
             Status = diagState switch
             {
@@ -492,6 +559,7 @@ public class MainWindowViewModel : ReactiveObject
         }
 
         Busy = true;
+        WorkflowState = AppWorkflowState.Active;
         _flowCts = new CancellationTokenSource();
         Issues.Clear();
         ComponentChecks.Clear();
@@ -610,19 +678,29 @@ public class MainWindowViewModel : ReactiveObject
         IsPaymentPopupVisible = false;
         Progress = 95;
 
+        // Mark device session as completed to prevent auto-retesting
+        string? udid = SelectedDevice.Key;
+        if (!string.IsNullOrWhiteSpace(udid))
+        {
+            DeviceSessionManager.MarkCompleted(udid, wasSuccessful: true);
+        }
+
         if (OpenEditorBeforePrint)
         {
             DataEditorRequested?.Invoke(DeviceData);
             return Task.CompletedTask;
         }
 
-        FinishLabel();
-        
-        // Mark device session as completed to prevent auto-retesting
-        string? udid = SelectedDevice.Key;
-        if (!string.IsNullOrWhiteSpace(udid))
+        if (ShowSummaryScreenAfterTesting)
         {
-            DeviceSessionManager.MarkCompleted(udid, wasSuccessful: true);
+            WorkflowState = AppWorkflowState.Summary;
+            Progress = 100;
+            Status = "Testen voltooid. Controleer de resultaten en print het label.";
+        }
+        else
+        {
+            FinishLabel();
+            WorkflowState = AppWorkflowState.Summary;
         }
         
         return Task.CompletedTask;
@@ -638,6 +716,7 @@ public class MainWindowViewModel : ReactiveObject
             AuditLogService.ExportAuditLog(DeviceData);
             Status = LabelService.OpenLabelFile(path);
             Progress = 100;
+            WorkflowState = AppWorkflowState.Summary;
         }
         catch (Exception ex)
         {

@@ -3,97 +3,158 @@
         xmlns:vm="using:PhoneGrade.UI.ViewModels"
         x:Class="PhoneGrade.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="PhoneGrade"
-        Width="1000" Height="720"
-        MinWidth="800" MinHeight="600"
+        Title="PhoneGrade Kiosk"
+        Width="1050" Height="740"
+        MinWidth="850" MinHeight="620"
         CanResize="True"
         WindowStartupLocation="CenterScreen">
 
     <Panel>
-        <Grid RowDefinitions="Auto,*">
-        <!-- Global Status Banner -->
-        <Border Grid.Row="0" Background="{DynamicResource CardDeepColor}" 
-                BorderBrush="{DynamicResource BorderSubtleColor}" BorderThickness="0,0,0,1" 
-                Padding="20,16">
-            <StackPanel Spacing="12">
-                <Grid ColumnDefinitions="*,Auto">
-                    <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="{DynamicResource Card_Status}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
-                        <TextBlock Text="{Binding Status}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="24"/>
+        <Grid RowDefinitions="64,*">
+            <!-- ==================== FIXED HEADER BAR ==================== -->
+            <Border Grid.Row="0" Background="{DynamicResource CardColor}" 
+                    BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="0,0,0,1" 
+                    Padding="24,0">
+                <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                    <!-- Left: Brand / Connection Status Pill -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <TextBlock Text="PhoneGrade" FontSize="18" FontWeight="Bold" 
+                                   Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center"/>
+                        
+                        <Border Classes="pill" 
+                                Classes.success="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                Classes.neutral="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                            <TextBlock Classes="pillText" 
+                                       Text="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNotNullOrEmpty}, ConverterParameter='Device Connected', FallbackValue='No Device'}"
+                                       VerticalAlignment="Center"/>
+                        </Border>
                     </StackPanel>
-                    
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                        <Button Classes="cta" Command="{Binding StartCommand}" Content="{DynamicResource Btn_StartManual}"
-                                ToolTip.Tip="Start het label-proces voor het geselecteerde toestel"/>
-                        <Button Command="{Binding RefreshDevicesCommand}" Content="{DynamicResource Btn_Refresh}"
-                                ToolTip.Tip="Zoek opnieuw naar verbonden toestellen"/>
-                        <Button Command="{Binding OpenLabelCommand}" Content="{DynamicResource Btn_OpenLabel}"
-                                ToolTip.Tip="Open het laatst gegenereerde label in Dymo Label"/>
+
+                    <!-- Center: Current Device Summary (if active) -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12"
+                                IsVisible="{Binding HasDevice}">
+                        <TextBlock Text="{Binding DeviceData.Model}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                        <TextBlock Text="|" Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="13" VerticalAlignment="Center"/>
+                        <TextBlock Text="|" Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Status}" Classes="dim" FontSize="12" VerticalAlignment="Center" MaxWidth="280" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+
+                    <!-- Right: Quick Actions & Settings Gear -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button Classes="iconBtn" Command="{Binding RefreshDevicesCommand}"
+                                ToolTip.Tip="Zoek opnieuw naar verbonden apparaten">
+                            <TextBlock Text="Refresh" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}"/>
+                        </Button>
+
+                        <Button Classes="iconBtn" Command="{Binding ToggleSettingsCommand}"
+                                ToolTip.Tip="Instellingen en opties">
+                            <TextBlock Text="Settings" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
+                        </Button>
                     </StackPanel>
                 </Grid>
-                
-                <ProgressBar Value="{Binding Progress}" Maximum="100" Height="4" Margin="0,4,0,0"/>
-            </StackPanel>
-        </Border>
+            </Border>
 
-        <TabControl Grid.Row="1" Margin="8" TabStripPlacement="Top">
+            <!-- ==================== MAIN DYNAMIC CONTENT AREA ==================== -->
+            <Panel Grid.Row="1" Background="{DynamicResource AppBgColor}">
 
-            <!-- ==================== DASHBOARD TAB ==================== -->
-            <TabItem Header="{DynamicResource Tab_Dashboard}">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="16" Spacing="14">
+                <!-- ==================== STATE 1: IDLE ==================== -->
+                <Grid IsVisible="{Binding IsIdleState}" RowDefinitions="*,Auto,*" Margin="32">
+                    <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24" MaxWidth="500">
+                        <Border Width="88" Height="88" CornerRadius="44" Background="{DynamicResource CardColor}"
+                                BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="2"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="USB" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center" Foreground="{DynamicResource AccentColor}"/>
+                        </Border>
 
-                        <!-- Device Card -->
-                        <Border Classes="card">
-                            <StackPanel Spacing="12">
-                                <TextBlock Classes="cardTitle" Text="TOESTEL"/>
+                        <StackPanel Spacing="8" HorizontalAlignment="Center">
+                            <TextBlock Text="Sluit een toestel aan via USB" FontSize="24" FontWeight="Bold" 
+                                       HorizontalAlignment="Center" TextAlignment="Center"/>
+                            <TextBlock Text="Ondersteunt iPhone, iPad en Android toestellen. Zorg dat het scherm ontgrendeld is en bevestig 'Vertrouw deze computer'." 
+                                       Classes="dim" FontSize="14" TextWrapping="Wrap" TextAlignment="Center" LineHeight="20"/>
+                        </StackPanel>
 
-                                <ComboBox ItemsSource="{Binding Devices}"
-                                          SelectedItem="{Binding SelectedDevice}"
-                                          HorizontalAlignment="Stretch"
-                                          ToolTip.Tip="Gedetecteerd toestel (iOS of Android)">
+                        <!-- Device dropdown selector if multiple connected -->
+                        <Border Classes="card" IsVisible="{Binding Devices.Count}" Padding="16" Margin="0,8,0,0">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Gedetecteerde apparaten:" FontWeight="SemiBold" FontSize="12"/>
+                                <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" HorizontalAlignment="Stretch">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Value}"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
+                                <Button Classes="cta" Command="{Binding StartCommand}" Content="Start Inspectie" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
 
-                                <!-- Device summary -->
-                                <Grid IsVisible="{Binding HasDevice}" ColumnDefinitions="*,*,*,*,*" Margin="0,2,0,0">
-                                    <StackPanel Grid.Column="0" Spacing="2">
-                                        <TextBlock Classes="dim" Text="Model" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Model}" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Classes="dim" Text="Opslag" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Storage}" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2" Spacing="2">
-                                        <TextBlock Classes="dim" Text="Kleur" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="3" Spacing="2">
-                                        <TextBlock Classes="dim" Text="Batterij" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="4" Spacing="2">
-                                        <TextBlock Classes="dim" Text="Kwaliteit" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Quality, Converter={StaticResource QualityConverter}}" FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                </Grid>
+                        <Button Classes="kioskSecondary" Command="{Binding RefreshDevicesCommand}" Content="Handmatig Scannen" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Grid>
 
-                                <!-- Component audit list -->
-                                <StackPanel Spacing="8" IsVisible="{Binding HasDevice}">
-                                    <TextBlock Classes="cardTitle" Text="OEM ONDERDELEN AUDIT"/>
+                <!-- ==================== STATE 2: ACTIVE (Reading Specs & Testing) ==================== -->
+                <ScrollViewer IsVisible="{Binding IsActiveState}" HorizontalScrollBarVisibility="Disabled">
+                    <Grid ColumnDefinitions="*,360" Margin="24" RowDefinitions="Auto,*">
+                        <!-- Top: Progress bar -->
+                        <Border Grid.Row="0" Grid.ColumnSpan="2" Classes="card" Padding="16,12" Margin="0,0,0,16">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Status}" FontWeight="SemiBold" FontSize="14"/>
+                                    <ProgressBar Value="{Binding Progress}" Maximum="100" Height="6"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Classes="kioskSecondary" Command="{Binding RetestCommand}" Content="Opnieuw Scannen" Margin="16,0,0,0"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Left Column: Device Specs & Component Audit -->
+                        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="16" Margin="0,0,16,0">
+                            <!-- Specs Card -->
+                            <Border Classes="card">
+                                <StackPanel Spacing="14">
+                                    <TextBlock Classes="cardTitle" Text="HARDWARE SPECIFICATIES"/>
+                                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0,4,0,0">
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0,0,8,12">
+                                            <TextBlock Classes="dim" Text="Model" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Model}" FontWeight="Bold" FontSize="13"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2" Margin="0,0,8,12">
+                                            <TextBlock Classes="dim" Text="Serienummer" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="13"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="0" Grid.Column="2" Spacing="2" Margin="0,0,0,12">
+                                            <TextBlock Classes="dim" Text="Opslag" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Storage}" FontWeight="Bold" FontSize="13"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" Margin="0,0,8,0">
+                                            <TextBlock Classes="dim" Text="Kleur" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" FontWeight="SemiBold" FontSize="13"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2" Margin="0,0,8,0">
+                                            <TextBlock Classes="dim" Text="Batterijconditie" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="SemiBold" FontSize="13"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2">
+                                            <TextBlock Classes="dim" Text="Kwaliteitsklasse" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Quality, Converter={StaticResource QualityConverter}}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentColor}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Component Audit List -->
+                            <Border Classes="card">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Classes="cardTitle" Text="ORIGINELE ONDERDELEN AUDIT (OEM)"/>
                                     <ItemsControl ItemsSource="{Binding ComponentChecks}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="{DynamicResource CardDeepColor}"
-                                                        CornerRadius="8" Padding="10" Margin="0,0,0,5"
+                                                <Border Background="{DynamicResource CardDeepColor}" CornerRadius="8" Padding="10" Margin="0,0,0,6"
                                                         BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
                                                     <Grid ColumnDefinitions="130,*,*,80">
-                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
                                                         <StackPanel Grid.Column="1" Spacing="2">
                                                             <TextBlock Classes="dim" Text="Gelezen" FontSize="10"/>
                                                             <TextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
@@ -102,7 +163,7 @@
                                                             <TextBlock Classes="dim" Text="Origineel" FontSize="10"/>
                                                             <TextBlock Text="{Binding SerialOriginal}" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
-                                                        <Border Grid.Column="3" CornerRadius="4" Padding="5,2" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                        <Border Grid.Column="3" CornerRadius="4" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                                 Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
                                                             <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                                                         </Border>
@@ -112,259 +173,223 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </StackPanel>
+                            </Border>
+                        </StackPanel>
 
-                                <!-- Diagnostics list -->
-                                <StackPanel Spacing="8" IsVisible="{Binding HasIssues}">
-                                    <TextBlock Classes="cardTitle" Text="GEVONDEN PROBLEMEN"/>
-                                    <ItemsControl ItemsSource="{Binding Issues}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Background="{DynamicResource CardDeepColor}"
-                                                        CornerRadius="8" Padding="12" Margin="0,0,0,6"
-                                                        BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                                    <StackPanel Spacing="4">
-                                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                                            <Border Width="8" Height="8" CornerRadius="4"
-                                                                    VerticalAlignment="Center"
-                                                                    Background="{Binding Level, Converter={x:Static vm:SeverityToBrushConverter.Instance}}"/>
-                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13"/>
-                                                        </StackPanel>
-                                                        <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap"
-                                                                   FontSize="12" Foreground="{DynamicResource TextDimColor}"/>
-                                                        <TextBlock Text="{Binding Fix}" TextWrapping="Wrap" FontSize="12"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                        <!-- Right Column: Integrated PWA Hardware Test Card -->
+                        <Border Grid.Row="1" Grid.Column="1" Classes="card" VerticalAlignment="Top">
+                            <StackPanel Spacing="14">
+                                <TextBlock Classes="cardTitle" Text="INTERACTIEVE HARDWARETEST"/>
+                                
+                                <TextBlock Text="Scan met de camera van het toestel om display, touch, camera en audio te testen:" 
+                                           Classes="dim" FontSize="12" TextWrapping="Wrap" LineHeight="16"/>
+
+                                <!-- QR Container -->
+                                <Border Background="White" CornerRadius="10" Padding="10" Width="180" Height="180" HorizontalAlignment="Center">
+                                    <Image Source="{Binding QrCodeBitmap}" Stretch="Uniform"/>
+                                </Border>
+
+                                <SelectableTextBlock Text="{Binding WebRunnerUrl}" Foreground="{DynamicResource AccentColor}" 
+                                                     FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+
+                                <Border Classes="pill neutral" HorizontalAlignment="Center">
+                                    <TextBlock Classes="pillText" Text="{Binding InteractiveSessionStatus}"/>
+                                </Border>
+
+                                <TextBlock Text="{Binding InteractiveTestSummary}" Foreground="{DynamicResource SuccessColor}" 
+                                           FontWeight="SemiBold" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,0"/>
+
+                                <Button Classes="cta" Command="{Binding StartCommand}" Content="Afronden en naar Summary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+
+                <!-- ==================== STATE 3: SUMMARY (Results & Print) ==================== -->
+                <ScrollViewer IsVisible="{Binding IsSummaryState}" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="32" Spacing="20" MaxWidth="800" HorizontalAlignment="Center">
+                        <!-- Top Grade & Result Banner -->
+                        <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="24">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="INSPECTIE RESULTAAT" Classes="cardTitle"/>
+                                    <TextBlock Text="{Binding DeviceData.Model}" FontSize="24" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="13"/>
                                 </StackPanel>
-                            </StackPanel>
+
+                                <!-- Big Quality Grade Pill -->
+                                <Border Grid.Column="1" Classes="pill success" Padding="20,10" CornerRadius="16" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="GRADE" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding DeviceData.Quality, Converter={StaticResource QualityConverter}}" 
+                                                   FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                         </Border>
 
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <!-- ==================== PWA TEST RUNNER TAB ==================== -->
-            <TabItem Header="PWA Test Runner">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="16" Spacing="14">
-
-                        <Border Classes="card">
-                            <StackPanel Spacing="12">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="INTERACTIEVE WEBTEST (PWA)" Classes="cardTitle"/>
-                                        <TextBlock Classes="dim" Text="Test touchscreen, display, audio en sensoren via mobiele Safari/Chrome" FontSize="12"/>
-                                    </StackPanel>
-                                    <Border Grid.Column="1" Background="{DynamicResource CardBgColor}" CornerRadius="4" Padding="6,2" 
-                                            BorderBrush="{DynamicResource BorderSubtleColor}" BorderThickness="1">
-                                        <TextBlock Text="{Binding InteractiveSessionStatus}" FontSize="11" 
-                                                   Foreground="{DynamicResource PrimaryColor}" VerticalAlignment="Center"/>
-                                    </Border>
-                                </Grid>
-
-                                <Grid ColumnDefinitions="150,*" Margin="0,4,0,0">
-                                    <!-- QR Code -->
-                                    <Border Grid.Column="0" Width="140" Height="140" Background="White" 
-                                            CornerRadius="8" Padding="6" HorizontalAlignment="Left" VerticalAlignment="Top">
-                                        <Image Source="{Binding QrCodeBitmap}" Stretch="Uniform"/>
-                                    </Border>
-
-                                    <!-- Instructions -->
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6" Margin="12,0,0,0">
-                                        <TextBlock Text="Scan met de camera van het toestel:" FontWeight="SemiBold" FontSize="13"/>
-                                        <SelectableTextBlock Text="{Binding WebRunnerUrl}" Foreground="{DynamicResource PrimaryColor}" 
-                                                             FontSize="13" TextWrapping="Wrap"/>
-                                        <TextBlock Text="Geen profielen of certificaten vereist. Verbind met dezelfde Wi-Fi of USB proxy." 
-                                                   Classes="dim" FontSize="12" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding InteractiveTestSummary}" Foreground="{DynamicResource SuccessColor}" 
-                                                   FontWeight="Medium" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Client Telemetry Card -->
-                        <Border Classes="card" IsVisible="{Binding CurrentTelemetry, Converter={x:Static ObjectConverters.IsNotNull}}">
-                            <StackPanel Spacing="10">
-                                <TextBlock Classes="cardTitle" Text="CLIENT TELEMETRY"/>
-                                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4,0,0">
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
-                                        <TextBlock Classes="dim" Text="Browser" FontSize="11"/>
-                                        <TextBlock Text="{Binding CurrentTelemetry.Browser}" FontWeight="SemiBold" FontSize="12"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2">
-                                        <TextBlock Classes="dim" Text="OS" FontSize="11"/>
-                                        <TextBlock Text="{Binding CurrentTelemetry.Os}" FontWeight="SemiBold" FontSize="12"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="2" Spacing="2">
-                                        <TextBlock Classes="dim" Text="Screen" FontSize="11"/>
-                                        <TextBlock FontWeight="SemiBold" FontSize="12">
-                                            <Run Text="{Binding CurrentTelemetry.ScreenWidth}"/>
-                                            <Run Text="x"/>
-                                            <Run Text="{Binding CurrentTelemetry.ScreenHeight}"/>
-                                            <Run Text=" @"/>
-                                            <Run Text="{Binding CurrentTelemetry.PixelRatio}"/>
-                                            <Run Text="x"/>
-                                        </TextBlock>
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" Margin="0,6,0,0">
-                                        <TextBlock Classes="dim" Text="Touch" FontSize="11"/>
-                                        <TextBlock Text="{Binding CurrentTelemetry.TouchSupport}" FontWeight="SemiBold" FontSize="12"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2" Margin="0,6,0,0">
-                                        <TextBlock Classes="dim" Text="Gyroscope" FontSize="11"/>
-                                        <TextBlock Text="{Binding CurrentTelemetry.GyroscopeSupport}" FontWeight="SemiBold" FontSize="12"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="1" Grid.Column="2" Spacing="2" Margin="0,6,0,0">
-                                        <TextBlock Classes="dim" Text="Camera" FontSize="11"/>
-                                        <TextBlock Text="{Binding CurrentTelemetry.CameraSupport}" FontWeight="SemiBold" FontSize="12"/>
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Row="2" Grid.Column="0" Spacing="2" Margin="0,6,0,0">
-                                        <TextBlock Classes="dim" Text="Web Audio" FontSize="11"/>
-                                        <TextBlock Text="{Binding CurrentTelemetry.WebAudioSupport}" FontWeight="SemiBold" FontSize="12"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="2" Grid.Column="1" Spacing="2" Margin="0,6,0,0">
-                                        <TextBlock Classes="dim" Text="Language" FontSize="11"/>
-                                        <TextBlock Text="{Binding CurrentTelemetry.Language}" FontWeight="SemiBold" FontSize="12"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="2" Grid.Column="2" Spacing="2" Margin="0,6,0,0">
-                                        <TextBlock Classes="dim" Text="Timezone" FontSize="11"/>
-                                        <TextBlock Text="{Binding CurrentTelemetry.Timezone}" FontWeight="SemiBold" FontSize="12"/>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- ==================== LABEL TAB ==================== -->
-            <TabItem Header="Label">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="16" Spacing="14">
-                        <Border Classes="card">
-                            <StackPanel Spacing="10">
-                                <TextBlock Classes="cardTitle" Text="LABEL GENERATIE"/>
-                                <TextBlock Classes="dim" Text="Label voorvertoning en printen (toekomstige uitbreiding)" FontSize="12"/>
-                                <Button Command="{Binding OpenEditorCommand}" Content="Open Data Editor" 
-                                        HorizontalAlignment="Left" Margin="0,6,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <!-- ==================== SETTINGS TAB ==================== -->
-            <TabItem Header="Settings">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="16" Spacing="14">
-
+                        <!-- Hardware Checklist -->
                         <Border Classes="card">
                             <StackPanel Spacing="14">
-                                <TextBlock Classes="cardTitle" Text="INSTELLINGEN"/>
-
-                                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
-                                    <StackPanel Spacing="3">
-                                        <TextBlock Text="{DynamicResource Settings_Theme}" FontWeight="Medium"/>
-                                        <TextBlock Classes="dim" Text="{DynamicResource Settings_ThemeDesc}" FontSize="12"/>
+                                <TextBlock Classes="cardTitle" Text="DIAGNOSTISCHE CHECKLIJST"/>
+                                
+                                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0,4,0,8">
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" Margin="0,0,8,12">
+                                        <TextBlock Classes="dim" Text="Batterijconditie" FontSize="11"/>
+                                        <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="Bold" FontSize="14"/>
                                     </StackPanel>
-                                    <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"
-                                              MinWidth="140" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4" Margin="0,0,8,12">
+                                        <TextBlock Classes="dim" Text="Opslagruimte" FontSize="11"/>
+                                        <TextBlock Text="{Binding DeviceData.Storage}" FontWeight="Bold" FontSize="14"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="2" Spacing="4" Margin="0,0,0,12">
+                                        <TextBlock Classes="dim" Text="Factuurmethode" FontSize="11"/>
+                                        <TextBlock Text="{Binding DeviceData.PayMethod}" FontWeight="Bold" FontSize="14"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
+                                        <TextBlock Classes="dim" Text="Kleur" FontSize="11"/>
+                                        <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" FontWeight="Bold" FontSize="14"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
+                                        <TextBlock Classes="dim" Text="OEM Onderdelen" FontSize="11"/>
+                                        <TextBlock Text="{Binding ComponentChecks.Count, StringFormat='{}{0} gecontroleerd'}" FontWeight="Bold" FontSize="14"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Spacing="4">
+                                        <TextBlock Classes="dim" Text="Hardware Tests" FontSize="11"/>
+                                        <TextBlock Text="{Binding InteractiveTestSummary}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource SuccessColor}"/>
+                                    </StackPanel>
                                 </Grid>
-
-                                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
-                                    <StackPanel Spacing="3">
-                                        <TextBlock Text="{DynamicResource Settings_Language}" FontWeight="Medium"/>
-                                        <TextBlock Classes="dim" Text="{DynamicResource Settings_LanguageDesc}" FontSize="12"/>
-                                    </StackPanel>
-                                    <ComboBox Grid.Column="1" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}"
-                                              MinWidth="140" VerticalAlignment="Center"/>
-                                </Grid>
-
-                                <Separator/>
-
-                                <StackPanel Spacing="12">
-                                    <CheckBox Content="Start automatisch bij insteken" IsChecked="{Binding AutoDetectOnPlug}"
-                                              ToolTip.Tip="Zodra een toestel gedetecteerd wordt, draait het hele proces vanzelf"/>
-                                    <CheckBox Content="Activeer toestel automatisch (bypass)" IsChecked="{Binding AutoActivate}"/>
-                                    <CheckBox Content="Diagnostiek: panic-logs en sensoren" IsChecked="{Binding RunDiagnostics}"
-                                              ToolTip.Tip="Haalt crash-logs op en vertaalt fouten naar leesbare reparatie-tips"/>
-                                    <CheckBox Content="Batterijchecker: X op label bij minder dan 85%" IsChecked="{Binding Enable85PercentChecker}"/>
-                                    <CheckBox Content="Open editor voor het label" IsChecked="{Binding OpenEditorBeforePrint}"/>
-                                </StackPanel>
-
-                                <Separator/>
-
-                                <Grid ColumnDefinitions="*,*,12,*,*">
-                                    <StackPanel Grid.Column="0" Spacing="3">
-                                        <TextBlock Text="Standaard kwaliteit" FontWeight="Medium"/>
-                                        <TextBlock Classes="dim" Text="Leeg = altijd vragen" FontSize="12"/>
-                                    </StackPanel>
-                                    <ComboBox Grid.Column="1" ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding DefaultQuality}"/>
-                                    <StackPanel Grid.Column="3" Spacing="3">
-                                        <TextBlock Text="Standaard betaling" FontWeight="Medium"/>
-                                        <TextBlock Classes="dim" Text="Leeg = altijd vragen" FontSize="12"/>
-                                    </StackPanel>
-                                    <ComboBox Grid.Column="4" ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding DefaultPaymentMethod}"/>
-                                </Grid>
-
                             </StackPanel>
                         </Border>
 
+                        <!-- Massive Print Label Button & Retest Actions -->
+                        <StackPanel Spacing="12" Margin="0,8,0,0">
+                            <Button Classes="kioskPrint" Command="{Binding OpenLabelCommand}" Content="PRINT DYMO LABEL"/>
+                            
+                            <Grid ColumnDefinitions="*,*">
+                                <Button Grid.Column="0" Classes="kioskSecondary" Command="{Binding RetestCommand}" Content="Opnieuw Testen (Retest)" Margin="0,0,6,0" HorizontalContentAlignment="Center"/>
+                                <Button Grid.Column="1" Classes="kioskSecondary" Command="{Binding BackToIdleCommand}" Content="Volgend Toestel (Klaar)" Margin="6,0,0,0" HorizontalContentAlignment="Center"/>
+                            </Grid>
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
-            </TabItem>
+            </Panel>
+        </Grid>
 
-            <!-- ==================== LOGS TAB ==================== -->
-            <TabItem Header="Logs">
-                <Grid RowDefinitions="Auto,*">
+        <!-- ==================== SETTINGS SLIDE-IN DRAWER OVERLAY ==================== -->
+        <Panel IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="50">
+            <!-- Semi-transparent backdrop -->
+            <Button Background="{DynamicResource OverlayColor}" Command="{Binding ToggleSettingsCommand}"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch" BorderThickness="0"/>
+
+            <!-- Drawer Container -->
+            <Border Width="420" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                    Background="{DynamicResource CardColor}" BorderBrush="{DynamicResource CardBorderColor}" 
+                    BorderThickness="1,0,0,0" BoxShadow="-8 0 32 0 #55000000" Padding="24">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="18">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Instellingen" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Classes="iconBtn" Command="{Binding ToggleSettingsCommand}">
+                                <TextBlock Text="Sluiten" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}"/>
+                            </Button>
+                        </Grid>
+
+                        <Separator/>
+
+                        <!-- Daily Operator Needs (Default Simple View) -->
+                        <TextBlock Text="DAGELIJKSE OPTIES" Classes="cardTitle"/>
+
+                        <StackPanel Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Taal (Language)" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}" Width="130"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Thema" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="130"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Standaard Kwaliteit" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding DefaultQuality}" Width="130"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="Standaard Factuurmethode" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding DefaultPaymentMethod}" Width="130"/>
+                            </Grid>
+
+                            <CheckBox Content="Automatisch starten bij inpluggen" IsChecked="{Binding AutoDetectOnPlug}"/>
+                            <CheckBox Content="Automatisch interactieve webtest starten" IsChecked="{Binding AutoStartWebTest}"/>
+                            <CheckBox Content="Toon samenvatting voor label printen" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
+                        </StackPanel>
+
+                        <Separator Margin="0,8,0,8"/>
+
+                        <!-- Advanced Section Toggle -->
+                        <Button Classes="kioskSecondary" Command="{Binding OpenTroubleshootModalCommand}"
+                                Content="USB &amp; Driver Diagnose" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+
+                        <Button Classes="kioskSecondary" Command="{Binding OpenLogsModalCommand}"
+                                Content="Systeemlogboeken Bekijken" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+
+                        <Separator Margin="0,8,0,8"/>
+
+                        <!-- Advanced Toggles -->
+                        <Expander Header="Geavanceerde Automatisering" IsExpanded="{Binding ShowAdvancedSettings}">
+                            <StackPanel Spacing="10" Margin="0,8,0,0">
+                                <CheckBox Content="Automatisch activeren (bypass)" IsChecked="{Binding AutoActivate}"/>
+                                <CheckBox Content="Hardware diagnose draaien (panic-logs)" IsChecked="{Binding RunDiagnostics}"/>
+                                <CheckBox Content="85% Batterijcheck (100%-X label)" IsChecked="{Binding Enable85PercentChecker}"/>
+                                <CheckBox Content="Label editor openen voor printen" IsChecked="{Binding OpenEditorBeforePrint}"/>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Panel>
+
+        <!-- ==================== SYSTEM LOGS MODAL OVERLAY ==================== -->
+        <Panel IsVisible="{Binding IsLogsModalOpen}" ZIndex="60">
+            <Rectangle Fill="{DynamicResource OverlayColor}"/>
+            <Border Classes="card" Width="850" Height="580" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 24 64 0 #77000000" Padding="20">
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                        <TextBlock Text="Systeemlogboeken &amp; Tool Output" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="iconBtn" Command="{Binding CloseLogsModalCommand}">
+                            <TextBlock Text="Sluiten" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
+                        </Button>
+                    </Grid>
+
                     <!-- Filter Controls -->
-                    <Border Grid.Row="0" Background="{DynamicResource CardBgColor}" 
-                            BorderBrush="{DynamicResource BorderSubtleColor}" BorderThickness="0,0,0,1" 
-                            Padding="16,12">
-                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,12,*,12,Auto,8,Auto,8,Auto,8,Auto">
-                            <CheckBox Grid.Column="0" Content="Debug" IsChecked="{Binding LogsViewModel.ShowDebug}" 
-                                      Foreground="{DynamicResource TextDimColor}" Margin="0,0,12,0"/>
-                            <CheckBox Grid.Column="1" Content="Info" IsChecked="{Binding LogsViewModel.ShowInfo}" 
-                                      Foreground="{DynamicResource PrimaryColor}" Margin="0,0,12,0"/>
-                            <CheckBox Grid.Column="2" Content="Warning" IsChecked="{Binding LogsViewModel.ShowWarning}" 
-                                      Foreground="{DynamicResource WarnColor}" Margin="0,0,12,0"/>
-                            <CheckBox Grid.Column="3" Content="Error" IsChecked="{Binding LogsViewModel.ShowError}" 
-                                      Foreground="{DynamicResource DangerColor}"/>
-
-                            <TextBox Grid.Column="5" Text="{Binding LogsViewModel.SearchQuery}" 
-                                     Watermark="Search logs..." MinWidth="200"/>
-
-                            <Button Grid.Column="7" Content="Clear" Command="{Binding LogsViewModel.ClearLogsCommand}"/>
-                            <Button Grid.Column="9" Content="Copy" Command="{Binding LogsViewModel.CopyLogsCommand}"/>
-                            <Button Grid.Column="11" Content="Export" Command="{Binding LogsViewModel.ExportLogsCommand}"/>
-                            <Button Grid.Column="13" Content="Open Folder" Command="{Binding LogsViewModel.OpenLogFolderCommand}"/>
+                    <Border Grid.Row="1" Background="{DynamicResource CardDeepColor}" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,12,*,12,Auto,8,Auto">
+                            <CheckBox Grid.Column="0" Content="Debug" IsChecked="{Binding LogsViewModel.ShowDebug}" Margin="0,0,10,0"/>
+                            <CheckBox Grid.Column="1" Content="Info" IsChecked="{Binding LogsViewModel.ShowInfo}" Margin="0,0,10,0"/>
+                            <CheckBox Grid.Column="2" Content="Warning" IsChecked="{Binding LogsViewModel.ShowWarning}" Margin="0,0,10,0"/>
+                            <CheckBox Grid.Column="3" Content="Error" IsChecked="{Binding LogsViewModel.ShowError}"/>
+                            <TextBox Grid.Column="5" Text="{Binding LogsViewModel.SearchQuery}" Watermark="Zoeken in logs..."/>
+                            <Button Grid.Column="7" Content="Wissen" Command="{Binding LogsViewModel.ClearLogsCommand}"/>
+                            <Button Grid.Column="9" Content="Kopiëren" Command="{Binding LogsViewModel.CopyLogsCommand}"/>
                         </Grid>
                     </Border>
 
-                    <!-- Log List -->
-                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding LogsViewModel.Logs}" Margin="8">
+                    <!-- Logs List -->
+                    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding LogsViewModel.Logs}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{DynamicResource CardDeepColor}" 
-                                            CornerRadius="4" Padding="8,6" Margin="0,0,0,4"
-                                            BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                        <Grid ColumnDefinitions="80,70,90,*">
-                                            <TextBlock Grid.Column="0" Text="{Binding FormattedTime}" 
-                                                       FontFamily="Consolas,Courier New" FontSize="11" 
-                                                       Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
-                                            <Border Grid.Column="1" CornerRadius="3" Padding="4,2" 
-                                                    Background="{Binding LevelColor}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Level}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                    <Border Background="{DynamicResource CardDeepColor}" CornerRadius="4" Padding="6,4" Margin="0,0,0,4">
+                                        <Grid ColumnDefinitions="80,65,85,*">
+                                            <TextBlock Grid.Column="0" Text="{Binding FormattedTime}" FontFamily="Consolas,Courier New" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
+                                            <Border Grid.Column="1" CornerRadius="3" Padding="4,1" Background="{Binding LevelColor}" HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding Level}" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                             </Border>
-                                            <TextBlock Grid.Column="2" Text="{Binding Source}" FontSize="11" 
-                                                       Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding Message}" FontSize="11" 
-                                                       TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Source}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Message}" FontSize="11" TextWrapping="Wrap" FontFamily="Consolas,Courier New"/>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -372,137 +397,85 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </Grid>
-            </TabItem>
+            </Border>
+        </Panel>
 
-            <!-- ==================== TROUBLESHOOT TAB ==================== -->
-            <TabItem Header="{DynamicResource Tab_Troubleshoot}">
-                <Grid RowDefinitions="Auto,Auto,*" Margin="16">
-                    <!-- Action Bar Header -->
-                    <Border Grid.Row="0" Classes="card" Margin="0,0,0,12">
-                        <StackPanel Spacing="10">
-                            <TextBlock Classes="cardTitle" Text="{DynamicResource Troubleshoot_Title}"/>
-                            <TextBlock Classes="dim" Text="{DynamicResource Troubleshoot_Desc}" FontSize="12"/>
-                            
-                            <Grid ColumnDefinitions="Auto,10,Auto,10,Auto,*,Auto" Margin="0,6,0,0">
-                                <Button Grid.Column="0" Content="{DynamicResource Btn_RunDiagnostics}" 
-                                        Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"
-                                        Classes="accent" IsEnabled="{Binding !TroubleshootViewModel.IsRunning}"/>
-                                <Button Grid.Column="2" Content="{DynamicResource Btn_CopyReport}" 
-                                        Command="{Binding TroubleshootViewModel.CopyReportCommand}"/>
-                                <Button Grid.Column="4" Content="{DynamicResource Btn_ExportReport}" 
-                                        Command="{Binding TroubleshootViewModel.ExportReportCommand}"/>
-                                
-                                <Button Grid.Column="6" Content="{DynamicResource Btn_FixAll}" 
-                                        Command="{Binding TroubleshootViewModel.FixAllCommand}"
-                                        IsVisible="{Binding TroubleshootViewModel.HasFixableIssues}"
-                                        IsEnabled="{Binding !TroubleshootViewModel.IsInstalling}"
-                                        Classes="cta"/>
-                            </Grid>
-                        </StackPanel>
+        <!-- ==================== TROUBLESHOOT MODAL OVERLAY ==================== -->
+        <Panel IsVisible="{Binding IsTroubleshootModalOpen}" ZIndex="60">
+            <Rectangle Fill="{DynamicResource OverlayColor}"/>
+            <Border Classes="card" Width="850" Height="580" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 24 64 0 #77000000" Padding="20">
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                        <TextBlock Text="USB &amp; Driver Diagnose" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="iconBtn" Command="{Binding CloseTroubleshootModalCommand}">
+                            <TextBlock Text="Sluiten" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
+                        </Button>
+                    </Grid>
+
+                    <Border Grid.Row="1" Classes="card" Background="{DynamicResource CardDeepColor}" Padding="12" Margin="0,0,0,10">
+                        <Grid ColumnDefinitions="*,Auto,8,Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding TroubleshootViewModel.OverallStatus}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Classes="cta" Content="Los Alles Op" Command="{Binding TroubleshootViewModel.FixAllCommand}"/>
+                            <Button Grid.Column="3" Content="Opnieuw Scannen" Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"/>
+                        </Grid>
                     </Border>
 
-                    <!-- Progress / Installation Status Box -->
-                    <Border Grid.Row="1" Classes="card" Margin="0,0,0,12" 
-                            IsVisible="{Binding TroubleshootViewModel.IsInstalling}">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="{Binding TroubleshootViewModel.InstallStatusText}" FontWeight="SemiBold" FontSize="13"/>
-                            <ProgressBar Value="{Binding TroubleshootViewModel.InstallProgress}" Maximum="100" Height="8"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Interactive Checklist Items -->
                     <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel Spacing="8">
-                            <!-- Overall Status Banner -->
-                            <Border Background="{DynamicResource CardDeepColor}" CornerRadius="8" Padding="12,10"
-                                    BorderBrush="{DynamicResource BorderSubtleColor}" BorderThickness="1">
-                                <TextBlock Text="{Binding TroubleshootViewModel.OverallStatus}" FontWeight="Medium" FontSize="13"/>
-                            </Border>
-
-                            <ItemsControl ItemsSource="{Binding TroubleshootViewModel.Checks}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{DynamicResource CardDeepColor}" 
-                                                CornerRadius="8" Padding="12" Margin="0,0,0,8"
-                                                BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                            <Grid ColumnDefinitions="Auto,14,*,Auto">
-                                                <!-- Severity Pill Badge -->
-                                                <Border Grid.Column="0" CornerRadius="4" Padding="8,4" 
-                                                        Background="{Binding SeverityColor}" VerticalAlignment="Top" MinWidth="68">
-                                                    <TextBlock Text="{Binding SeverityLabel}" FontWeight="Bold" FontSize="11" 
-                                                               Foreground="White" HorizontalAlignment="Center"/>
-                                                </Border>
-
-                                                <!-- Content Info -->
-                                                <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Center">
-                                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="13"/>
-                                                        <TextBlock Text="{Binding Category}" Foreground="{DynamicResource AccentColor}" FontSize="11" VerticalAlignment="Center"/>
-                                                    </StackPanel>
-                                                    <TextBlock Text="{Binding Message}" Classes="dim" FontSize="12" TextWrapping="Wrap"/>
-                                                    <TextBlock Text="{Binding Resolution}" Foreground="{DynamicResource WarnColor}" 
-                                                               FontSize="11" TextWrapping="Wrap" 
-                                                               IsVisible="{Binding Resolution, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                        <ItemsControl ItemsSource="{Binding TroubleshootViewModel.Checks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="12" Margin="0,0,0,8">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding Category}" Classes="dim" FontSize="11" FontWeight="Bold"/>
+                                                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="13"/>
                                                 </StackPanel>
-
-                                                <!-- Fix / Install Button -->
-                                                <Button Grid.Column="3" Content="{DynamicResource Btn_Fix}" 
-                                                        Command="{Binding FixCommand}"
-                                                        IsVisible="{Binding IsFixable}"
-                                                        IsEnabled="{Binding !IsFixing}"
-                                                        VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
+                                                <TextBlock Text="{Binding Message}" FontSize="12" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Resolution}" FontSize="11" Foreground="{DynamicResource WarnColor}" TextWrapping="Wrap" IsVisible="{Binding Resolution, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Classes="pill" 
+                                                    Classes.success="{Binding IsPass}"
+                                                    Classes.danger="{Binding IsFail}"
+                                                    Classes.warn="{Binding IsWarning}"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Classes="pillText" Text="{Binding Severity}"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </ScrollViewer>
                 </Grid>
-            </TabItem>
+            </Border>
+        </Panel>
 
-        </TabControl>
-        </Grid>
-
-        <!-- ==================== Quality popup ==================== -->
-        <Panel IsVisible="{Binding IsQualityPopupVisible}" ZIndex="10">
+        <!-- ==================== Quality & Payment Dialog Popups ==================== -->
+        <Panel IsVisible="{Binding IsQualityPopupVisible}" ZIndex="70">
             <Rectangle Fill="{DynamicResource OverlayColor}"/>
             <Border Classes="card" Width="380" VerticalAlignment="Center" HorizontalAlignment="Center"
                     BoxShadow="0 24 60 0 #66000000" Padding="28">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="Kies de kwaliteit" FontSize="18" FontWeight="Bold"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Classes="dim" Text="Komt op het label bij de kwaliteitscode"
-                               FontSize="12" HorizontalAlignment="Center" TextAlignment="Center"/>
-                    <Button Classes="cta" Height="48" Content="A - Zo goed als nieuw"
-                            Command="{Binding SetQualityCommand}" CommandParameter="A"
-                            Background="{DynamicResource SuccessColor}"/>
-                    <Button Classes="cta" Height="48" Content="B - Licht gebruik"
-                            Command="{Binding SetQualityCommand}" CommandParameter="B"
-                            Background="{DynamicResource WarnColor}"/>
-                    <Button Classes="cta" Height="48" Content="C - Zichtbare schade"
-                            Command="{Binding SetQualityCommand}" CommandParameter="C"
-                            Background="{DynamicResource DangerColor}"/>
+                    <TextBlock Text="Kies de kwaliteit" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <Button Classes="cta" Height="48" Content="A - Zo goed als nieuw" Command="{Binding SetQualityCommand}" CommandParameter="A" Background="{DynamicResource SuccessColor}"/>
+                    <Button Classes="cta" Height="48" Content="B - Licht gebruik" Command="{Binding SetQualityCommand}" CommandParameter="B" Background="{DynamicResource WarnColor}"/>
+                    <Button Classes="cta" Height="48" Content="C - Duidelijke sporen" Command="{Binding SetQualityCommand}" CommandParameter="C" Background="{DynamicResource DangerColor}"/>
                 </StackPanel>
             </Border>
         </Panel>
 
-        <!-- ==================== Payment popup ==================== -->
-        <Panel IsVisible="{Binding IsPaymentPopupVisible}" ZIndex="10">
+        <Panel IsVisible="{Binding IsPaymentPopupVisible}" ZIndex="70">
             <Rectangle Fill="{DynamicResource OverlayColor}"/>
             <Border Classes="card" Width="380" VerticalAlignment="Center" HorizontalAlignment="Center"
                     BoxShadow="0 24 60 0 #66000000" Padding="28">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="Betaalmethode" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-                    <TextBlock Classes="dim" Text="Wordt op het label afgedrukt"
-                               FontSize="12" HorizontalAlignment="Center"/>
-                    <Button Classes="cta" Height="48" Content="Marge - cash/kaart"
-                            Command="{Binding SetPaymentMethodCommand}" CommandParameter="Marge"/>
-                    <Button Classes="cta" Height="48" Content="BTW - order/factuur"
-                            Command="{Binding SetPaymentMethodCommand}" CommandParameter="BTW"/>
+                    <TextBlock Text="Factuurmethode" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <Button Classes="cta" Height="48" Content="Marge (0% BTW)" Command="{Binding SetPaymentMethodCommand}" CommandParameter="Marge" Background="{DynamicResource AccentColor}"/>
+                    <Button Classes="cta" Height="48" Content="BTW (21%)" Command="{Binding SetPaymentMethodCommand}" CommandParameter="BTW" Background="{DynamicResource TrackColor}"/>
                 </StackPanel>
             </Border>
         </Panel>
-
     </Panel>
 </Window>

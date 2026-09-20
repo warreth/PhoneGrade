@@ -48,6 +48,10 @@ public class DiagnosticCheckViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _isFixing, value);
     }
 
+    public bool IsPass => Severity == DiagnosticSeverity.Pass;
+    public bool IsWarning => Severity == DiagnosticSeverity.Warning;
+    public bool IsFail => Severity == DiagnosticSeverity.Fail;
+
     public ReactiveCommand<Unit, Unit>? FixCommand { get; }
 
     public DiagnosticCheckViewModel(DiagnosticCheckItem item, Func<string, Task> onFixRequested)
