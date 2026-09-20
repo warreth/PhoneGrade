@@ -311,7 +311,7 @@
                     <Border Grid.Row="0" Background="{DynamicResource CardBgColor}" 
                             BorderBrush="{DynamicResource BorderSubtleColor}" BorderThickness="0,0,0,1" 
                             Padding="16,12">
-                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,12,*,12,Auto,12,Auto">
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,12,*,12,Auto,8,Auto,8,Auto,8,Auto">
                             <CheckBox Grid.Column="0" Content="Debug" IsChecked="{Binding LogsViewModel.ShowDebug}" 
                                       Foreground="{DynamicResource TextDimColor}" Margin="0,0,12,0"/>
                             <CheckBox Grid.Column="1" Content="Info" IsChecked="{Binding LogsViewModel.ShowInfo}" 
@@ -326,6 +326,8 @@
 
                             <Button Grid.Column="7" Content="Clear" Command="{Binding LogsViewModel.ClearLogsCommand}"/>
                             <Button Grid.Column="9" Content="Copy" Command="{Binding LogsViewModel.CopyLogsCommand}"/>
+                            <Button Grid.Column="11" Content="Export" Command="{Binding LogsViewModel.ExportLogsCommand}"/>
+                            <Button Grid.Column="13" Content="Open Folder" Command="{Binding LogsViewModel.OpenLogFolderCommand}"/>
                         </Grid>
                     </Border>
 
@@ -355,6 +357,34 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- ==================== TROUBLESHOOT TAB ==================== -->
+            <TabItem Header="Troubleshoot">
+                <Grid RowDefinitions="Auto,*" Margin="16">
+                    <Border Grid.Row="0" Classes="card" Margin="0,0,0,12">
+                        <StackPanel Spacing="10">
+                            <TextBlock Classes="cardTitle" Text="DEVICE DETECTION &amp; DRIVER ASSISTANT"/>
+                            <TextBlock Classes="dim" Text="Als een toestel niet wordt herkend, scan het systeem om ontbrekende drivers, permissies of daemons te diagnosticeren." FontSize="12"/>
+                            
+                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
+                                <Button Content="Run Diagnostics" Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"
+                                        Classes="accent" IsEnabled="{Binding !TroubleshootViewModel.IsRunning}"/>
+                                <Button Content="Copy Report" Command="{Binding TroubleshootViewModel.CopyReportCommand}"/>
+                                <Button Content="Export Report" Command="{Binding TroubleshootViewModel.ExportReportCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Classes="card">
+                        <ScrollViewer>
+                            <TextBox Text="{Binding TroubleshootViewModel.ReportText}" IsReadOnly="True"
+                                     FontFamily="Consolas,Courier New" FontSize="12"
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     Background="Transparent" BorderThickness="0"/>
+                        </ScrollViewer>
+                    </Border>
                 </Grid>
             </TabItem>
 
