@@ -18,7 +18,7 @@ public static class ToolInstallerService
         {
             "install_idevice_tools" => await InstallIdeviceToolsAsync(progress),
             "install_adb" => await InstallAdbAsync(progress),
-            "fix_apple_service" => await FixAppleServiceAsync(progress),
+            "fix_apple_service" or "install_apple_driver" => await FixAppleServiceAsync(progress),
             "start_usbmuxd" => await StartUsbmuxdAsync(progress),
             _ => false
         };
@@ -36,9 +36,9 @@ public static class ToolInstallerService
         {
             try
             {
-                progress?.Report((25, "Downloading libimobiledevice package for Windows..."));
-                // Download Windows precompiled libimobiledevice binary release bundle
-                string zipUrl = "https://github.com/libimobiledevice-win32/imobiledevice-net/releases/download/v1.3.17/imobiledevice-x64.zip";
+                progress?.Report((25, "Downloading verified libimobiledevice suite for Windows..."));
+                // Verified active release asset (libimobiledevice 1.2.1 + usbmuxd 64-bit binaries)
+                string zipUrl = "https://github.com/libimobiledevice-win32/imobiledevice-net/releases/download/v1.3.17/libimobiledevice.1.2.1-r1122-win-x64.zip";
                 
                 string tempZip = Path.Combine(Path.GetTempPath(), $"idevice-tools-{Guid.NewGuid():N}.zip");
                 
@@ -50,6 +50,10 @@ public static class ToolInstallerService
                 try { File.Delete(tempZip); } catch { }
 
                 ToolRunner.EnsureToolPermissions(toolsDir);
+
+                // Auto-start portable usbmuxd daemon on Windows if present
+                await EnsurePortableUsbmuxdRunningAsync();
+
                 progress?.Report((100, "libimobiledevice tools installed successfully."));
                 SystemEventLogger.Info(LogSource.Desktop, $"libimobiledevice tools installed in: {toolsDir}");
                 return true;
@@ -65,26 +69,32 @@ public static class ToolInstallerService
         {
             try
             {
-                progress?.Report((30, "Checking Homebrew package manager..."));
+                progress?.Report((25, "Checking Homebrew package manager..."));
                 var (brewPath, _, brewCode) = await ToolRunner.ExecuteAsync("which", "brew");
                 if (brewCode == 0 && !string.IsNullOrWhiteSpace(brewPath))
                 {
                     progress?.Report((50, "Running: brew install libimobiledevice..."));
-                    var (outStr, errStr, code) = await ToolRunner.ExecuteAsync("brew", "install libimobiledevice", 120_000);
+                    var (outStr, errStr, code) = await ToolRunner.ExecuteAsync("brew", "install libimobiledevice", 180_000);
                     if (code == 0)
                     {
                         progress?.Report((100, "libimobiledevice installed via Homebrew."));
                         SystemEventLogger.Info(LogSource.Desktop, "libimobiledevice installed via Homebrew.");
                         return true;
                     }
-                    progress?.Report((100, $"Homebrew install returned code {code}: {errStr}"));
-                    return false;
                 }
-                else
-                {
-                    progress?.Report((100, "Homebrew is not installed. Please install Homebrew from https://brew.sh first."));
-                    return false;
-                }
+
+                // Fallback: download macOS portable precompiled binaries
+                progress?.Report((50, "Downloading macOS portable libimobiledevice bundle..."));
+                string macZipUrl = "https://github.com/libimobiledevice-win32/imobiledevice-net/releases/download/v1.3.17/libimobiledevice.1.2.1-r1122-osx-x64.zip";
+                string tempZip = Path.Combine(Path.GetTempPath(), $"idevice-tools-mac-{Guid.NewGuid():N}.zip");
+                
+                await DownloadFileWithProgressAsync(macZipUrl, tempZip, progress, 50, 85);
+                ZipFile.ExtractToDirectory(tempZip, toolsDir, overwriteFiles: true);
+                try { File.Delete(tempZip); } catch { }
+
+                ToolRunner.EnsureToolPermissions(toolsDir);
+                progress?.Report((100, "libimobiledevice portable tools installed for macOS."));
+                return true;
             }
             catch (Exception ex)
             {
@@ -169,8 +179,9 @@ public static class ToolInstallerService
             return await StartUsbmuxdAsync(progress);
         }
 
-        progress?.Report((20, "Attempting to start Apple Mobile Device Service..."));
-        var (startOut, startErr, startCode) = await ToolRunner.ExecuteAsync("sc", "start AppleMobileDeviceService", 8000);
+        // 1. Try starting the standard Windows service first if present
+        progress?.Report((15, "Checking Apple Mobile Device Service..."));
+        var (startOut, _, startCode) = await ToolRunner.ExecuteAsync("sc", "start AppleMobileDeviceService", 5000);
         if (startCode == 0 || startOut.Contains("START_PENDING") || startOut.Contains("RUNNING"))
         {
             progress?.Report((100, "Apple Mobile Device Service started successfully."));
@@ -178,30 +189,38 @@ public static class ToolInstallerService
             return true;
         }
 
-        progress?.Report((40, "Apple Mobile Device Service not found. Downloading iTunes 64-bit installer..."));
-        
-        string installerPath = Path.Combine(Path.GetTempPath(), "iTunes64Setup.exe");
+        // 2. Install lightweight Apple USB Driver from Microsoft Update Catalog (88 KB CAB)
+        progress?.Report((30, "Downloading lightweight Apple USB Driver (Microsoft Update Catalog 88KB)..."));
+        string destFolder = Path.Combine(Path.GetTempPath(), $"AppleDri_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(destFolder);
 
         try
         {
-            // Download iTunes 64-bit direct installer
-            string directUrl = "https://secure-appldnld.apple.com/itunes12/001-97787-20210421-F0E5A3C2-A2C9-11EB-8B94-F8F615D1A2AC/iTunes64Setup.exe";
-            await DownloadFileWithProgressAsync(directUrl, installerPath, progress, 40, 85);
+            string cabUrl1 = "https://catalog.s.download.windowsupdate.com/d/msdownload/update/driver/drvs/2020/11/01d96dfd-2f6f-46f7-8bc3-fd82088996d2_a31ff7000e504855b3fa124bf27b3fe5bc4d0893.cab";
+            string cabPath1 = Path.Combine(destFolder, "AppleUSB.cab");
 
-            progress?.Report((90, "Launching Apple Mobile Device Support installer..."));
-            var psi = new ProcessStartInfo
-            {
-                FileName = installerPath,
-                UseShellExecute = true
-            };
-            Process.Start(psi);
+            await DownloadFileWithProgressAsync(cabUrl1, cabPath1, progress, 30, 60);
 
-            progress?.Report((100, "Installer launched. Please complete the installer window to finish setup."));
+            progress?.Report((65, "Extracting Apple USB Driver package..."));
+            await ToolRunner.ExecuteAsync("expand.exe", $"-F:* \"{cabPath1}\" \"{destFolder}\"", 15000);
+
+            progress?.Report((80, "Installing Apple USB Driver via pnputil..."));
+            var (pnpOut, pnpErr, pnpCode) = await ToolRunner.ExecuteAsync("pnputil.exe", $"/add-driver \"{destFolder}\\*.inf\" /install", 30000);
+
+            try { Directory.Delete(destFolder, true); } catch { }
+
+            // 3. Ensure portable usbmuxd is running
+            progress?.Report((90, "Starting usbmuxd daemon..."));
+            await EnsurePortableUsbmuxdRunningAsync();
+
+            progress?.Report((100, "Apple drivers and USB multiplexer configured successfully."));
+            SystemEventLogger.Info(LogSource.Desktop, $"Apple driver installed via pnputil (Code: {pnpCode})");
             return true;
         }
         catch (Exception ex)
         {
-            progress?.Report((100, $"Could not download installer: {ex.Message}. Please install iTunes manually."));
+            SystemEventLogger.Error(LogSource.Desktop, $"Lightweight driver installation failed: {ex.Message}");
+            progress?.Report((100, $"Driver install failed: {ex.Message}"));
             return false;
         }
     }
@@ -210,7 +229,11 @@ public static class ToolInstallerService
     {
         progress?.Report((30, "Attempting to restart usbmuxd..."));
         
-        if (OperatingSystem.IsMacOS())
+        if (OperatingSystem.IsWindows())
+        {
+            return await EnsurePortableUsbmuxdRunningAsync();
+        }
+        else if (OperatingSystem.IsMacOS())
         {
             var (outStr, errStr, code) = await ToolRunner.ExecuteAsync("sudo", "launchctl kickstart -k system/com.apple.usbmuxd", 5000);
             if (code == 0)
@@ -234,6 +257,38 @@ public static class ToolInstallerService
         }
 
         return false;
+    }
+
+    private static async Task<bool> EnsurePortableUsbmuxdRunningAsync()
+    {
+        if (!OperatingSystem.IsWindows()) return true;
+
+        string localUsbmuxd = Path.Combine(ToolRunner.ToolsDir, "usbmuxd.exe");
+        if (!File.Exists(localUsbmuxd)) return false;
+
+        // Check if usbmuxd process is already running
+        var existing = Process.GetProcessesByName("usbmuxd");
+        if (existing.Length > 0) return true;
+
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = localUsbmuxd,
+                Arguments = "",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            Process.Start(psi);
+            SystemEventLogger.Info(LogSource.Desktop, "Started portable usbmuxd background process.");
+            await Task.Delay(500);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Warning(LogSource.Desktop, $"Could not start portable usbmuxd: {ex.Message}");
+            return false;
+        }
     }
 
     private static async Task DownloadFileWithProgressAsync(

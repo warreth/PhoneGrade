@@ -269,28 +269,37 @@ public static class TroubleshootService
         {
             try
             {
-                // Check Apple Mobile Device Service via sc query
+                // Check if AppleMobileDeviceService or portable usbmuxd is running
+                bool isUsbmuxdRunning = Process.GetProcessesByName("usbmuxd").Length > 0;
                 var (scOut, _, scCode) = await ToolRunner.ExecuteAsync("sc", "query AppleMobileDeviceService", 5000);
-                if (scCode == 0 && scOut.Contains("RUNNING"))
+                bool isAmdsRunning = scCode == 0 && scOut.Contains("RUNNING");
+
+                if (isAmdsRunning || isUsbmuxdRunning)
                 {
+                    string activeService = isAmdsRunning ? "Apple Mobile Device Service" : "Portable usbmuxd daemon";
                     report.Checks.Add(new DiagnosticCheckItem
                     {
                         Category = "Service",
-                        Title = "Apple Mobile Device Service",
+                        Title = "Apple Multiplexing Service",
                         Severity = DiagnosticSeverity.Pass,
-                        Message = "Service is active and running."
+                        Message = $"{activeService} is active and listening for iOS devices."
                     });
                 }
                 else
                 {
+                    string localUsbmuxd = Path.Combine(ToolRunner.ToolsDir, "usbmuxd.exe");
+                    string res = File.Exists(localUsbmuxd)
+                        ? "Click Fix to start the portable usbmuxd background daemon."
+                        : "Click Fix to automatically download the lightweight Apple driver and usbmuxd daemon.";
+
                     report.Checks.Add(new DiagnosticCheckItem
                     {
                         Category = "Service",
-                        Title = "Apple Mobile Device Service",
+                        Title = "Apple USB Service",
                         Severity = DiagnosticSeverity.Warning,
-                        Message = "Service is stopped or not installed.",
-                        Resolution = "Install iTunes (64-bit installer from Apple, not Microsoft Store) to obtain official Apple USB drivers.",
-                        FixActionKey = "fix_apple_service"
+                        Message = "Neither Apple Mobile Device Service nor usbmuxd daemon is currently active.",
+                        Resolution = res,
+                        FixActionKey = File.Exists(localUsbmuxd) ? "start_usbmuxd" : "fix_apple_service"
                     });
                 }
             }
