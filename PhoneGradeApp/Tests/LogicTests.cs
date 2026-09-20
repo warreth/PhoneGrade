@@ -163,8 +163,8 @@ public class MappersTests
         => Assert.Equal("iPhone99,9", Mappers.MapModel("iPhone99,9"));
 
     [Fact]
-    public void MapModel_EmptyReturnsNoModel()
-        => Assert.Equal("NOMODEL", Mappers.MapModel("  "));
+    public void MapModel_EmptyReturnsOnbekend()
+        => Assert.Equal("Onbekend", Mappers.MapModel("  "));
 
     [Theory]
     [InlineData("#ffffff", "Wit")]
@@ -175,8 +175,8 @@ public class MappersTests
         => Assert.Equal(expected, Mappers.MapColor(raw));
 
     [Fact]
-    public void MapColor_UnknownReturnsNoColor()
-        => Assert.Equal("NOCOLOR", Mappers.MapColor("#abcdef"));
+    public void MapColor_UnknownReturnsOnbekend()
+        => Assert.Equal("Onbekend", Mappers.MapColor("#abcdef"));
 
     [Theory]
     [InlineData(30_000_000_000, "32GB")]

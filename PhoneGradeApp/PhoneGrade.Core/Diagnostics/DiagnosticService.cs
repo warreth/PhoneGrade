@@ -106,17 +106,6 @@ public static partial class DiagnosticService
             });
         }
 
-        if (data.Jailbreak?.IsJailbroken == true)
-        {
-            issues.Add(new DiagnosticIssue
-            {
-                Title = "Jailbreak gedetecteerd",
-                Explanation = $"Ongeautoriseerde software gevonden: {string.Join(", ", data.Jailbreak.Evidence)}.",
-                Fix = "Voer een DFU-herstel (Restore) uit via iTunes/Finder of 3uTools om de software te overschrijven.",
-                Level = Severity.Warning
-            });
-        }
-
         if (data.Root?.IsRooted == true)
         {
             issues.Add(new DiagnosticIssue

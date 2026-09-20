@@ -32,7 +32,7 @@ releases for a newer version and installs it silently ([Velopack](https://docs.v
 The app includes advanced hardware security and lock validation:
 
 - **Activation Lock (iCloud / FRP)**: Detects Find My iPhone status via lockdownd and Android FRP mode via adb. Optional real-time IMEI lookup integration via SickW or IMEIPro APIs.
-- **Jailbreak & Root Detection**: Enumerate installed package managers (Cydia, Sileo, Zebra, Magisk), check for jailbreak file signatures, and probe for open SSH ports.
+- **Root Detection**: Detect unauthorized modifications and system root privileges on Android devices.
 - **Carrier & SIM Lock**: Reads SIM status and carrier bundle information to identify provider-locked devices.
 - **OEM Component Verification**: Cross-references live component serial numbers (battery, display, cameras) against factory original values and parses Apple Service Toolkit (AST2) diagnostic messages.
 - **Blacklist / Stolen Check**: Optional GSMA or third-party IMEI registry lookup to flag lost or stolen devices.
