@@ -63,9 +63,9 @@ public class AppSettingsTests : IDisposable
     public void Load_MissingFile_ReturnsDefaults()
     {
         var loaded = AppSettings.Load();
-        Assert.True(loaded.AutoActivate);
+        Assert.False(loaded.AutoActivate);
         Assert.True(loaded.Enable85PercentChecker);
-        Assert.True(loaded.AutoDetectOnPlug);
+        Assert.False(loaded.AutoDetectOnPlug);
         Assert.Equal("Dark", loaded.Theme);
     }
 

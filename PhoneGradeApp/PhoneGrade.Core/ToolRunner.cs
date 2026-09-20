@@ -184,22 +184,14 @@ public static class ToolRunner
             // We use LogThrottler directly here for ALL tool output to debounce continuous polling spam
             string toolName = Path.GetFileNameWithoutExtension(tool);
             
-            if (!string.IsNullOrWhiteSpace(stdout))
-            {
-                // Only log tool output if it hasn't been emitted recently (debounce spam)
-                string stdoutMsg = $"[{toolName}] stdout: {stdout}";
-                if (LogThrottler.ShouldLog(stdoutMsg, LogSource.Desktop))
-                {
-                    SystemEventLogger.Debug(LogSource.Desktop, stdoutMsg);
-                }
-            }
-            if (!string.IsNullOrWhiteSpace(stderr))
+            // Only log stderr to the UI if it's an error. 
+            // Do not pipe raw stdout (like ideviceinfo XML dumps) to the UI logger to prevent extreme UI lag.
+            if (!string.IsNullOrWhiteSpace(stderr) && exitCode != 0)
             {
                 string stderrMsg = $"[{toolName}] stderr: {stderr}";
                 if (LogThrottler.ShouldLog(stderrMsg, LogSource.Desktop))
                 {
-                    var level = exitCode == 0 ? LogLevel.Debug : LogLevel.Warning;
-                    SystemEventLogger.Log(level, LogSource.Desktop, stderrMsg);
+                    SystemEventLogger.Warning(LogSource.Desktop, stderrMsg);
                 }
             }
             
