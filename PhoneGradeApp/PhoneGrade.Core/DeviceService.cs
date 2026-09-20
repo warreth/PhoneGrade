@@ -31,13 +31,16 @@ public static class DeviceService
                 }
                 else
                 {
-                    // Optimize: call ideviceinfo once for display purposes
+                    // Call ideviceinfo once with fallback to direct GetKeyAsync
                     string quickInfo = await GetDomainAsync(id, "");
                     string name = (Parsers.KeyValue(quickInfo, "DeviceName") ?? "").Trim();
+                    if (string.IsNullOrEmpty(name)) name = (await GetKeyAsync(id, "DeviceName")).Trim();
+
                     string productType = Parsers.KeyValue(quickInfo, "ProductType") ?? "";
+                    if (string.IsNullOrEmpty(productType)) productType = (await GetKeyAsync(id, "ProductType")).Trim();
+
                     string model = Mappers.MapModel(productType);
                     devices[id] = string.IsNullOrWhiteSpace(name) ? model : $"{name} ({model})";
-                    // iOS device identified
                 }
             }
             return devices;
@@ -88,7 +91,8 @@ public static class DeviceService
     public static async Task<string> GetDomainAsync(string udid, string domain)
     {
         string udidArg = udid.Length > 0 ? $"-u {udid} " : "";
-        var (output, _) = await ToolRunner.RunAsync("ideviceinfo", $"{udidArg}-q {domain}");
+        string args = string.IsNullOrWhiteSpace(domain) ? udidArg.Trim() : $"{udidArg}-q {domain}";
+        var (output, _) = await ToolRunner.RunAsync("ideviceinfo", args);
         return output.StartsWith("ERROR:") ? "" : output;
     }
 
@@ -422,11 +426,19 @@ public static class DeviceService
         string cachedOutput = await GetDomainAsync(udid, "");
         
         string productType = (Parsers.KeyValue(cachedOutput, "ProductType") ?? "").Trim();
+        if (string.IsNullOrEmpty(productType)) productType = (await GetKeyAsync(udid, "ProductType")).Trim();
+
         string imei = Parsers.KeyValue(cachedOutput, "InternationalMobileEquipmentIdentity") ?? "";
+        if (string.IsNullOrEmpty(imei)) imei = await GetKeyAsync(udid, "InternationalMobileEquipmentIdentity");
+
         string serial = Parsers.KeyValue(cachedOutput, "SerialNumber") ?? "";
-        string deviceName = (Parsers.KeyValue(cachedOutput, "DeviceName") ?? "").Trim();
+        if (string.IsNullOrEmpty(serial)) serial = await GetKeyAsync(udid, "SerialNumber");
+
         string color = Parsers.KeyValue(cachedOutput, "DeviceEnclosureColor") ?? "";
+        if (string.IsNullOrEmpty(color)) color = await GetKeyAsync(udid, "DeviceEnclosureColor");
+
         string iosVersion = (Parsers.KeyValue(cachedOutput, "ProductVersion") ?? "").Trim();
+        if (string.IsNullOrEmpty(iosVersion)) iosVersion = (await GetKeyAsync(udid, "ProductVersion")).Trim();
 
         var data = new DeviceData
         {

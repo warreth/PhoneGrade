@@ -9,10 +9,10 @@ public class AppSettings
 {
     public string Theme { get; set; } = "Dark";            // "Dark", "Light" or "System"
     public string Language { get; set; } = "nl";           // "en" (English) or "nl" (Nederlands)
-    public bool AutoActivate { get; set; } = true;
-    public bool AutoDetectOnPlug { get; set; } = true;    // start the flow the moment a device appears
-    public bool AutoStartWebTest { get; set; } = false;   // disable automatic web test by default to prevent repeat loops
-    public bool ShowSummaryScreenAfterTesting { get; set; } = true; // show consolidated summary view after hardware tests
+    public bool AutoActivate { get; set; } = false;
+    public bool AutoDetectOnPlug { get; set; } = false;   // User must explicitly click to start inspecting
+    public bool AutoStartWebTest { get; set; } = false;   // User must manually scan and run tests
+    public bool ShowSummaryScreenAfterTesting { get; set; } = true;
     public bool RequirePwaTest { get; set; } = true;       // operator must complete PWA test before finishing
     public bool RunDiagnostics { get; set; } = true;
     public bool Enable85PercentChecker { get; set; } = true;

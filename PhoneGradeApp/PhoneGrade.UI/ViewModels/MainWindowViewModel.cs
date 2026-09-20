@@ -150,14 +150,14 @@ public class MainWindowViewModel : ReactiveObject
     
     public string[] LanguageOptions { get; } = { "Nederlands", "English" };
 
-    private bool _autoActivate = true;
+    private bool _autoActivate;
     public bool AutoActivate
     {
         get => _autoActivate;
         set { _settings.AutoActivate = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _autoActivate, value); }
     }
 
-    private bool _autoDetectOnPlug = true;
+    private bool _autoDetectOnPlug;
     public bool AutoDetectOnPlug
     {
         get => _autoDetectOnPlug;
