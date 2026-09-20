@@ -146,6 +146,29 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Security & Locks Card -->
+                            <Border Classes="card">
+                                <StackPanel Spacing="14">
+                                    <TextBlock Classes="cardTitle" Text="BEVEILIGING &amp; STATUS"/>
+                                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto" Margin="0,4,0,0">
+                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,8,0">
+                                            <TextBlock Classes="dim" Text="IMEI Nummer" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="2" Margin="0,0,8,0">
+                                            <TextBlock Classes="dim" Text="Find My (iCloud)" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}, FallbackValue='Onbekend'}" 
+                                                       Foreground="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockBrushConverter}}"
+                                                       FontWeight="Bold" FontSize="13"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Spacing="2">
+                                            <TextBlock Classes="dim" Text="Blacklist Status" FontSize="11"/>
+                                            <TextBlock Text="Niet gecontroleerd" Classes="dim" FontSize="13"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
                             <!-- Component Audit List -->
                             <Border Classes="card">
                                 <StackPanel Spacing="12">

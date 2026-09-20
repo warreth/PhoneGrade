@@ -81,3 +81,43 @@ public class QualityConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+/// <summary>Converts Activation Lock status to friendly Dutch text.</summary>
+public class ActivationLockConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus status) 
+            return "Onbekend";
+            
+        return status switch
+        {
+            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked => "AAN (Gelocked)",
+            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked => "UIT (Vrij)",
+            _ => "Onbekend"
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>Converts Activation Lock status to brush color.</summary>
+public class ActivationLockBrushConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus status) 
+            return Avalonia.Media.Brushes.Gray;
+            
+        return status switch
+        {
+            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked => Avalonia.Media.Brushes.Red,
+            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked => Avalonia.Media.Brushes.Green,
+            _ => Avalonia.Media.Brushes.Gray
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
