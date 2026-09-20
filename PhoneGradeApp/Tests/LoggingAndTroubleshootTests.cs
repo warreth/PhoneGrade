@@ -1,0 +1,150 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using PhoneGrade.Core;
+using Xunit;
+
+namespace PhoneGrade.Tests;
+
+public class LoggingAndTroubleshootTests
+{
+    [Fact]
+    public void SystemEventLogger_RingBuffer_StoresAndReplaysLogs()
+    {
+        SystemEventLogger.ClearLogs();
+
+        SystemEventLogger.Info(LogSource.Desktop, "Test info message 1");
+        SystemEventLogger.Warning(LogSource.UsbDetector, "Test warning message 2");
+        SystemEventLogger.Error(LogSource.Diagnostic, "Test error message 3");
+
+        var recent = SystemEventLogger.GetRecentLogs();
+        Assert.NotNull(recent);
+        Assert.True(recent.Count >= 3);
+
+        var lastThree = recent.TakeLast(3).ToList();
+        Assert.Equal("Test info message 1", lastThree[0].Message);
+        Assert.Equal(PhoneGrade.Core.LogLevel.Info, lastThree[0].Level);
+        Assert.Equal(LogSource.Desktop, lastThree[0].Source);
+
+        Assert.Equal("Test warning message 2", lastThree[1].Message);
+        Assert.Equal(PhoneGrade.Core.LogLevel.Warning, lastThree[1].Level);
+
+        Assert.Equal("Test error message 3", lastThree[2].Message);
+        Assert.Equal(PhoneGrade.Core.LogLevel.Error, lastThree[2].Level);
+    }
+
+    [Fact]
+    public void SystemEventLogger_LogEventEmitted_FiresEvent()
+    {
+        LogEvent? received = null;
+        EventHandler<LogEvent> handler = (sender, e) => received = e;
+
+        SystemEventLogger.LogEventEmitted += handler;
+        try
+        {
+            SystemEventLogger.Info(LogSource.WebSocket, "Real-time event test", "SESSION_99");
+            Assert.NotNull(received);
+            Assert.Equal("Real-time event test", received.Message);
+            Assert.Equal(LogSource.WebSocket, received.Source);
+            Assert.Equal("SESSION_99", received.SessionId);
+        }
+        finally
+        {
+            SystemEventLogger.LogEventEmitted -= handler;
+        }
+    }
+
+    [Fact]
+    public void PhoneGradeLogger_MapsCategoriesAndLevelsProperly()
+    {
+        SystemEventLogger.ClearLogs();
+
+        using var provider = new PhoneGradeLoggerProvider();
+        var logger = provider.CreateLogger("PhoneGrade.Core.UsbDetector");
+
+        logger.LogInformation("USB scan initiated");
+        logger.LogWarning("Potential timeout on probe");
+
+        var recent = SystemEventLogger.GetRecentLogs();
+        var usbLogs = recent.Where(l => l.Source == LogSource.UsbDetector).ToList();
+        Assert.NotEmpty(usbLogs);
+        Assert.Contains(usbLogs, l => l.Message == "USB scan initiated" && l.Level == PhoneGrade.Core.LogLevel.Info);
+        Assert.Contains(usbLogs, l => l.Message == "Potential timeout on probe" && l.Level == PhoneGrade.Core.LogLevel.Warning);
+    }
+
+    [Fact]
+    public void TroubleshootReport_ToFormattedText_GeneratesCleanReport()
+    {
+        var report = new TroubleshootReport
+        {
+            OsDescription = "Linux 6.12.107 (x86_64)",
+            Architecture = "X64",
+            FrameworkDescription = ".NET 8.0.0",
+            OverallStatus = "Critical tools missing.",
+            CanDetectIos = false,
+            CanDetectAndroid = false
+        };
+
+        report.Checks.Add(new DiagnosticCheckItem
+        {
+            Category = "iOS",
+            Title = "idevice_id Missing",
+            Severity = DiagnosticSeverity.Fail,
+            Message = "Could not find idevice_id executable.",
+            Resolution = "Run: sudo apt-get install libimobiledevice-utils"
+        });
+
+        report.Checks.Add(new DiagnosticCheckItem
+        {
+            Category = "Android",
+            Title = "adb Available",
+            Severity = DiagnosticSeverity.Pass,
+            Message = "adb found on PATH."
+        });
+
+        string formatted = report.ToFormattedText();
+
+        Assert.Contains("=== PHONEGRADE HARDWARE & DRIVER DIAGNOSTIC REPORT ===", formatted);
+        Assert.Contains("OS: Linux 6.12.107 (x86_64) (X64)", formatted);
+        Assert.Contains("[FAIL] [iOS] idevice_id Missing", formatted);
+        Assert.Contains("Action: Run: sudo apt-get install libimobiledevice-utils", formatted);
+        Assert.Contains("[PASS] [Android] adb Available", formatted);
+        // Guarantee no emoji or m-dashes
+        Assert.DoesNotContain("—", formatted);
+        Assert.DoesNotContain("⚠️", formatted);
+        Assert.DoesNotContain("❌", formatted);
+        Assert.DoesNotContain("✅", formatted);
+    }
+
+    [Fact]
+    public async Task TroubleshootService_RunsDiagnosticsSuccessfully()
+    {
+        var report = await TroubleshootService.RunFullDiagnosticsAsync();
+        Assert.NotNull(report);
+        Assert.NotEmpty(report.OsDescription);
+        Assert.NotEmpty(report.Architecture);
+        Assert.NotEmpty(report.OverallStatus);
+        Assert.NotEmpty(report.Checks);
+
+        // Should check iOS, Android, Service and Hardware categories
+        var categories = report.Checks.Select(c => c.Category).Distinct().ToList();
+        Assert.Contains("iOS", categories);
+        Assert.Contains("Android", categories);
+        Assert.Contains("Service", categories);
+        Assert.Contains("Hardware", categories);
+    }
+
+    [Fact]
+    public async Task DeviceService_ListUdidsSafeAsync_DetectsMissingToolsGracefully()
+    {
+        // When idevice_id and adb are missing on this test container
+        var (udids, raw, state) = await DeviceService.ListUdidsSafeAsync();
+        Assert.Empty(udids);
+        // Either ToolsMissing, DaemonStopped, or NotFound depending on environment
+        Assert.True(state == DeviceService.ConnectionState.ToolsMissing ||
+                    state == DeviceService.ConnectionState.DaemonStopped ||
+                    state == DeviceService.ConnectionState.NotFound);
+    }
+}
