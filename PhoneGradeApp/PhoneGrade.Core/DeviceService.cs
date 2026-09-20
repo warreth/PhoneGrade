@@ -37,13 +37,8 @@ public static class DeviceService
             return devices;
         }
 
-        // idevice_id unavailable or errored — fallback probe for iOS
-        string probe = await GetKeyAsync("", "DeviceName");
-        if (!probe.StartsWith("ERROR:") && probe != "NO OUTPUT" && !string.IsNullOrWhiteSpace(probe))
-        {
-            throw new InvalidOperationException("idevice_id missing but lockdownd reachable");
-        }
-
+        // idevice_id was checked in ListUdidsSafeAsync. If no devices were found via idevice_id or adb,
+        // do not run redundant fallback queries that flood log output.
         return devices;
     }
 

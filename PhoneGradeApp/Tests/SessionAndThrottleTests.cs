@@ -66,6 +66,20 @@ public class LogThrottlerTests
         bool second = LogThrottler.ShouldLog(msg, LogSource.UsbDetector);
         Assert.True(second);
     }
+
+    [Fact]
+    public void ShouldLog_IdlePollingMessages_ThrottledImmediately()
+    {
+        LogThrottler.Reset();
+        string adbMsg = "[adb] stdout: List of devices attached";
+        string ideviceMsg = "[ideviceinfo] stdout: ERROR: No device found!";
+        
+        Assert.True(LogThrottler.ShouldLog(adbMsg, LogSource.Desktop));
+        Assert.False(LogThrottler.ShouldLog(adbMsg, LogSource.Desktop));
+        
+        Assert.True(LogThrottler.ShouldLog(ideviceMsg, LogSource.Desktop));
+        Assert.False(LogThrottler.ShouldLog(ideviceMsg, LogSource.Desktop));
+    }
 }
 
 public class DeviceSessionManagerTests
