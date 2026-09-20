@@ -181,17 +181,23 @@ public static class ToolRunner
             Log(resolvedPath, arguments, exitCode, stdout, stderr);
             
             // Pipe tool output to central logger with category tag
-            // We use LogThrottler directly here for ALL tool output to debounce continuous polling spam
             string toolName = Path.GetFileNameWithoutExtension(tool);
             
             // Only log stderr to the UI if it's an error. 
-            // Do not pipe raw stdout (like ideviceinfo XML dumps) to the UI logger to prevent extreme UI lag.
             if (!string.IsNullOrWhiteSpace(stderr) && exitCode != 0)
             {
                 string stderrMsg = $"[{toolName}] stderr: {stderr}";
                 if (LogThrottler.ShouldLog(stderrMsg, LogSource.Desktop))
                 {
                     SystemEventLogger.Warning(LogSource.Desktop, stderrMsg);
+                }
+            }
+            // Add lightweight info logging for important tool invocations, avoiding heavy polling spam
+            else if (toolName != "idevice_id" && toolName != "adb" && exitCode == 0 && !string.IsNullOrWhiteSpace(stdout))
+            {
+                if (LogThrottler.ShouldLog($"[{toolName}] {arguments}", LogSource.Desktop))
+                {
+                    SystemEventLogger.Info(LogSource.Desktop, $"Command succeeded: {toolName} {arguments}");
                 }
             }
             
