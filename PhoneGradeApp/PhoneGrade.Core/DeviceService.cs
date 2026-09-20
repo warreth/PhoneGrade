@@ -463,7 +463,6 @@ public static class DeviceService
         if (isIOS)
         {
             data.ActivationLock = await SecurityServices.ActivationLockService.DetectAsync(udid);
-            data.Jailbreak = await SecurityServices.JailbreakDetectionService.DetectAsync(udid);
             data.CarrierLockIOS = await SecurityServices.ActivationLockService.DetectCarrierLockAsync(udid);
             
             // Enhanced component verification with AST2
