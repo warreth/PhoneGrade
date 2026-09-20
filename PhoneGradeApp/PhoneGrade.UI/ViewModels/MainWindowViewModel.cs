@@ -110,6 +110,22 @@ public class MainWindowViewModel : ReactiveObject
         }
     }
 
+    private string _language = "Nederlands";
+    public string Language
+    {
+        get => _language;
+        set
+        {
+            string code = value == "English" ? "en" : "nl";
+            _settings.Language = code;
+            _settings.Save();
+            Services.LocalizationManager.SetLanguage(code);
+            this.RaiseAndSetIfChanged(ref _language, value);
+        }
+    }
+    
+    public string[] LanguageOptions { get; } = { "Nederlands", "English" };
+
     private bool _autoActivate = true;
     public bool AutoActivate
     {
@@ -213,6 +229,7 @@ public class MainWindowViewModel : ReactiveObject
     {
         _settings = AppSettings.Load();
         _theme = _settings.Theme;
+        _language = _settings.Language == "en" ? "English" : "Nederlands";
         _autoActivate = _settings.AutoActivate;
         _autoDetectOnPlug = _settings.AutoDetectOnPlug;
         _runDiagnostics = _settings.RunDiagnostics;
