@@ -10,33 +10,38 @@
         WindowStartupLocation="CenterScreen">
 
     <Panel>
-        <TabControl Margin="8" TabStripPlacement="Top">
+        <Grid RowDefinitions="Auto,*">
+        <!-- Global Status Banner -->
+        <Border Grid.Row="0" Background="{DynamicResource CardDeepColor}" 
+                BorderBrush="{DynamicResource BorderSubtleColor}" BorderThickness="0,0,0,1" 
+                Padding="20,16">
+            <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="{DynamicResource Card_Status}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
+                        <TextBlock Text="{Binding Status}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="24"/>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Button Classes="cta" Command="{Binding StartCommand}" Content="{DynamicResource Btn_StartManual}"
+                                ToolTip.Tip="Start het label-proces voor het geselecteerde toestel"/>
+                        <Button Command="{Binding RefreshDevicesCommand}" Content="{DynamicResource Btn_Refresh}"
+                                ToolTip.Tip="Zoek opnieuw naar verbonden toestellen"/>
+                        <Button Command="{Binding OpenLabelCommand}" Content="{DynamicResource Btn_OpenLabel}"
+                                ToolTip.Tip="Open het laatst gegenereerde label in Dymo Label"/>
+                    </StackPanel>
+                </Grid>
+                
+                <ProgressBar Value="{Binding Progress}" Maximum="100" Height="4" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <TabControl Grid.Row="1" Margin="8" TabStripPlacement="Top">
 
             <!-- ==================== DASHBOARD TAB ==================== -->
-            <TabItem Header="Dashboard">
+            <TabItem Header="{DynamicResource Tab_Dashboard}">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="16" Spacing="14">
-
-                        <!-- Status Card -->
-                        <Border Classes="card">
-                            <StackPanel Spacing="12">
-                                <TextBlock Classes="cardTitle" Text="STATUS"/>
-                                <TextBlock Text="{Binding Status}" FontSize="17" FontWeight="SemiBold"
-                                           TextWrapping="Wrap" LineHeight="24"/>
-                                <ProgressBar Value="{Binding Progress}" Maximum="100" Height="8"/>
-                                <Grid ColumnDefinitions="*,10,*,10,*">
-                                    <Button Grid.Column="0" Classes="cta" Command="{Binding StartCommand}"
-                                            Content="Start handmatig"
-                                            ToolTip.Tip="Start het label-proces voor het geselecteerde toestel"/>
-                                    <Button Grid.Column="2" Command="{Binding RefreshDevicesCommand}"
-                                            Content="Verversen"
-                                            ToolTip.Tip="Zoek opnieuw naar verbonden toestellen"/>
-                                    <Button Grid.Column="4" Command="{Binding OpenLabelCommand}"
-                                            Content="Open label"
-                                            ToolTip.Tip="Open het laatst gegenereerde label in Dymo Label"/>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
 
                         <!-- Device Card -->
                         <Border Classes="card">
@@ -263,10 +268,19 @@
 
                                 <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
                                     <StackPanel Spacing="3">
-                                        <TextBlock Text="Thema" FontWeight="Medium"/>
-                                        <TextBlock Classes="dim" Text="Donker, licht of volgens systeem" FontSize="12"/>
+                                        <TextBlock Text="{DynamicResource Settings_Theme}" FontWeight="Medium"/>
+                                        <TextBlock Classes="dim" Text="{DynamicResource Settings_ThemeDesc}" FontSize="12"/>
                                     </StackPanel>
                                     <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"
+                                              MinWidth="140" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Text="{DynamicResource Settings_Language}" FontWeight="Medium"/>
+                                        <TextBlock Classes="dim" Text="{DynamicResource Settings_LanguageDesc}" FontSize="12"/>
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}"
                                               MinWidth="140" VerticalAlignment="Center"/>
                                 </Grid>
 
@@ -361,34 +375,95 @@
             </TabItem>
 
             <!-- ==================== TROUBLESHOOT TAB ==================== -->
-            <TabItem Header="Troubleshoot">
-                <Grid RowDefinitions="Auto,*" Margin="16">
+            <TabItem Header="{DynamicResource Tab_Troubleshoot}">
+                <Grid RowDefinitions="Auto,Auto,*" Margin="16">
+                    <!-- Action Bar Header -->
                     <Border Grid.Row="0" Classes="card" Margin="0,0,0,12">
                         <StackPanel Spacing="10">
-                            <TextBlock Classes="cardTitle" Text="DEVICE DETECTION &amp; DRIVER ASSISTANT"/>
-                            <TextBlock Classes="dim" Text="Als een toestel niet wordt herkend, scan het systeem om ontbrekende drivers, permissies of daemons te diagnosticeren." FontSize="12"/>
+                            <TextBlock Classes="cardTitle" Text="{DynamicResource Troubleshoot_Title}"/>
+                            <TextBlock Classes="dim" Text="{DynamicResource Troubleshoot_Desc}" FontSize="12"/>
                             
-                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,6,0,0">
-                                <Button Content="Run Diagnostics" Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"
+                            <Grid ColumnDefinitions="Auto,10,Auto,10,Auto,*,Auto" Margin="0,6,0,0">
+                                <Button Grid.Column="0" Content="{DynamicResource Btn_RunDiagnostics}" 
+                                        Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"
                                         Classes="accent" IsEnabled="{Binding !TroubleshootViewModel.IsRunning}"/>
-                                <Button Content="Copy Report" Command="{Binding TroubleshootViewModel.CopyReportCommand}"/>
-                                <Button Content="Export Report" Command="{Binding TroubleshootViewModel.ExportReportCommand}"/>
-                            </StackPanel>
+                                <Button Grid.Column="2" Content="{DynamicResource Btn_CopyReport}" 
+                                        Command="{Binding TroubleshootViewModel.CopyReportCommand}"/>
+                                <Button Grid.Column="4" Content="{DynamicResource Btn_ExportReport}" 
+                                        Command="{Binding TroubleshootViewModel.ExportReportCommand}"/>
+                                
+                                <Button Grid.Column="6" Content="{DynamicResource Btn_FixAll}" 
+                                        Command="{Binding TroubleshootViewModel.FixAllCommand}"
+                                        IsVisible="{Binding TroubleshootViewModel.HasFixableIssues}"
+                                        IsEnabled="{Binding !TroubleshootViewModel.IsInstalling}"
+                                        Classes="cta"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1" Classes="card">
-                        <ScrollViewer>
-                            <TextBox Text="{Binding TroubleshootViewModel.ReportText}" IsReadOnly="True"
-                                     FontFamily="Consolas,Courier New" FontSize="12"
-                                     AcceptsReturn="True" TextWrapping="Wrap"
-                                     Background="Transparent" BorderThickness="0"/>
-                        </ScrollViewer>
+                    <!-- Progress / Installation Status Box -->
+                    <Border Grid.Row="1" Classes="card" Margin="0,0,0,12" 
+                            IsVisible="{Binding TroubleshootViewModel.IsInstalling}">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="{Binding TroubleshootViewModel.InstallStatusText}" FontWeight="SemiBold" FontSize="13"/>
+                            <ProgressBar Value="{Binding TroubleshootViewModel.InstallProgress}" Maximum="100" Height="8"/>
+                        </StackPanel>
                     </Border>
+
+                    <!-- Interactive Checklist Items -->
+                    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Spacing="8">
+                            <!-- Overall Status Banner -->
+                            <Border Background="{DynamicResource CardDeepColor}" CornerRadius="8" Padding="12,10"
+                                    BorderBrush="{DynamicResource BorderSubtleColor}" BorderThickness="1">
+                                <TextBlock Text="{Binding TroubleshootViewModel.OverallStatus}" FontWeight="Medium" FontSize="13"/>
+                            </Border>
+
+                            <ItemsControl ItemsSource="{Binding TroubleshootViewModel.Checks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource CardDeepColor}" 
+                                                CornerRadius="8" Padding="12" Margin="0,0,0,8"
+                                                BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
+                                            <Grid ColumnDefinitions="Auto,14,*,Auto">
+                                                <!-- Severity Pill Badge -->
+                                                <Border Grid.Column="0" CornerRadius="4" Padding="8,4" 
+                                                        Background="{Binding SeverityColor}" VerticalAlignment="Top" MinWidth="68">
+                                                    <TextBlock Text="{Binding SeverityLabel}" FontWeight="Bold" FontSize="11" 
+                                                               Foreground="White" HorizontalAlignment="Center"/>
+                                                </Border>
+
+                                                <!-- Content Info -->
+                                                <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="13"/>
+                                                        <TextBlock Text="{Binding Category}" Foreground="{DynamicResource AccentColor}" FontSize="11" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Message}" Classes="dim" FontSize="12" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding Resolution}" Foreground="{DynamicResource WarnColor}" 
+                                                               FontSize="11" TextWrapping="Wrap" 
+                                                               IsVisible="{Binding Resolution, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                </StackPanel>
+
+                                                <!-- Fix / Install Button -->
+                                                <Button Grid.Column="3" Content="{DynamicResource Btn_Fix}" 
+                                                        Command="{Binding FixCommand}"
+                                                        IsVisible="{Binding IsFixable}"
+                                                        IsEnabled="{Binding !IsFixing}"
+                                                        VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </TabItem>
 
         </TabControl>
+        </Grid>
+
         <!-- ==================== Quality popup ==================== -->
         <Panel IsVisible="{Binding IsQualityPopupVisible}" ZIndex="10">
             <Rectangle Fill="{DynamicResource OverlayColor}"/>
