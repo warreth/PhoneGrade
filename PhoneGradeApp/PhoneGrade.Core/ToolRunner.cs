@@ -24,6 +24,31 @@ public static class ToolRunner
     public static string LogFilePath => Path.Combine(LogDir, "toolrunner.log");
 
     /// <summary>Ensures permissions on non-Windows platforms and strips quarantine on macOS.</summary>
+    /// <summary>Starts portable usbmuxd on Windows if Apple Mobile Device Service is not running.</summary>
+    public static void EnsureWindowsUsbmuxdStarted()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        string exe = Path.Combine(ToolsDir, "usbmuxd.exe");
+        if (!File.Exists(exe)) return;
+
+        try
+        {
+            if (Process.GetProcessesByName("usbmuxd").Length == 0 &&
+                Process.GetProcessesByName("AppleMobileDeviceService").Length == 0)
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = exe,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                Process.Start(psi);
+                SystemEventLogger.Info(LogSource.Desktop, "Started portable usbmuxd daemon on Windows.");
+            }
+        }
+        catch { }
+    }
+
     public static void EnsureToolPermissions(string? targetDir = null)
     {
         string dir = targetDir ?? ToolsDir;
@@ -109,6 +134,7 @@ public static class ToolRunner
         if (!_sanitized)
         {
             EnsureToolPermissions();
+            EnsureWindowsUsbmuxdStarted();
             _sanitized = true;
         }
 
