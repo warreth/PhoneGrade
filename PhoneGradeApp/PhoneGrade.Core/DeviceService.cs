@@ -31,8 +31,11 @@ public static class DeviceService
                 }
                 else
                 {
-                    string name = (await GetKeyAsync(id, "DeviceName")).Trim();
-                    string model = Mappers.MapModel(await GetKeyAsync(id, "ProductType"));
+                    // Optimize: call ideviceinfo once for display purposes
+                    string quickInfo = await GetDomainAsync(id, "");
+                    string name = (Parsers.KeyValue(quickInfo, "DeviceName") ?? "").Trim();
+                    string productType = Parsers.KeyValue(quickInfo, "ProductType") ?? "";
+                    string model = Mappers.MapModel(productType);
                     devices[id] = string.IsNullOrWhiteSpace(name) ? model : $"{name} ({model})";
                     // iOS device identified
                 }
@@ -407,7 +410,7 @@ public static class DeviceService
         return data;
     }
 
-    /// <summary>Collects all label + diagnostic data for one device.</summary>
+    /// <summary>Collects all label + diagnostic data for one device (optimized: single ideviceinfo call).</summary>
     public static async Task<DeviceData> GetDeviceDataAsync(string udid)
     {
         if (await IsAndroidDeviceAsync(udid))
@@ -415,9 +418,15 @@ public static class DeviceService
             return await GetAndroidDeviceDataAsync(udid);
         }
 
-        string productType = (await GetKeyAsync(udid, "ProductType")).Trim();
-        string imei = await GetKeyAsync(udid, "InternationalMobileEquipmentIdentity");
-        string serial = await GetKeyAsync(udid, "SerialNumber");
+        // OPTIMIZATION: Call ideviceinfo once and cache the output
+        string cachedOutput = await GetDomainAsync(udid, "");
+        
+        string productType = (Parsers.KeyValue(cachedOutput, "ProductType") ?? "").Trim();
+        string imei = Parsers.KeyValue(cachedOutput, "InternationalMobileEquipmentIdentity") ?? "";
+        string serial = Parsers.KeyValue(cachedOutput, "SerialNumber") ?? "";
+        string deviceName = (Parsers.KeyValue(cachedOutput, "DeviceName") ?? "").Trim();
+        string color = Parsers.KeyValue(cachedOutput, "DeviceEnclosureColor") ?? "";
+        string iosVersion = (Parsers.KeyValue(cachedOutput, "ProductVersion") ?? "").Trim();
 
         var data = new DeviceData
         {
@@ -425,8 +434,8 @@ public static class DeviceService
             ProductType = productType,
             Model = Mappers.MapModel(productType),
             Identifier = Parsers.ParseIdentifier(imei, serial),
-            Color = Mappers.MapColor(await GetKeyAsync(udid, "DeviceEnclosureColor")),
-            IosVersion = (await GetKeyAsync(udid, "ProductVersion")).Trim(),
+            Color = Mappers.MapColor(color),
+            IosVersion = iosVersion,
             MotherboardSerialNumber = serial.StartsWith("ERROR:") ? "" : serial.Trim(),
         };
 
