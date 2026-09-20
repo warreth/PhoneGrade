@@ -189,4 +189,28 @@ public class LoggingAndTroubleshootTests
         bool result = await ToolInstallerService.ExecuteFixAsync("unknown_action_key", progress);
         Assert.False(result);
     }
+
+    [Fact]
+    public async Task ToolInstallerService_VerifyLiveDownloadUrls()
+    {
+        // Un-faked, live HTTP HEAD request to ensure the Windows zip and CAB driver URLs exist and are valid.
+        using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        
+        // 1. Check libimobiledevice GitHub release asset
+        string libiUrl = "https://github.com/libimobiledevice-win32/imobiledevice-net/releases/download/v1.3.17/libimobiledevice.1.2.1-r1122-win-x64.zip";
+        using var req1 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Head, libiUrl);
+        var res1 = await client.SendAsync(req1, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+        
+        Assert.True(res1.IsSuccessStatusCode || res1.StatusCode == System.Net.HttpStatusCode.Found, 
+            $"libimobiledevice URL failed with {(int)res1.StatusCode}");
+            
+        // 2. Check Microsoft Update Catalog Apple USB Driver CAB (88KB)
+        string cabUrl = "https://catalog.s.download.windowsupdate.com/d/msdownload/update/driver/drvs/2020/11/01d96dfd-2f6f-46f7-8bc3-fd82088996d2_a31ff7000e504855b3fa124bf27b3fe5bc4d0893.cab";
+        using var req2 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Head, cabUrl);
+        var res2 = await client.SendAsync(req2, System.Net.Http.HttpCompletionOption.ResponseHeadersRead);
+        
+        Assert.True(res2.IsSuccessStatusCode, $"CAB driver URL failed with {(int)res2.StatusCode}");
+        long size = res2.Content.Headers.ContentLength ?? 0;
+        Assert.True(size > 50_000 && size < 200_000, $"CAB driver size {size} is outside expected 50KB-200KB range");
+    }
 }
