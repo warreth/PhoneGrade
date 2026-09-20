@@ -3,29 +3,51 @@ using System.Collections.Concurrent;
 
 namespace PhoneGrade.Core;
 
-/// <summary>Represents a completed test session for a device.</summary>
-public record DeviceSession(string Udid, DateTime CompletedAt, bool WasSuccessful);
+/// <summary>Represents the processing state of a device session.</summary>
+public enum DeviceSessionState
+{
+    NotStarted,
+    ReadingOrActive,
+    Completed
+}
+
+/// <summary>Represents a session record for a device.</summary>
+public record DeviceSession(string Udid, DateTime UpdatedAt, DeviceSessionState State);
 
 /// <summary>
 /// Manages device testing sessions by UDID/Serial.
-/// Prevents automatic re-testing of the same device unless explicitly retested or replugged.
+/// Prevents automatic re-testing of the same device while in progress or once finished.
 /// </summary>
 public static class DeviceSessionManager
 {
-    private static readonly ConcurrentDictionary<string, DeviceSession> _completedSessions = new();
+    private static readonly ConcurrentDictionary<string, DeviceSession> _sessions = new();
 
-    /// <summary>Checks if a device has already completed testing in this session.</summary>
+    /// <summary>Checks if a device has already completed testing.</summary>
     public static bool IsDeviceCompleted(string udid)
     {
         if (string.IsNullOrWhiteSpace(udid)) return false;
-        return _completedSessions.ContainsKey(udid);
+        return _sessions.TryGetValue(udid, out var session) && session.State == DeviceSessionState.Completed;
+    }
+
+    /// <summary>Checks if a device is currently active or completed.</summary>
+    public static bool HasStartedOrCompleted(string udid)
+    {
+        if (string.IsNullOrWhiteSpace(udid)) return false;
+        return _sessions.TryGetValue(udid, out var session) && session.State != DeviceSessionState.NotStarted;
+    }
+
+    /// <summary>Marks a device as currently active/being read.</summary>
+    public static void MarkStarted(string udid)
+    {
+        if (string.IsNullOrWhiteSpace(udid)) return;
+        _sessions[udid] = new DeviceSession(udid, DateTime.UtcNow, DeviceSessionState.ReadingOrActive);
     }
 
     /// <summary>Marks a device test session as completed.</summary>
-    public static void MarkCompleted(string udid, bool wasSuccessful = true)
+    public static void MarkCompleted(string udid)
     {
         if (string.IsNullOrWhiteSpace(udid)) return;
-        _completedSessions[udid] = new DeviceSession(udid, DateTime.UtcNow, wasSuccessful);
+        _sessions[udid] = new DeviceSession(udid, DateTime.UtcNow, DeviceSessionState.Completed);
         SystemEventLogger.Info(LogSource.Desktop, $"Marked device session as completed: {udid}", udid);
     }
 
@@ -33,12 +55,12 @@ public static class DeviceSessionManager
     public static void ResetDevice(string udid)
     {
         if (string.IsNullOrWhiteSpace(udid)) return;
-        if (_completedSessions.TryRemove(udid, out _))
+        if (_sessions.TryRemove(udid, out _))
         {
             SystemEventLogger.Info(LogSource.Desktop, $"Reset device session for retesting: {udid}", udid);
         }
     }
 
-    /// <summary>Clears all completed device sessions.</summary>
-    public static void ClearAll() => _completedSessions.Clear();
+    /// <summary>Clears all device sessions.</summary>
+    public static void ClearAll() => _sessions.Clear();
 }

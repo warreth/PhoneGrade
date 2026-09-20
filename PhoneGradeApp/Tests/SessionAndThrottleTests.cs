@@ -98,7 +98,7 @@ public class DeviceSessionManagerTests
         DeviceSessionManager.ClearAll();
         string udid = "test-udid-123";
         
-        DeviceSessionManager.MarkCompleted(udid, wasSuccessful: true);
+        DeviceSessionManager.MarkCompleted(udid);
         bool completed = DeviceSessionManager.IsDeviceCompleted(udid);
         
         Assert.True(completed);
