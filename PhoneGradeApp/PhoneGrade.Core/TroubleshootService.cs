@@ -23,6 +23,8 @@ public class DiagnosticCheckItem
     public DiagnosticSeverity Severity { get; set; } = DiagnosticSeverity.Info;
     public string Message { get; set; } = "";
     public string? Resolution { get; set; }
+    public string? FixActionKey { get; set; }
+    public bool IsFixable => !string.IsNullOrEmpty(FixActionKey);
 }
 
 public class TroubleshootReport
@@ -144,14 +146,22 @@ public static class TroubleshootService
         bool fileExists = File.Exists(ideviceIdPath);
         
         var (stdout, stderr, exitCode) = await ToolRunner.ExecuteAsync("idevice_id", "-v", 5000);
-        if (exitCode == 0 || stdout.Contains("idevice_id") || stderr.Contains("idevice_id"))
+        bool ideviceIdOk = exitCode == 0 && !stderr.StartsWith("ERROR:");
+        
+        if (ideviceIdOk && string.IsNullOrWhiteSpace(stdout) && !string.IsNullOrWhiteSpace(stderr) && !stderr.StartsWith("ERROR:"))
+        {
+            // Some tool versions print version info to stderr
+            stdout = stderr;
+        }
+
+        if (ideviceIdOk || (!stderr.StartsWith("ERROR:") && stdout.Contains("idevice_id")))
         {
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "iOS",
                 Title = "idevice_id Executable",
                 Severity = DiagnosticSeverity.Pass,
-                Message = $"Available at: {ideviceIdPath} (Version: {(!string.IsNullOrEmpty(stdout) ? stdout : stderr)})"
+                Message = $"Available at: {ideviceIdPath} (Version: {stdout.Trim()})"
             });
         }
         else
@@ -175,15 +185,18 @@ public static class TroubleshootService
                 Category = "iOS",
                 Title = "idevice_id Missing",
                 Severity = DiagnosticSeverity.Fail,
-                Message = $"Could not execute idevice_id. Resolved path: {ideviceIdPath}. Exit code: {exitCode}",
-                Resolution = resolution
+                Message = $"Could not execute idevice_id. Resolved path: {ideviceIdPath}. Details: {(stderr.StartsWith("ERROR:") ? stderr : $"Exit code {exitCode}")}",
+                Resolution = resolution,
+                FixActionKey = "install_idevice_tools"
             });
         }
 
         // Check ideviceinfo
         string ideviceInfoPath = ToolRunner.Resolve("ideviceinfo");
         var (infoOut, infoErr, infoCode) = await ToolRunner.ExecuteAsync("ideviceinfo", "-v", 5000);
-        if (infoCode == 0 || infoOut.Contains("ideviceinfo") || infoErr.Contains("ideviceinfo"))
+        bool ideviceInfoOk = infoCode == 0 && !infoErr.StartsWith("ERROR:");
+        
+        if (ideviceInfoOk || (!infoErr.StartsWith("ERROR:") && infoOut.Contains("ideviceinfo")))
         {
             report.Checks.Add(new DiagnosticCheckItem
             {
@@ -198,9 +211,9 @@ public static class TroubleshootService
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "iOS",
-                Title = "ideviceinfo Tool",
+                Title = "ideviceinfo Missing",
                 Severity = DiagnosticSeverity.Warning,
-                Message = $"Could not execute ideviceinfo at: {ideviceInfoPath}",
+                Message = $"Could not execute ideviceinfo at: {ideviceInfoPath}. Details: {(infoErr.StartsWith("ERROR:") ? infoErr : $"Exit code {infoCode}")}",
                 Resolution = "Ensure the complete libimobiledevice suite is installed."
             });
         }
@@ -244,7 +257,8 @@ public static class TroubleshootService
                 Title = "adb Executable Missing",
                 Severity = DiagnosticSeverity.Warning,
                 Message = $"Could not execute adb. Resolved path: {adbPath}",
-                Resolution = resolution
+                Resolution = resolution,
+                FixActionKey = "install_adb"
             });
         }
     }
@@ -275,7 +289,8 @@ public static class TroubleshootService
                         Title = "Apple Mobile Device Service",
                         Severity = DiagnosticSeverity.Warning,
                         Message = "Service is stopped or not installed.",
-                        Resolution = "Install iTunes (64-bit installer from Apple, not Microsoft Store) to obtain official Apple USB drivers."
+                        Resolution = "Install iTunes (64-bit installer from Apple, not Microsoft Store) to obtain official Apple USB drivers.",
+                        FixActionKey = "fix_apple_service"
                     });
                 }
             }
@@ -319,7 +334,8 @@ public static class TroubleshootService
                     Title = "usbmuxd Not Running",
                     Severity = DiagnosticSeverity.Fail,
                     Message = "usbmuxd daemon socket was not found. iOS USB multiplexing is inactive.",
-                    Resolution = res
+                    Resolution = res,
+                    FixActionKey = "start_usbmuxd"
                 });
             }
         }
