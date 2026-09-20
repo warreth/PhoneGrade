@@ -147,4 +147,46 @@ public class LoggingAndTroubleshootTests
                     state == DeviceService.ConnectionState.DaemonStopped ||
                     state == DeviceService.ConnectionState.NotFound);
     }
+
+    [Fact]
+    public async Task TroubleshootService_MissingIdeviceId_DoesNotReportFalsePositivePass()
+    {
+        // On this test machine without idevice_id, ensure it is NOT reported as Pass!
+        var report = await TroubleshootService.RunFullDiagnosticsAsync();
+        var ideviceCheck = report.Checks.FirstOrDefault(c => c.Title.Contains("idevice_id"));
+        
+        Assert.NotNull(ideviceCheck);
+        // Must be Fail because idevice_id is not present, never Pass with an error message
+        Assert.Equal(DiagnosticSeverity.Fail, ideviceCheck.Severity);
+        Assert.Equal("install_idevice_tools", ideviceCheck.FixActionKey);
+        Assert.True(ideviceCheck.IsFixable);
+    }
+
+    [Fact]
+    public void DiagnosticCheckItem_FixableProperties_WorkCorrectly()
+    {
+        var itemWithFix = new DiagnosticCheckItem
+        {
+            Title = "Missing ADB",
+            FixActionKey = "install_adb"
+        };
+        Assert.True(itemWithFix.IsFixable);
+
+        var itemWithoutFix = new DiagnosticCheckItem
+        {
+            Title = "Check USB Cable",
+            FixActionKey = null
+        };
+        Assert.False(itemWithoutFix.IsFixable);
+    }
+
+    [Fact]
+    public async Task ToolInstallerService_HandlesUnknownActionGracefully()
+    {
+        var progressLog = new System.Collections.Generic.List<(int, string)>();
+        var progress = new Progress<(int Percent, string Message)>(p => progressLog.Add(p));
+
+        bool result = await ToolInstallerService.ExecuteFixAsync("unknown_action_key", progress);
+        Assert.False(result);
+    }
 }
