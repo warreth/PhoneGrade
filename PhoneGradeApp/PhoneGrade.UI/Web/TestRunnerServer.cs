@@ -305,6 +305,22 @@ public class TestRunnerServer : IAsyncDisposable
         }
     }
 
+    /// <summary>Broadcasts a JSON-serializable message to all connected WebSocket sessions.</summary>
+    public void BroadcastMessage(object message)
+    {
+        var json = JsonSerializer.Serialize(message);
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var buffer = new ArraySegment<byte>(bytes);
+
+        foreach (var (sessionId, socket) in _sockets)
+        {
+            if (socket.State == WebSocketState.Open)
+            {
+                _ = socket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_host != null)
