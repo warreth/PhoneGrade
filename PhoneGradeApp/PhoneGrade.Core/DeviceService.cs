@@ -18,20 +18,23 @@ public static class DeviceService
                 if (string.IsNullOrWhiteSpace(id)) continue;
 
                 // Check if this is an Android serial or iOS UDID
-                if (await IsAndroidDeviceAsync(id))
+                // iOS UDIDs are 40 hex chars (SHA-1) or 24 hex chars (UDID format)
+                bool looksLikeiOS = id.Length == 40 || (id.Length == 24 && id.All(c => "0123456789abcdefABCDEF-".Contains(c)));
+                
+                if (!looksLikeiOS && await IsAndroidDeviceAsync(id))
                 {
                     string model = await GetAndroidPropAsync(id, "ro.product.model");
                     string brand = await GetAndroidPropAsync(id, "ro.product.brand");
                     string display = string.IsNullOrWhiteSpace(brand) ? model : $"{brand} {model}".Trim();
                     devices[id] = string.IsNullOrWhiteSpace(display) ? $"Android Device ({id})" : $"{display} (Android)";
-                    SystemEventLogger.Info(LogSource.UsbDetector, $"Identified Android device: {id} -> {devices[id]}", id);
+                    // Android device identified
                 }
                 else
                 {
                     string name = (await GetKeyAsync(id, "DeviceName")).Trim();
                     string model = Mappers.MapModel(await GetKeyAsync(id, "ProductType"));
                     devices[id] = string.IsNullOrWhiteSpace(name) ? model : $"{name} ({model})";
-                    SystemEventLogger.Info(LogSource.UsbDetector, $"Identified iOS device: {id} -> {devices[id]}", id);
+                    // iOS device identified
                 }
             }
             return devices;
@@ -203,7 +206,7 @@ public static class DeviceService
         // Check if Android device
         if (await IsAndroidDeviceAsync(targetUdid))
         {
-            SystemEventLogger.Info(LogSource.UsbDetector, $"Connected state confirmed for Android: {targetUdid}", targetUdid);
+            // Android connected
             return ConnectionState.Connected;
         }
 
@@ -213,7 +216,7 @@ public static class DeviceService
             var (adbState, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {targetUdid} get-state");
             if (adbState.Contains("unauthorized"))
             {
-                SystemEventLogger.Warning(LogSource.UsbDetector, $"Android device {targetUdid} is unauthorized: waiting for RSA trust prompt", targetUdid);
+                // Android unauthorized
                 return ConnectionState.Unauthorized;
             }
         }
@@ -223,7 +226,7 @@ public static class DeviceService
         string info = await GetKeyAsync(targetUdid, "ProductType");
         if (info.Contains("Could not connect to lockdownd") || info.Contains("PasswordProtected") || info.Contains("PairingDialogResponsePending"))
         {
-            SystemEventLogger.Warning(LogSource.UsbDetector, $"iOS device {targetUdid} requires Trust confirmation", targetUdid);
+            // iOS trust required
             return ConnectionState.NotTrusted;
         }
         if (info.StartsWith("ERROR:") || info == "NO OUTPUT")
@@ -232,11 +235,11 @@ public static class DeviceService
         string activation = await GetKeyAsync(targetUdid, "ActivationState");
         if (activation.Contains("Unactivated"))
         {
-            SystemEventLogger.Info(LogSource.UsbDetector, $"iOS device {targetUdid} is not activated", targetUdid);
+            // iOS not activated
             return ConnectionState.NotActivated;
         }
 
-        SystemEventLogger.Info(LogSource.UsbDetector, $"iOS device {targetUdid} is connected and ready", targetUdid);
+        // iOS ready
         return ConnectionState.Connected;
     }
 
@@ -254,7 +257,7 @@ public static class DeviceService
                              .ToArray();
             if (list.Length > 0)
             {
-                SystemEventLogger.Info(LogSource.UsbDetector, $"Discovered {list.Length} iOS device(s) via idevice_id: {string.Join(", ", list)}");
+                // Discovered iOS devices (logging suppressed to avoid polling spam)
                 return (list, stdout, ConnectionState.Connected);
             }
         }
@@ -287,14 +290,14 @@ public static class DeviceService
                         else if (state.Equals("unauthorized", StringComparison.OrdinalIgnoreCase))
                         {
                             hasUnauthorized = true;
-                            SystemEventLogger.Warning(LogSource.UsbDetector, $"Android device {serial} connected but unauthorized (waiting for RSA trust prompt)", serial);
+                            // Unauthorized Android device detected
                         }
                     }
                 }
 
                 if (androidDevices.Count > 0)
                 {
-                    SystemEventLogger.Info(LogSource.UsbDetector, $"Discovered {androidDevices.Count} Android device(s) via adb: {string.Join(", ", androidDevices)}");
+                    // Discovered Android devices (logging suppressed)
                     return (androidDevices.ToArray(), adbOut, ConnectionState.Connected);
                 }
 
@@ -306,21 +309,21 @@ public static class DeviceService
         }
         catch (Exception ex)
         {
-            SystemEventLogger.Debug(LogSource.UsbDetector, $"ADB probe note: {ex.Message}");
+            // ADB probe failed (suppressed)
         }
 
         // 3. Check if stderr indicates specific daemon or permission errors for iOS
         string combinedErr = (stderr + " " + stdout).Trim();
         if (combinedErr.Contains("Permission denied") || combinedErr.Contains("Operation not permitted"))
         {
-            SystemEventLogger.Error(LogSource.UsbDetector, "USB access permission denied: bestandspermissies ontoereikend");
+            // Permission denied
             return ([], combinedErr, ConnectionState.PermissionDenied);
         }
         if (combinedErr.Contains("usbmuxd") || combinedErr.Contains("Could not connect to usbmuxd") || combinedErr.Contains("Connection refused"))
         {
             var daemon = await CheckDaemonStatusAsync();
             var state = daemon.IsRunning ? ConnectionState.DriverMissing : ConnectionState.DaemonStopped;
-            SystemEventLogger.Warning(LogSource.UsbDetector, $"Daemon issue detected: {daemon.StatusMessage}. State: {state}");
+            // Daemon issue detected
             return ([], combinedErr, state);
         }
 
@@ -331,7 +334,7 @@ public static class DeviceService
             string? fallbackUdid = Parsers.KeyValue(infoOut, "UniqueDeviceID");
             if (!string.IsNullOrWhiteSpace(fallbackUdid))
             {
-                SystemEventLogger.Info(LogSource.UsbDetector, $"Discovered device via ideviceinfo fallback: {fallbackUdid}");
+                // Fallback discovery via ideviceinfo
                 return ([fallbackUdid.Trim()], fallbackUdid.Trim(), ConnectionState.Connected);
             }
         }
@@ -339,12 +342,12 @@ public static class DeviceService
         string fallbackErr = (infoErr + " " + combinedErr).Trim();
         if (fallbackErr.Contains("Could not connect to lockdownd"))
         {
-            SystemEventLogger.Warning(LogSource.UsbDetector, "Waiting for trust confirmation on device (Could not connect to lockdownd)");
+            // Waiting for trust
             return ([], fallbackErr, ConnectionState.NotTrusted);
         }
         if (fallbackErr.Contains("usbmuxd") || fallbackErr.Contains("Could not connect to usbmuxd"))
         {
-            SystemEventLogger.Warning(LogSource.UsbDetector, "usbmuxd daemon is stopped or unreachable");
+            // usbmuxd unreachable
             return ([], fallbackErr, ConnectionState.DaemonStopped);
         }
         
@@ -356,7 +359,7 @@ public static class DeviceService
             combinedErr.Contains("No such file or directory") ||
             combinedErr.Contains("The system cannot find the file specified"))
         {
-            SystemEventLogger.Error(LogSource.UsbDetector, "Critical USB tools (idevice_id / adb) are missing from the system. Cannot detect devices.");
+            // Tools missing
             return ([], fallbackErr, ConnectionState.ToolsMissing);
         }
 

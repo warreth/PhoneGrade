@@ -213,7 +213,7 @@ public class MainWindowViewModel : ReactiveObject
         }
     }
 
-    /// <summary>True once real device data has been read — drives the summary grid.</summary>
+    /// <summary>True once real device data has been read: drives the summary grid.</summary>
     public bool HasDevice => DeviceData is { Model: not "NOMODEL", Identifier: not "NOID" };
 
     // Kiosk state-driven workflow properties
@@ -444,7 +444,7 @@ public class MainWindowViewModel : ReactiveObject
     private void StartWatcher()
     {
         StopWatcher();
-        _watcher = Observable.Interval(TimeSpan.FromSeconds(2))
+        _watcher = Observable.Interval(TimeSpan.FromSeconds(2.5)) // Throttled to prevent lockdownd crashes
             .ObserveOn(RxApp.TaskpoolScheduler)
             .SelectMany(_ => Observable.FromAsync(RefreshDeviceListSilentAsync))
             .Where(c => c > 0)
@@ -513,19 +513,19 @@ public class MainWindowViewModel : ReactiveObject
                 DeviceService.ConnectionState.ToolsMissing =>
                     "USB tools ontbreken: noch libimobiledevice noch adb is geinstalleerd of vindbaar in PATH. Open de Troubleshoot tab voor installatie-instructies.",
                 DeviceService.ConnectionState.Unauthorized =>
-                    "ADB unauthorized: ontgrendel Android toestel en accepteer USB-foutopsporing (RSA-sleutel).",
+                    "Wachten op RSA-autorisatie op Android. Accepteer USB-foutopsporing.",
                 DeviceService.ConnectionState.PermissionDenied =>
-                    "Executable permissions missing: voer chmod +x uit op de tools of controleer Gatekeeper.",
+                    "Rechten ontbreken (chmod +x nodig of Gatekeeper waarschuwing).",
                 DeviceService.ConnectionState.DriverMissing =>
-                    "Apple USB Driver missing: installeer iTunes of Apple Mobile Device Support.",
+                    "Apple USB Driver ontbreekt. Installeer iTunes of Apple Mobile Device Support.",
                 DeviceService.ConnectionState.DaemonStopped =>
                     OperatingSystem.IsWindows()
                         ? "Apple Mobile Device Service is gestopt: start de Windows service 'Apple Mobile Device Service'."
-                        : "usbmuxd daemon draait niet: start usbmuxd via launchctl of systemctl.",
+                        : "usbmuxd daemon draait niet.",
                 DeviceService.ConnectionState.NotTrusted =>
-                    "Waiting for trust confirmation on device: ontgrendel toestel en tik op 'Vertrouwen'.",
+                    "Wachten op toestemming op iPhone. Ontgrendel en tik op 'Vertrouw'.",
                 _ =>
-                    "Geen toestel gevonden. Kabel/poort proberen of toestel ontgrendelen en 'Vertrouwen' tikken."
+                    "Geen toestel gevonden. Controleer de kabel of ontgrendel het toestel."
             };
             return;
         }
@@ -572,12 +572,14 @@ public class MainWindowViewModel : ReactiveObject
             var state = await DeviceService.GetConnectionStateAsync(udid);
             if (state == DeviceService.ConnectionState.Unauthorized)
             {
-                Status = "ADB unauthorized: ontgrendel Android toestel en accepteer USB-foutopsporing (RSA-sleutel).";
+                Status = "Wachten op RSA-autorisatie op Android. Accepteer USB-foutopsporing.";
+                WorkflowState = AppWorkflowState.Idle; // Fallback to Idle
                 return;
             }
             if (state == DeviceService.ConnectionState.NotTrusted)
             {
-                Status = "Waiting for trust confirmation on device: ontgrendel toestel en tik op 'Vertrouwen'.";
+                Status = "Wachten op toestemming op iPhone. Ontgrendel en tik op 'Vertrouw'.";
+                WorkflowState = AppWorkflowState.Idle; // Fallback to Idle
                 return;
             }
             if (state == DeviceService.ConnectionState.PermissionDenied)
@@ -599,7 +601,7 @@ public class MainWindowViewModel : ReactiveObject
             }
             if (state != DeviceService.ConnectionState.Connected)
             {
-                Status = "Toestel niet bereikbaar: andere kabel/poort proberen.";
+                Status = "Toestel niet bereikbaar: probeer een andere kabel of poort.";
                 return;
             }
             Progress = 20;
@@ -626,7 +628,7 @@ public class MainWindowViewModel : ReactiveObject
             if (Enable85PercentChecker && int.TryParse(DeviceData.BatteryHealth, out int health) && health < 85)
                 DeviceData.BatteryHealth = "100%-X";
 
-            // 5. Diagnostics (panic logs & sensors) — advisory, not blocking
+            // 5. Diagnostics (panic logs & sensors): advisory, not blocking
             if (RunDiagnostics)
             {
                 Status = "Diagnostiek draaien (panic-logs)…";
