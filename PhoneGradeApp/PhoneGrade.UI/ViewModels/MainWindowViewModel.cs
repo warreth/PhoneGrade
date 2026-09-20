@@ -205,6 +205,13 @@ public class MainWindowViewModel : ReactiveObject
         set { _settings.ShowSummaryScreenAfterTesting = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _showSummaryScreenAfterTesting, value); }
     }
 
+    private bool _requirePwaTest = true;
+    public bool RequirePwaTest
+    {
+        get => _requirePwaTest;
+        set { _settings.RequirePwaTest = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _requirePwaTest, value); }
+    }
+
     private string _defaultQuality = "";
     public string DefaultQuality
     {
@@ -315,6 +322,7 @@ public class MainWindowViewModel : ReactiveObject
     public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenLabelCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenEditorCommand { get; }
+    public ReactiveCommand<Unit, Unit> FinishInspectionCommand { get; }
 
     public event Action<DeviceData>? DataEditorRequested;
 
@@ -330,6 +338,7 @@ public class MainWindowViewModel : ReactiveObject
         _openEditorBeforePrint = _settings.OpenEditorBeforePrint;
         _autoStartWebTest = _settings.AutoStartWebTest;
         _showSummaryScreenAfterTesting = _settings.ShowSummaryScreenAfterTesting;
+        _requirePwaTest = _settings.RequirePwaTest;
         _defaultQuality = _settings.DefaultQuality;
         _defaultPaymentMethod = _settings.DefaultPaymentMethod;
         LabelService.ConfiguredTemplatePath = _settings.TemplatePath;
@@ -342,6 +351,7 @@ public class MainWindowViewModel : ReactiveObject
         SetPaymentMethodCommand = ReactiveCommand.Create<string>(p => ContinueAfterPaymentAsync(p));
         OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
         OpenEditorCommand = ReactiveCommand.Create(() => DataEditorRequested?.Invoke(DeviceData));
+        FinishInspectionCommand = ReactiveCommand.CreateFromTask(FinishInspectionAsync);
 
         ToggleSettingsCommand = ReactiveCommand.Create(() => { IsSettingsDrawerOpen = !IsSettingsDrawerOpen; });
         OpenLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = true; IsSettingsDrawerOpen = false; });
@@ -700,14 +710,8 @@ public class MainWindowViewModel : ReactiveObject
             }
             Progress = 75;
 
-            // 6. Quality + payment: defaults from settings, else popup
-            if (DefaultQuality is { Length: > 0 })
-                await ContinueAfterQualityAsync(DefaultQuality);
-            else
-            {
-                IsQualityPopupVisible = true;
-                Status = "Kies de kwaliteit…";
-            }
+            // Wait for user to explicitly click 'Afronden'
+            Status = "Specificaties gelezen. Voer de interactieve test uit en klik op 'Afronden'.";
         }
         catch (Exception ex)
         {
@@ -771,7 +775,26 @@ public class MainWindowViewModel : ReactiveObject
     }
 
     /// <summary>Generate + open the label; single click path for the user.</summary>
-    public void FinishLabel()
+    private async Task FinishInspectionAsync()
+    {
+        // Check if PWA test is required and not completed
+        if (RequirePwaTest && DeviceData.InteractiveTests == null)
+        {
+            Status = "PWA hardwaretest is verplicht. Voer eerst de interactieve test uit.";
+            return;
+        }
+
+        // 6. Quality + payment: defaults from settings, else popup
+        if (DefaultQuality is { Length: > 0 })
+            await ContinueAfterQualityAsync(DefaultQuality);
+        else
+        {
+            IsQualityPopupVisible = true;
+            Status = "Kies de kwaliteit...";
+        }
+    }
+
+    private void FinishLabel()
     {
         try
         {

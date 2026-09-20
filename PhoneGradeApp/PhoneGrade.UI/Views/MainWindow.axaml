@@ -201,7 +201,7 @@
                                 <TextBlock Text="{Binding InteractiveTestSummary}" Foreground="{DynamicResource SuccessColor}" 
                                            FontWeight="SemiBold" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,0"/>
 
-                                <Button Classes="cta" Command="{Binding StartCommand}" Content="Afronden en naar Overzicht" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,8,0,0"/>
+                                <Button Classes="cta" Command="{Binding FinishInspectionCommand}" Content="Afronden" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,8,0,0"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -325,6 +325,7 @@
 
                             <CheckBox Content="Automatisch starten bij inpluggen" IsChecked="{Binding AutoDetectOnPlug}"/>
                             <CheckBox Content="Automatisch interactieve webtest starten" IsChecked="{Binding AutoStartWebTest}"/>
+                            <CheckBox Content="PWA Test Verplicht voor afronden" IsChecked="{Binding RequirePwaTest}"/>
                             <CheckBox Content="Toon samenvatting voor label printen" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
                         </StackPanel>
 
