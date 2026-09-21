@@ -227,7 +227,70 @@ public class MappersTests
         Assert.Equal("MESA12345", data.TouchIdFaceIdSerialNumber);
         Assert.Equal("Via Server (API)", data.FmiVerificationSource);
     }
+
+    [Fact]
+    public void CleanSerial_DecodesBase64MlbCorrectly()
+    {
+        // "THjDhg==" in base64 decodes to 4 bytes: 4c 78 c3 86
+        // While a standard base64 serial like "RjhZNTEyMzRBQkNE" decodes to "F8Y51234ABCD"
+        Assert.Equal("F8Y51234ABCD", Parsers.CleanSerial("RjhZNTEyMzRBQkNE"));
+    }
+
+    [Fact]
+    public void VerifyComponent_NoOutput_ReturnsUnknown_NeverMatch()
+    {
+        var status = Parsers.VerifyComponent("NO OUTPUT", "NO OUTPUT");
+        Assert.Equal(ComponentStatusType.Unknown, status);
+    }
+
+    [Fact]
+    public void VerifyComponent_NullOrWhitespace_ReturnsUnknown()
+    {
+        Assert.Equal(ComponentStatusType.Unknown, Parsers.VerifyComponent(null, null));
+        Assert.Equal(ComponentStatusType.Unknown, Parsers.VerifyComponent("   ", "   "));
+        Assert.Equal(ComponentStatusType.Unknown, Parsers.VerifyComponent("ERROR: timeout", "ERROR: timeout"));
+    }
+
+    [Theory]
+    [InlineData("gold", "Goud")]
+    [InlineData("silver", "Zilver")]
+    [InlineData("space gray", "Spacegrijs")]
+    [InlineData("rose gold", "Rosé Goud")]
+    [InlineData("midnight", "Middernacht")]
+    [InlineData("starlight", "Sterrenlicht")]
+    public void MapColor_MapsAppleColorsAccurately(string raw, string expected)
+    {
+        Assert.Equal(expected, Mappers.MapColor(raw));
+    }
+
+    [Theory]
+    [InlineData("331cee2aaa5478334708e8682bac3ef0f8979251", true)]
+    [InlineData("00008030-001A34567890CDEF", true)]
+    [InlineData("emulator-5554", false)]
+    [InlineData("RFCW123456", false)]
+    public void LooksLikeIosUdid_ClassifiesCorrectly(string id, bool expected)
+    {
+        Assert.Equal(expected, DeviceService.LooksLikeIosUdid(id));
+    }
+
+    [Fact]
+    public void DeviceSessionManager_PreservesAndResumesSession()
+    {
+        string testUdid = "TEST_UDID_RESUME_123";
+        var originalData = new DeviceData { Model = "iPhone 13", Identifier = "358123456789012" };
+        
+        DeviceSessionManager.PreserveDisconnectedSession(testUdid, originalData, 65);
+
+        Assert.True(DeviceSessionManager.TryGetPreservedSession(testUdid, out var session));
+        Assert.NotNull(session);
+        Assert.Equal(65, session.SavedProgress);
+        Assert.Equal("iPhone 13", session.Data?.Model);
+
+        DeviceSessionManager.ResetDevice(testUdid);
+        Assert.False(DeviceSessionManager.TryGetPreservedSession(testUdid, out _));
+    }
 }
+
 
 public class PanicRulesTests
 {
