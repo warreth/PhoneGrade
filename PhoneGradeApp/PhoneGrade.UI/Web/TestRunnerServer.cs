@@ -84,6 +84,7 @@ public class TestRunnerServer : IAsyncDisposable
         }
 
         int port = _preferredPort;
+        EnsureWindowsFirewallRule(port);
         Exception? lastEx = null;
 
         for (int attempt = 0; attempt < 5; attempt++)
@@ -328,6 +329,47 @@ public class TestRunnerServer : IAsyncDisposable
             await _host.StopAsync(TimeSpan.FromSeconds(5));
             _host.Dispose();
             _host = null;
+        }
+    }
+
+    /// <summary>Configures Windows Firewall rule for the PWA server port if running on Windows.</summary>
+    public static void EnsureWindowsFirewallRule(int port = 5055)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        try
+        {
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "netsh",
+                Arguments = $"advfirewall firewall add rule name=\"PhoneGrade_PWA_{port}\" dir=in action=allow protocol=TCP localport={port}",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using var proc = System.Diagnostics.Process.Start(startInfo);
+            proc?.WaitForExit(3000);
+            SystemEventLogger.Info(LogSource.Desktop, $"Windows Firewall regel toegevoegd/gecontroleerd voor poort {port}.");
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Warning(LogSource.Desktop, $"Kon Windows Firewall regel niet automatisch instellen: {ex.Message}");
+        }
+    }
+
+    /// <summary>Sets up USB port forwarding via iproxy / usbmuxd if device is connected over USB.</summary>
+    public static async Task SetupUsbPortForwardingAsync(string udid, int localPort = 5055, int devicePort = 5055)
+    {
+        try
+        {
+            // Execute iproxy in background or verify usbmux port mapping
+            await ToolRunner.RunAsync("iproxy", $"{localPort} {devicePort} -u {udid}");
+            SystemEventLogger.Info(LogSource.Desktop, $"USB reverse tethering / poortkoppeling actief voor {udid}:{devicePort}");
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Debug(LogSource.Desktop, $"USB poortkoppeling niet beschikbaar: {ex.Message}");
         }
     }
 }

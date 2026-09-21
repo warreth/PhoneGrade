@@ -212,6 +212,20 @@ public class MainWindowViewModel : ReactiveObject
         set { _settings.RequirePwaTest = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _requirePwaTest, value); }
     }
 
+    private bool _autoFinishAfterTest;
+    public bool AutoFinishAfterTest
+    {
+        get => _autoFinishAfterTest;
+        set { _settings.AutoFinishAfterTest = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _autoFinishAfterTest, value); }
+    }
+
+    private string _imeiApiKey = "";
+    public string ImeiApiKey
+    {
+        get => _imeiApiKey;
+        set { _settings.ImeiApiKey = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _imeiApiKey, value); }
+    }
+
     private string _defaultQuality = "";
     public string DefaultQuality
     {
@@ -339,6 +353,8 @@ public class MainWindowViewModel : ReactiveObject
         _autoStartWebTest = _settings.AutoStartWebTest;
         _showSummaryScreenAfterTesting = _settings.ShowSummaryScreenAfterTesting;
         _requirePwaTest = _settings.RequirePwaTest;
+        _autoFinishAfterTest = _settings.AutoFinishAfterTest;
+        _imeiApiKey = _settings.ImeiApiKey ?? "";
         _defaultQuality = _settings.DefaultQuality;
         _defaultPaymentMethod = _settings.DefaultPaymentMethod;
         LabelService.ConfiguredTemplatePath = _settings.TemplatePath;
@@ -400,6 +416,10 @@ public class MainWindowViewModel : ReactiveObject
                     if (e.Message?.Payload != null)
                     {
                         ApplyInteractiveResults(e.Message.Payload);
+                        if (AutoFinishAfterTest)
+                        {
+                            _ = FinishInspectionAsync();
+                        }
                     }
                 });
             };
@@ -529,15 +549,19 @@ public class MainWindowViewModel : ReactiveObject
         }
 
         WorkflowState = AppWorkflowState.Idle;
-        Status = "Sluit een toestel aan om te starten...";
-        DeviceData = new DeviceData { Model = "NOMODEL", Identifier = "NOID" };
+        Status = "Sluit een toestel aan via USB om te starten...";
+        DeviceData = new DeviceData { Model = "Onbekend", Identifier = "Onbekend" };
         ComponentChecks.Clear();
         Issues.Clear();
         HasIssues = false;
         Progress = 0;
         Busy = false;
+        WebRunnerUrl = "";
+        QrCodeBitmap = null;
+        InteractiveSessionStatus = "";
         IsQualityPopupVisible = false;
         IsPaymentPopupVisible = false;
+        DeviceSessionManager.ClearAll();
     }
 
     /// <summary>True when a device list refresh surfaced exactly one usable device.</summary>

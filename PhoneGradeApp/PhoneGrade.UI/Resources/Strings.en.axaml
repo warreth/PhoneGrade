@@ -72,6 +72,8 @@
     <x:String x:Key="Settings_Payment">Default Payment Method</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Automatically start interactive web test</x:String>
     <x:String x:Key="Settings_RequirePwaTest">Require PWA Test before finishing</x:String>
+    <x:String x:Key="Settings_AutoFinishAfterTest">Automatically finish after test</x:String>
+    <x:String x:Key="Settings_ImeiApiKey">IMEI / FMI API Key</x:String>
     <x:String x:Key="Settings_ShowSummary">Show summary before printing label</x:String>
     <x:String x:Key="Settings_Advanced">ADVANCED AUTOMATION</x:String>
     <x:String x:Key="Settings_AutoActivate">Auto-activate (bypass)</x:String>
