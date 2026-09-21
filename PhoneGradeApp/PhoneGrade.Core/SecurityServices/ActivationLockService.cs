@@ -14,16 +14,30 @@ public static class ActivationLockService
         public string SIMState { get; set; } = "Unknown";
     }
 
-    /// <summary>Detect activation lock state from MobileGestalt, lockdownd, and account status.</summary>
+    /// <summary>Detect activation lock state from com.apple.fmip, MobileGestalt, PurpleBuddy, and ActivationState.</summary>
     public static async Task<ActivationLockStatus> DetectAsync(string udid)
     {
         try
         {
-            // 1. MobileGestalt / PurpleBuddy query for FMI status
+            // 1. Query com.apple.fmip domain for FmipEnabled (most authoritative local source)
+            string fmipDomain = await DeviceService.GetDomainAsync(udid, "com.apple.fmip");
+            if (!string.IsNullOrWhiteSpace(fmipDomain))
+            {
+                string? fmipEnabled = Parsers.KeyValue(fmipDomain, "FmipEnabled") ?? Parsers.KeyValue(fmipDomain, "FMIEnabled");
+                if (fmipEnabled == "true" || fmipEnabled == "1")
+                {
+                    return ActivationLockStatus.Locked;
+                }
+                if (fmipEnabled == "false" || fmipEnabled == "0")
+                {
+                    return ActivationLockStatus.Unlocked;
+                }
+            }
+
+            // 2. PurpleBuddy query for FMI status
             string pbDomain = await DeviceService.GetDomainAsync(udid, "com.apple.purplebuddy");
             if (!string.IsNullOrWhiteSpace(pbDomain))
             {
-                string? setupDone = Parsers.KeyValue(pbDomain, "SetupDone");
                 string? fmiActive = Parsers.KeyValue(pbDomain, "FindMyiPhoneActive") ?? Parsers.KeyValue(pbDomain, "FMIActive");
                 if (fmiActive == "true" || fmiActive == "1")
                 {
@@ -31,7 +45,7 @@ public static class ActivationLockService
                 }
             }
 
-            // 2. MobileGestalt query
+            // 3. MobileGestalt query
             string gestalt = await DeviceService.GetDomainAsync(udid, "com.apple.mobile.gestalt");
             if (!string.IsNullOrWhiteSpace(gestalt))
             {
@@ -42,7 +56,7 @@ public static class ActivationLockService
                 }
             }
 
-            // 3. Check ActivationState key
+            // 4. Check ActivationState key
             string activation = await DeviceService.GetKeyAsync(udid, "ActivationState");
             if (!activation.StartsWith("ERROR:") && !string.IsNullOrWhiteSpace(activation))
             {
@@ -54,8 +68,7 @@ public static class ActivationLockService
                 if (activation == "activated")
                 {
                     // Note: 'activated' locally does not mean FMI is OFF on Apple server!
-                    // If no explicit FMI is detected locally, we mark Unlocked for local state,
-                    // but server check can override it.
+                    // Local state shows Unlocked, but server check may override.
                     return ActivationLockStatus.Unlocked;
                 }
             }
