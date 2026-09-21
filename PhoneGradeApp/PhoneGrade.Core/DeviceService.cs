@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace PhoneGrade.Core;
@@ -106,6 +107,78 @@ public static class DeviceService
         var (output, _) = await ToolRunner.RunAsync("ideviceinfo", args);
         return output.StartsWith("ERROR:") ? "" : output;
     }
+
+    /// <summary>Container for all raw device data queried concurrently.</summary>
+    public class DeviceRawData
+    {
+        public string DefaultXml { get; set; } = "";
+        public string GestaltXml { get; set; } = "";
+        public string DiagXml { get; set; } = "";
+        public string DiskXml { get; set; } = "";
+        public string PurpleBuddyXml { get; set; } = "";
+        public string FmipXml { get; set; } = "";
+        public string IORegDisplay { get; set; } = "";
+        public string IORegCamera { get; set; } = "";
+        public string IORegBio { get; set; } = "";
+        public string IORegBattery { get; set; } = "";
+        
+        public Dictionary<string, string> DefaultDict { get; set; } = new();
+        public Dictionary<string, string> GestaltDict { get; set; } = new();
+        public Dictionary<string, string> DiagDict { get; set; } = new();
+        public Dictionary<string, string> DiskDict { get; set; } = new();
+        public Dictionary<string, string> PurpleBuddyDict { get; set; } = new();
+        public Dictionary<string, string> FmipDict { get; set; } = new();
+    }
+
+    private static readonly ConcurrentDictionary<string, DeviceRawData> _rawCache = new();
+
+    /// <summary>Performs all CLI queries concurrently and caches the parsed dictionaries.</summary>
+    public static async Task<DeviceRawData> GetBulkRawDataAsync(string udid)
+    {
+        if (_rawCache.TryGetValue(udid, out var existing))
+            return existing;
+
+        var raw = new DeviceRawData();
+        
+        // Execute fast lockdown queries concurrently
+        var tDefault = ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -x");
+        var tGestalt = ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.mobile.gestalt -x");
+        var tDiag = ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.mobile.diagnostics -x");
+        var tDisk = ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.disk_usage -x");
+        var tPb = ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.purplebuddy -x");
+        var tFmip = ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.fmip -x");
+
+        // Execute slow ioregentry queries concurrently
+        var tDisp = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleCLCD2");
+        var tCam = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleH10CamIn");
+        var tBio = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleBiometricSensor");
+        var tBatt = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleSmartBattery");
+
+        await Task.WhenAll(tDefault, tGestalt, tDiag, tDisk, tPb, tFmip, tDisp, tCam, tBio, tBatt);
+
+        raw.DefaultXml = tDefault.Result.Output;
+        raw.GestaltXml = tGestalt.Result.Output;
+        raw.DiagXml = tDiag.Result.Output;
+        raw.DiskXml = tDisk.Result.Output;
+        raw.PurpleBuddyXml = tPb.Result.Output;
+        raw.FmipXml = tFmip.Result.Output;
+        raw.IORegDisplay = tDisp.Result.Output;
+        raw.IORegCamera = tCam.Result.Output;
+        raw.IORegBio = tBio.Result.Output;
+        raw.IORegBattery = tBatt.Result.Output;
+
+        // Parse XML directly
+        raw.DefaultDict = Parsers.ParsePlistXml(raw.DefaultXml);
+        raw.GestaltDict = Parsers.ParsePlistXml(raw.GestaltXml);
+        raw.DiagDict = Parsers.ParsePlistXml(raw.DiagXml);
+        raw.DiskDict = Parsers.ParsePlistXml(raw.DiskXml);
+        raw.PurpleBuddyDict = Parsers.ParsePlistXml(raw.PurpleBuddyXml);
+        raw.FmipDict = Parsers.ParsePlistXml(raw.FmipXml);
+
+        _rawCache[udid] = raw;
+        return raw;
+    }
+
 
     /// <summary>Device state summary used by the auto-flow and UI.</summary>
     public enum ConnectionState
@@ -432,23 +505,14 @@ public static class DeviceService
             return await GetAndroidDeviceDataAsync(udid);
         }
 
-        // OPTIMIZATION: Call ideviceinfo once and cache the output
-        string cachedOutput = await GetDomainAsync(udid, "");
-        
-        string productType = (Parsers.KeyValue(cachedOutput, "ProductType") ?? "").Trim();
-        if (string.IsNullOrEmpty(productType)) productType = (await GetKeyAsync(udid, "ProductType")).Trim();
+        // HIGH PERFORMANCE: Bulk parallel extraction of all domains
+        var raw = await GetBulkRawDataAsync(udid);
 
-        string imei = Parsers.KeyValue(cachedOutput, "InternationalMobileEquipmentIdentity") ?? "";
-        if (string.IsNullOrEmpty(imei)) imei = await GetKeyAsync(udid, "InternationalMobileEquipmentIdentity");
-
-        string serial = Parsers.KeyValue(cachedOutput, "SerialNumber") ?? "";
-        if (string.IsNullOrEmpty(serial)) serial = await GetKeyAsync(udid, "SerialNumber");
-
-        string color = Parsers.KeyValue(cachedOutput, "DeviceEnclosureColor") ?? "";
-        if (string.IsNullOrEmpty(color)) color = await GetKeyAsync(udid, "DeviceEnclosureColor");
-
-        string iosVersion = (Parsers.KeyValue(cachedOutput, "ProductVersion") ?? "").Trim();
-        if (string.IsNullOrEmpty(iosVersion)) iosVersion = (await GetKeyAsync(udid, "ProductVersion")).Trim();
+        string productType = (FindDictValue(raw.DefaultDict, "ProductType") ?? "").Trim();
+        string imei = (FindDictValue(raw.DefaultDict, "InternationalMobileEquipmentIdentity") ?? "").Trim();
+        string serial = (FindDictValue(raw.DefaultDict, "SerialNumber") ?? "").Trim();
+        string color = (FindDictValue(raw.DefaultDict, "DeviceEnclosureColor") ?? "").Trim();
+        string iosVersion = (FindDictValue(raw.DefaultDict, "ProductVersion") ?? "").Trim();
 
         var data = new DeviceData
         {
@@ -461,8 +525,17 @@ public static class DeviceService
             MotherboardSerialNumber = serial.StartsWith("ERROR:") ? "" : serial.Trim(),
         };
 
-        data.Storage = await GetStorageAsync(udid);
-        await PopulateBatteryMetricsAsync(udid, data);
+        // Storage from cached disk xml
+        long diskBytes = 0;
+        string? diskCap = FindDictValue(raw.DiskDict, "TotalDiskCapacity");
+        if (long.TryParse(diskCap, out long db)) diskBytes = db;
+        data.Storage = diskBytes > 0 ? Mappers.MapStorage(diskBytes) : await GetStorageAsync(udid);
+
+        // Battery health & cycle count from cached ioreg & gestalt
+        data.BatteryHealth = Parsers.ParseBatteryHealth(raw.IORegBattery);
+        string? cycles = FindDictValue(raw.GestaltDict, "BatteryCycleCount");
+        if (int.TryParse(cycles, out int cc)) data.BatteryCycleCount = cc;
+
         await PopulateHardwareSerialsAndChecksAsync(udid, data);
 
         // Security checks: iOS vs Android detection
@@ -715,96 +788,102 @@ public static class DeviceService
         var checks = new List<ComponentStatus>();
 
         // 1. Moederbord (Logic Board)
+        string safeMlbRead = !Parsers.IsUnreadable(mlbLive) ? mlbLive : (Parsers.IsUnreadable(data.Identifier) ? "Onbekend" : data.Identifier);
+        string safeMlbOrig = !Parsers.IsUnreadable(origMlb) ? origMlb : safeMlbRead;
         checks.Add(new ComponentStatus
         {
             Name = "Moederbord (Logic Board)",
-            SerialRead = !string.IsNullOrWhiteSpace(mlbLive) ? mlbLive : (string.IsNullOrWhiteSpace(data.Identifier) ? "Onbekend" : data.Identifier),
-            SerialOriginal = !string.IsNullOrWhiteSpace(origMlb) ? origMlb : mlbLive,
-            Status = !string.IsNullOrWhiteSpace(origMlb) 
-                ? Parsers.VerifyComponent(mlbLive, origMlb) 
-                : (!string.IsNullOrWhiteSpace(mlbLive) ? ComponentStatusType.Match : ComponentStatusType.Unknown)
+            SerialRead = safeMlbRead,
+            SerialOriginal = safeMlbOrig,
+            Status = Parsers.VerifyComponent(safeMlbRead, safeMlbOrig)
         });
 
         // 2. Batterij
+        string safeBattRead = !Parsers.IsUnreadable(data.BatterySerialNumber) ? data.BatterySerialNumber : "Onbekend";
+        string safeBattOrig = !Parsers.IsUnreadable(data.OriginalBatterySerialNumber) ? data.OriginalBatterySerialNumber : "Onbekend";
         checks.Add(new ComponentStatus
         {
             Name = "Batterij",
-            SerialRead = !string.IsNullOrWhiteSpace(data.BatterySerialNumber) ? data.BatterySerialNumber : "Onbekend",
-            SerialOriginal = !string.IsNullOrWhiteSpace(data.OriginalBatterySerialNumber) ? data.OriginalBatterySerialNumber : "Onbekend",
-            Status = Parsers.VerifyComponent(data.BatterySerialNumber, data.OriginalBatterySerialNumber)
+            SerialRead = safeBattRead,
+            SerialOriginal = safeBattOrig,
+            Status = Parsers.VerifyComponent(safeBattRead, safeBattOrig)
         });
 
         // 3. Scherm (LCM)
+        string safeDispRead = !Parsers.IsUnreadable(data.DisplaySerialNumber) ? data.DisplaySerialNumber : "Onbekend";
+        string safeDispOrig = !Parsers.IsUnreadable(origDisplay) ? origDisplay : "Onbekend";
         checks.Add(new ComponentStatus
         {
             Name = "Scherm (LCM)",
-            SerialRead = !string.IsNullOrWhiteSpace(data.DisplaySerialNumber) ? data.DisplaySerialNumber : "Onbekend",
-            SerialOriginal = !string.IsNullOrWhiteSpace(origDisplay) ? origDisplay : "Onbekend",
-            Status = Parsers.VerifyComponent(data.DisplaySerialNumber, origDisplay)
+            SerialRead = safeDispRead,
+            SerialOriginal = safeDispOrig,
+            Status = Parsers.VerifyComponent(safeDispRead, safeDispOrig)
         });
 
         // 4. Camera Achter
+        string safeRearRead = !Parsers.IsUnreadable(data.RearCameraSerialNumber) ? data.RearCameraSerialNumber : "Onbekend";
+        string safeRearOrig = !Parsers.IsUnreadable(origRearCam) ? origRearCam : "Onbekend";
         checks.Add(new ComponentStatus
         {
             Name = "Camera Achter",
-            SerialRead = !string.IsNullOrWhiteSpace(data.RearCameraSerialNumber) ? data.RearCameraSerialNumber : "Onbekend",
-            SerialOriginal = !string.IsNullOrWhiteSpace(origRearCam) ? origRearCam : "Onbekend",
-            Status = Parsers.VerifyComponent(data.RearCameraSerialNumber, origRearCam)
+            SerialRead = safeRearRead,
+            SerialOriginal = safeRearOrig,
+            Status = Parsers.VerifyComponent(safeRearRead, safeRearOrig)
         });
 
         // 5. Camera Voor
+        string safeFrontRead = !Parsers.IsUnreadable(data.FrontCameraSerialNumber) ? data.FrontCameraSerialNumber : "Onbekend";
+        string safeFrontOrig = !Parsers.IsUnreadable(origFrontCam) ? origFrontCam : "Onbekend";
         checks.Add(new ComponentStatus
         {
             Name = "Camera Voor",
-            SerialRead = !string.IsNullOrWhiteSpace(data.FrontCameraSerialNumber) ? data.FrontCameraSerialNumber : "Onbekend",
-            SerialOriginal = !string.IsNullOrWhiteSpace(origFrontCam) ? origFrontCam : "Onbekend",
-            Status = Parsers.VerifyComponent(data.FrontCameraSerialNumber, origFrontCam)
+            SerialRead = safeFrontRead,
+            SerialOriginal = safeFrontOrig,
+            Status = Parsers.VerifyComponent(safeFrontRead, safeFrontOrig)
         });
 
         // 6. Touch ID / Face ID
+        string safeBioRead = !Parsers.IsUnreadable(bioSerial) ? bioSerial : "Onbekend";
+        string safeBioOrig = !Parsers.IsUnreadable(origBio) ? origBio : "Onbekend";
         checks.Add(new ComponentStatus
         {
             Name = "Touch ID / Face ID",
-            SerialRead = !string.IsNullOrWhiteSpace(bioSerial) ? bioSerial : "Onbekend",
-            SerialOriginal = !string.IsNullOrWhiteSpace(origBio) ? origBio : bioSerial,
-            Status = !string.IsNullOrWhiteSpace(origBio) 
-                ? Parsers.VerifyComponent(bioSerial, origBio) 
-                : (!string.IsNullOrWhiteSpace(bioSerial) ? ComponentStatusType.Match : ComponentStatusType.Unknown)
+            SerialRead = safeBioRead,
+            SerialOriginal = safeBioOrig,
+            Status = Parsers.VerifyComponent(safeBioRead, safeBioOrig)
         });
 
         // 7. Wi-Fi MAC Adres
+        string safeWifiRead = !Parsers.IsUnreadable(wifiMac) ? wifiMac : "Onbekend";
+        string safeWifiOrig = !Parsers.IsUnreadable(origWifi) ? origWifi : "Onbekend";
         checks.Add(new ComponentStatus
         {
             Name = "Wi-Fi Adres",
-            SerialRead = !string.IsNullOrWhiteSpace(wifiMac) ? wifiMac : "Onbekend",
-            SerialOriginal = !string.IsNullOrWhiteSpace(origWifi) ? origWifi : wifiMac,
-            Status = !string.IsNullOrWhiteSpace(origWifi) 
-                ? Parsers.VerifyComponent(wifiMac, origWifi) 
-                : (!string.IsNullOrWhiteSpace(wifiMac) ? ComponentStatusType.Match : ComponentStatusType.Unknown)
+            SerialRead = safeWifiRead,
+            SerialOriginal = safeWifiOrig,
+            Status = Parsers.VerifyComponent(safeWifiRead, safeWifiOrig)
         });
 
         // 8. Bluetooth Adres
+        string safeBtRead = !Parsers.IsUnreadable(btMac) ? btMac : "Onbekend";
+        string safeBtOrig = !Parsers.IsUnreadable(origBt) ? origBt : "Onbekend";
         checks.Add(new ComponentStatus
         {
             Name = "Bluetooth Adres",
-            SerialRead = !string.IsNullOrWhiteSpace(btMac) ? btMac : "Onbekend",
-            SerialOriginal = !string.IsNullOrWhiteSpace(origBt) ? origBt : btMac,
-            Status = !string.IsNullOrWhiteSpace(origBt) 
-                ? Parsers.VerifyComponent(btMac, origBt) 
-                : (!string.IsNullOrWhiteSpace(btMac) ? ComponentStatusType.Match : ComponentStatusType.Unknown)
+            SerialRead = safeBtRead,
+            SerialOriginal = safeBtOrig,
+            Status = Parsers.VerifyComponent(safeBtRead, safeBtOrig)
         });
 
         // 9. Mobiel / Cellular Adres
-        if (!string.IsNullOrWhiteSpace(cellular))
+        string safeCellRead = !Parsers.IsUnreadable(cellular) ? cellular : "Onbekend";
+        checks.Add(new ComponentStatus
         {
-            checks.Add(new ComponentStatus
-            {
-                Name = "Cellular Adres",
-                SerialRead = cellular,
-                SerialOriginal = cellular,
-                Status = ComponentStatusType.Match
-            });
-        }
+            Name = "Cellular Adres",
+            SerialRead = safeCellRead,
+            SerialOriginal = safeCellRead,
+            Status = Parsers.VerifyComponent(safeCellRead, safeCellRead)
+        });
 
         data.ComponentChecks = checks;
     }
