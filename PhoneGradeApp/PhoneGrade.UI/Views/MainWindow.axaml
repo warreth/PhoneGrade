@@ -183,8 +183,8 @@
                                             <DataTemplate>
                                                 <Border Background="{DynamicResource CardDeepColor}" CornerRadius="8" Padding="10" Margin="0,0,0,6"
                                                         BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                                    <Grid ColumnDefinitions="130,*,*,80">
-                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                                    <Grid ColumnDefinitions="180,*,*,90">
+                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                         <StackPanel Grid.Column="1" Spacing="2">
                                                             <TextBlock Classes="dim" Text="Gelezen" FontSize="10"/>
                                                             <TextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
@@ -310,7 +310,7 @@
 
                                 <!-- Table Header -->
                                 <Border Background="{DynamicResource TrackColor}" CornerRadius="6" Padding="10,6">
-                                    <Grid ColumnDefinitions="160,*,*,100">
+                                    <Grid ColumnDefinitions="200,*,*,100">
                                         <TextBlock Grid.Column="0" Text="{DynamicResource Summary_ColComponent}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
                                         <TextBlock Grid.Column="1" Text="{DynamicResource Summary_ColFactory}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
                                         <TextBlock Grid.Column="2" Text="{DynamicResource Summary_ColRead}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
@@ -324,8 +324,8 @@
                                         <DataTemplate>
                                             <Border Background="{DynamicResource CardDeepColor}" CornerRadius="6" Padding="10,8" Margin="0,0,0,4"
                                                     BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                                <Grid ColumnDefinitions="160,*,*,100">
-                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                                <Grid ColumnDefinitions="200,*,*,100">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Grid.Column="1" Text="{Binding SerialOriginal}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="dim"/>
                                                     <TextBlock Grid.Column="2" Text="{Binding SerialRead}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                     <Border Grid.Column="3" CornerRadius="4" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Center"
