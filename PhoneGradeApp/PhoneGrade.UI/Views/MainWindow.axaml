@@ -183,7 +183,7 @@
                                             <DataTemplate>
                                                 <Border Background="{DynamicResource CardDeepColor}" CornerRadius="8" Padding="10" Margin="0,0,0,6"
                                                         BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                                    <Grid ColumnDefinitions="180,*,*,90">
+                                                    <Grid ColumnDefinitions="210,*,*,90">
                                                         <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                         <StackPanel Grid.Column="1" Spacing="2">
                                                             <TextBlock Classes="dim" Text="Gelezen" FontSize="10"/>
