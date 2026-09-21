@@ -102,33 +102,48 @@ public static class Parsers
         if (string.IsNullOrWhiteSpace(raw)) return "";
         string cleaned = raw.Trim();
 
-        // Check if raw is hex encoded ASCII bytes (e.g. 16+ hex chars)
-        if (cleaned.Length >= 16 && cleaned.Length % 2 == 0 && cleaned.All(c => Uri.IsHexDigit(c)))
-        {
-            try
-            {
-                var bytes = Convert.FromHexString(cleaned);
-                string text = Encoding.ASCII.GetString(bytes).Trim('\0', ' ', '\t', '\r', '\n');
-                if (IsValidSerial(text)) return text;
-            }
-            catch
-            {
-                // Fall back
-            }
-        }
-
-        // Check if raw is base64 encoded string
-        if (cleaned.Length >= 16 && cleaned.Length % 4 == 0 && !cleaned.Contains(' '))
+        // 1. Check if raw is Base64 encoded:
+        // Try decoding. If the decoded bytes produce a clean, printable ASCII string
+        // that matches IsValidSerial, then it was indeed Base64 encoded!
+        if (cleaned.Length >= 4 && cleaned.Length % 4 == 0 && !cleaned.Contains(' '))
         {
             try
             {
                 var bytes = Convert.FromBase64String(cleaned);
-                string text = Encoding.ASCII.GetString(bytes).Trim('\0', ' ', '\t', '\r', '\n');
-                if (IsValidSerial(text)) return text;
+                // Ensure all bytes are printable ASCII (range 32-126)
+                if (bytes.Length >= 6 && bytes.All(b => b >= 32 && b <= 126))
+                {
+                    string decoded = Encoding.ASCII.GetString(bytes).Trim();
+                    if (IsValidSerial(decoded))
+                    {
+                        return decoded;
+                    }
+                }
             }
             catch
             {
-                // Fall back
+                // Not valid Base64
+            }
+        }
+
+        // 2. Check if raw is Hex encoded ASCII bytes (e.g. 16+ hex chars)
+        if (cleaned.Length >= 16 && cleaned.Length % 2 == 0 && cleaned.All(c => "0123456789abcdefABCDEF".Contains(c)))
+        {
+            try
+            {
+                var bytes = Convert.FromHexString(cleaned);
+                if (bytes.Length >= 6 && bytes.All(b => b >= 32 && b <= 126))
+                {
+                    string decoded = Encoding.ASCII.GetString(bytes).Trim();
+                    if (IsValidSerial(decoded))
+                    {
+                        return decoded;
+                    }
+                }
+            }
+            catch
+            {
+                // Not valid Hex
             }
         }
 
@@ -142,20 +157,35 @@ public static class Parsers
         return s.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_');
     }
 
+    /// <summary>Checks whether a value represents an empty, missing, or error response.</summary>
+    public static bool IsUnreadable(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return true;
+        string t = s.Trim();
+        return t.Equals("NO OUTPUT", StringComparison.OrdinalIgnoreCase)
+            || t.Equals("UNKNOWN", StringComparison.OrdinalIgnoreCase)
+            || t.Equals("ONBEKEND", StringComparison.OrdinalIgnoreCase)
+            || t.Equals("NOID", StringComparison.OrdinalIgnoreCase)
+            || t.Equals("NOCOLOR", StringComparison.OrdinalIgnoreCase)
+            || t.Equals("NOBATT", StringComparison.OrdinalIgnoreCase)
+            || t.Equals("NOSTORAGE", StringComparison.OrdinalIgnoreCase)
+            || t.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase)
+            || t.Equals("null", StringComparison.OrdinalIgnoreCase);
+    }
     /// <summary>Compares live read serial against original factory serial.</summary>
     public static ComponentStatusType VerifyComponent(string? liveSerial, string? factorySerial)
     {
         string live = (liveSerial ?? "").Trim();
         string factory = (factorySerial ?? "").Trim();
 
+        if (IsUnreadable(live) || IsUnreadable(factory))
+        {
+            return ComponentStatusType.Unknown;
+        }
+
         if (IsMaskedOrProtected(live) || IsMaskedOrProtected(factory))
         {
             return ComponentStatusType.Untrusted;
-        }
-
-        if (string.IsNullOrEmpty(live) || string.IsNullOrEmpty(factory))
-        {
-            return ComponentStatusType.Unknown;
         }
 
         return live.Equals(factory, StringComparison.OrdinalIgnoreCase)
