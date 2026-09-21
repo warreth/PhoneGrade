@@ -106,17 +106,6 @@ public static partial class DiagnosticService
             });
         }
 
-        if (data.Root?.IsRooted == true)
-        {
-            issues.Add(new DiagnosticIssue
-            {
-                Title = "Android Root gedetecteerd",
-                Explanation = $"Het besturingssysteem is gemodificeerd: {string.Join(", ", data.Root.Evidence)}.",
-                Fix = "Flash officiële stock firmware via fastboot of OEM-tools (Odin, SP Flash Tool, etc.).",
-                Level = Severity.Warning
-            });
-        }
-
         if (data.ComponentChecks != null)
         {
             foreach (var check in data.ComponentChecks)

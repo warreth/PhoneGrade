@@ -407,10 +407,9 @@ public static class DeviceService
         catch { }
 
         // Security checks
-        data.Root = await SecurityServices.RootDetectionService.DetectAsync(serial);
         data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(serial);
 
-        SystemEventLogger.Info(LogSource.UsbDetector, $"Android data collected: {data.Model}, Battery: {data.BatteryHealth}, Root: {data.Root.IsRooted}", serial);
+        SystemEventLogger.Info(LogSource.UsbDetector, $"Android data collected: {data.Model}, Battery: {data.BatteryHealth}", serial);
         return data;
     }
 
@@ -472,7 +471,6 @@ public static class DeviceService
         else
         {
             // Android device
-            data.Root = await SecurityServices.RootDetectionService.DetectAsync(udid);
             data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(udid);
         }
 
