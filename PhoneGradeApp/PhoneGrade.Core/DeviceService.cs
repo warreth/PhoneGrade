@@ -51,9 +51,20 @@ public static class DeviceService
         return devices;
     }
 
+    /// <summary>Returns true if the identifier matches an iOS UDID pattern (40 hex chars or 24/25 chars with hyphen).</summary>
+    public static bool LooksLikeIosUdid(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return false;
+        string trimmed = id.Trim();
+        return (trimmed.Length == 40 && trimmed.All(Uri.IsHexDigit)) ||
+               (trimmed.Length >= 24 && trimmed.Length <= 25 && trimmed.All(c => Uri.IsHexDigit(c) || c == '-'));
+    }
+
     /// <summary>Checks whether a given device identifier corresponds to an authorized Android device.</summary>
     public static async Task<bool> IsAndroidDeviceAsync(string id)
     {
+        if (LooksLikeIosUdid(id)) return false;
+
         try
         {
             var (output, _, exitCode) = await ToolRunner.ExecuteAsync("adb", $"-s {id} get-state");
@@ -211,23 +222,23 @@ public static class DeviceService
         string targetUdid = udid ?? devices[0];
 
         // Check if Android device
-        if (await IsAndroidDeviceAsync(targetUdid))
+        if (!LooksLikeIosUdid(targetUdid))
         {
-            // Android connected
-            return ConnectionState.Connected;
-        }
-
-        // Android unauthorized check
-        try
-        {
-            var (adbState, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {targetUdid} get-state");
-            if (adbState.Contains("unauthorized"))
+            if (await IsAndroidDeviceAsync(targetUdid))
             {
-                // Android unauthorized
-                return ConnectionState.Unauthorized;
+                return ConnectionState.Connected;
             }
+
+            try
+            {
+                var (adbState, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {targetUdid} get-state");
+                if (adbState.Contains("unauthorized"))
+                {
+                    return ConnectionState.Unauthorized;
+                }
+            }
+            catch { }
         }
-        catch { }
 
         // iOS checks
         string info = await GetKeyAsync(targetUdid, "ProductType");
