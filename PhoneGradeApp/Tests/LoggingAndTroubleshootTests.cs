@@ -39,14 +39,17 @@ public class LoggingAndTroubleshootTests
     public void SystemEventLogger_LogEventEmitted_FiresEvent()
     {
         LogEvent? received = null;
-        EventHandler<LogEvent> handler = (sender, e) => { received = e; };
+        string testSessionId = $"SESSION_TEST_{Guid.NewGuid():N}";
+        EventHandler<LogEvent> handler = (sender, e) => 
+        { 
+            if (e.SessionId == testSessionId) received = e; 
+        };
 
         // Ensure clear state before subscribing
         SystemEventLogger.ClearLogs();
         SystemEventLogger.LogEventEmitted += handler;
         try
         {
-            string testSessionId = $"SESSION_TEST_{Guid.NewGuid():N}";
             SystemEventLogger.Info(LogSource.WebSocket, "Real-time event test unique", testSessionId);
             Assert.NotNull(received);
             Assert.Equal("Real-time event test unique", received.Message);
