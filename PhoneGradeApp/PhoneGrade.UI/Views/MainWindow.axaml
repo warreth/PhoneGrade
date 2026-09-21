@@ -242,7 +242,7 @@
                         <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="20">
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
-                                    <TextBlock Text="INSPECTIERAPPORT" Classes="cardTitle"/>
+                                    <TextBlock Text="{DynamicResource Summary_Title}" Classes="cardTitle"/>
                                     <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontSize="22" FontWeight="Bold"/>
                                     <StackPanel Orientation="Horizontal" Spacing="12">
                                         <TextBlock Text="{Binding DeviceData.Identifier, StringFormat='IMEI / Serienummer: {0}'}" Classes="dim" FontSize="12"/>
@@ -291,7 +291,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Spacing="2">
                                     <TextBlock Classes="dim" Text="SIM Lock" FontSize="11"/>
-                                    <TextBlock Text="Vrijgeschakeld (Simlockvrij)" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource SuccessColor}"/>
+                                    <TextBlock Text="{DynamicResource Summary_SimLockFree}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource SuccessColor}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="3" Spacing="2">
                                     <TextBlock Classes="dim" Text="Hardware Tests (PWA)" FontSize="11"/>
@@ -304,17 +304,17 @@
                         <Border Classes="card" Padding="18">
                             <StackPanel Spacing="12">
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <TextBlock Classes="cardTitle" Text="3UTOOLS HARDWARE COMPONENTEN AUDIT" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="Vergelijking Fabriekswaarde vs Gelezen Waarde" Classes="dim" FontSize="11" VerticalAlignment="Center"/>
+                                    <TextBlock Classes="cardTitle" Text="{DynamicResource Summary_AuditTitle}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{DynamicResource Summary_AuditSubtitle}" Classes="dim" FontSize="11" VerticalAlignment="Center"/>
                                 </Grid>
 
                                 <!-- Table Header -->
                                 <Border Background="{DynamicResource TrackColor}" CornerRadius="6" Padding="10,6">
                                     <Grid ColumnDefinitions="160,*,*,100">
-                                        <TextBlock Grid.Column="0" Text="Onderdeel" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
-                                        <TextBlock Grid.Column="1" Text="Fabriekswaarde (Ex-factory)" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
-                                        <TextBlock Grid.Column="2" Text="Gelezen Waarde (Read)" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
-                                        <TextBlock Grid.Column="3" Text="Status" FontWeight="Bold" FontSize="11" HorizontalAlignment="Right" Foreground="{DynamicResource TextDimColor}"/>
+                                        <TextBlock Grid.Column="0" Text="{DynamicResource Summary_ColComponent}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
+                                        <TextBlock Grid.Column="1" Text="{DynamicResource Summary_ColFactory}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
+                                        <TextBlock Grid.Column="2" Text="{DynamicResource Summary_ColRead}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
+                                        <TextBlock Grid.Column="3" Text="{DynamicResource Summary_ColStatus}" FontWeight="Bold" FontSize="11" HorizontalAlignment="Right" Foreground="{DynamicResource TextDimColor}"/>
                                     </Grid>
                                 </Border>
 
@@ -342,11 +342,11 @@
 
                         <!-- Massive Print Label Button & Retest Actions -->
                         <StackPanel Spacing="10" Margin="0,4,0,0">
-                            <Button Classes="kioskPrint" Command="{Binding OpenLabelCommand}" Content="DYMO LABEL AFDRUKKEN"/>
+                            <Button Classes="kioskPrint" Command="{Binding OpenLabelCommand}" Content="{DynamicResource Summary_BtnPrint}"/>
                             
                             <Grid ColumnDefinitions="*,*">
-                                <Button Grid.Column="0" Classes="kioskSecondary" Command="{Binding RetestCommand}" Content="Opnieuw Testen" Margin="0,0,6,0" HorizontalContentAlignment="Center"/>
-                                <Button Grid.Column="1" Classes="kioskSecondary" Command="{Binding BackToIdleCommand}" Content="Volgend Toestel (Klaar)" Margin="6,0,0,0" HorizontalContentAlignment="Center"/>
+                                <Button Grid.Column="0" Classes="kioskSecondary" Command="{Binding RetestCommand}" Content="{DynamicResource Summary_BtnRetest}" Margin="0,0,6,0" HorizontalContentAlignment="Center"/>
+                                <Button Grid.Column="1" Classes="kioskSecondary" Command="{Binding BackToIdleCommand}" Content="{DynamicResource Summary_BtnNext}" Margin="6,0,0,0" HorizontalContentAlignment="Center"/>
                             </Grid>
                         </StackPanel>
                     </StackPanel>
