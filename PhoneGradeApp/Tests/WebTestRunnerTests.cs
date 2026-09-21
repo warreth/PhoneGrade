@@ -378,4 +378,85 @@ public class WebTestRunnerTests : IAsyncLifetime
             SystemEventLogger.LogEventEmitted -= handler;
         }
     }
+
+    [Fact]
+    public async Task HttpRest_HandshakeAndStatus_Succeeds()
+    {
+        using var httpClient = new HttpClient();
+        int port = _server!.BoundPort;
+        string baseUrl = $"http://127.0.0.1:{port}";
+
+        // 1. GET /api/pwa/status
+        var statusResp = await httpClient.GetAsync($"{baseUrl}/api/pwa/status?sessionId=REST_TEST_123");
+        Assert.True(statusResp.IsSuccessStatusCode);
+        string statusJson = await statusResp.Content.ReadAsStringAsync();
+        Assert.Contains("active", statusJson);
+
+        // 2. POST /api/pwa/handshake
+        bool handshakeFired = false;
+        string connectedId = "";
+        _server.DeviceConnected += (s, e) =>
+        {
+            if (e.SessionId == "REST_TEST_123")
+            {
+                handshakeFired = true;
+                connectedId = e.SessionId;
+            }
+        };
+
+        var handshakeContent = new StringContent("{\"sessionId\":\"REST_TEST_123\",\"device\":\"iOS Safari\"}", Encoding.UTF8, "application/json");
+        var handshakeResp = await httpClient.PostAsync($"{baseUrl}/api/pwa/handshake", handshakeContent);
+        Assert.True(handshakeResp.IsSuccessStatusCode);
+        string handshakeJson = await handshakeResp.Content.ReadAsStringAsync();
+        Assert.Contains("ok", handshakeJson);
+        Assert.True(handshakeFired);
+        Assert.Equal("REST_TEST_123", connectedId);
+    }
+
+    [Fact]
+    public async Task HttpRest_SuiteSubmit_FiresSuiteCompleted()
+    {
+        using var httpClient = new HttpClient();
+        int port = _server!.BoundPort;
+        string baseUrl = $"http://127.0.0.1:{port}";
+
+        bool suiteCompletedFired = false;
+        InteractiveTestSuiteResult? receivedPayload = null;
+
+        _server.SuiteCompleted += (s, e) =>
+        {
+            if (e.SessionId == "REST_SUITE_123")
+            {
+                suiteCompletedFired = true;
+                receivedPayload = e.Message?.Payload;
+            }
+        };
+
+        var suitePayload = new DeviceSessionMessage
+        {
+            Type = "suite_complete",
+            SessionId = "REST_SUITE_123",
+            Payload = new InteractiveTestSuiteResult
+            {
+                SessionId = "REST_SUITE_123",
+                Platform = "iOS",
+                CompletedAt = DateTime.UtcNow,
+                Tests = new List<InteractiveTestResult>
+                {
+                    new InteractiveTestResult { Id = "touch", Name = "Touch Test", Status = TestStatus.Passed, DurationMs = 1200 },
+                    new InteractiveTestResult { Id = "screen", Name = "Screen Test", Status = TestStatus.Passed, DurationMs = 2500 }
+                }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(suitePayload);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var resp = await httpClient.PostAsync($"{baseUrl}/api/pwa/submit", content);
+        
+        Assert.True(resp.IsSuccessStatusCode);
+        Assert.True(suiteCompletedFired);
+        Assert.NotNull(receivedPayload);
+        Assert.Equal(2, receivedPayload!.Tests.Count);
+        Assert.True(receivedPayload.AllPassed);
+    }
 }
