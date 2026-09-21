@@ -6,6 +6,65 @@ namespace PhoneGrade.Core;
 /// <summary>Parses plist (idevicediagnostics ioregentry output) and ideviceinfo key-value output.</summary>
 public static class Parsers
 {
+    /// <summary>Parses an Apple XML property list string into a flat key-value dictionary.</summary>
+    public static Dictionary<string, string> ParsePlistXml(string xml)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(xml)) return result;
+
+        try
+        {
+            var doc = System.Xml.Linq.XDocument.Parse(xml);
+            ParseDictElement(doc.Root?.Element("dict"), result);
+        }
+        catch
+        {
+            // Fall back to regex/key-value parsing if XML is malformed
+            return ParseKeyValues(xml);
+        }
+
+        return result;
+    }
+
+    private static void ParseDictElement(System.Xml.Linq.XElement? dictElem, Dictionary<string, string> dict)
+    {
+        if (dictElem == null) return;
+
+        var elements = dictElem.Elements().ToList();
+        for (int i = 0; i < elements.Count - 1; i++)
+        {
+            if (elements[i].Name.LocalName == "key")
+            {
+                string key = elements[i].Value.Trim();
+                var valElem = elements[i + 1];
+
+                if (valElem.Name.LocalName == "true")
+                {
+                    dict[key] = "true";
+                }
+                else if (valElem.Name.LocalName == "false")
+                {
+                    dict[key] = "false";
+                }
+                else if (valElem.Name.LocalName == "dict")
+                {
+                    // Recursively extract nested dicts with prefix
+                    var subDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    ParseDictElement(valElem, subDict);
+                    foreach (var (sk, sv) in subDict)
+                    {
+                        dict[$"{key}.{sk}"] = sv;
+                        if (!dict.ContainsKey(sk)) dict[sk] = sv;
+                    }
+                }
+                else
+                {
+                    dict[key] = valElem.Value.Trim();
+                }
+            }
+        }
+    }
+
     /// <summary>Extracts an integer value following a &lt;key&gt;Name&lt;/key&gt; entry in plist output.</summary>
     public static int? PlistInt(string plist, string key)
     {
@@ -103,20 +162,27 @@ public static class Parsers
         string cleaned = raw.Trim();
 
         // 1. Check if raw is Base64 encoded:
-        // Try decoding. If the decoded bytes produce a clean, printable ASCII string
-        // that matches IsValidSerial, then it was indeed Base64 encoded!
         if (cleaned.Length >= 4 && cleaned.Length % 4 == 0 && !cleaned.Contains(' '))
         {
+            bool hasPadding = cleaned.EndsWith("=");
             try
             {
                 var bytes = Convert.FromBase64String(cleaned);
-                // Ensure all bytes are printable ASCII (range 32-126)
-                if (bytes.Length >= 6 && bytes.All(b => b >= 32 && b <= 126))
+                if (bytes.Length > 0)
                 {
-                    string decoded = Encoding.ASCII.GetString(bytes).Trim();
-                    if (IsValidSerial(decoded))
+                    // Check if bytes are clean printable ASCII
+                    if (bytes.All(b => b >= 32 && b <= 126))
                     {
-                        return decoded;
+                        string decoded = Encoding.ASCII.GetString(bytes).Trim();
+                        if (IsValidSerial(decoded))
+                        {
+                            return decoded;
+                        }
+                    }
+                    else if (hasPadding)
+                    {
+                        // Explicitly padded binary Base64 data (e.g., THjDhg==) -> decode to Hex string
+                        return Convert.ToHexString(bytes);
                     }
                 }
             }
