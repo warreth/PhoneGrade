@@ -59,10 +59,10 @@ public static partial class Mappers
     private static readonly Dictionary<string, string> Colors = new()
     {
         ["#3b3b3c"] = "Zwart", ["#ffffff"] = "Wit", ["#ff3b30"] = "Rood", ["#ff9500"] = "Oranje",
-        ["#ffcc00"] = "Geel", ["#4cd964"] = "Groen", ["#5ac8fa"] = "Blauw", ["#007aff"] = "Lichtblauw",
+        ["#ffcc00"] = "Goud", ["#4cd964"] = "Groen", ["#5ac8fa"] = "Blauw", ["#007aff"] = "Lichtblauw",
         ["#5856d6"] = "Paars", ["#ff2d55"] = "Roze", ["#8e8e93"] = "Grijs", ["#c69c6d"] = "Goud",
         ["#d0d1d2"] = "Zilver", ["1"] = "Zwart", ["2"] = "Wit", ["3"] = "Goud", ["4"] = "Roze",
-        ["5"] = "Grijs", ["6"] = "Rood", ["7"] = "Geel", ["8"] = "Oranje", ["9"] = "Blauw",
+        ["5"] = "Grijs", ["6"] = "Rood", ["7"] = "Goud", ["8"] = "Oranje", ["9"] = "Blauw",
         ["17"] = "Paars", ["18"] = "Groen",
         
         // Common raw Apple color strings
@@ -71,7 +71,8 @@ public static partial class Mappers
         ["midnight green"] = "Middernachtgroen", ["pacific blue"] = "Pacifisch Blauw",
         ["graphite"] = "Grafiet", ["sierra blue"] = "Sierra Blauw", ["alpine green"] = "Alpengroen",
         ["midnight"] = "Middernacht", ["starlight"] = "Sterrenlicht", ["blue"] = "Blauw",
-        ["purple"] = "Paars", ["red"] = "Rood", ["green"] = "Groen", ["yellow"] = "Geel",
+        ["purple"] = "Paars", ["red"] = "Rood", ["green"] = "Groen", ["yellow"] = "Goud",
+        ["geel"] = "Goud",
         ["pink"] = "Roze", ["coral"] = "Koraal", ["product(red)"] = "Rood"
     };
 
