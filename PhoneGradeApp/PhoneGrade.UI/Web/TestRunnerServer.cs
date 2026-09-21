@@ -127,10 +127,111 @@ public class TestRunnerServer : IAsyncDisposable
                             {
                                 KeepAliveInterval = TimeSpan.FromSeconds(5)
                             });
-
                             app.Use(async (context, next) =>
                             {
-                                if (context.Request.Path == "/ws/device-session")
+                                string path = context.Request.Path.Value ?? "";
+
+                                // 1. HTTP REST API endpoints (for iOS Safari PWA)
+                                if (path.StartsWith("/api/pwa/", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    context.Response.ContentType = "application/json";
+
+                                    if (context.Request.Method == "GET" && path.Equals("/api/pwa/status", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        string sid = context.Request.Query["sessionId"].ToString();
+                                        var resp = new { status = "active", sessionId = sid, timestamp = DateTime.UtcNow };
+                                        await context.Response.WriteAsync(JsonSerializer.Serialize(resp));
+                                        return;
+                                    }
+
+                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/handshake", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        using var reader = new StreamReader(context.Request.Body);
+                                        string body = await reader.ReadToEndAsync();
+                                        var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
+                                        string sid = doc.RootElement.TryGetProperty("sessionId", out var sProp) ? sProp.GetString() ?? "UNKNOWN" : "UNKNOWN";
+
+                                        DeviceConnected?.Invoke(this, new DeviceSessionEventArgs
+                                        {
+                                            SessionId = sid,
+                                            Message = new DeviceSessionMessage { Type = "init", SessionId = sid, Message = "Connected via HTTP REST" }
+                                        });
+
+                                        await context.Response.WriteAsync(JsonSerializer.Serialize(new { ok = true, sessionId = sid, mode = "rest" }));
+                                        return;
+                                    }
+
+                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/telemetry", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        using var reader = new StreamReader(context.Request.Body);
+                                        string body = await reader.ReadToEndAsync();
+                                        var telMsg = JsonSerializer.Deserialize<LogEventMessage>(body);
+                                        if (telMsg?.ClientTelemetry != null)
+                                        {
+                                            TelemetryReceived?.Invoke(this, new TelemetryEventArgs
+                                            {
+                                                SessionId = telMsg.SessionId ?? "UNKNOWN",
+                                                Telemetry = telMsg.ClientTelemetry
+                                            });
+                                        }
+                                        await context.Response.WriteAsync("{\"ok\":true}");
+                                        return;
+                                    }
+
+                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/submit-step", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        using var reader = new StreamReader(context.Request.Body);
+                                        string body = await reader.ReadToEndAsync();
+                                        var msg = JsonSerializer.Deserialize<DeviceSessionMessage>(body);
+                                        if (msg != null)
+                                        {
+                                            MessageReceived?.Invoke(this, new DeviceSessionEventArgs
+                                            {
+                                                SessionId = msg.SessionId ?? "UNKNOWN",
+                                                Message = msg
+                                            });
+                                        }
+                                        await context.Response.WriteAsync("{\"ok\":true}");
+                                        return;
+                                    }
+
+                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/submit", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        using var reader = new StreamReader(context.Request.Body);
+                                        string body = await reader.ReadToEndAsync();
+                                        var msg = JsonSerializer.Deserialize<DeviceSessionMessage>(body);
+                                        if (msg != null && msg.Payload != null)
+                                        {
+                                            SuiteCompleted?.Invoke(this, new DeviceSessionEventArgs
+                                            {
+                                                SessionId = msg.SessionId ?? "UNKNOWN",
+                                                Message = msg
+                                            });
+                                        }
+                                        await context.Response.WriteAsync("{\"ok\":true}");
+                                        return;
+                                    }
+
+                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/log", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        using var reader = new StreamReader(context.Request.Body);
+                                        string body = await reader.ReadToEndAsync();
+                                        var logMsg = JsonSerializer.Deserialize<LogEventMessage>(body);
+                                        if (logMsg?.LogEvent != null)
+                                        {
+                                            LogEventReceived?.Invoke(this, new LogMessageEventArgs
+                                            {
+                                                SessionId = logMsg.SessionId ?? "UNKNOWN",
+                                                LogEvent = logMsg.LogEvent
+                                            });
+                                        }
+                                        await context.Response.WriteAsync("{\"ok\":true}");
+                                        return;
+                                    }
+                                }
+
+                                // 2. WebSocket endpoint (for backward compatibility and test suite)
+                                if (path == "/ws/device-session")
                                 {
                                     if (context.WebSockets.IsWebSocketRequest)
                                     {
