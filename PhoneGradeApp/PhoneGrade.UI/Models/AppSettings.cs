@@ -14,6 +14,9 @@ public class AppSettings
     public bool AutoStartWebTest { get; set; } = false;   // User must manually scan and run tests
     public bool ShowSummaryScreenAfterTesting { get; set; } = true;
     public bool RequirePwaTest { get; set; } = true;       // operator must complete PWA test before finishing
+    public bool AutoFinishAfterTest { get; set; } = false; // automatically jump to summary screen after tests complete
+    public string ImeiApiKey { get; set; } = "";           // SickW / IMEIPro API key for real-time FMI check
+    public string ImeiApiProvider { get; set; } = "sickw"; // default API provider
     public bool RunDiagnostics { get; set; } = true;
     public bool Enable85PercentChecker { get; set; } = true;
     public bool OpenEditorBeforePrint { get; set; } = false;

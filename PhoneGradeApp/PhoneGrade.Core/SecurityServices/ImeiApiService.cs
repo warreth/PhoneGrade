@@ -14,10 +14,10 @@ public static class ImeiApiService
     };
 
     /// <summary>Check activation lock status via IMEI lookup API (e.g., SickW, IMEIPro, etc.).</summary>
-    public static async Task<ActivationLockApiResult> CheckActivationLockAsync(string imei)
+    public static async Task<ActivationLockApiResult> CheckActivationLockAsync(string imei, string? explicitKey = null, string? explicitProvider = null)
     {
-        string? apiKey = Environment.GetEnvironmentVariable("IMEI_API_KEY");
-        string? apiProvider = Environment.GetEnvironmentVariable("IMEI_API_PROVIDER") ?? "sickw";
+        string? apiKey = !string.IsNullOrWhiteSpace(explicitKey) ? explicitKey : Environment.GetEnvironmentVariable("IMEI_API_KEY");
+        string? apiProvider = !string.IsNullOrWhiteSpace(explicitProvider) ? explicitProvider : (Environment.GetEnvironmentVariable("IMEI_API_PROVIDER") ?? "sickw");
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {

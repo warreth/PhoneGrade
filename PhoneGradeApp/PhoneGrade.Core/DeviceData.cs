@@ -27,6 +27,13 @@ public class DeviceData
     public string FrontCameraSerialNumber { get; set; } = "";
     public string RearCameraSerialNumber { get; set; } = "";
     public string MotherboardSerialNumber { get; set; } = "";
+    public string TouchIdFaceIdSerialNumber { get; set; } = "";
+    public string BluetoothMacAddress { get; set; } = "";
+    public string WifiMacAddress { get; set; } = "";
+    public string CellularAddress { get; set; } = "";
+
+    // FMI Verification Source
+    public string FmiVerificationSource { get; set; } = "Lokaal"; // "Lokaal" of "Via Server (API)"
 
     // Component audit verification list
     public List<ComponentStatus> ComponentChecks { get; set; } = [];

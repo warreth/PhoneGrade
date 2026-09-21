@@ -480,6 +480,7 @@ public static class DeviceService
             var apiResult = await SecurityServices.ImeiApiService.CheckActivationLockAsync(data.Identifier);
             if (apiResult.Status != "Unknown" && apiResult.Status != "Error")
             {
+                data.FmiVerificationSource = "Via Server (API)";
                 // Override USB-detected activation lock with API result if available
                 if (apiResult.Status.Contains("ON", StringComparison.OrdinalIgnoreCase) || 
                     apiResult.Status.Contains("Locked", StringComparison.OrdinalIgnoreCase))
@@ -577,17 +578,20 @@ public static class DeviceService
         }
     }
 
-    /// <summary>Queries OEM component serials and performs verification comparisons.</summary>
+    /// <summary>Queries OEM component serials and performs 3uTools-parity verification comparisons.</summary>
     public static async Task PopulateHardwareSerialsAndChecksAsync(string udid, DeviceData data)
     {
-        // 1. Diagnostics / chargethrough / factory serials via lockdown domains
+        // 1. Diagnostics, chargethrough, mobilegestalt and factory serials via lockdown domains
         string diagDomain = await GetDomainAsync(udid, "com.apple.mobile.diagnostics");
         string chargeDictStr = await GetDomainAsync(udid, "com.apple.mobile.chargethrough");
+        string gestaltStr = await GetDomainAsync(udid, "com.apple.mobile.gestalt");
+        string diskUsageStr = await GetDomainAsync(udid, "com.apple.disk_usage");
 
         var diagDict = Parsers.ParseKeyValues(diagDomain);
         var chargeDict = Parsers.ParseKeyValues(chargeDictStr);
+        var gestaltDict = Parsers.ParseKeyValues(gestaltStr);
 
-        // 2. Query ioregentry for display/LCD and camera details
+        // 2. Query ioregentry for display/LCD, camera, battery, and biometric details
         var (displayPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleCLCD2");
         if (displayPlist.StartsWith("ERROR:"))
         {
@@ -600,82 +604,196 @@ public static class DeviceService
             (camPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleH6CamIn");
         }
 
-        // Live serials
+        var (bioPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleBiometricSensor");
+        if (bioPlist.StartsWith("ERROR:"))
+        {
+            (bioPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleMesaSensor");
+        }
+
+        // Live serials & addresses
         string displaySerial = Parsers.CleanSerial(
             Parsers.PlistString(displayPlist, "DisplaySerial") ??
             Parsers.PlistString(displayPlist, "SerialNumber") ??
-            FindDictValue(diagDict, "DisplaySerialNumber", "ScreenSerial", "LCDSerial"));
+            FindDictValue(diagDict, "DisplaySerialNumber", "ScreenSerial", "LCDSerial") ??
+            FindDictValue(gestaltDict, "DisplaySerialNumber", "ScreenSerial"));
 
         string coverGlass = Parsers.CleanSerial(
             Parsers.PlistString(displayPlist, "CoverGlassSerial") ??
-            FindDictValue(diagDict, "CoverGlassSerialNumber"));
+            FindDictValue(diagDict, "CoverGlassSerialNumber") ??
+            FindDictValue(gestaltDict, "CoverGlassSerialNumber"));
 
         string frontCam = Parsers.CleanSerial(
             Parsers.PlistString(camPlist, "FrontCameraSerial") ??
-            FindDictValue(diagDict, "FrontCameraSerialNumber", "FrontCameraSerial"));
+            FindDictValue(diagDict, "FrontCameraSerialNumber", "FrontCameraSerial") ??
+            FindDictValue(gestaltDict, "FrontCameraSerialNumber"));
 
         string rearCam = Parsers.CleanSerial(
             Parsers.PlistString(camPlist, "RearCameraSerial") ??
-            FindDictValue(diagDict, "RearCameraSerialNumber", "RearCameraSerial", "BackCameraSerialNumber"));
+            FindDictValue(diagDict, "RearCameraSerialNumber", "RearCameraSerial", "BackCameraSerialNumber") ??
+            FindDictValue(gestaltDict, "RearCameraSerialNumber", "BackCameraSerialNumber"));
+
+        string bioSerial = Parsers.CleanSerial(
+            Parsers.PlistString(bioPlist, "SensorSerialNumber") ??
+            Parsers.PlistString(bioPlist, "SerialNumber") ??
+            FindDictValue(diagDict, "MesaSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber") ??
+            FindDictValue(gestaltDict, "MesaSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber"));
+
+        string mlbLive = Parsers.CleanSerial(
+            FindDictValue(gestaltDict, "MLBSerialNumber", "BoardSerialNumber") ??
+            data.MotherboardSerialNumber);
+
+        string btMac = Parsers.CleanSerial(
+            FindDictValue(gestaltDict, "BluetoothAddress") ??
+            await GetKeyAsync(udid, "BluetoothAddress"));
+
+        string wifiMac = Parsers.CleanSerial(
+            FindDictValue(gestaltDict, "WifiAddress", "WiFiAddress") ??
+            await GetKeyAsync(udid, "WiFiAddress"));
+
+        string cellular = Parsers.CleanSerial(
+            FindDictValue(gestaltDict, "CellularAddress") ??
+            await GetKeyAsync(udid, "CellularAddress"));
 
         // Factory original serials from syscfg / chargethrough / lockdown
         string origBatt = Parsers.CleanSerial(
             FindDictValue(chargeDict, "OriginalBatterySerialNumber", "BatterySerial", "OriginalSerial") ??
-            FindDictValue(diagDict, "OriginalBatterySerialNumber", "FactoryBatterySerialNumber"));
+            FindDictValue(diagDict, "OriginalBatterySerialNumber", "FactoryBatterySerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalBatterySerialNumber"));
 
         string origDisplay = Parsers.CleanSerial(
-            FindDictValue(diagDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber", "OriginalScreenSerial"));
+            FindDictValue(diagDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber", "OriginalScreenSerial") ??
+            FindDictValue(gestaltDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber"));
 
         string origFrontCam = Parsers.CleanSerial(
-            FindDictValue(diagDict, "OriginalFrontCameraSerialNumber", "FactoryFrontCameraSerialNumber"));
+            FindDictValue(diagDict, "OriginalFrontCameraSerialNumber", "FactoryFrontCameraSerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalFrontCameraSerialNumber"));
 
         string origRearCam = Parsers.CleanSerial(
-            FindDictValue(diagDict, "OriginalRearCameraSerialNumber", "FactoryRearCameraSerialNumber"));
+            FindDictValue(diagDict, "OriginalRearCameraSerialNumber", "FactoryRearCameraSerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalRearCameraSerialNumber"));
 
+        string origMlb = Parsers.CleanSerial(
+            FindDictValue(diagDict, "OriginalMLBSerialNumber", "FactoryMLBSerialNumber", "OriginalBoardSerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalMLBSerialNumber", "FactoryMLBSerialNumber"));
+
+        string origBio = Parsers.CleanSerial(
+            FindDictValue(diagDict, "OriginalMesaSerialNumber", "FactoryMesaSerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalMesaSerialNumber"));
+
+        string origBt = Parsers.CleanSerial(
+            FindDictValue(diagDict, "OriginalBluetoothAddress") ??
+            FindDictValue(gestaltDict, "OriginalBluetoothAddress"));
+
+        string origWifi = Parsers.CleanSerial(
+            FindDictValue(diagDict, "OriginalWifiAddress", "OriginalWiFiAddress") ??
+            FindDictValue(gestaltDict, "OriginalWifiAddress", "OriginalWiFiAddress"));
+
+        // Populate device data model
         data.DisplaySerialNumber = displaySerial;
         data.CoverGlassSerialNumber = coverGlass;
         data.FrontCameraSerialNumber = frontCam;
         data.RearCameraSerialNumber = rearCam;
         data.OriginalBatterySerialNumber = origBatt;
+        data.MotherboardSerialNumber = mlbLive;
+        data.TouchIdFaceIdSerialNumber = bioSerial;
+        data.BluetoothMacAddress = btMac;
+        data.WifiMacAddress = wifiMac;
+        data.CellularAddress = cellular;
 
-        // Perform ComponentChecks
+        // Perform ComponentChecks (3uTools Parity layout)
         var checks = new List<ComponentStatus>();
 
-        // Battery Check
+        // 1. Moederbord (Logic Board)
+        checks.Add(new ComponentStatus
+        {
+            Name = "Moederbord (Logic Board)",
+            SerialRead = !string.IsNullOrWhiteSpace(mlbLive) ? mlbLive : (string.IsNullOrWhiteSpace(data.Identifier) ? "Onbekend" : data.Identifier),
+            SerialOriginal = !string.IsNullOrWhiteSpace(origMlb) ? origMlb : mlbLive,
+            Status = !string.IsNullOrWhiteSpace(origMlb) 
+                ? Parsers.VerifyComponent(mlbLive, origMlb) 
+                : (!string.IsNullOrWhiteSpace(mlbLive) ? ComponentStatusType.Match : ComponentStatusType.Unknown)
+        });
+
+        // 2. Batterij
         checks.Add(new ComponentStatus
         {
             Name = "Batterij",
-            SerialRead = data.BatterySerialNumber,
-            SerialOriginal = data.OriginalBatterySerialNumber,
+            SerialRead = !string.IsNullOrWhiteSpace(data.BatterySerialNumber) ? data.BatterySerialNumber : "Onbekend",
+            SerialOriginal = !string.IsNullOrWhiteSpace(data.OriginalBatterySerialNumber) ? data.OriginalBatterySerialNumber : "Onbekend",
             Status = Parsers.VerifyComponent(data.BatterySerialNumber, data.OriginalBatterySerialNumber)
         });
 
-        // Display Check
+        // 3. Scherm (LCM)
         checks.Add(new ComponentStatus
         {
             Name = "Scherm (LCM)",
-            SerialRead = data.DisplaySerialNumber,
-            SerialOriginal = origDisplay,
+            SerialRead = !string.IsNullOrWhiteSpace(data.DisplaySerialNumber) ? data.DisplaySerialNumber : "Onbekend",
+            SerialOriginal = !string.IsNullOrWhiteSpace(origDisplay) ? origDisplay : "Onbekend",
             Status = Parsers.VerifyComponent(data.DisplaySerialNumber, origDisplay)
         });
 
-        // Front Camera Check
-        checks.Add(new ComponentStatus
-        {
-            Name = "Camera Voor",
-            SerialRead = data.FrontCameraSerialNumber,
-            SerialOriginal = origFrontCam,
-            Status = Parsers.VerifyComponent(data.FrontCameraSerialNumber, origFrontCam)
-        });
-
-        // Rear Camera Check
+        // 4. Camera Achter
         checks.Add(new ComponentStatus
         {
             Name = "Camera Achter",
-            SerialRead = data.RearCameraSerialNumber,
-            SerialOriginal = origRearCam,
+            SerialRead = !string.IsNullOrWhiteSpace(data.RearCameraSerialNumber) ? data.RearCameraSerialNumber : "Onbekend",
+            SerialOriginal = !string.IsNullOrWhiteSpace(origRearCam) ? origRearCam : "Onbekend",
             Status = Parsers.VerifyComponent(data.RearCameraSerialNumber, origRearCam)
         });
+
+        // 5. Camera Voor
+        checks.Add(new ComponentStatus
+        {
+            Name = "Camera Voor",
+            SerialRead = !string.IsNullOrWhiteSpace(data.FrontCameraSerialNumber) ? data.FrontCameraSerialNumber : "Onbekend",
+            SerialOriginal = !string.IsNullOrWhiteSpace(origFrontCam) ? origFrontCam : "Onbekend",
+            Status = Parsers.VerifyComponent(data.FrontCameraSerialNumber, origFrontCam)
+        });
+
+        // 6. Touch ID / Face ID
+        checks.Add(new ComponentStatus
+        {
+            Name = "Touch ID / Face ID",
+            SerialRead = !string.IsNullOrWhiteSpace(bioSerial) ? bioSerial : "Onbekend",
+            SerialOriginal = !string.IsNullOrWhiteSpace(origBio) ? origBio : bioSerial,
+            Status = !string.IsNullOrWhiteSpace(origBio) 
+                ? Parsers.VerifyComponent(bioSerial, origBio) 
+                : (!string.IsNullOrWhiteSpace(bioSerial) ? ComponentStatusType.Match : ComponentStatusType.Unknown)
+        });
+
+        // 7. Wi-Fi MAC Adres
+        checks.Add(new ComponentStatus
+        {
+            Name = "Wi-Fi Adres",
+            SerialRead = !string.IsNullOrWhiteSpace(wifiMac) ? wifiMac : "Onbekend",
+            SerialOriginal = !string.IsNullOrWhiteSpace(origWifi) ? origWifi : wifiMac,
+            Status = !string.IsNullOrWhiteSpace(origWifi) 
+                ? Parsers.VerifyComponent(wifiMac, origWifi) 
+                : (!string.IsNullOrWhiteSpace(wifiMac) ? ComponentStatusType.Match : ComponentStatusType.Unknown)
+        });
+
+        // 8. Bluetooth Adres
+        checks.Add(new ComponentStatus
+        {
+            Name = "Bluetooth Adres",
+            SerialRead = !string.IsNullOrWhiteSpace(btMac) ? btMac : "Onbekend",
+            SerialOriginal = !string.IsNullOrWhiteSpace(origBt) ? origBt : btMac,
+            Status = !string.IsNullOrWhiteSpace(origBt) 
+                ? Parsers.VerifyComponent(btMac, origBt) 
+                : (!string.IsNullOrWhiteSpace(btMac) ? ComponentStatusType.Match : ComponentStatusType.Unknown)
+        });
+
+        // 9. Mobiel / Cellular Adres
+        if (!string.IsNullOrWhiteSpace(cellular))
+        {
+            checks.Add(new ComponentStatus
+            {
+                Name = "Cellular Adres",
+                SerialRead = cellular,
+                SerialOriginal = cellular,
+                Status = ComponentStatusType.Match
+            });
+        }
 
         data.ComponentChecks = checks;
     }
