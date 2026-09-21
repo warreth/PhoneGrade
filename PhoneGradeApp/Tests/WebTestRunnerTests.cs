@@ -459,4 +459,101 @@ public class WebTestRunnerTests : IAsyncLifetime
         Assert.Equal(2, receivedPayload!.Tests.Count);
         Assert.True(receivedPayload.AllPassed);
     }
+
+    [Fact]
+    public async Task PwaRestApi_Localhost_ProofOfWork_FullWorkflow()
+    {
+        // 1. Arrange: TestRunnerServer running on active port
+        int port = _server!.BoundPort;
+        string baseUrl = $"http://127.0.0.1:{port}";
+        using var client = new HttpClient();
+
+        bool handshakeFired = false;
+        bool telemetryFired = false;
+        bool stepFired = false;
+        bool submitFired = false;
+
+        string sessionId = "POW_TEST_SESSION_777";
+
+        _server.DeviceConnected += (s, e) =>
+        {
+            if (e.SessionId == sessionId) handshakeFired = true;
+        };
+
+        _server.TelemetryReceived += (s, e) =>
+        {
+            if (e.SessionId == sessionId) telemetryFired = true;
+        };
+
+        _server.MessageReceived += (s, e) =>
+        {
+            if (e.SessionId == sessionId && e.Message?.Type == "touch_canvas_result") stepFired = true;
+        };
+
+        _server.SuiteCompleted += (s, e) =>
+        {
+            if (e.SessionId == sessionId) submitFired = true;
+        };
+
+        // 2. Step 1: Handshake (POST /api/pwa/handshake)
+        var handshakeJson = "{\"sessionId\":\"" + sessionId + "\",\"device\":\"Mobile Safari on iOS 17.5\"}";
+        var hsResp = await client.PostAsync($"{baseUrl}/api/pwa/handshake", new StringContent(handshakeJson, Encoding.UTF8, "application/json"));
+        Assert.True(hsResp.IsSuccessStatusCode, $"Handshake failed with status {hsResp.StatusCode}");
+        string hsBody = await hsResp.Content.ReadAsStringAsync();
+        Assert.Contains("ok", hsBody);
+        Assert.True(handshakeFired, "Server DeviceConnected event was not fired by HTTP handshake!");
+
+        // 3. Step 2: Telemetry (POST /api/pwa/telemetry)
+        var telPayload = new LogEventMessage
+        {
+            Type = "client_telemetry",
+            SessionId = sessionId,
+            ClientTelemetry = new ClientTelemetry
+            {
+                Browser = "Safari",
+                BrowserVersion = "17.5",
+                Os = "iOS",
+                OsVersion = "17.5",
+                ScreenWidth = 390,
+                ScreenHeight = 844,
+                TouchSupport = true
+            }
+        };
+        var telResp = await client.PostAsync($"{baseUrl}/api/pwa/telemetry", new StringContent(JsonSerializer.Serialize(telPayload), Encoding.UTF8, "application/json"));
+        Assert.True(telResp.IsSuccessStatusCode, "Telemetry submission failed!");
+        Assert.True(telemetryFired, "Server TelemetryReceived event was not fired!");
+
+        // 4. Step 3: Submit Touch Canvas Step (POST /api/pwa/submit-step)
+        var stepPayload = new DeviceSessionMessage
+        {
+            Type = "touch_canvas_result",
+            SessionId = sessionId,
+            Message = "Touch grid 100% completed without deadzones"
+        };
+        var stepResp = await client.PostAsync($"{baseUrl}/api/pwa/submit-step", new StringContent(JsonSerializer.Serialize(stepPayload), Encoding.UTF8, "application/json"));
+        Assert.True(stepResp.IsSuccessStatusCode, "Step submission failed!");
+        Assert.True(stepFired, "Server MessageReceived event was not fired for step submission!");
+
+        // 5. Step 4: Final Suite Submit (POST /api/pwa/submit)
+        var suitePayload = new DeviceSessionMessage
+        {
+            Type = "suite_complete",
+            SessionId = sessionId,
+            Payload = new InteractiveTestSuiteResult
+            {
+                SessionId = sessionId,
+                Platform = "iOS",
+                CompletedAt = DateTime.UtcNow,
+                Tests = new List<InteractiveTestResult>
+                {
+                    new InteractiveTestResult { Id = "touch_canvas", Name = "Touch Canvas Test", Status = TestStatus.Passed, DurationMs = 1500 },
+                    new InteractiveTestResult { Id = "html5_camera", Name = "Camera Capture Test", Status = TestStatus.Passed, DurationMs = 2100 }
+                }
+            }
+        };
+        var submitResp = await client.PostAsync($"{baseUrl}/api/pwa/submit", new StringContent(JsonSerializer.Serialize(suitePayload), Encoding.UTF8, "application/json"));
+        Assert.True(submitResp.IsSuccessStatusCode, "Final suite submission failed!");
+        Assert.True(submitFired, "Server SuiteCompleted event was not fired!");
+    }
+
 }
