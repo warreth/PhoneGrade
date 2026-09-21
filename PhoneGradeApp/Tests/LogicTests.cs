@@ -189,6 +189,44 @@ public class MappersTests
     [InlineData(5_000_000_000_000, "5000GB")] // beyond 2TB: honest GB figure
     public void MapStorage_BucketsCorrectly(long bytes, string expected)
         => Assert.Equal(expected, Mappers.MapStorage(bytes));
+
+    [Fact]
+    public void VerifyComponent_MatchingSerials_ReturnsMatch()
+    {
+        var status = Parsers.VerifyComponent("F17T1234ABCD", "F17T1234ABCD");
+        Assert.Equal(ComponentStatusType.Match, status);
+    }
+
+    [Fact]
+    public void VerifyComponent_MismatchedSerials_ReturnsMismatch()
+    {
+        var status = Parsers.VerifyComponent("F17T1234ABCD", "F17T9999XYZW");
+        Assert.Equal(ComponentStatusType.Mismatch, status);
+    }
+
+    [Fact]
+    public void VerifyComponent_MissingOrEmpty_ReturnsUnknown()
+    {
+        var status = Parsers.VerifyComponent("", "F17T9999XYZW");
+        Assert.Equal(ComponentStatusType.Unknown, status);
+    }
+
+    [Fact]
+    public void DeviceData_3uToolsProperties_InitializeCorrectly()
+    {
+        var data = new DeviceData
+        {
+            MotherboardSerialNumber = "C0212345678",
+            TouchIdFaceIdSerialNumber = "MESA12345",
+            BluetoothMacAddress = "00:11:22:33:44:55",
+            WifiMacAddress = "66:77:88:99:AA:BB",
+            FmiVerificationSource = "Via Server (API)"
+        };
+
+        Assert.Equal("C0212345678", data.MotherboardSerialNumber);
+        Assert.Equal("MESA12345", data.TouchIdFaceIdSerialNumber);
+        Assert.Equal("Via Server (API)", data.FmiVerificationSource);
+    }
 }
 
 public class PanicRulesTests

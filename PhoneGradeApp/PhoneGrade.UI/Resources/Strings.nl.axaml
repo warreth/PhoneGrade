@@ -72,6 +72,8 @@
     <x:String x:Key="Settings_Payment">Standaard Factuurmethode</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Automatisch interactieve webtest starten</x:String>
     <x:String x:Key="Settings_RequirePwaTest">PWA Test Verplicht voor afronden</x:String>
+    <x:String x:Key="Settings_AutoFinishAfterTest">Automatisch afronden na test</x:String>
+    <x:String x:Key="Settings_ImeiApiKey">IMEI / FMI API Sleutel</x:String>
     <x:String x:Key="Settings_ShowSummary">Toon samenvatting voor label printen</x:String>
     <x:String x:Key="Settings_Advanced">GEAVANCEERDE AUTOMATISERING</x:String>
     <x:String x:Key="Settings_AutoActivate">Automatisch activeren (bypass)</x:String>

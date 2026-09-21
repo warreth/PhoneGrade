@@ -156,7 +156,12 @@
                                             <TextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Spacing="2" Margin="0,0,8,0">
-                                            <TextBlock Classes="dim" Text="Find My (iCloud)" FontSize="11"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock Classes="dim" Text="Find My (iCloud)" FontSize="11"/>
+                                                <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="4,1">
+                                                    <TextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="9" Foreground="{DynamicResource TextDimColor}"/>
+                                                </Border>
+                                            </StackPanel>
                                             <TextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}, FallbackValue='Onbekend'}" 
                                                        Foreground="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockBrushConverter}}"
                                                        FontWeight="Bold" FontSize="13"/>
@@ -232,63 +237,111 @@
 
                 <!-- ==================== STATE 3: SUMMARY (Results & Print) ==================== -->
                 <ScrollViewer IsVisible="{Binding IsSummaryState}" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="32" Spacing="20" MaxWidth="800" HorizontalAlignment="Center">
+                    <StackPanel Margin="24,20" Spacing="16" MaxWidth="920" HorizontalAlignment="Center">
                         <!-- Top Grade & Result Banner -->
-                        <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="24">
+                        <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="20">
                             <Grid ColumnDefinitions="*,Auto">
-                                <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
-                                    <TextBlock Text="INSPECTIELAPPORT" Classes="cardTitle"/>
-                                    <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontSize="24" FontWeight="Bold"/>
-                                    <TextBlock Text="{Binding DeviceData.Identifier, StringFormat='IMEI / Serienummer: {0}'}" Classes="dim" FontSize="13"/>
+                                <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                                    <TextBlock Text="INSPECTIERAPPORT" Classes="cardTitle"/>
+                                    <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontSize="22" FontWeight="Bold"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="12">
+                                        <TextBlock Text="{Binding DeviceData.Identifier, StringFormat='IMEI / Serienummer: {0}'}" Classes="dim" FontSize="12"/>
+                                        <TextBlock Text="{Binding DeviceData.Storage, StringFormat='Opslag: {0}'}" Classes="dim" FontSize="12"/>
+                                        <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}, StringFormat='Kleur: {0}'}" Classes="dim" FontSize="12"/>
+                                    </StackPanel>
                                 </StackPanel>
 
-                                <!-- Big Quality Grade Pill -->
-                                <Border Grid.Column="1" Classes="pill success" Padding="20,10" CornerRadius="16" VerticalAlignment="Center">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="KLASSE" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        <TextBlock Text="{Binding DeviceData.Quality, Converter={StaticResource QualityConverter}}" 
-                                                   FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
+                                <!-- Big Quality Grade Pill & FMI Badge -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                    <Border Classes="pill" Background="{DynamicResource CardColor}" BorderBrush="{DynamicResource CardBorderColor}" Padding="12,8">
+                                        <StackPanel Spacing="2">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock Text="iCloud (FMI)" FontSize="10" Classes="dim"/>
+                                                <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="3,1">
+                                                    <TextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}, FallbackValue='Onbekend'}"
+                                                       Foreground="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockBrushConverter}}"
+                                                       FontWeight="Bold" FontSize="12"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Classes="pill success" Padding="16,8" CornerRadius="12">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="KLASSE" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding DeviceData.Quality, Converter={StaticResource QualityConverter}}" 
+                                                       FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
                             </Grid>
                         </Border>
 
-                        <!-- Hardware Checklist -->
-                        <Border Classes="card">
-                            <StackPanel Spacing="14">
-                                <TextBlock Classes="cardTitle" Text="DIAGNOSTISCHE CHECKLIJST"/>
-                                
-                                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0,4,0,8">
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" Margin="0,0,8,12">
-                                        <TextBlock Classes="dim" Text="Batterijconditie" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="Bold" FontSize="14"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4" Margin="0,0,8,12">
-                                        <TextBlock Classes="dim" Text="Opslagruimte" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Storage}" FontWeight="Bold" FontSize="14"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="0" Grid.Column="2" Spacing="4" Margin="0,0,0,12">
-                                        <TextBlock Classes="dim" Text="Factuurmethode" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.PayMethod, Converter={StaticResource PayMethodConverter}}" FontWeight="Bold" FontSize="14"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
-                                        <TextBlock Classes="dim" Text="Kleur" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" FontWeight="Bold" FontSize="14"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
-                                        <TextBlock Classes="dim" Text="OEM Onderdelen" FontSize="11"/>
-                                        <TextBlock Text="{Binding ComponentChecks.Count, StringFormat='{}{0} gecontroleerd'}" FontWeight="Bold" FontSize="14"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Row="1" Grid.Column="2" Spacing="4">
-                                        <TextBlock Classes="dim" Text="Hardware Tests" FontSize="11"/>
-                                        <TextBlock Text="{Binding InteractiveTestSummary}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource SuccessColor}"/>
-                                    </StackPanel>
+                        <!-- High-Level Hardware Checklist Summary Grid -->
+                        <Border Classes="card" Padding="16">
+                            <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto">
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock Classes="dim" Text="Batterijconditie" FontSize="11"/>
+                                    <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="Bold" FontSize="14"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Classes="dim" Text="Factuurmethode" FontSize="11"/>
+                                    <TextBlock Text="{Binding DeviceData.PayMethod, Converter={StaticResource PayMethodConverter}}" FontWeight="Bold" FontSize="14"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="2">
+                                    <TextBlock Classes="dim" Text="SIM Lock" FontSize="11"/>
+                                    <TextBlock Text="Vrijgeschakeld (Simlockvrij)" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource SuccessColor}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Spacing="2">
+                                    <TextBlock Classes="dim" Text="Hardware Tests (PWA)" FontSize="11"/>
+                                    <TextBlock Text="{Binding InteractiveTestSummary}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource SuccessColor}" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- 3uTools-Style Comparative Component Audit Table -->
+                        <Border Classes="card" Padding="18">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="cardTitle" Text="3UTOOLS HARDWARE COMPONENTEN AUDIT" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="Vergelijking Fabriekswaarde vs Gelezen Waarde" Classes="dim" FontSize="11" VerticalAlignment="Center"/>
                                 </Grid>
+
+                                <!-- Table Header -->
+                                <Border Background="{DynamicResource TrackColor}" CornerRadius="6" Padding="10,6">
+                                    <Grid ColumnDefinitions="160,*,*,100">
+                                        <TextBlock Grid.Column="0" Text="Onderdeel" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
+                                        <TextBlock Grid.Column="1" Text="Fabriekswaarde (Ex-factory)" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
+                                        <TextBlock Grid.Column="2" Text="Gelezen Waarde (Read)" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
+                                        <TextBlock Grid.Column="3" Text="Status" FontWeight="Bold" FontSize="11" HorizontalAlignment="Right" Foreground="{DynamicResource TextDimColor}"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Table Rows -->
+                                <ItemsControl ItemsSource="{Binding ComponentChecks}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource CardDeepColor}" CornerRadius="6" Padding="10,8" Margin="0,0,0,4"
+                                                    BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
+                                                <Grid ColumnDefinitions="160,*,*,100">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding SerialOriginal}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="dim"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding SerialRead}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <Border Grid.Column="3" CornerRadius="4" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                            Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
+                                                        <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Border>
 
                         <!-- Massive Print Label Button & Retest Actions -->
-                        <StackPanel Spacing="12" Margin="0,8,0,0">
+                        <StackPanel Spacing="10" Margin="0,4,0,0">
                             <Button Classes="kioskPrint" Command="{Binding OpenLabelCommand}" Content="DYMO LABEL AFDRUKKEN"/>
                             
                             <Grid ColumnDefinitions="*,*">
@@ -349,7 +402,13 @@
                             <CheckBox Content="{DynamicResource Settings_AutoDetect}" IsChecked="{Binding AutoDetectOnPlug}"/>
                             <CheckBox Content="{DynamicResource Settings_AutoStartWebTest}" IsChecked="{Binding AutoStartWebTest}"/>
                             <CheckBox Content="{DynamicResource Settings_RequirePwaTest}" IsChecked="{Binding RequirePwaTest}"/>
+                            <CheckBox Content="{DynamicResource Settings_AutoFinishAfterTest}" IsChecked="{Binding AutoFinishAfterTest}"/>
                             <CheckBox Content="{DynamicResource Settings_ShowSummary}" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
+                            
+                            <StackPanel Spacing="4" Margin="0,4,0,0">
+                                <TextBlock Text="{DynamicResource Settings_ImeiApiKey}" FontSize="12" Foreground="{DynamicResource TextDimColor}"/>
+                                <TextBox Text="{Binding ImeiApiKey}" Watermark="SickW / IMEIPro API Key..." PasswordChar="*"/>
+                            </StackPanel>
                         </StackPanel>
 
                         <Separator Margin="0,8,0,8"/>
