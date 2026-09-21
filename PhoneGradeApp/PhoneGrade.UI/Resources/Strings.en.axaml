@@ -83,4 +83,18 @@
     <x:String x:Key="Btn_Troubleshoot">USB and Driver Diagnostics</x:String>
     <x:String x:Key="Btn_Logs">View System Logs</x:String>
 
+    <!-- Summary / Inspection Report -->
+    <x:String x:Key="Summary_Title">INSPECTION REPORT</x:String>
+    <x:String x:Key="Summary_AuditTitle">3UTOOLS HARDWARE COMPONENT AUDIT</x:String>
+    <x:String x:Key="Summary_AuditSubtitle">Comparison Ex-Factory vs Read Value</x:String>
+    <x:String x:Key="Summary_ColComponent">Component</x:String>
+    <x:String x:Key="Summary_ColFactory">Ex-Factory Value</x:String>
+    <x:String x:Key="Summary_ColRead">Read Value</x:String>
+    <x:String x:Key="Summary_ColStatus">Status</x:String>
+    <x:String x:Key="Summary_BtnPrint">PRINT DYMO LABEL</x:String>
+    <x:String x:Key="Summary_BtnRetest">Retest</x:String>
+    <x:String x:Key="Summary_BtnNext">Next Device (Done)</x:String>
+    <x:String x:Key="Summary_SimLockFree">Unlocked (SIM-free)</x:String>
+    <x:String x:Key="Summary_SimLocked">SIM Locked</x:String>
+
 </ResourceDictionary>

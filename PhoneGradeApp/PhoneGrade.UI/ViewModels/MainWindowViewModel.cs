@@ -526,6 +526,20 @@ public class MainWindowViewModel : ReactiveObject
                 string? udid = SelectedDevice.Key;
                 if (udid is { Length: > 0 })
                 {
+                    // Check if this device was disconnected mid-test and can be resumed
+                    if (DeviceSessionManager.TryGetPreservedSession(udid, out var preserved) && preserved?.Data != null)
+                    {
+                        DeviceData = preserved.Data;
+                        Progress = preserved.SavedProgress;
+                        ComponentChecks.Clear();
+                        foreach (var c in DeviceData.ComponentChecks) ComponentChecks.Add(c);
+                        WorkflowState = AppWorkflowState.Active;
+                        Status = "Toestel heraangesloten: sessie hervat.";
+                        DeviceSessionManager.MarkStarted(udid, DeviceData);
+                        UpdateWebRunnerSession(udid);
+                        return;
+                    }
+
                     if (!DeviceSessionManager.HasStartedOrCompleted(udid))
                     {
                         DeviceSessionManager.MarkStarted(udid);
@@ -541,6 +555,7 @@ public class MainWindowViewModel : ReactiveObject
 
     private void ResetToIdle()
     {
+        string? lastUdid = SelectedDevice.Key;
         if (_flowCts != null)
         {
             _flowCts.Cancel();
@@ -548,20 +563,21 @@ public class MainWindowViewModel : ReactiveObject
             _flowCts = null;
         }
 
+        // Preserve session if unhooked mid-test
+        if (WorkflowState == AppWorkflowState.Active && !string.IsNullOrWhiteSpace(lastUdid) && DeviceData != null)
+        {
+            DeviceSessionManager.PreserveDisconnectedSession(lastUdid, DeviceData, Progress);
+            Status = "Toestel losgekoppeld. Sluit hetzelfde toestel opnieuw aan om verder te gaan.";
+        }
+        else
+        {
+            Status = "Sluit een toestel aan via USB om te starten...";
+        }
+
         WorkflowState = AppWorkflowState.Idle;
-        Status = "Sluit een toestel aan via USB om te starten...";
-        DeviceData = new DeviceData { Model = "Onbekend", Identifier = "Onbekend" };
-        ComponentChecks.Clear();
-        Issues.Clear();
-        HasIssues = false;
-        Progress = 0;
         Busy = false;
-        WebRunnerUrl = "";
-        QrCodeBitmap = null;
-        InteractiveSessionStatus = "";
         IsQualityPopupVisible = false;
         IsPaymentPopupVisible = false;
-        DeviceSessionManager.ClearAll();
     }
 
     /// <summary>True when a device list refresh surfaced exactly one usable device.</summary>

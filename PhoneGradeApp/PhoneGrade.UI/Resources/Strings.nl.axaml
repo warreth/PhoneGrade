@@ -83,4 +83,18 @@
     <x:String x:Key="Btn_Troubleshoot">USB en Driver Diagnose</x:String>
     <x:String x:Key="Btn_Logs">Systeemlogboeken Bekijken</x:String>
 
+    <!-- Summary / Inspection Report -->
+    <x:String x:Key="Summary_Title">INSPECTIERAPPORT</x:String>
+    <x:String x:Key="Summary_AuditTitle">3UTOOLS HARDWARE COMPONENTEN AUDIT</x:String>
+    <x:String x:Key="Summary_AuditSubtitle">Vergelijking Fabriekswaarde vs Gelezen Waarde</x:String>
+    <x:String x:Key="Summary_ColComponent">Onderdeel</x:String>
+    <x:String x:Key="Summary_ColFactory">Fabriekswaarde (Ex-factory)</x:String>
+    <x:String x:Key="Summary_ColRead">Gelezen Waarde (Read)</x:String>
+    <x:String x:Key="Summary_ColStatus">Status</x:String>
+    <x:String x:Key="Summary_BtnPrint">DYMO LABEL AFDRUKKEN</x:String>
+    <x:String x:Key="Summary_BtnRetest">Opnieuw Testen</x:String>
+    <x:String x:Key="Summary_BtnNext">Volgend Toestel (Klaar)</x:String>
+    <x:String x:Key="Summary_SimLockFree">Vrijgeschakeld (Simlockvrij)</x:String>
+    <x:String x:Key="Summary_SimLocked">Simlock Actief</x:String>
+
 </ResourceDictionary>
