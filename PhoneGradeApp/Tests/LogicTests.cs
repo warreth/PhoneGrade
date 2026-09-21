@@ -231,9 +231,16 @@ public class MappersTests
     [Fact]
     public void CleanSerial_DecodesBase64MlbCorrectly()
     {
-        // "THjDhg==" in base64 decodes to 4 bytes: 4c 78 c3 86
-        // While a standard base64 serial like "RjhZNTEyMzRBQkNE" decodes to "F8Y51234ABCD"
         Assert.Equal("F8Y51234ABCD", Parsers.CleanSerial("RjhZNTEyMzRBQkNE"));
+    }
+
+    [Fact]
+    public void CleanSerial_DecodesBase64MlbBinary_ToHex()
+    {
+        // "THjDhg==" is Base64 for 4 bytes: 0x4C, 0x78, 0xC3, 0x86
+        // Must be decoded to hex "4C78C386", never left as raw Base64!
+        string result = Parsers.CleanSerial("THjDhg==");
+        Assert.Equal("4C78C386", result);
     }
 
     [Fact]
