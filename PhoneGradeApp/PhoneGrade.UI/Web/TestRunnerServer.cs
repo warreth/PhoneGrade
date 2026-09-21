@@ -84,7 +84,6 @@ public class TestRunnerServer : IAsyncDisposable
         }
 
         int port = _preferredPort;
-        EnsureWindowsFirewallRule(port);
         Exception? lastEx = null;
 
         for (int attempt = 0; attempt < 5; attempt++)
@@ -169,6 +168,7 @@ public class TestRunnerServer : IAsyncDisposable
                 await host.StartAsync(cancellationToken);
                 _host = host;
                 BoundPort = port;
+                EnsureWindowsFirewallRule(BoundPort);
                 return;
             }
             catch (Exception ex)
@@ -339,18 +339,34 @@ public class TestRunnerServer : IAsyncDisposable
 
         try
         {
-            var startInfo = new System.Diagnostics.ProcessStartInfo
+            // First remove any existing rule with same name to avoid duplicates
+            var delInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "netsh",
-                Arguments = $"advfirewall firewall add rule name=\"PhoneGrade_PWA_{port}\" dir=in action=allow protocol=TCP localport={port}",
+                Arguments = "advfirewall firewall delete rule name=\"PhoneGrade_PWA\"",
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             };
-            using var proc = System.Diagnostics.Process.Start(startInfo);
-            proc?.WaitForExit(3000);
-            SystemEventLogger.Info(LogSource.Desktop, $"Windows Firewall regel toegevoegd/gecontroleerd voor poort {port}.");
+            using (var delProc = System.Diagnostics.Process.Start(delInfo))
+            {
+                delProc?.WaitForExit(2000);
+            }
+
+            // Add the firewall rule matching the exact active port
+            var addInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "netsh",
+                Arguments = $"advfirewall firewall add rule name=\"PhoneGrade_PWA\" dir=in action=allow protocol=TCP localport={port}",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using var addProc = System.Diagnostics.Process.Start(addInfo);
+            addProc?.WaitForExit(3000);
+            SystemEventLogger.Info(LogSource.Desktop, $"Windows Firewall regel 'PhoneGrade_PWA' ingesteld voor actieve poort {port}.");
         }
         catch (Exception ex)
         {
@@ -358,18 +374,37 @@ public class TestRunnerServer : IAsyncDisposable
         }
     }
 
-    /// <summary>Sets up USB port forwarding via iproxy / usbmuxd if device is connected over USB.</summary>
-    public static async Task SetupUsbPortForwardingAsync(string udid, int localPort = 5055, int devicePort = 5055)
+    private static System.Diagnostics.Process? _iproxyProcess;
+
+    /// <summary>Sets up USB port forwarding via iproxy / usbmuxd in background if device is connected over USB.</summary>
+    public static Task SetupUsbPortForwardingAsync(string udid, int localPort = 5055, int devicePort = 5055)
     {
         try
         {
-            // Execute iproxy in background or verify usbmux port mapping
-            await ToolRunner.RunAsync("iproxy", $"{localPort} {devicePort} -u {udid}");
-            SystemEventLogger.Info(LogSource.Desktop, $"USB reverse tethering / poortkoppeling actief voor {udid}:{devicePort}");
+            if (_iproxyProcess != null && !_iproxyProcess.HasExited)
+            {
+                try { _iproxyProcess.Kill(); } catch { }
+            }
+
+            // iproxy binds localPort and forwards to devicePort on the USB device
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "iproxy",
+                Arguments = $"{localPort} {devicePort} -u {udid}",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            _iproxyProcess = System.Diagnostics.Process.Start(startInfo);
+            SystemEventLogger.Info(LogSource.Desktop, $"USB reverse tethering / poortkoppeling actief voor {udid}:{devicePort} op lokale poort {localPort}.");
         }
         catch (Exception ex)
         {
             SystemEventLogger.Debug(LogSource.Desktop, $"USB poortkoppeling niet beschikbaar: {ex.Message}");
         }
+
+        return Task.CompletedTask;
     }
 }
