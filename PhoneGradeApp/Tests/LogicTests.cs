@@ -264,6 +264,31 @@ public class MappersTests
     }
 
     [Fact]
+    public void DeviceData_QualityAndPayMethod_NotifyPropertyChangedAndFormatDisplay()
+    {
+        var data = new DeviceData();
+        var changedProps = new List<string>();
+        data.PropertyChanged += (s, e) => { if (e.PropertyName != null) changedProps.Add(e.PropertyName); };
+
+        Assert.Equal("Niet beoordeeld", data.GradeDisplay);
+        Assert.Equal("Niet opgegeven", data.InvoiceMethodDisplay);
+
+        // Mutate Quality
+        data.Quality = "A";
+        Assert.Equal("KLASSE A", data.GradeDisplay);
+        Assert.Contains("Quality", changedProps);
+        Assert.Contains("SelectedGrade", changedProps);
+        Assert.Contains("GradeDisplay", changedProps);
+
+        // Mutate PayMethod
+        data.PayMethod = "Marge";
+        Assert.Equal("Marge (0% BTW)", data.InvoiceMethodDisplay);
+        Assert.Contains("PayMethod", changedProps);
+        Assert.Contains("SelectedInvoiceMethod", changedProps);
+        Assert.Contains("InvoiceMethodDisplay", changedProps);
+    }
+
+    [Fact]
     public void VerifyComponent_NoOutput_ReturnsUnknown_NeverMatch()
     {
         var status = Parsers.VerifyComponent("NO OUTPUT", "NO OUTPUT");
