@@ -148,8 +148,9 @@ public static partial class DiagnosticService
 
             string deviceDir = Path.Combine(WorkDir, udid);
             Directory.CreateDirectory(deviceDir);
+            // Non-blocking fast execution: max 3 seconds timeout to prevent UI freezes
             var (output, exit) = await ToolRunner.RunAsync("idevicecrashreport",
-                $"-u {udid} -e {deviceDir}", 120_000);
+                $"-u {udid} -e -k {deviceDir}", 3_000);
             if (exit != 0 && !Directory.Exists(deviceDir))
                 return FallbackInfo("Geen crash-logs opgehaald", output);
 
