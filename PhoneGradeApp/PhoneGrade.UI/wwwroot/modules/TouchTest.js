@@ -17,10 +17,16 @@ export class TouchTest extends DeviceTest {
         this.reportProgress(wsClient, 0, 'Starting touchscreen test...');
 
         container.innerHTML = `
-            <div style="position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: #0f172a; z-index: 10000; touch-action: none; user-select: none; overflow: hidden; display: flex; flex-direction: column;">
-                <div id="touch-info-bar" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #ffffff; padding: 6px 16px; border-radius: 9999px; font-size: 13px; font-weight: 600; pointer-events: none; z-index: 10002; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-                    Kleur alle vakjes groen (<span id="touch-progress">0%</span>)
+            <div id="touch-wrap" style="position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: #0f172a; z-index: 10000; touch-action: none; user-select: none; overflow: hidden; display: flex; flex-direction: column;">
+                <div id="touch-instruction-card" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15,23,42,0.92); color: #ffffff; padding: 20px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; z-index: 10005; border: 2px solid #2563eb; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: opacity 0.3s ease;">
+                    <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #38bdf8;">Touchscreen Test</div>
+                    <div>Veeg met je vinger over het hele scherm om alle grijze vakjes groen te kleuren</div>
                 </div>
+
+                <div id="touch-info-bar" style="position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #ffffff; padding: 6px 18px; border-radius: 9999px; font-size: 14px; font-weight: 700; pointer-events: none; z-index: 10002; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                    Dekking: <span id="touch-progress" style="color: #4ade80;">0%</span>
+                </div>
+
                 <div id="touch-grid" style="display: grid; grid-template-columns: repeat(${this.gridCols}, 1fr); grid-template-rows: repeat(${this.gridRows}, 1fr); gap: 2px; width: 100%; height: 100%; padding: 4px; box-sizing: border-box; background: #1e293b;"></div>
                 <canvas id="touch-trail-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;"></canvas>
             </div>
@@ -29,8 +35,11 @@ export class TouchTest extends DeviceTest {
         const grid = container.querySelector('#touch-grid');
         const canvas = container.querySelector('#touch-trail-canvas');
         const progressDisplay = container.querySelector('#touch-progress');
+        const instructionCard = container.querySelector('#touch-instruction-card');
 
         const dpr = window.devicePixelRatio || 1;
+        await new Promise(r => requestAnimationFrame(r));
+
         const rect = grid.getBoundingClientRect();
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
@@ -41,7 +50,7 @@ export class TouchTest extends DeviceTest {
             const cell = document.createElement('div');
             cell.className = 'touch-cell';
             cell.dataset.index = i;
-            cell.style.cssText = 'background: #ffffff; border: 1px solid #cbd5e1; border-radius: 3px; transition: background 100ms ease;';
+            cell.style.cssText = 'background: #334155; border: 1px solid #475569; border-radius: 3px; transition: background 80ms ease, transform 80ms ease;';
             grid.appendChild(cell);
         }
 
@@ -55,7 +64,7 @@ export class TouchTest extends DeviceTest {
                     const yc = (this.trailPoints[i].y + this.trailPoints[i - 1].y) / 2;
                     ctx.quadraticCurveTo(this.trailPoints[i - 1].x, this.trailPoints[i - 1].y, xc, yc);
                 }
-                ctx.strokeStyle = 'rgba(37, 99, 235, 0.6)';
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
                 ctx.lineWidth = 14;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
@@ -65,6 +74,12 @@ export class TouchTest extends DeviceTest {
 
         const handleTouch = (e) => {
             e.preventDefault();
+            
+            // Hide instruction card as soon as the user starts touching
+            if (instructionCard && instructionCard.style.opacity !== '0') {
+                instructionCard.style.opacity = '0';
+            }
+
             const touches = e.touches ? Array.from(e.touches) : [e];
 
             for (const touch of touches) {
@@ -89,8 +104,11 @@ export class TouchTest extends DeviceTest {
                     if (!this.touchedCells.has(index)) {
                         this.touchedCells.add(index);
                         element.style.background = '#16a34a';
-                        element.style.borderColor = '#15803d';
-                        this.haptic.tap();
+                        element.style.borderColor = '#22c55e';
+                        element.style.transform = 'scale(0.96)';
+                        setTimeout(() => element.style.transform = 'scale(1)', 100);
+
+                        if (this.haptic) this.haptic.tap();
 
                         const progress = Math.round((this.touchedCells.size / this.totalCells) * 100);
                         progressDisplay.textContent = progress + '%';
@@ -122,7 +140,7 @@ export class TouchTest extends DeviceTest {
         return new Promise((resolve) => {
             const checkComplete = () => {
                 if (this.touchedCells.size >= this.totalCells) {
-                    this.pass('All cells touched successfully (100% coverage)');
+                    this.pass('Alle vakjes succesvol aangeraakt (100% dekking)');
                     this.details.coverage = 100;
                     this.details.touchedCount = this.touchedCells.size;
                     this.details.totalCells = this.totalCells;
@@ -130,9 +148,9 @@ export class TouchTest extends DeviceTest {
                 } else if (Date.now() - startTime > timeout) {
                     const coverage = Math.round((this.touchedCells.size / this.totalCells) * 100);
                     if (coverage >= 90) {
-                        this.pass('Acceptable coverage (' + coverage + '%)');
+                        this.pass('Voldoende dekking (' + coverage + '%)');
                     } else {
-                        this.fail('Only ' + coverage + '% of screen responsive (dead zones detected)');
+                        this.fail('Slechts ' + coverage + '% van scherm responsief (dode zones)');
                     }
                     this.details.coverage = coverage;
                     this.details.touchedCount = this.touchedCells.size;

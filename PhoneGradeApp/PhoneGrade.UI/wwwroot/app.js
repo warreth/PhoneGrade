@@ -475,6 +475,7 @@ class TestRunner {
         container.innerHTML = '';
         
         // Hide test list and header while test is running
+        document.body.classList.add('test-running');
         const testScreen = document.getElementById('test-screen');
         if (testScreen) testScreen.classList.add('test-running');
 
@@ -485,6 +486,7 @@ class TestRunner {
             console.error('Test error:', error);
         } finally {
             // Remove test-running class
+            document.body.classList.remove('test-running');
             if (testScreen) testScreen.classList.remove('test-running');
             
             // Guarantee immediate test_complete dispatch to host even on error/exception

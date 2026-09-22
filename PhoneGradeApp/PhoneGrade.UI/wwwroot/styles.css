@@ -64,8 +64,12 @@ body {
     overflow: hidden;
 }
 
-.main-content, .test-container, .results-details, .screen {
+.main-content, .results-details, .screen {
     touch-action: pan-y;
+}
+
+.test-container {
+    touch-action: none !important;
 }
 
 .app-container {
@@ -180,11 +184,23 @@ body {
     display: flex;
 }
 
-/* Hide test-list when test-container is active */
+/* When test is running, hide header, footer, test-list to be 100% full screen */
+body.test-running .app-header,
+body.test-running .app-footer,
+body.test-running .test-footer,
 #test-screen.test-running #test-list,
 #test-screen.test-running .test-header,
 #test-screen.test-running .progress-bar {
-    display: none;
+    display: none !important;
+}
+
+#test-screen.test-running .main-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
 }
 
 @keyframes fadeIn {

@@ -2,7 +2,7 @@ import { DeviceTest } from './DeviceTest.js';
 
 export class SpeakerTest extends DeviceTest {
     constructor() {
-        super('speaker', 'Speaker & Earpiece', 'Test top earpiece and bottom loudspeaker');
+        super('speaker', 'Luidspreker & Oorstuk', 'Controleer de oorluidspreker en hoofdluidspreker');
         this.audioContext = null;
         this.earpieceWorking = false;
         this.loudspeakerWorking = false;
@@ -10,37 +10,37 @@ export class SpeakerTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Ready for audio test...');
+        this.reportProgress(wsClient, 0, 'Audiotest voorbereiden...');
 
         container.innerHTML = `
-            <div style="position: fixed; inset: 0; background: var(--color-bg-primary); z-index: 10000; overflow-y: auto; padding: 24px;">
-                <h3 style="color: var(--color-text-primary); margin-bottom: 16px; font-size: 24px; text-align: center;">Audio Test</h3>
-                
-                <div style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 12px; border-radius: 8px; margin-bottom: 24px; font-weight: 600; text-align: center;">
-                    ⚠️ Zet stille modus uit en zet je media volume aan!
-                </div>
+            <div style="position: fixed; inset: 0; background: var(--color-bg-primary); z-index: 10000; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center;">
+                <div style="max-width: 450px; width: 100%;">
+                    <h3 style="color: var(--color-text-primary); margin-bottom: 12px; font-size: 22px; text-align: center; font-weight: bold;">Audio &amp; Luidsprekers</h3>
+                    
+                    <div style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; text-align: center; font-size: 13px;">
+                        ⚠️ Zet de stille modus schakelaar UIT en zet je mediavolume op 100%!
+                    </div>
 
-                <div id="speaker-test-area" style="margin: 20px 0; max-width: 500px; margin-left: auto; margin-right: auto;">
-                    <div id="earpiece-section" style="margin-bottom: 24px; padding: 16px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
-                        <p style="margin-bottom: 12px; font-weight: 600; color: var(--color-text-primary);">Top Oorluidspreker (Earpiece):</p>
-                        <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">Houd de telefoon tegen je oor na het klikken op de knop.</p>
-                        <button id="play-earpiece-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">Speel Geluid</button>
-                        <div id="earpiece-feedback" style="display: none; justify-content: center; gap: 12px;">
-                            <button id="earpiece-yes" class="btn btn-success" style="flex: 1;">Ik hoorde het</button>
-                            <button id="earpiece-no" class="btn btn-danger" style="flex: 1;">Geen geluid</button>
+                    <div id="earpiece-section" style="margin-bottom: 20px; padding: 18px; background: var(--color-bg-secondary); border-radius: 12px; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); text-align: center;">
+                        <p style="margin-bottom: 8px; font-weight: bold; font-size: 15px; color: var(--color-text-primary);">1. Bovenste Oorluidspreker (Earpiece)</p>
+                        <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">Houd het toestel tegen je oor zodra de beltoon start.</p>
+                        <button id="play-earpiece-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 14px;">Speel Beltoon</button>
+                        <div id="earpiece-feedback" style="display: none; justify-content: center; gap: 10px;">
+                            <button id="earpiece-yes" class="btn btn-success" style="flex: 1;">Ik hoorde het goed</button>
+                            <button id="earpiece-no" class="btn btn-danger" style="flex: 1;">Niets gehoord</button>
                         </div>
-                        <p id="earpiece-status" style="text-align: center; margin-top: 12px; color: var(--color-text-tertiary); font-size: 13px; font-weight: 600;">Niet getest</p>
+                        <p id="earpiece-status" style="text-align: center; margin-top: 10px; color: var(--color-text-tertiary); font-size: 13px; font-weight: 600;">Wacht op test...</p>
                     </div>
                     
-                    <div id="loudspeaker-section" style="padding: 16px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); opacity: 0.5; pointer-events: none;">
-                        <p style="margin-bottom: 12px; font-weight: 600; color: var(--color-text-primary);">Onderste Luidspreker (Loudspeaker):</p>
-                        <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">Een helder geluid wordt afgespeeld via de hoofdluidspreker.</p>
-                        <button id="play-loud-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">Speel Geluid</button>
-                        <div id="loud-feedback" style="display: none; justify-content: center; gap: 12px;">
-                            <button id="loud-yes" class="btn btn-success" style="flex: 1;">Ik hoorde het</button>
-                            <button id="loud-no" class="btn btn-danger" style="flex: 1;">Geen geluid</button>
+                    <div id="loudspeaker-section" style="padding: 18px; background: var(--color-bg-secondary); border-radius: 12px; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); opacity: 0.5; pointer-events: none; text-align: center;">
+                        <p style="margin-bottom: 8px; font-weight: bold; font-size: 15px; color: var(--color-text-primary);">2. Onderste Hoofdluidspreker (Loudspeaker)</p>
+                        <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">Een heldere beltoon speelt af over de hoofdluidspreker.</p>
+                        <button id="play-loud-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 14px;">Speel Beltoon</button>
+                        <div id="loud-feedback" style="display: none; justify-content: center; gap: 10px;">
+                            <button id="loud-yes" class="btn btn-success" style="flex: 1;">Ik hoorde het goed</button>
+                            <button id="loud-no" class="btn btn-danger" style="flex: 1;">Niets gehoord / kraakt</button>
                         </div>
-                        <p id="loud-status" style="text-align: center; margin-top: 12px; color: var(--color-text-tertiary); font-size: 13px; font-weight: 600;">Niet getest</p>
+                        <p id="loud-status" style="text-align: center; margin-top: 10px; color: var(--color-text-tertiary); font-size: 13px; font-weight: 600;">Wacht op test...</p>
                     </div>
                 </div>
             </div>
@@ -48,20 +48,17 @@ export class SpeakerTest extends DeviceTest {
 
         const playEarpieceBtn = container.querySelector('#play-earpiece-btn');
         const playLoudBtn = container.querySelector('#play-loud-btn');
-        
         const earpieceFeedback = container.querySelector('#earpiece-feedback');
         const loudFeedback = container.querySelector('#loud-feedback');
-        
         const earpieceYes = container.querySelector('#earpiece-yes');
         const earpieceNo = container.querySelector('#earpiece-no');
         const loudYes = container.querySelector('#loud-yes');
         const loudNo = container.querySelector('#loud-no');
-
         const earpieceStatus = container.querySelector('#earpiece-status');
         const loudStatus = container.querySelector('#loud-status');
         const loudSection = container.querySelector('#loudspeaker-section');
 
-        const initAudioContext = () => {
+        const initAudio = () => {
             if (!this.audioContext) {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
@@ -73,13 +70,13 @@ export class SpeakerTest extends DeviceTest {
         return new Promise(async (resolve) => {
             const testEarpiece = () => new Promise((res) => {
                 playEarpieceBtn.onclick = () => {
-                    initAudioContext();
+                    initAudio();
                     playEarpieceBtn.disabled = true;
-                    earpieceStatus.textContent = 'Bezig met afspelen...';
-                    this.playMelody(0.05, () => {
+                    earpieceStatus.textContent = 'Beltoon speelt af (zacht)...';
+                    this.playChime(0.12, () => {
                         playEarpieceBtn.style.display = 'none';
                         earpieceFeedback.style.display = 'flex';
-                        earpieceStatus.textContent = 'Hoorde je het geluid (oorluidspreker)?';
+                        earpieceStatus.textContent = 'Heb je de beltoon duidelijk gehoord?';
                     });
                 };
 
@@ -95,7 +92,7 @@ export class SpeakerTest extends DeviceTest {
 
                 earpieceNo.onclick = () => {
                     this.earpieceWorking = false;
-                    earpieceStatus.textContent = 'Gefaald';
+                    earpieceStatus.textContent = 'Defect / Geen geluid';
                     earpieceStatus.style.color = 'var(--color-error)';
                     earpieceFeedback.style.display = 'none';
                     loudSection.style.opacity = '1';
@@ -106,13 +103,13 @@ export class SpeakerTest extends DeviceTest {
 
             const testLoudspeaker = () => new Promise((res) => {
                 playLoudBtn.onclick = () => {
-                    initAudioContext();
+                    initAudio();
                     playLoudBtn.disabled = true;
-                    loudStatus.textContent = 'Bezig met afspelen...';
-                    this.playMelody(1.0, () => {
+                    loudStatus.textContent = 'Beltoon speelt af...';
+                    this.playChime(1.0, () => {
                         playLoudBtn.style.display = 'none';
                         loudFeedback.style.display = 'flex';
-                        loudStatus.textContent = 'Hoorde je het geluid (hoofdluidspreker)?';
+                        loudStatus.textContent = 'Heb je de beltoon luid en helder gehoord?';
                     });
                 };
 
@@ -126,92 +123,70 @@ export class SpeakerTest extends DeviceTest {
 
                 loudNo.onclick = () => {
                     this.loudspeakerWorking = false;
-                    loudStatus.textContent = 'Gefaald';
+                    loudStatus.textContent = 'Defect / Geen geluid';
                     loudStatus.style.color = 'var(--color-error)';
                     loudFeedback.style.display = 'none';
                     res();
                 };
             });
 
-            this.reportProgress(wsClient, 10, 'Testing earpiece...');
+            this.reportProgress(wsClient, 10, 'Oorluidspreker testen...');
             await testEarpiece();
 
-            this.reportProgress(wsClient, 50, 'Testing loudspeaker...');
+            this.reportProgress(wsClient, 50, 'Hoofdluidspreker testen...');
             await testLoudspeaker();
 
-            this.reportProgress(wsClient, 100, 'Finishing audio tests...');
+            this.reportProgress(wsClient, 100, 'Audiotests voltooid');
 
             if (this.earpieceWorking && this.loudspeakerWorking) {
-                this.pass('Both earpiece and loudspeaker are working');
+                this.pass('Zowel oorluidspreker als hoofdluidspreker werken uitstekend');
             } else if (this.earpieceWorking || this.loudspeakerWorking) {
-                const working = this.earpieceWorking ? 'Earpiece' : 'Loudspeaker';
-                const failing = this.earpieceWorking ? 'Loudspeaker' : 'Earpiece';
-                this.fail(working + ' is working, but ' + failing + ' failed');
+                const w = this.earpieceWorking ? 'Oorluidspreker' : 'Hoofdluidspreker';
+                const f = this.earpieceWorking ? 'Hoofdluidspreker' : 'Oorluidspreker';
+                this.fail(w + ' werkt, maar ' + f + ' is defect');
             } else {
-                this.fail('Both earpiece and loudspeaker failed');
+                this.fail('Geen van beide luidsprekers werkt');
             }
 
             this.details.earpiece = this.earpieceWorking;
             this.details.loudspeaker = this.loudspeakerWorking;
 
             if (this.audioContext) {
-                this.audioContext.close();
+                try { this.audioContext.close(); } catch (e) {}
             }
             resolve();
         });
     }
 
-    playMelody(volume, onComplete) {
+    playChime(volume, onComplete) {
         if (!this.audioContext) return;
         
-        // C major arpeggio melody: C4, E4, G4, C5
-        const notes = [261.63, 329.63, 392.00, 523.25];
-        const noteLength = 0.15;
-        
-        let startTime = this.audioContext.currentTime;
-        
-        for (let i = 0; i < notes.length; i++) {
+        // Gentle marimba/chime sequence: C5, E5, G5, B5, C6 (warm bells)
+        const notes = [523.25, 659.25, 783.99, 987.77, 1046.50];
+        const stepTime = 0.22;
+        let t = this.audioContext.currentTime;
+
+        notes.forEach((freq, idx) => {
             const osc = this.audioContext.createOscillator();
             const gain = this.audioContext.createGain();
             
-            osc.type = 'triangle';
-            osc.frequency.value = notes[i];
-            
-            gain.gain.setValueAtTime(0, startTime);
-            gain.gain.linearRampToValueAtTime(volume, startTime + 0.05);
-            gain.gain.setValueAtTime(volume, startTime + noteLength - 0.05);
-            gain.gain.linearRampToValueAtTime(0, startTime + noteLength);
-            
+            // Warm sine + soft harmonics for natural acoustic bell tone
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t);
+
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(volume * 0.7, t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+
             osc.connect(gain);
             gain.connect(this.audioContext.destination);
-            
-            osc.start(startTime);
-            osc.stop(startTime + noteLength);
-            
-            startTime += noteLength;
-        }
-        
-        // Final chord (C major)
-        const finalLength = 0.8;
-        for (let i = 0; i < notes.length; i++) {
-            const osc = this.audioContext.createOscillator();
-            const gain = this.audioContext.createGain();
-            
-            osc.type = 'triangle';
-            osc.frequency.value = notes[i];
-            
-            gain.gain.setValueAtTime(0, startTime);
-            gain.gain.linearRampToValueAtTime(volume * 0.5, startTime + 0.1);
-            gain.gain.setValueAtTime(volume * 0.5, startTime + finalLength - 0.2);
-            gain.gain.linearRampToValueAtTime(0, startTime + finalLength);
-            
-            osc.connect(gain);
-            gain.connect(this.audioContext.destination);
-            
-            osc.start(startTime);
-            osc.stop(startTime + finalLength);
-        }
-        
-        setTimeout(onComplete, (notes.length * noteLength + finalLength) * 1000 + 200);
+
+            osc.start(t);
+            osc.stop(t + 0.5);
+
+            t += stepTime;
+        });
+
+        setTimeout(onComplete, (notes.length * stepTime + 0.5) * 1000);
     }
 }

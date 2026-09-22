@@ -1,115 +1,60 @@
 import { DeviceTest } from './DeviceTest.js';
 
-/**
- * ScreenBrightnessTest: Test screen brightness control capability.
- * Uses Screen Brightness API where available.
- */
 export class ScreenBrightnessTest extends DeviceTest {
     constructor() {
-        super('brightness', 'Screen Brightness', 'Test display brightness control');
-        this.brightnessHistory = [];
+        super('brightness', 'Helderheid & Contrast', 'Controleer schermhelderheid en contrastweergave');
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Starting brightness test...');
-
-        // Check for Screen Brightness API (currently limited support)
-        if (!('screenBrightness' in navigator) && !('wakeLock' in navigator)) {
-            this.skip('Screen Brightness API not available on this device');
-            return;
-        }
+        this.reportProgress(wsClient, 0, 'Helderheidstest gestart...');
 
         container.innerHTML = `
-            <div style="padding: 20px;">
-                <p style="color: #cbd5e1; margin-bottom: 16px;">Testing display brightness levels...</p>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <div style="background: #1a1f2e; border: 1px solid #334155; border-radius: 8px; padding: 12px; text-align: center;">
-                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">Minimum</p>
-                        <div id="brightness-min" style="font-size: 24px; color: #4ade80;">Testing...</div>
+            <div style="position: fixed; inset: 0; background: var(--color-bg-primary); z-index: 10000; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div style="max-width: 450px; width: 100%; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md);">
+                    <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">Helderheid &amp; Contrast</h3>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">
+                        Zet de helderheid van je toestel op maximaal in het Bedieningspaneel (Control Center).
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                        <div style="height: 100px; background: #ffffff; border: 2px solid #cbd5e1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #000000;">
+                            100% Wit
+                        </div>
+                        <div style="height: 100px; background: #000000; border: 2px solid #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ffffff;">
+                            0% Zwart
+                        </div>
                     </div>
-                    <div style="background: #1a1f2e; border: 1px solid #334155; border-radius: 8px; padding: 12px; text-align: center;">
-                        <p style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">Maximum</p>
-                        <div id="brightness-max" style="font-size: 24px; color: #4ade80;">Testing...</div>
+
+                    <p style="font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;">
+                        Is het scherm helder en zijn beide vlakken duidelijk zichtbaar?
+                    </p>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button id="brightness-yes" class="btn btn-success" style="flex: 1;">Ja, helder en scherp</button>
+                        <button id="brightness-no" class="btn btn-danger" style="flex: 1;">Nee, te zwak / defect</button>
                     </div>
                 </div>
-
-                <p id="brightness-info" style="margin-top: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.6;"></p>
             </div>
         `;
 
-        try {
-            // Get current brightness (if available via WebGL or other means)
-            const initialBrightness = await this.getCurrentBrightness();
-            
-            this.reportProgress(wsClient, 20, 'Measuring brightness levels...');
+        const btnYes = container.querySelector('#brightness-yes');
+        const btnNo = container.querySelector('#brightness-no');
 
-            // Test brightness detection
-            const brightness = {
-                current: initialBrightness,
-                estimated: this.estimateBrightnessFromScreen()
+        return new Promise((resolve) => {
+            btnYes.onclick = () => {
+                this.reportProgress(wsClient, 100, 'Helderheid goedgekeurd');
+                this.pass('Schermhelderheid en contrast in orde');
+                this.details.brightnessLevel = 'Confirmed OK by user';
+                resolve();
             };
 
-            this.brightnessHistory.push(brightness);
-
-            const minEl = container.querySelector('#brightness-min');
-            const maxEl = container.querySelector('#brightness-max');
-            const infoEl = container.querySelector('#brightness-info');
-
-            if (minEl) minEl.textContent = '5%';
-            if (maxEl) maxEl.textContent = '100%';
-
-            if (infoEl) {
-                infoEl.innerHTML = `
-                    <strong>Brightness Detection Results:</strong><br>
-                    Current: ${brightness.current}%<br>
-                    Estimated: ${brightness.estimated}%<br>
-                    Adaptive Brightness: ${this.hasAdaptiveBrightness() ? 'Available' : 'Not detected'}<br>
-                    Dark Mode: ${this.isDarkModeEnabled() ? 'Enabled' : 'Disabled'}
-                `;
-            }
-
-            this.reportProgress(wsClient, 100, 'Brightness test complete');
-
-            this.pass('Display brightness detection working');
-            this.details.brightness = brightness;
-            this.details.darkMode = this.isDarkModeEnabled();
-            this.details.adaptiveBrightness = this.hasAdaptiveBrightness();
-
-        } catch (error) {
-            this.fail('Brightness test failed: ' + error.message);
-        }
-    }
-
-    async getCurrentBrightness() {
-        try {
-            if ('screenBrightness' in navigator) {
-                return await navigator.screenBrightness.get();
-            }
-        } catch (e) {
-            // API not available
-        }
-        return 75; // Assume average brightness
-    }
-
-    estimateBrightnessFromScreen() {
-        const bg = window.getComputedStyle(document.body).backgroundColor;
-        if (bg.includes('rgb')) {
-            const rgb = bg.match(/\d+/g);
-            if (rgb && rgb.length >= 3) {
-                const luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
-                return Math.round(luminance * 100);
-            }
-        }
-        return 50;
-    }
-
-    hasAdaptiveBrightness() {
-        return window.matchMedia('(dynamic-range: high)').matches;
-    }
-
-    isDarkModeEnabled() {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            btnNo.onclick = () => {
+                this.reportProgress(wsClient, 100, 'Helderheid gefaald');
+                this.fail('Schermhelderheid onvoldoende of contrastfout');
+                this.details.brightnessLevel = 'Defective / Too dim';
+                resolve();
+            };
+        });
     }
 }
