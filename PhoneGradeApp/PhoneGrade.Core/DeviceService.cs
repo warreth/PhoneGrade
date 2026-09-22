@@ -365,11 +365,30 @@ public static class DeviceService
 
         // iOS checks
         string info = await GetKeyAsync(targetUdid, "ProductType");
-        if (info.Contains("Could not connect to lockdownd") || info.Contains("PasswordProtected") || info.Contains("PairingDialogResponsePending"))
+        if (info.Contains("Could not connect to lockdownd") || info.Contains("PasswordProtected") || info.Contains("PairingDialogResponsePending") || info.Contains("Mux error"))
         {
-            // iOS trust required
-            return ConnectionState.NotTrusted;
+            // Try to validate or pair automatically to prompt the trust dialog or fix Mux errors
+            var (pairOut, pairErr, pairExit) = await ToolRunner.ExecuteAsync("idevicepair", $"-u {targetUdid} pair");
+            if (pairOut.Contains("SUCCESS") || pairExit == 0)
+            {
+                // Pairing succeeded, try fetching info again
+                info = await GetKeyAsync(targetUdid, "ProductType");
+                if (!info.Contains("Could not connect to lockdownd") && !info.Contains("PasswordProtected") && !info.Contains("PairingDialogResponsePending") && !info.Contains("Mux error"))
+                {
+                    // Now connected! Fall through.
+                }
+                else
+                {
+                    return ConnectionState.NotTrusted;
+                }
+            }
+            else
+            {
+                // Pairing failed or waiting for user
+                return ConnectionState.NotTrusted;
+            }
         }
+
         if (info.StartsWith("ERROR:") || info == "NO OUTPUT")
             return ConnectionState.ToolsMissing;
 

@@ -2,184 +2,146 @@ import { DeviceTest } from './DeviceTest.js';
 
 export class MicrophoneTest extends DeviceTest {
     constructor() {
-        super('microphone', 'Microphone Array', 'Test audio input with live volume visualizer');
-        this.results = [];
+        super('microphone', 'Microfoon Test', 'Controleer audio-opname en microfoonfunctionaliteit');
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Requesting microphone permission...');
+        this.reportProgress(wsClient, 0, 'Microfoon testen...');
 
-        try {
-            // First check if MediaDevices is supported
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                this.fail('MediaDevices API not supported on this browser');
-                return;
-            }
-
-            let initialStream;
+        // If MediaDevices is available (HTTPS or modern Android)
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             try {
-                initialStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            } catch (permError) {
-                this.fail('Microphone permission denied or hardware unavailable');
-                return;
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                return await this.runLiveMeterTest(wsClient, container, stream);
+            } catch (err) {
+                // Permission denied or blocked by HTTP context, fallback to audio input
             }
-
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioInputs = devices.filter(d => d.kind === 'audioinput');
-
-            // Release initial permission check stream
-            initialStream.getTracks().forEach(t => t.stop());
-
-            if (audioInputs.length === 0) {
-                this.fail('No audio input devices detected');
-                return;
-            }
-
-            container.innerHTML = `
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 16px; font-weight: bold; margin-bottom: 6px;">Speak into the Microphone</div>
-                    <p class="test-instructions" style="margin-bottom: 16px;">Make some noise or speak normally to verify audio input levels.</p>
-                </div>
-                <div id="mic-container" style="display: flex; flex-direction: column; gap: 16px;"></div>
-            `;
-
-            const micContainer = container.querySelector('#mic-container');
-
-            for (let i = 0; i < audioInputs.length; i++) {
-                const device = audioInputs[i];
-                const micName = device.label || `Microphone ${i + 1}`;
-                
-                this.reportProgress(wsClient, (i / audioInputs.length) * 100, `Testing ${micName}...`);
-
-                const micCard = document.createElement('div');
-                micCard.style.cssText = 'background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 18px;';
-                micCard.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="font-weight: 600; font-size: 14px;">${micName}</span>
-                        <span id="mic-status-${i}" style="font-size: 12px; font-weight: bold; color: var(--color-warning);">Listening...</span>
-                    </div>
-                    <!-- Live VU / Volume Meter -->
-                    <div style="background: var(--color-bg-tertiary); height: 24px; border-radius: 12px; overflow: hidden; position: relative; margin-bottom: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
-                        <div id="mic-meter-${i}" style="background: linear-gradient(90deg, #4ade80 0%, #facc15 70%, #ef4444 100%); width: 0%; height: 100%; border-radius: 12px; transition: width 50ms linear;"></div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary);">
-                        <span>Quiet</span>
-                        <span>Normal</span>
-                        <span>Loud</span>
-                    </div>
-                `;
-
-                micContainer.appendChild(micCard);
-
-                let stream;
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ 
-                        audio: device.deviceId ? { deviceId: { exact: device.deviceId } } : true 
-                    });
-                } catch (e) {
-                    // Fallback to general audio stream if specific ID fails
-                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                }
-
-                const passed = await this.monitorAudioLevel(micCard, stream, i);
-                stream.getTracks().forEach(t => t.stop());
-
-                this.results.push({
-                    name: micName,
-                    id: device.deviceId,
-                    passed: passed
-                });
-
-                if (passed) {
-                    this.haptic.tap();
-                }
-            }
-
-            const passedCount = this.results.filter(r => r.passed).length;
-            if (passedCount === audioInputs.length) {
-                this.pass('All microphones passed audio capture check');
-            } else if (passedCount > 0) {
-                this.pass(`${passedCount} of ${audioInputs.length} microphones verified successfully`);
-            } else {
-                this.fail('Microphone audio levels were insufficient or silent');
-            }
-
-            this.details.microphones = this.results;
-
-        } catch (error) {
-            this.fail('Microphone testing error: ' + error.message);
         }
+
+        // Native iOS audio capture fallback (works 100% on HTTP)
+        return await this.runAudioCaptureFallback(wsClient, container);
     }
 
-    monitorAudioLevel(micCard, stream, index) {
+    async runAudioCaptureFallback(wsClient, container) {
+        container.innerHTML = `
+            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md); width: 100%; max-width: 400px;">
+                    <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">Microfoontest</h3>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 16px;">
+                        Spreek een kort woord in via de voicerecorder van je toestel om de microfoon te testen.
+                    </p>
+                    <label class="btn btn-primary" style="display: block; width: 100%; padding: 12px; cursor: pointer; text-align: center; margin-bottom: 16px;">
+                        Spreek Geluid In
+                        <input type="file" id="audio-file-input" accept="audio/*" capture style="display: none;">
+                    </label>
+                    <div id="audio-feedback" style="display: none; flex-direction: column; gap: 10px;">
+                        <audio id="audio-preview" controls style="width: 100%; margin-bottom: 8px;"></audio>
+                        <p style="font-size: 13px; font-weight: 600;">Hoor je je eigen stem duidelijk terug?</p>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="mic-yes" class="btn btn-success" style="flex: 1;">Ja, helder geluid</button>
+                            <button id="mic-no" class="btn btn-danger" style="flex: 1;">Nee, geen geluid / ruis</button>
+                        </div>
+                    </div>
+                    <div id="audio-status" style="font-size: 13px; font-weight: bold; color: var(--color-text-tertiary);">Wacht op opname...</div>
+                </div>
+            </div>
+        `;
+
+        const audioInput = container.querySelector('#audio-file-input');
+        const audioFeedback = container.querySelector('#audio-feedback');
+        const audioPreview = container.querySelector('#audio-preview');
+        const audioStatus = container.querySelector('#audio-status');
+        const btnYes = container.querySelector('#mic-yes');
+        const btnNo = container.querySelector('#mic-no');
+
         return new Promise((resolve) => {
-            const meter = micCard.querySelector(`#mic-meter-${index}`);
-            const status = micCard.querySelector(`#mic-status-${index}`);
+            audioInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    audioPreview.src = URL.createObjectURL(file);
+                    audioStatus.style.display = 'none';
+                    audioFeedback.style.display = 'flex';
+                }
+            });
 
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContextClass) {
-                status.textContent = 'AudioContext unsupported';
-                resolve(true); // Fallback pass if API missing
-                return;
-            }
+            btnYes.onclick = () => {
+                this.pass('Microfoonopname succesvol');
+                this.reportProgress(wsClient, 100, 'Microfoon werkt');
+                resolve();
+            };
 
-            const audioCtx = new AudioContextClass();
-            const analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 256;
-            const source = audioCtx.createMediaStreamSource(stream);
-            source.connect(analyser);
+            btnNo.onclick = () => {
+                this.fail('Microfoonopname niet hoorbaar of mislukt');
+                this.reportProgress(wsClient, 100, 'Microfoon gefaald');
+                resolve();
+            };
+        });
+    }
 
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            let peakCount = 0;
-            let isResolved = false;
+    async runLiveMeterTest(wsClient, container, stream) {
+        container.innerHTML = `
+            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md); width: 100%; max-width: 400px;">
+                    <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">Microfoontest</h3>
+                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 16px;">Praat of maak geluid om de niveaumeter te activeren.</p>
+                    <div style="background: var(--color-bg-tertiary); height: 28px; border-radius: 14px; overflow: hidden; margin-bottom: 12px;">
+                        <div id="mic-vu-bar" style="background: linear-gradient(90deg, #22c55e 0%, #eab308 70%, #ef4444 100%); width: 0%; height: 100%; transition: width 50ms linear;"></div>
+                    </div>
+                    <div id="live-mic-status" style="font-size: 13px; font-weight: 600; color: var(--color-text-secondary);">Luisteren...</div>
+                </div>
+            </div>
+        `;
 
+        const vuBar = container.querySelector('#mic-vu-bar');
+        const statusText = container.querySelector('#live-mic-status');
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioCtx.createAnalyser();
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let peakLevel = 0;
+
+        return new Promise((resolve) => {
             const checkAudio = () => {
-                if (isResolved) return;
-
                 analyser.getByteFrequencyData(dataArray);
-
-                // Calculate volume (average frequency magnitude)
                 let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) {
-                    sum += dataArray[i];
-                }
-                const average = sum / dataArray.length;
-                const volumePercent = Math.min(100, Math.round((average / 128) * 100));
+                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                const avg = sum / dataArray.length;
+                const pct = Math.min(100, Math.round((avg / 128) * 100));
+                
+                if (vuBar) vuBar.style.width = pct + '%';
+                if (pct > peakLevel) peakLevel = pct;
 
-                meter.style.width = `${volumePercent}%`;
-
-                // If volume exceeds threshold (someone spoke or ambient sound detected)
-                if (volumePercent > 18) {
-                    peakCount++;
-                }
-
-                // If we detected 3 solid audio frames above ambient
-                if (peakCount >= 3) {
-                    isResolved = true;
-                    status.textContent = 'Audio Signal Detected';
-                    status.style.color = 'var(--color-success)';
-                    meter.style.width = '100%';
-                    audioCtx.close();
-                    resolve(true);
+                if (peakLevel > 20) {
+                    if (statusText) {
+                        statusText.textContent = 'Geluid gedetecteerd (' + peakLevel + '%)';
+                        statusText.style.color = 'var(--color-success)';
+                    }
+                    setTimeout(() => {
+                        stream.getTracks().forEach(t => t.stop());
+                        audioCtx.close();
+                        this.pass('Microfoon registreert audio (piek: ' + peakLevel + '%)');
+                        resolve();
+                    }, 1000);
                     return;
                 }
-
                 requestAnimationFrame(checkAudio);
             };
 
             requestAnimationFrame(checkAudio);
 
-            // Timeout after 8 seconds per mic
             setTimeout(() => {
-                if (!isResolved) {
-                    isResolved = true;
-                    status.textContent = 'No Sound Detected';
-                    status.style.color = 'var(--color-error)';
+                if (peakLevel <= 20) {
+                    stream.getTracks().forEach(t => t.stop());
                     audioCtx.close();
-                    resolve(false);
+                    this.fail('Geen audiosignaal gedetecteerd op microfoon');
+                    resolve();
                 }
-            }, 8000);
+            }, 10000);
         });
     }
 }

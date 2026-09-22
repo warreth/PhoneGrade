@@ -1,104 +1,72 @@
 import { DeviceTest } from './DeviceTest.js';
 
-/**
- * VibrationTest: Check haptic feedback and vibration motor with visual pulses.
- */
 export class VibrationTest extends DeviceTest {
     constructor() {
-        super('vibration', 'Vibration Engine', 'Test device haptic feedback and vibration motor');
+        super('vibration', 'Trilmotor & Haptics', 'Controleer de Taptic Engine / trilmotor');
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Testing vibration engine...');
+        this.reportProgress(wsClient, 0, 'Trilmotor testen...');
 
-        // Check if Vibration API is available (iOS Safari does not support this)
-        const isSupported = ('vibrate' in navigator);
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const hasVibrateApi = ('vibrate' in navigator);
 
         container.innerHTML = `
-            <div style="padding: 16px; text-align: center; max-width: 320px; margin: 0 auto;">
-                <div style="font-size: 16px; font-weight: bold; margin-bottom: 6px;">Vibration & Haptics</div>
-                <p class="test-instructions" style="margin-bottom: 24px;">Feel for vibration pulses while the visual indicator animates.</p>
-                
-                <!-- Visual Pulsing Ring -->
-                <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 30px auto; display: flex; align-items: center; justify-content: center;">
-                    <div id="vibe-ring" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--color-accent); opacity: 0; transform: scale(0.8); transition: all 0.3s ease-out;"></div>
-                    <div id="vibe-core" style="width: 70px; height: 70px; border-radius: 50%; background: var(--color-bg-secondary); border: 2px solid var(--color-border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: var(--color-text);">
-                        Vibrate
-                    </div>
-                </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md); width: 100%; max-width: 400px;">
+                    <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">Trilmotor &amp; Taptic Engine</h3>
+                    
+                    ${hasVibrateApi ? `
+                        <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 16px;">
+                            Druk op de knop om de trilmotor te activeren.
+                        </p>
+                        <button id="btn-vibe-pulse" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">Activeer Trilmotor</button>
+                    ` : `
+                        <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px; margin-bottom: 16px; text-align: left;">
+                            <p style="font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 6px;">📱 iOS Trilmotor Controle:</p>
+                            <p style="font-size: 13px; color: #475569; line-height: 1.4;">
+                                Schakel de <strong>stille modus schakelaar</strong> aan de zijkant van de iPhone om (of druk op de Actieknop).
+                            </p>
+                        </div>
+                    `}
 
-                <div id="vibe-controls" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
-                    <button id="btn-vibe-pulse" class="btn btn-primary" style="width: 100%;">Trigger Vibration</button>
-                </div>
+                    <p style="font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 12px;">
+                        Voel je een duidelijke trilling of haptische klik van het toestel?
+                    </p>
 
-                <div id="vibe-feedback" style="display: none; flex-direction: column; gap: 12px;">
-                    <p style="font-size: 13px; font-weight: 600;">Did you feel the phone vibrate?</p>
-                    <div style="display: flex; gap: 12px;">
-                        <button id="btn-yes" class="btn btn-success" style="flex: 1; background: var(--color-success); color: #000; border: none;">Yes, felt it</button>
-                        <button id="btn-no" class="btn btn-error" style="flex: 1; background: var(--color-error); color: #fff; border: none;">No vibration</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="btn-vibe-yes" class="btn btn-success" style="flex: 1;">Ja, trilt goed</button>
+                        <button id="btn-vibe-no" class="btn btn-danger" style="flex: 1;">Nee, geen trilling</button>
                     </div>
                 </div>
             </div>
         `;
 
-        const ring = container.querySelector('#vibe-ring');
-        const core = container.querySelector('#vibe-core');
         const btnPulse = container.querySelector('#btn-vibe-pulse');
-        const feedbackDiv = container.querySelector('#vibe-feedback');
-        const btnYes = container.querySelector('#btn-yes');
-        const btnNo = container.querySelector('#btn-no');
+        const btnYes = container.querySelector('#btn-vibe-yes');
+        const btnNo = container.querySelector('#btn-vibe-no');
 
-        const triggerPulseAnimation = (duration) => {
-            ring.style.opacity = '1';
-            ring.style.transform = 'scale(1.3)';
-            core.style.borderColor = 'var(--color-accent)';
-            core.style.boxShadow = '0 0 15px var(--color-accent)';
-
-            setTimeout(() => {
-                ring.style.opacity = '0';
-                ring.style.transform = 'scale(0.8)';
-                core.style.borderColor = 'var(--color-border)';
-                core.style.boxShadow = 'none';
-            }, duration);
-        };
+        if (btnPulse && hasVibrateApi) {
+            btnPulse.onclick = () => {
+                try {
+                    navigator.vibrate([250, 100, 250, 100, 250]);
+                } catch (e) {}
+            };
+        }
 
         return new Promise((resolve) => {
-            btnPulse.onclick = () => {
-                if (isSupported) {
-                    navigator.vibrate([200, 100, 200]);
-                }
-                triggerPulseAnimation(500);
-
-                feedbackDiv.style.display = 'flex';
-                this.reportProgress(wsClient, 50, 'Awaiting confirmation...');
-            };
-
             btnYes.onclick = () => {
-                this.pass('Vibration motor is working correctly');
-                this.details.working = true;
-                this.details.apiSupported = isSupported;
+                this.pass('Trilmotor / Taptic Engine werkt naar behoren');
+                this.reportProgress(wsClient, 100, 'Trilmotor geslaagd');
                 resolve();
             };
 
             btnNo.onclick = () => {
-                if (!isSupported) {
-                    this.skip('Vibration API not supported on this browser/OS');
-                } else {
-                    this.fail('User reported no vibration felt: motor may be defective');
-                }
-                this.details.working = false;
-                this.details.apiSupported = isSupported;
+                this.fail('Trilmotor / Taptic Engine reageert niet of defect');
+                this.reportProgress(wsClient, 100, 'Trilmotor defect');
                 resolve();
             };
-
-            if (!isSupported) {
-                // If on iOS or browser without Vibration API, notify immediately
-                const note = document.createElement('p');
-                note.style.cssText = 'font-size: 11px; color: var(--color-warning); margin-top: 12px;';
-                note.textContent = 'Note: Web Vibration API is not supported on iOS Safari.';
-                container.querySelector('#vibe-controls').appendChild(note);
-            }
         });
     }
 }
