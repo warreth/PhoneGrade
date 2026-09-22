@@ -227,7 +227,7 @@ public class TestRunnerServer : IAsyncDisposable
                                             });
                                         }
                                         context.Response.ContentType = "application/json";
-                                        await context.Response.WriteAsync("{"ok":true}");
+                                        await context.Response.WriteAsync("{\"ok\":true}");
                                         return;
                                     }
 
