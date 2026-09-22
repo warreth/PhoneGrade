@@ -511,7 +511,7 @@ public static class DeviceService
         string productType = (FindDictValue(raw.DefaultDict, "ProductType") ?? "").Trim();
         string imei = (FindDictValue(raw.DefaultDict, "InternationalMobileEquipmentIdentity") ?? "").Trim();
         string serial = (FindDictValue(raw.DefaultDict, "SerialNumber") ?? "").Trim();
-        string color = (FindDictValue(raw.DefaultDict, "DeviceEnclosureColor") ?? "").Trim();
+        string color = (FindDictValue(raw.DefaultDict, "DeviceEnclosureColor", "DeviceColor", "Color") ?? "").Trim();
         string iosVersion = (FindDictValue(raw.DefaultDict, "ProductVersion") ?? "").Trim();
 
         var data = new DeviceData
@@ -520,7 +520,7 @@ public static class DeviceService
             ProductType = productType,
             Model = Mappers.MapModel(productType),
             Identifier = Parsers.ParseIdentifier(imei, serial),
-            Color = Mappers.MapColor(color),
+            Color = !string.IsNullOrWhiteSpace(color) ? Mappers.MapColor(color) : "NOCOLOR",
             IosVersion = iosVersion,
             MotherboardSerialNumber = serial.StartsWith("ERROR:") ? "" : serial.Trim(),
         };
@@ -855,7 +855,7 @@ public static class DeviceService
 
         // 7. Wi-Fi MAC Adres
         string safeWifiRead = !Parsers.IsUnreadable(wifiMac) ? wifiMac : "Onbekend";
-        string safeWifiOrig = !Parsers.IsUnreadable(origWifi) ? origWifi : "Onbekend";
+        string safeWifiOrig = !Parsers.IsUnreadable(origWifi) ? origWifi : safeWifiRead;
         checks.Add(new ComponentStatus
         {
             Name = "Wi-Fi Adres",
@@ -866,7 +866,7 @@ public static class DeviceService
 
         // 8. Bluetooth Adres
         string safeBtRead = !Parsers.IsUnreadable(btMac) ? btMac : "Onbekend";
-        string safeBtOrig = !Parsers.IsUnreadable(origBt) ? origBt : "Onbekend";
+        string safeBtOrig = !Parsers.IsUnreadable(origBt) ? origBt : safeBtRead;
         checks.Add(new ComponentStatus
         {
             Name = "Bluetooth Adres",

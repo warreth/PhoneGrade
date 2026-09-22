@@ -243,6 +243,26 @@ public class MappersTests
         Assert.Equal("4C78C386", result);
     }
 
+    [Theory]
+    [InlineData("yellow", "Goud")]
+    [InlineData("Geel", "Goud")]
+    [InlineData("gold", "Goud")]
+    [InlineData("7", "Goud")]
+    [InlineData("#ffcc00", "Goud")]
+    public void MapColor_YellowAndGoldVariations_ReturnGoud(string input, string expected)
+    {
+        Assert.Equal(expected, Mappers.MapColor(input));
+    }
+
+    [Fact]
+    public void VerifyComponent_WifiAndBluetooth_WithLiveAsOriginal_ReturnsMatch()
+    {
+        string liveMac = "94:bf:2d:74:3e:3f";
+        // When factory database key is absent, live read is treated as original OEM
+        var status = Parsers.VerifyComponent(liveMac, liveMac);
+        Assert.Equal(ComponentStatusType.Match, status);
+    }
+
     [Fact]
     public void VerifyComponent_NoOutput_ReturnsUnknown_NeverMatch()
     {
