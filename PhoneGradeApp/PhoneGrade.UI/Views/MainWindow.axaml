@@ -435,6 +435,7 @@
                             <CheckBox Content="{DynamicResource Settings_RunDiagnostics}" IsChecked="{Binding RunDiagnostics}"/>
                             <CheckBox Content="{DynamicResource Settings_Enable85Checker}" IsChecked="{Binding Enable85PercentChecker}"/>
                             <CheckBox Content="{DynamicResource Settings_OpenEditor}" IsChecked="{Binding OpenEditorBeforePrint}"/>
+                            <CheckBox Content="Debug Modus &amp; Netwerk Tracing" IsChecked="{Binding IsDebugMode}"/>
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>

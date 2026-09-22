@@ -184,6 +184,21 @@ public class MainWindowViewModel : ReactiveObject
         set { _settings.Enable85PercentChecker = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _enable85PercentChecker, value); }
     }
 
+    private bool _isDebugMode;
+    public bool IsDebugMode
+    {
+        get => _isDebugMode;
+        set 
+        { 
+            _settings.IsDebugMode = value; 
+            _settings.EnableVerboseNetworkLogging = value;
+            _settings.Save(); 
+            TestRunnerServer.EnableVerboseNetworkLogging = value;
+            ToolRunner.EnableVerboseNetworkLogging = value;
+            this.RaiseAndSetIfChanged(ref _isDebugMode, value); 
+        }
+    }
+
     private bool _openEditorBeforePrint;
     public bool OpenEditorBeforePrint
     {
@@ -388,6 +403,7 @@ public class MainWindowViewModel : ReactiveObject
         _autoDetectOnPlug = _settings.AutoDetectOnPlug;
         _runDiagnostics = _settings.RunDiagnostics;
         _enable85PercentChecker = _settings.Enable85PercentChecker;
+        _isDebugMode = _settings.IsDebugMode;
         _openEditorBeforePrint = _settings.OpenEditorBeforePrint;
         _autoStartWebTest = _settings.AutoStartWebTest;
         _showSummaryScreenAfterTesting = _settings.ShowSummaryScreenAfterTesting;
@@ -508,7 +524,7 @@ public class MainWindowViewModel : ReactiveObject
             var ip = QrCodeService.GetLocalIpAddress();
             int port = _webServer?.BoundPort > 0 ? _webServer.BoundPort : 5055;
             var sessionUdid = !string.IsNullOrWhiteSpace(udid) ? udid : (DeviceData.Identifier != "NOID" ? DeviceData.Identifier : "DEMO");
-            WebRunnerUrl = QrCodeService.GenerateSessionUrl(ip, port, sessionUdid);
+            WebRunnerUrl = QrCodeService.GenerateSessionUrl(ip, port, sessionUdid, IsDebugMode);
             QrCodeBitmap = QrCodeService.GenerateQrCodeBitmap(WebRunnerUrl);
             InteractiveSessionStatus = $"Scan QR of open: {WebRunnerUrl}";
 
