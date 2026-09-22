@@ -56,6 +56,48 @@ public class ActivationLockServiceTests
         Assert.Equal("Present", status.SIMState);
     }
 
+    [Fact]
+    public async Task DetectAsync_FmipDomainActive_ReturnsLocked()
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.FmipDict["FmipEnabled"] = "true";
+
+        var status = await ActivationLockService.DetectAsync("MOCK_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Locked, status);
+    }
+
+    [Fact]
+    public async Task DetectAsync_PurpleBuddyFindMyActive_ReturnsLocked()
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.PurpleBuddyDict["FindMyiPhoneActive"] = "1";
+
+        var status = await ActivationLockService.DetectAsync("MOCK_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Locked, status);
+    }
+
+    [Fact]
+    public async Task DetectAsync_MobileGestaltFmiActiveYes_ReturnsLocked()
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.GestaltDict["FMIActive"] = "YES";
+
+        var status = await ActivationLockService.DetectAsync("MOCK_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Locked, status);
+    }
+
+    [Fact]
+    public async Task DetectAsync_AllExplicitlyFalse_ReturnsUnlocked()
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.FmipDict["FmipEnabled"] = "false";
+        raw.PurpleBuddyDict["FindMyiPhoneActive"] = "0";
+        raw.GestaltDict["FMIActive"] = "NO";
+
+        var status = await ActivationLockService.DetectAsync("MOCK_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Unlocked, status);
+    }
+
     [Theory]
     [InlineData("true")]
     [InlineData("1")]
