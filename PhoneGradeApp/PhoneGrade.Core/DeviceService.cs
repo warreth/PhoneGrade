@@ -32,13 +32,10 @@ public static class DeviceService
                 }
                 else
                 {
-                    // Call ideviceinfo once with fallback to direct GetKeyAsync
+                    // Retrieve basic info instantly (no ioregentry)
                     string quickInfo = await GetDomainAsync(id, "");
                     string name = (Parsers.KeyValue(quickInfo, "DeviceName") ?? "").Trim();
-                    if (string.IsNullOrEmpty(name)) name = (await GetKeyAsync(id, "DeviceName")).Trim();
-
                     string productType = Parsers.KeyValue(quickInfo, "ProductType") ?? "";
-                    if (string.IsNullOrEmpty(productType)) productType = (await GetKeyAsync(id, "ProductType")).Trim();
 
                     string model = Mappers.MapModel(productType);
                     devices[id] = string.IsNullOrWhiteSpace(name) ? model : $"{name} ({model})";
@@ -92,11 +89,18 @@ public static class DeviceService
     }
 
     /// <summary>Reads a single value from the lockdown domain. Returns "ERROR: ..." on failure.</summary>
+    /// <summary>Reads a key from in-memory cached bulk XML dictionary (single-pass extraction, zero CLI spam).</summary>
     public static async Task<string> GetKeyAsync(string udid, string key)
     {
-        string udidArg = udid.Length > 0 ? $"-u {udid} " : "";
-        var (output, _) = await ToolRunner.RunAsync("ideviceinfo", $"{udidArg}-k {key}");
-        return output;
+        if (string.IsNullOrWhiteSpace(udid)) return "";
+        var raw = await GetBulkRawDataAsync(udid);
+        
+        // Search default lockdown dictionary first, then gestalt, then diagnostics
+        string? val = FindDictValue(raw.DefaultDict, key) ?? 
+                      FindDictValue(raw.GestaltDict, key) ?? 
+                      FindDictValue(raw.DiagDict, key);
+                      
+        return val ?? "";
     }
 
     /// <summary>Reads domain-specific output from ideviceinfo. Returns empty string on failure.</summary>
@@ -662,44 +666,28 @@ public static class DeviceService
         }
     }
 
-    /// <summary>Queries OEM component serials and performs 3uTools-parity verification comparisons.</summary>
+    /// <summary>Queries OEM component serials and performs 3uTools-parity verification comparisons from in-memory bulk XML.</summary>
     public static async Task PopulateHardwareSerialsAndChecksAsync(string udid, DeviceData data)
     {
-        // 1. Diagnostics, chargethrough, mobilegestalt and factory serials via lockdown domains
-        string diagDomain = await GetDomainAsync(udid, "com.apple.mobile.diagnostics");
-        string chargeDictStr = await GetDomainAsync(udid, "com.apple.mobile.chargethrough");
-        string gestaltStr = await GetDomainAsync(udid, "com.apple.mobile.gestalt");
-        string diskUsageStr = await GetDomainAsync(udid, "com.apple.disk_usage");
+        // 1. Retrieve all raw domains and ioreg entries in a single parallel burst (cached)
+        var raw = await GetBulkRawDataAsync(udid);
 
-        var diagDict = Parsers.ParseKeyValues(diagDomain);
-        var chargeDict = Parsers.ParseKeyValues(chargeDictStr);
-        var gestaltDict = Parsers.ParseKeyValues(gestaltStr);
+        var diagDict = raw.DiagDict;
+        var gestaltDict = raw.GestaltDict;
+        var defaultDict = raw.DefaultDict;
 
-        // 2. Query ioregentry for display/LCD, camera, battery, and biometric details
-        var (displayPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleCLCD2");
-        if (displayPlist.StartsWith("ERROR:"))
-        {
-            (displayPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry IOMobileFramebuffer");
-        }
+        // 2. Read ioreg plists directly from the bulk cache (zero extra process execution)
+        string displayPlist = raw.IORegDisplay;
+        string camPlist = raw.IORegCamera;
+        string bioPlist = raw.IORegBio;
 
-        var (camPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleH10CamIn");
-        if (camPlist.StartsWith("ERROR:"))
-        {
-            (camPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleH6CamIn");
-        }
-
-        var (bioPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleBiometricSensor");
-        if (bioPlist.StartsWith("ERROR:"))
-        {
-            (bioPlist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleMesaSensor");
-        }
-
-        // Live serials & addresses
+        // Live serials & addresses parsed strictly from in-memory dictionaries
         string displaySerial = Parsers.CleanSerial(
             Parsers.PlistString(displayPlist, "DisplaySerial") ??
             Parsers.PlistString(displayPlist, "SerialNumber") ??
             FindDictValue(diagDict, "DisplaySerialNumber", "ScreenSerial", "LCDSerial") ??
-            FindDictValue(gestaltDict, "DisplaySerialNumber", "ScreenSerial"));
+            FindDictValue(gestaltDict, "DisplaySerialNumber", "ScreenSerial") ??
+            FindDictValue(defaultDict, "DisplaySerialNumber"));
 
         string coverGlass = Parsers.CleanSerial(
             Parsers.PlistString(displayPlist, "CoverGlassSerial") ??
@@ -709,68 +697,79 @@ public static class DeviceService
         string frontCam = Parsers.CleanSerial(
             Parsers.PlistString(camPlist, "FrontCameraSerial") ??
             FindDictValue(diagDict, "FrontCameraSerialNumber", "FrontCameraSerial") ??
-            FindDictValue(gestaltDict, "FrontCameraSerialNumber"));
+            FindDictValue(gestaltDict, "FrontCameraSerialNumber") ??
+            FindDictValue(defaultDict, "FrontCameraSerialNumber"));
 
         string rearCam = Parsers.CleanSerial(
             Parsers.PlistString(camPlist, "RearCameraSerial") ??
             FindDictValue(diagDict, "RearCameraSerialNumber", "RearCameraSerial", "BackCameraSerialNumber") ??
-            FindDictValue(gestaltDict, "RearCameraSerialNumber", "BackCameraSerialNumber"));
+            FindDictValue(gestaltDict, "RearCameraSerialNumber", "BackCameraSerialNumber") ??
+            FindDictValue(defaultDict, "RearCameraSerialNumber"));
 
         string bioSerial = Parsers.CleanSerial(
             Parsers.PlistString(bioPlist, "SensorSerialNumber") ??
             Parsers.PlistString(bioPlist, "SerialNumber") ??
             FindDictValue(diagDict, "MesaSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber") ??
-            FindDictValue(gestaltDict, "MesaSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber"));
+            FindDictValue(gestaltDict, "MesaSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber") ??
+            FindDictValue(defaultDict, "MesaSerialNumber"));
 
         string mlbLive = Parsers.CleanSerial(
             FindDictValue(gestaltDict, "MLBSerialNumber", "BoardSerialNumber") ??
+            FindDictValue(defaultDict, "MLBSerialNumber") ??
             data.MotherboardSerialNumber);
 
         string btMac = Parsers.CleanSerial(
             FindDictValue(gestaltDict, "BluetoothAddress") ??
-            await GetKeyAsync(udid, "BluetoothAddress"));
+            FindDictValue(defaultDict, "BluetoothAddress"));
 
         string wifiMac = Parsers.CleanSerial(
             FindDictValue(gestaltDict, "WifiAddress", "WiFiAddress") ??
-            await GetKeyAsync(udid, "WiFiAddress"));
+            FindDictValue(defaultDict, "WifiAddress", "WiFiAddress"));
 
         string cellular = Parsers.CleanSerial(
             FindDictValue(gestaltDict, "CellularAddress") ??
-            await GetKeyAsync(udid, "CellularAddress"));
+            FindDictValue(defaultDict, "CellularAddress"));
 
-        // Factory original serials from syscfg / chargethrough / lockdown
+        // Factory original serials from syscfg / lockdown in-memory dictionaries
         string origBatt = Parsers.CleanSerial(
-            FindDictValue(chargeDict, "OriginalBatterySerialNumber", "BatterySerial", "OriginalSerial") ??
             FindDictValue(diagDict, "OriginalBatterySerialNumber", "FactoryBatterySerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalBatterySerialNumber"));
+            FindDictValue(gestaltDict, "OriginalBatterySerialNumber") ??
+            FindDictValue(defaultDict, "OriginalBatterySerialNumber"));
 
         string origDisplay = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber", "OriginalScreenSerial") ??
-            FindDictValue(gestaltDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber"));
+            FindDictValue(gestaltDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber") ??
+            FindDictValue(defaultDict, "OriginalDisplaySerialNumber"));
 
         string origFrontCam = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalFrontCameraSerialNumber", "FactoryFrontCameraSerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalFrontCameraSerialNumber"));
+            FindDictValue(gestaltDict, "OriginalFrontCameraSerialNumber") ??
+            FindDictValue(defaultDict, "OriginalFrontCameraSerialNumber"));
 
         string origRearCam = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalRearCameraSerialNumber", "FactoryRearCameraSerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalRearCameraSerialNumber"));
+            FindDictValue(gestaltDict, "OriginalRearCameraSerialNumber") ??
+            FindDictValue(defaultDict, "OriginalRearCameraSerialNumber"));
 
         string origMlb = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalMLBSerialNumber", "FactoryMLBSerialNumber", "OriginalBoardSerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalMLBSerialNumber", "FactoryMLBSerialNumber"));
+            FindDictValue(gestaltDict, "OriginalMLBSerialNumber", "FactoryMLBSerialNumber") ??
+            FindDictValue(defaultDict, "OriginalMLBSerialNumber"));
 
         string origBio = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalMesaSerialNumber", "FactoryMesaSerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalMesaSerialNumber"));
+            FindDictValue(gestaltDict, "OriginalMesaSerialNumber") ??
+            FindDictValue(defaultDict, "OriginalMesaSerialNumber"));
 
         string origBt = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalBluetoothAddress") ??
-            FindDictValue(gestaltDict, "OriginalBluetoothAddress"));
+            FindDictValue(gestaltDict, "OriginalBluetoothAddress") ??
+            FindDictValue(defaultDict, "OriginalBluetoothAddress"));
 
         string origWifi = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalWifiAddress", "OriginalWiFiAddress") ??
-            FindDictValue(gestaltDict, "OriginalWifiAddress", "OriginalWiFiAddress"));
+            FindDictValue(gestaltDict, "OriginalWifiAddress", "OriginalWiFiAddress") ??
+            FindDictValue(defaultDict, "OriginalWifiAddress"));
 
         // Populate device data model
         data.DisplaySerialNumber = displaySerial;
@@ -888,7 +887,7 @@ public static class DeviceService
         data.ComponentChecks = checks;
     }
 
-    private static string? FindDictValue(Dictionary<string, string> dict, params string[] keys)
+    public static string? FindDictValue(Dictionary<string, string> dict, params string[] keys)
     {
         foreach (var key in keys)
         {
@@ -900,8 +899,8 @@ public static class DeviceService
 
     private static async Task<string> GetStorageAsync(string udid)
     {
-        var (output, _) = await ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.disk_usage");
-        string? raw = Parsers.KeyValue(output, "TotalDiskCapacity");
-        return long.TryParse(raw, out long bytes) ? Mappers.MapStorage(bytes) : "NOSTORAGE";
+        var raw = await GetBulkRawDataAsync(udid);
+        string? rawStr = FindDictValue(raw.DiskDict, "TotalDiskCapacity");
+        return long.TryParse(rawStr, out long bytes) ? Mappers.MapStorage(bytes) : "NOSTORAGE";
     }
 }
