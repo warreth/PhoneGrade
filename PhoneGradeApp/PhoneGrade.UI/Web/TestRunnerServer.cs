@@ -57,7 +57,7 @@ public class TestRunnerServer : IAsyncDisposable
     public event EventHandler<LogMessageEventArgs>? LogEventReceived;
     public event EventHandler<TelemetryEventArgs>? TelemetryReceived;
 
-    public TestRunnerServer(int preferredPort = 5055, string? contentRootPath = null)
+    public TestRunnerServer(int preferredPort = 5056, string? contentRootPath = null)
     {
         _preferredPort = preferredPort;
         _contentRootPath = contentRootPath ?? ResolveWwwRootPath();
@@ -139,9 +139,21 @@ public class TestRunnerServer : IAsyncDisposable
                                     SystemEventLogger.Trace(LogSource.WebSocket, $"[HTTP {context.Request.Method}] {path} from {clientIp}");
                                 }
 
+                                // Always reply 200 OK with CORS headers to OPTIONS preflight
+                                if (context.Request.Method == "OPTIONS")
+                                {
+                                    context.Response.Headers["Access-Control-Allow-Origin"] = "*";
+                                    context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
+                                    context.Response.Headers["Access-Control-Allow-Headers"] = "*";
+                                    context.Response.StatusCode = 200;
+                                    await context.Response.CompleteAsync();
+                                    return;
+                                }
+
                                 // 1. HTTP REST API endpoints (for iOS Safari PWA)
                                 if (path.StartsWith("/api/pwa/", StringComparison.OrdinalIgnoreCase))
                                 {
+                                    context.Response.Headers["Access-Control-Allow-Origin"] = "*";
                                     context.Response.ContentType = "application/json";
 
                                     if (context.Request.Method == "GET" && path.Equals("/api/pwa/status", StringComparison.OrdinalIgnoreCase))
