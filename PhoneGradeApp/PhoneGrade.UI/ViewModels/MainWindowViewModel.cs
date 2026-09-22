@@ -777,6 +777,8 @@ public class MainWindowViewModel : ReactiveObject
     private async Task ContinueAfterQualityAsync(string quality)
     {
         DeviceData.Quality = quality;
+        this.RaisePropertyChanged(nameof(DeviceData));
+        this.RaisePropertyChanged("DeviceData.Quality");
         Progress = 85;
         if (DefaultPaymentMethod is { Length: > 0 })
             await ContinueAfterPaymentAsync(DefaultPaymentMethod);
@@ -790,6 +792,8 @@ public class MainWindowViewModel : ReactiveObject
     private Task ContinueAfterPaymentAsync(string method)
     {
         DeviceData.PayMethod = method;
+        this.RaisePropertyChanged(nameof(DeviceData));
+        this.RaisePropertyChanged("DeviceData.PayMethod");
         IsQualityPopupVisible = false;
         IsPaymentPopupVisible = false;
         Progress = 95;
