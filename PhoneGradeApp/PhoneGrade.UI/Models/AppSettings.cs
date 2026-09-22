@@ -23,6 +23,7 @@ public class AppSettings
     public string DefaultQuality { get; set; } = "";       // "", "A", "B", "C": empty asks
     public string DefaultPaymentMethod { get; set; } = "";  // "", "Marge", "BTW"
     public string? TemplatePath { get; set; }             // custom my.dymo override
+    public bool EnableVerboseNetworkLogging { get; set; } = false; // Trace HTTP requests, CLI stdout/stderr, JSON payloads
 
     [JsonIgnore]
     private static string SettingsDir =>

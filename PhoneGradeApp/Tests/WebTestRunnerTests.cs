@@ -383,6 +383,32 @@ public class WebTestRunnerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void SystemEventLogger_TraceLevelAndVerboseNetworkLogging_Works()
+    {
+        LogEvent? captured = null;
+        EventHandler<LogEvent> handler = (s, e) => { if (e.Level == LogLevel.Trace) captured = e; };
+
+        SystemEventLogger.LogEventEmitted += handler;
+        try
+        {
+            ToolRunner.EnableVerboseNetworkLogging = true;
+            TestRunnerServer.EnableVerboseNetworkLogging = true;
+
+            SystemEventLogger.Trace(LogSource.Desktop, "[CLI EXEC] ideviceinfo -k ProductType (exit: 0)");
+
+            Assert.NotNull(captured);
+            Assert.Equal(LogLevel.Trace, captured!.Level);
+            Assert.Contains("[CLI EXEC]", captured.Message);
+        }
+        finally
+        {
+            ToolRunner.EnableVerboseNetworkLogging = false;
+            TestRunnerServer.EnableVerboseNetworkLogging = false;
+            SystemEventLogger.LogEventEmitted -= handler;
+        }
+    }
+
+    [Fact]
     public async Task HttpRest_HandshakeAndStatus_Succeeds()
     {
         using var httpClient = new HttpClient();

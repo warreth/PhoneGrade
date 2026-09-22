@@ -22,6 +22,7 @@ public static class ToolRunner
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhoneGrade", "logs");
 
     public static string LogFilePath => Path.Combine(LogDir, "toolrunner.log");
+    public static bool EnableVerboseNetworkLogging { get; set; } = false;
 
     /// <summary>Ensures permissions on non-Windows platforms and strips quarantine on macOS.</summary>
     /// <summary>Starts portable usbmuxd on Windows if Apple Mobile Device Service is not running.</summary>
@@ -183,8 +184,18 @@ public static class ToolRunner
             // Pipe tool output to central logger with category tag
             string toolName = Path.GetFileNameWithoutExtension(tool);
             
+            // Full trace output if verbose logging is enabled
+            if (EnableVerboseNetworkLogging)
+            {
+                SystemEventLogger.Trace(LogSource.Desktop, $"[CLI EXEC] {toolName} {arguments} (exit: {exitCode})");
+                if (!string.IsNullOrWhiteSpace(stdout))
+                    SystemEventLogger.Trace(LogSource.Desktop, $"[{toolName}] stdout: {stdout}");
+                if (!string.IsNullOrWhiteSpace(stderr))
+                    SystemEventLogger.Trace(LogSource.Desktop, $"[{toolName}] stderr: {stderr}");
+            }
+            
             // Only log stderr to the UI if it's an error. 
-            if (!string.IsNullOrWhiteSpace(stderr) && exitCode != 0)
+            if (!EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(stderr) && exitCode != 0)
             {
                 string stderrMsg = $"[{toolName}] stderr: {stderr}";
                 if (LogThrottler.ShouldLog(stderrMsg, LogSource.Desktop))
@@ -193,7 +204,7 @@ public static class ToolRunner
                 }
             }
             // Add lightweight info logging for important tool invocations, avoiding heavy polling spam
-            else if (toolName != "idevice_id" && toolName != "adb" && exitCode == 0 && !string.IsNullOrWhiteSpace(stdout))
+            else if (!EnableVerboseNetworkLogging && toolName != "idevice_id" && toolName != "adb" && exitCode == 0 && !string.IsNullOrWhiteSpace(stdout))
             {
                 if (LogThrottler.ShouldLog($"[{toolName}] {arguments}", LogSource.Desktop))
                 {
