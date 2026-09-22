@@ -360,7 +360,10 @@ public class WebTestRunnerTests : IAsyncLifetime
     public void SystemEventLogger_PubSubBroadcastsCorrectly()
     {
         LogEvent? captured = null;
-        EventHandler<LogEvent> handler = (s, e) => captured = e;
+        EventHandler<LogEvent> handler = (s, e) => 
+        {
+            if (e.SessionId == "DEV_999") captured = e;
+        };
 
         SystemEventLogger.LogEventEmitted += handler;
         try

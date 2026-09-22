@@ -140,7 +140,7 @@
                                         </StackPanel>
                                         <StackPanel Grid.Row="1" Grid.Column="2" Spacing="1">
                                             <TextBlock Classes="dim" Text="Kwaliteitsklasse" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData.Quality, Converter={StaticResource QualityConverter}}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentColor}"/>
+                                            <TextBlock Text="{Binding SelectedGradeDisplay}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentColor}"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
@@ -270,11 +270,8 @@
                                     </Border>
 
                                     <Border Classes="pill success" Padding="12,6" CornerRadius="10">
-                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <TextBlock Text="KLASSE" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding DeviceData.Quality, Converter={StaticResource QualityConverter}}" 
-                                                       FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        </StackPanel>
+                                        <TextBlock Text="{Binding SelectedGradeDisplay}" 
+                                                   FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
                                     </Border>
                                 </StackPanel>
                             </Grid>
@@ -289,7 +286,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Spacing="1">
                                     <TextBlock Classes="dim" Text="Factuurmethode" FontSize="10"/>
-                                    <TextBlock Text="{Binding DeviceData.PayMethod, Converter={StaticResource PayMethodConverter}}" FontWeight="Bold" FontSize="12"/>
+                                    <TextBlock Text="{Binding SelectedInvoiceMethodDisplay}" FontWeight="Bold" FontSize="12"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Spacing="1">
                                     <TextBlock Classes="dim" Text="SIM Lock" FontSize="10"/>

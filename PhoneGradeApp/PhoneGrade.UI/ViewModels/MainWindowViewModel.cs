@@ -255,8 +255,39 @@ public class MainWindowViewModel : ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _deviceData, value);
             this.RaisePropertyChanged(nameof(HasDevice));
+            this.RaisePropertyChanged(nameof(SelectedGrade));
+            this.RaisePropertyChanged(nameof(SelectedGradeDisplay));
+            this.RaisePropertyChanged(nameof(SelectedInvoiceMethod));
+            this.RaisePropertyChanged(nameof(SelectedInvoiceMethodDisplay));
         }
     }
+
+    public string SelectedGrade
+    {
+        get => DeviceData.Quality;
+        set
+        {
+            DeviceData.Quality = value;
+            this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(SelectedGradeDisplay));
+        }
+    }
+
+    public string SelectedGradeDisplay => DeviceData.GradeDisplay;
+
+    public string SelectedInvoiceMethod
+    {
+        get => DeviceData.PayMethod;
+        set
+        {
+            DeviceData.PayMethod = value;
+            this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(SelectedInvoiceMethodDisplay));
+        }
+    }
+
+    public string SelectedInvoiceMethodDisplay => DeviceData.InvoiceMethodDisplay;
+
 
     /// <summary>True once real device data has been read: drives the summary grid.</summary>
     public bool HasDevice => DeviceData is { Model: not "NOMODEL", Identifier: not "NOID" };
@@ -786,9 +817,7 @@ public class MainWindowViewModel : ReactiveObject
 
     private async Task ContinueAfterQualityAsync(string quality)
     {
-        DeviceData.Quality = quality;
-        this.RaisePropertyChanged(nameof(DeviceData));
-        this.RaisePropertyChanged("DeviceData.Quality");
+        SelectedGrade = quality;
         Progress = 85;
         if (DefaultPaymentMethod is { Length: > 0 })
             await ContinueAfterPaymentAsync(DefaultPaymentMethod);
@@ -801,14 +830,10 @@ public class MainWindowViewModel : ReactiveObject
 
     private Task ContinueAfterPaymentAsync(string method)
     {
-        DeviceData.PayMethod = method;
-        this.RaisePropertyChanged(nameof(DeviceData));
-        this.RaisePropertyChanged("DeviceData.PayMethod");
+        SelectedInvoiceMethod = method;
         IsQualityPopupVisible = false;
         IsPaymentPopupVisible = false;
         Progress = 95;
-
-        // Mark device session as completed to prevent auto-retesting
         string? udid = SelectedDevice.Key;
         if (!string.IsNullOrWhiteSpace(udid))
         {

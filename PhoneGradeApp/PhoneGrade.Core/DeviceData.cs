@@ -1,15 +1,114 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
 namespace PhoneGrade.Core;
 
 /// <summary>Represents the data retrieved from the connected device.</summary>
-public class DeviceData
+public class DeviceData : INotifyPropertyChanged
 {
-    public string Identifier { get; set; } = "NOID";       // serial number or IMEI
-    public string BatteryHealth { get; set; } = "NOBATT";
-    public string Color { get; set; } = "NOCOLOR";
-    public string Storage { get; set; } = "NOSTORAGE";
-    public string Model { get; set; } = "NOMODEL";
-    public string Quality { get; set; } = "NOQUALITY";
-    public string PayMethod { get; set; } = "NOPAY";
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    private string _identifier = "NOID";
+    public string Identifier 
+    { 
+        get => _identifier; 
+        set { if (_identifier != value) { _identifier = value; OnPropertyChanged(); } } 
+    }
+
+    private string _batteryHealth = "NOBATT";
+    public string BatteryHealth 
+    { 
+        get => _batteryHealth; 
+        set { if (_batteryHealth != value) { _batteryHealth = value; OnPropertyChanged(); } } 
+    }
+
+    private string _color = "NOCOLOR";
+    public string Color 
+    { 
+        get => _color; 
+        set { if (_color != value) { _color = value; OnPropertyChanged(); } } 
+    }
+
+    private string _storage = "NOSTORAGE";
+    public string Storage 
+    { 
+        get => _storage; 
+        set { if (_storage != value) { _storage = value; OnPropertyChanged(); } } 
+    }
+
+    private string _model = "NOMODEL";
+    public string Model 
+    { 
+        get => _model; 
+        set { if (_model != value) { _model = value; OnPropertyChanged(); } } 
+    }
+
+    private string _quality = "NOQUALITY";
+    public string Quality 
+    { 
+        get => _quality; 
+        set 
+        { 
+            if (_quality != value) 
+            { 
+                _quality = value; 
+                OnPropertyChanged(); 
+                OnPropertyChanged(nameof(SelectedGrade));
+                OnPropertyChanged(nameof(GradeDisplay));
+            } 
+        } 
+    }
+
+    private string _payMethod = "NOPAY";
+    public string PayMethod 
+    { 
+        get => _payMethod; 
+        set 
+        { 
+            if (_payMethod != value) 
+            { 
+                _payMethod = value; 
+                OnPropertyChanged(); 
+                OnPropertyChanged(nameof(SelectedInvoiceMethod));
+                OnPropertyChanged(nameof(InvoiceMethodDisplay));
+            } 
+        } 
+    }
+
+    /// <summary>Aliases for MVVM compatibility</summary>
+    public string SelectedGrade
+    {
+        get => Quality;
+        set => Quality = value;
+    }
+
+    public string GradeDisplay => Quality switch
+    {
+        "A" => "KLASSE A",
+        "B" => "KLASSE B",
+        "C" => "KLASSE C",
+        "NOQUALITY" or "" => "Niet beoordeeld",
+        _ => $"KLASSE {Quality}"
+    };
+
+    public string SelectedInvoiceMethod
+    {
+        get => PayMethod;
+        set => PayMethod = value;
+    }
+
+    public string InvoiceMethodDisplay => PayMethod switch
+    {
+        "Marge" => "Marge (0% BTW)",
+        "BTW" => "BTW (21%)",
+        "NOPAY" or "" => "Niet opgegeven",
+        _ => PayMethod
+    };
     public string DeviceId { get; set; } = "NODEVICEID";
     public string ProductType { get; set; } = "";          // raw, e.g. iPhone14,2 — used by diagnostics
     public string? IosVersion { get; set; }

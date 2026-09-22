@@ -44,11 +44,11 @@
                 </StackPanel>
                 <StackPanel Spacing="7">
                     <TextBlock Classes="dim" Text="Kwaliteit" FontSize="12" FontWeight="Medium"/>
-                    <TextBox Text="{Binding DeviceData.Quality}"/>
+                    <TextBox Text="{Binding DeviceData.Quality, Mode=TwoWay}"/>
                 </StackPanel>
                 <StackPanel Spacing="7">
                     <TextBlock Classes="dim" Text="Betaalmethode" FontSize="12" FontWeight="Medium"/>
-                    <TextBox Text="{Binding DeviceData.PayMethod}"/>
+                    <TextBox Text="{Binding DeviceData.PayMethod, Mode=TwoWay}"/>
                 </StackPanel>
 
                 <!-- Extended Hardware & Battery Info -->
