@@ -14,6 +14,20 @@ public static class ActivationLockService
         public string SIMState { get; set; } = "Unknown";
     }
 
+    private static bool IsTruthy(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        string t = s.Trim().ToLowerInvariant();
+        return t is "true" or "1" or "yes" or "enabled" or "on" or "locked" or "y";
+    }
+
+    private static bool IsExplicitlyFalse(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        string t = s.Trim().ToLowerInvariant();
+        return t is "false" or "0" or "no" or "disabled" or "off" or "unlocked" or "n";
+    }
+
     /// <summary>Detect activation lock state from in-memory bulk XML dictionaries (single-pass extraction).</summary>
     public static async Task<ActivationLockStatus> DetectAsync(string udid, DeviceService.DeviceRawData? raw = null)
     {
@@ -24,40 +38,34 @@ public static class ActivationLockService
             // 1. Query com.apple.fmip domain for FmipEnabled (most authoritative local source)
             string? fmipEnabled = DeviceService.FindDictValue(raw.FmipDict, "FmipEnabled", "FMIEnabled") ??
                                   DeviceService.FindDictValue(raw.DefaultDict, "FmipEnabled", "FMIEnabled");
-            if (!string.IsNullOrWhiteSpace(fmipEnabled))
-            {
-                if (fmipEnabled == "true" || fmipEnabled == "1") return ActivationLockStatus.Locked;
-                if (fmipEnabled == "false" || fmipEnabled == "0") return ActivationLockStatus.Unlocked;
-            }
+            if (IsTruthy(fmipEnabled)) return ActivationLockStatus.Locked;
 
             // 2. PurpleBuddy query for FMI status
             string? fmiActive = DeviceService.FindDictValue(raw.PurpleBuddyDict, "FindMyiPhoneActive", "FMIActive") ??
                                 DeviceService.FindDictValue(raw.DefaultDict, "FindMyiPhoneActive", "FMIActive");
-            if (fmiActive == "true" || fmiActive == "1")
+            if (IsTruthy(fmiActive)) return ActivationLockStatus.Locked;
+
+            // 3. MobileGestalt query: FMIActive, FindMyDeviceState, TargetIsInternal
+            string? gestaltFmi = DeviceService.FindDictValue(raw.GestaltDict, "FMIActive", "FindMyDeviceState", "TargetIsInternal");
+            if (IsTruthy(gestaltFmi)) return ActivationLockStatus.Locked;
+
+            // 4. If ANY source explicitly confirms FMI is OFF/disabled
+            if (IsExplicitlyFalse(fmipEnabled) || IsExplicitlyFalse(fmiActive) || IsExplicitlyFalse(gestaltFmi))
             {
-                return ActivationLockStatus.Locked;
+                return ActivationLockStatus.Unlocked;
             }
 
-            // 3. MobileGestalt query
-            string? fmi = DeviceService.FindDictValue(raw.GestaltDict, "FMIActive", "FindMyDeviceState");
-            if (fmi == "true" || fmi == "1" || fmi == "Enabled")
-            {
-                return ActivationLockStatus.Locked;
-            }
-
-            // 4. Check ActivationState key
+            // 5. ActivationState check:
+            // "unactivated" implies locked/activation required.
+            // IMPORTANT: "activated" DOES NOT mean FMI is OFF! Return Unknown so server check can be authoritative.
             string? activation = DeviceService.FindDictValue(raw.DefaultDict, "ActivationState") ??
                                  DeviceService.FindDictValue(raw.GestaltDict, "ActivationState");
             if (!string.IsNullOrWhiteSpace(activation))
             {
-                activation = activation.Trim().ToLowerInvariant();
-                if (activation == "unactivated")
+                string act = activation.Trim().ToLowerInvariant();
+                if (act is "unactivated" or "unregistered")
                 {
                     return ActivationLockStatus.Locked;
-                }
-                if (activation == "activated")
-                {
-                    return ActivationLockStatus.Unlocked;
                 }
             }
 

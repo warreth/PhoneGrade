@@ -535,10 +535,8 @@ public static class DeviceService
         if (long.TryParse(diskCap, out long db)) diskBytes = db;
         data.Storage = diskBytes > 0 ? Mappers.MapStorage(diskBytes) : await GetStorageAsync(udid);
 
-        // Battery health & cycle count from cached ioreg & gestalt
-        data.BatteryHealth = Parsers.ParseBatteryHealth(raw.IORegBattery);
-        string? cycles = FindDictValue(raw.GestaltDict, "BatteryCycleCount");
-        if (int.TryParse(cycles, out int cc)) data.BatteryCycleCount = cc;
+        // Extended battery metrics
+        await PopulateBatteryMetricsAsync(udid, data, raw);
 
         await PopulateHardwareSerialsAndChecksAsync(udid, data);
 
@@ -615,38 +613,34 @@ public static class DeviceService
         return data;
     }
 
-    /// <summary>Extracts extended battery metrics from ioregentry and com.apple.mobile.battery.</summary>
-    public static async Task PopulateBatteryMetricsAsync(string udid, DeviceData data)
+    /// <summary>Extracts extended battery metrics from in-memory bulk XML dictionary.</summary>
+    public static async Task PopulateBatteryMetricsAsync(string udid, DeviceData data, DeviceRawData? raw = null)
     {
-        var (plist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleSmartBattery");
-        if (plist.StartsWith("ERROR:") || string.IsNullOrWhiteSpace(plist))
-        {
-            (plist, _) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleARMPMUCharger");
-        }
-
-        bool hasIoreg = !plist.StartsWith("ERROR:") && !string.IsNullOrWhiteSpace(plist);
+        raw ??= await GetBulkRawDataAsync(udid);
+        string plist = raw.IORegBattery;
+        bool hasIoreg = !string.IsNullOrWhiteSpace(plist) && !plist.StartsWith("ERROR:");
 
         int? cycle = hasIoreg ? Parsers.PlistInt(plist, "CycleCount") : null;
         int? design = hasIoreg ? Parsers.PlistInt(plist, "DesignCapacity") : null;
-        int? rawMax = hasIoreg ? Parsers.PlistInt(plist, "AppleRawMaxCapacity")
-                              ?? Parsers.PlistInt(plist, "MaxCapacity")
-                              ?? Parsers.PlistInt(plist, "NominalChargeCapacity") : null;
-        string? battSerial = hasIoreg ? Parsers.PlistString(plist, "Serial")
-                                     ?? Parsers.PlistString(plist, "BatterySerialNumber") : null;
-
-        // Fall back to lockdown com.apple.mobile.battery domain if values missing
-        if (cycle == null || design == null || rawMax == null || string.IsNullOrEmpty(battSerial))
+        int? rawMax = hasIoreg ? (Parsers.PlistInt(plist, "AppleRawMaxCapacity") ?? Parsers.PlistInt(plist, "MaxCapacity") ?? Parsers.PlistInt(plist, "NominalChargeCapacity")) : null;
+        
+        string? battSerial = null;
+        if (hasIoreg)
         {
-            string battDomain = await GetDomainAsync(udid, "com.apple.mobile.battery");
-            if (!string.IsNullOrWhiteSpace(battDomain))
-            {
-                cycle ??= int.TryParse(Parsers.KeyValue(battDomain, "CycleCount"), out int c) ? c : null;
-                design ??= int.TryParse(Parsers.KeyValue(battDomain, "DesignCapacity"), out int d) ? d : null;
-                rawMax ??= int.TryParse(Parsers.KeyValue(battDomain, "AppleRawMaxCapacity")
-                                     ?? Parsers.KeyValue(battDomain, "NominalChargeCapacity"), out int cur) ? cur : null;
-                battSerial ??= Parsers.KeyValue(battDomain, "Serial")
-                              ?? Parsers.KeyValue(battDomain, "BatterySerialNumber");
-            }
+            battSerial = Parsers.PlistString(plist, "Serial") ?? 
+                         Parsers.PlistString(plist, "BatterySerialNumber");
+        }
+
+        // Fallback to Gestalt and Default dictionaries
+        if (cycle == null)
+        {
+            if (int.TryParse(FindDictValue(raw.GestaltDict, "BatteryCycleCount") ?? FindDictValue(raw.DefaultDict, "BatteryCycleCount"), out int c)) cycle = c;
+        }
+        
+        if (string.IsNullOrWhiteSpace(battSerial))
+        {
+            battSerial = FindDictValue(raw.GestaltDict, "BatterySerialNumber", "BatterySerial") ?? 
+                         FindDictValue(raw.DefaultDict, "BatterySerialNumber", "BatterySerial");
         }
 
         data.BatteryCycleCount = cycle ?? 0;
@@ -656,8 +650,7 @@ public static class DeviceService
 
         if (hasIoreg)
         {
-            string health = Parsers.ParseBatteryHealth(plist);
-            data.BatteryHealth = health;
+            data.BatteryHealth = Parsers.ParseBatteryHealth(plist);
         }
 
         if (data.BatteryHealth == "NOBATT" && data.BatteryDesignCapacity > 0 && data.BatteryCurrentCapacity > 0)
@@ -681,13 +674,14 @@ public static class DeviceService
         string camPlist = raw.IORegCamera;
         string bioPlist = raw.IORegBio;
 
-        // Live serials & addresses parsed strictly from in-memory dictionaries
+        // Live serials & addresses parsed strictly from in-memory dictionaries with comprehensive fallbacks
         string displaySerial = Parsers.CleanSerial(
             Parsers.PlistString(displayPlist, "DisplaySerial") ??
+            Parsers.PlistString(displayPlist, "LCMSerialNumber") ??
             Parsers.PlistString(displayPlist, "SerialNumber") ??
-            FindDictValue(diagDict, "DisplaySerialNumber", "ScreenSerial", "LCDSerial") ??
-            FindDictValue(gestaltDict, "DisplaySerialNumber", "ScreenSerial") ??
-            FindDictValue(defaultDict, "DisplaySerialNumber"));
+            FindDictValue(diagDict, "LCMSerialNumber", "DisplaySerialNumber", "ScreenSerial", "LCDSerial") ??
+            FindDictValue(gestaltDict, "LCMSerialNumber", "DisplaySerialNumber", "ScreenSerial", "LCDSerial") ??
+            FindDictValue(defaultDict, "LCMSerialNumber", "DisplaySerialNumber", "ScreenSerial"));
 
         string coverGlass = Parsers.CleanSerial(
             Parsers.PlistString(displayPlist, "CoverGlassSerial") ??
@@ -695,23 +689,29 @@ public static class DeviceService
             FindDictValue(gestaltDict, "CoverGlassSerialNumber"));
 
         string frontCam = Parsers.CleanSerial(
+            Parsers.PlistString(camPlist, "FrontCameraModuleSerialNumber") ??
             Parsers.PlistString(camPlist, "FrontCameraSerial") ??
-            FindDictValue(diagDict, "FrontCameraSerialNumber", "FrontCameraSerial") ??
-            FindDictValue(gestaltDict, "FrontCameraSerialNumber") ??
-            FindDictValue(defaultDict, "FrontCameraSerialNumber"));
+            FindDictValue(diagDict, "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial") ??
+            FindDictValue(gestaltDict, "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial") ??
+            FindDictValue(defaultDict, "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial"));
 
         string rearCam = Parsers.CleanSerial(
+            Parsers.PlistString(camPlist, "CameraModuleSerial") ??
+            Parsers.PlistString(camPlist, "RearCameraModuleSerialNumber") ??
             Parsers.PlistString(camPlist, "RearCameraSerial") ??
-            FindDictValue(diagDict, "RearCameraSerialNumber", "RearCameraSerial", "BackCameraSerialNumber") ??
-            FindDictValue(gestaltDict, "RearCameraSerialNumber", "BackCameraSerialNumber") ??
-            FindDictValue(defaultDict, "RearCameraSerialNumber"));
+            Parsers.PlistString(camPlist, "SerialNumber") ??
+            FindDictValue(diagDict, "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber", "CameraModuleSerial") ??
+            FindDictValue(gestaltDict, "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber", "CameraModuleSerial") ??
+            FindDictValue(defaultDict, "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber"));
 
         string bioSerial = Parsers.CleanSerial(
             Parsers.PlistString(bioPlist, "SensorSerialNumber") ??
+            Parsers.PlistString(bioPlist, "RosalineSerialNumber") ??
+            Parsers.PlistString(bioPlist, "MesaSerialNumber") ??
             Parsers.PlistString(bioPlist, "SerialNumber") ??
-            FindDictValue(diagDict, "MesaSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber") ??
-            FindDictValue(gestaltDict, "MesaSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber") ??
-            FindDictValue(defaultDict, "MesaSerialNumber"));
+            FindDictValue(diagDict, "MesaSerialNumber", "RosalineSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber") ??
+            FindDictValue(gestaltDict, "MesaSerialNumber", "RosalineSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber") ??
+            FindDictValue(defaultDict, "MesaSerialNumber", "RosalineSerialNumber", "TouchIDSerialNumber", "PearlSerialNumber"));
 
         string mlbLive = Parsers.CleanSerial(
             FindDictValue(gestaltDict, "MLBSerialNumber", "BoardSerialNumber") ??
@@ -730,26 +730,26 @@ public static class DeviceService
             FindDictValue(gestaltDict, "CellularAddress") ??
             FindDictValue(defaultDict, "CellularAddress"));
 
-        // Factory original serials from syscfg / lockdown in-memory dictionaries
+        // Factory original serials from syscfg / lockdown in-memory dictionaries with comprehensive fallbacks
         string origBatt = Parsers.CleanSerial(
-            FindDictValue(diagDict, "OriginalBatterySerialNumber", "FactoryBatterySerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalBatterySerialNumber") ??
-            FindDictValue(defaultDict, "OriginalBatterySerialNumber"));
+            FindDictValue(diagDict, "OriginalBatterySerialNumber", "FactoryBatterySerialNumber", "BatterySerialNumber", "BatterySerial") ??
+            FindDictValue(gestaltDict, "OriginalBatterySerialNumber", "FactoryBatterySerialNumber", "BatterySerialNumber", "BatterySerial") ??
+            FindDictValue(defaultDict, "OriginalBatterySerialNumber", "FactoryBatterySerialNumber", "BatterySerialNumber", "BatterySerial"));
 
         string origDisplay = Parsers.CleanSerial(
-            FindDictValue(diagDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber", "OriginalScreenSerial") ??
-            FindDictValue(gestaltDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber") ??
-            FindDictValue(defaultDict, "OriginalDisplaySerialNumber"));
+            FindDictValue(diagDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber", "OriginalScreenSerial", "OriginalLCMSerialNumber", "LCMSerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber", "OriginalScreenSerial", "OriginalLCMSerialNumber", "LCMSerialNumber") ??
+            FindDictValue(defaultDict, "OriginalDisplaySerialNumber", "FactoryDisplaySerialNumber", "OriginalScreenSerial", "OriginalLCMSerialNumber", "LCMSerialNumber"));
 
         string origFrontCam = Parsers.CleanSerial(
-            FindDictValue(diagDict, "OriginalFrontCameraSerialNumber", "FactoryFrontCameraSerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalFrontCameraSerialNumber") ??
-            FindDictValue(defaultDict, "OriginalFrontCameraSerialNumber"));
+            FindDictValue(diagDict, "OriginalFrontCameraSerialNumber", "FactoryFrontCameraSerialNumber", "OriginalFrontCameraModuleSerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalFrontCameraSerialNumber", "FactoryFrontCameraSerialNumber", "OriginalFrontCameraModuleSerialNumber") ??
+            FindDictValue(defaultDict, "OriginalFrontCameraSerialNumber", "FactoryFrontCameraSerialNumber"));
 
         string origRearCam = Parsers.CleanSerial(
-            FindDictValue(diagDict, "OriginalRearCameraSerialNumber", "FactoryRearCameraSerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalRearCameraSerialNumber") ??
-            FindDictValue(defaultDict, "OriginalRearCameraSerialNumber"));
+            FindDictValue(diagDict, "OriginalRearCameraSerialNumber", "FactoryRearCameraSerialNumber", "OriginalRearCameraModuleSerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalRearCameraSerialNumber", "FactoryRearCameraSerialNumber", "OriginalRearCameraModuleSerialNumber") ??
+            FindDictValue(defaultDict, "OriginalRearCameraSerialNumber", "FactoryRearCameraSerialNumber"));
 
         string origMlb = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalMLBSerialNumber", "FactoryMLBSerialNumber", "OriginalBoardSerialNumber") ??
@@ -757,10 +757,9 @@ public static class DeviceService
             FindDictValue(defaultDict, "OriginalMLBSerialNumber"));
 
         string origBio = Parsers.CleanSerial(
-            FindDictValue(diagDict, "OriginalMesaSerialNumber", "FactoryMesaSerialNumber") ??
-            FindDictValue(gestaltDict, "OriginalMesaSerialNumber") ??
-            FindDictValue(defaultDict, "OriginalMesaSerialNumber"));
-
+            FindDictValue(diagDict, "OriginalMesaSerialNumber", "FactoryMesaSerialNumber", "OriginalRosalineSerialNumber") ??
+            FindDictValue(gestaltDict, "OriginalMesaSerialNumber", "FactoryMesaSerialNumber", "OriginalRosalineSerialNumber") ??
+            FindDictValue(defaultDict, "OriginalMesaSerialNumber", "FactoryMesaSerialNumber", "OriginalRosalineSerialNumber"));
         string origBt = Parsers.CleanSerial(
             FindDictValue(diagDict, "OriginalBluetoothAddress") ??
             FindDictValue(gestaltDict, "OriginalBluetoothAddress") ??
