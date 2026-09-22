@@ -779,9 +779,7 @@ public class MainWindowViewModel : ReactiveObject
                 ComponentChecks.Add(check);
             Progress = 60;
 
-            // 4. Battery checker
-            if (Enable85PercentChecker && int.TryParse(DeviceData.BatteryHealth, out int health) && health < 85)
-                DeviceData.BatteryHealth = "100%-X";
+            // 4. Battery health: keep actual percentage in UI, label service adds [X] when printing if < 85%
 
             // 5. Diagnostics (panic logs & sensors): strictly asynchronous on background thread (non-blocking)
             if (RunDiagnostics)
