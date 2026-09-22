@@ -748,13 +748,23 @@ public class MainWindowViewModel : ReactiveObject
             if (Enable85PercentChecker && int.TryParse(DeviceData.BatteryHealth, out int health) && health < 85)
                 DeviceData.BatteryHealth = "100%-X";
 
-            // 5. Diagnostics (panic logs & sensors): advisory, not blocking
+            // 5. Diagnostics (panic logs & sensors): strictly asynchronous on background thread (non-blocking)
             if (RunDiagnostics)
             {
-                Status = "Diagnostiek draaien (panic-logs)…";
-                foreach (var issue in await DiagnosticService.DiagnoseAsync(udid))
-                    Issues.Add(issue);
-                HasIssues = Issues.Count > 0;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var diagIssues = await DiagnosticService.DiagnoseAsync(udid);
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            foreach (var issue in diagIssues)
+                                Issues.Add(issue);
+                            HasIssues = Issues.Count > 0;
+                        });
+                    }
+                    catch { }
+                });
             }
             Progress = 75;
 
