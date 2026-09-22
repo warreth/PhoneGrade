@@ -70,11 +70,20 @@ public static class DeviceSessionManager
         return false;
     }
 
-    /// <summary>Marks a device test session as completed.</summary>
-    public static void MarkCompleted(string udid)
+    /// <summary>Updates session hardware data with selected grade and invoice method.</summary>
+    public static void UpdateSessionData(string udid, DeviceData data)
     {
         if (string.IsNullOrWhiteSpace(udid)) return;
-        _sessions[udid] = new DeviceSession(udid, DateTime.UtcNow, DeviceSessionState.Completed);
+        _sessions.AddOrUpdate(udid, 
+            u => new DeviceSession(u, DateTime.UtcNow, DeviceSessionState.ReadingOrActive, data),
+            (u, existing) => new DeviceSession(u, DateTime.UtcNow, existing.State, data, existing.SavedProgress));
+    }
+
+    /// <summary>Marks a device test session as completed.</summary>
+    public static void MarkCompleted(string udid, DeviceData? data = null)
+    {
+        if (string.IsNullOrWhiteSpace(udid)) return;
+        _sessions[udid] = new DeviceSession(udid, DateTime.UtcNow, DeviceSessionState.Completed, data);
         SystemEventLogger.Info(LogSource.Desktop, $"Marked device session as completed: {udid}", udid);
     }
 

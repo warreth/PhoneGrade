@@ -43,6 +43,40 @@ public class UiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task QualityAndPaymentSelection_AdvancesStateMachineAndUpdatesStatus()
+    {
+        var vm = new MainWindowViewModel();
+        vm.SelectedDevice = new System.Collections.Generic.KeyValuePair<string, string>("MOCK_UDID", "iPhone 13");
+        vm.DefaultQuality = "";
+        vm.DefaultPaymentMethod = "";
+        vm.RequirePwaTest = false;
+
+        // Start inspection completion flow
+        vm.FinishInspectionCommand.Execute().Subscribe();
+        Assert.True(vm.IsQualityPopupVisible);
+        Assert.Equal("Kies de kwaliteit...", vm.Status);
+
+        // User clicks Quality "B"
+        vm.SetQualityCommand.Execute("B").Subscribe();
+        Assert.False(vm.IsQualityPopupVisible);
+        Assert.True(vm.IsPaymentPopupVisible);
+        Assert.Equal(90, vm.Progress);
+        Assert.Equal("Kies de factuurmethode...", vm.Status);
+        Assert.Equal("KLASSE B", vm.SelectedGradeDisplay);
+
+        // User clicks Payment "Marge"
+        vm.SetPaymentMethodCommand.Execute("Marge").Subscribe();
+        Assert.False(vm.IsPaymentPopupVisible);
+        Assert.Equal(100, vm.Progress);
+        Assert.Equal(AppWorkflowState.Summary, vm.WorkflowState);
+        Assert.Equal("Marge (0% BTW)", vm.SelectedInvoiceMethodDisplay);
+        Assert.Contains("Testen voltooid", vm.Status);
+
+        // Verify persisted to DeviceSessionManager
+        Assert.True(DeviceSessionManager.IsDeviceCompleted("MOCK_UDID"));
+    }
+
+    [AvaloniaFact]
     public void MainWindow_ThemeSwitch_TakesEffectImmediatelyAndPersists()
     {
         var window = new MainWindow();

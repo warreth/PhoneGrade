@@ -270,6 +270,10 @@ public class MainWindowViewModel : ReactiveObject
             DeviceData.Quality = value;
             this.RaisePropertyChanged();
             this.RaisePropertyChanged(nameof(SelectedGradeDisplay));
+            if (!string.IsNullOrWhiteSpace(SelectedDevice.Key))
+            {
+                DeviceSessionManager.UpdateSessionData(SelectedDevice.Key, DeviceData);
+            }
         }
     }
 
@@ -283,6 +287,10 @@ public class MainWindowViewModel : ReactiveObject
             DeviceData.PayMethod = value;
             this.RaisePropertyChanged();
             this.RaisePropertyChanged(nameof(SelectedInvoiceMethodDisplay));
+            if (!string.IsNullOrWhiteSpace(SelectedDevice.Key))
+            {
+                DeviceSessionManager.UpdateSessionData(SelectedDevice.Key, DeviceData);
+            }
         }
     }
 
@@ -820,12 +828,16 @@ public class MainWindowViewModel : ReactiveObject
     private async Task ContinueAfterQualityAsync(string quality)
     {
         SelectedGrade = quality;
-        Progress = 85;
+        IsQualityPopupVisible = false;
+
         if (DefaultPaymentMethod is { Length: > 0 })
+        {
             await ContinueAfterPaymentAsync(DefaultPaymentMethod);
+        }
         else
         {
-            IsQualityPopupVisible = false;
+            Progress = 90;
+            Status = "Kies de factuurmethode...";
             IsPaymentPopupVisible = true;
         }
     }
@@ -835,11 +847,14 @@ public class MainWindowViewModel : ReactiveObject
         SelectedInvoiceMethod = method;
         IsQualityPopupVisible = false;
         IsPaymentPopupVisible = false;
-        Progress = 95;
+        Progress = 100;
+        Status = "Testen voltooid. Controleer de resultaten en print het label.";
+        WorkflowState = AppWorkflowState.Summary;
+
         string? udid = SelectedDevice.Key;
         if (!string.IsNullOrWhiteSpace(udid))
         {
-            DeviceSessionManager.MarkCompleted(udid);
+            DeviceSessionManager.MarkCompleted(udid, DeviceData);
         }
 
         if (OpenEditorBeforePrint)
@@ -848,16 +863,9 @@ public class MainWindowViewModel : ReactiveObject
             return Task.CompletedTask;
         }
 
-        if (ShowSummaryScreenAfterTesting)
-        {
-            WorkflowState = AppWorkflowState.Summary;
-            Progress = 100;
-            Status = "Testen voltooid. Controleer de resultaten en print het label.";
-        }
-        else
+        if (!ShowSummaryScreenAfterTesting)
         {
             FinishLabel();
-            WorkflowState = AppWorkflowState.Summary;
         }
         
         return Task.CompletedTask;
