@@ -136,6 +136,48 @@ public static class DeviceService
 
     private static readonly ConcurrentDictionary<string, DeviceRawData> _rawCache = new();
 
+    /// <summary>Query IORegistry for camera node across different SoC generations (A10-A17+).</summary>
+    private static async Task<string> GetIORegCameraNodeAsync(string udid)
+    {
+        var cameraNodes = new[] { 
+            "AppleH10CamIn",  // A10 (iPhone 7/8)
+            "AppleH11CamIn",  // A11 (iPhone 8 Plus/X)
+            "AppleH13CamIn",  // A13 (iPhone 11 series)
+            "AppleH15CamIn",  // A15 (iPhone 13 series)
+            "AppleH16CamIn",  // A16 (iPhone 14 Pro series)
+            "AppleH17CamIn",  // A17 Pro (iPhone 15 Pro series)
+            "AppleCameraInterface",
+            "AppleISPCaptureInput"
+        };
+        
+        foreach (var node in cameraNodes)
+        {
+            var (output, exit) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry {node}", 5000);
+            if (exit == 0 && !string.IsNullOrWhiteSpace(output) && !output.Contains("NotFound") && !output.Contains("not found"))
+                return output;
+        }
+        return "";
+    }
+
+    /// <summary>Query IORegistry for display node across different hardware generations.</summary>
+    private static async Task<string> GetIORegDisplayNodeAsync(string udid)
+    {
+        var displayNodes = new[] { 
+            "AppleCLCD2",           // Modern iPhones
+            "IOMobileFramebuffer",  // Fallback
+            "AppleCLCD",            // Older models
+            "AppleDisplay"
+        };
+        
+        foreach (var node in displayNodes)
+        {
+            var (output, exit) = await ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry {node}", 5000);
+            if (exit == 0 && !string.IsNullOrWhiteSpace(output) && !output.Contains("NotFound") && !output.Contains("not found"))
+                return output;
+        }
+        return "";
+    }
+
     /// <summary>Performs all CLI queries concurrently and caches the parsed dictionaries.</summary>
     public static async Task<DeviceRawData> GetBulkRawDataAsync(string udid)
     {
@@ -152,13 +194,17 @@ public static class DeviceService
         var tPb = ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.purplebuddy -x");
         var tFmip = ToolRunner.RunAsync("ideviceinfo", $"-u {udid} -q com.apple.fmip -x");
 
-        // Execute slow ioregentry queries concurrently
-        var tDisp = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleCLCD2");
-        var tCam = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleH10CamIn");
-        var tBio = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleBiometricSensor");
-        var tBatt = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleSmartBattery");
+        // Execute slow ioregentry queries with dynamic node detection
+        var tDisp = GetIORegDisplayNodeAsync(udid);
+        var tCam = GetIORegCameraNodeAsync(udid);
+        var tBio = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleBiometricSensor", 5000);
+        var tBatt = ToolRunner.RunAsync("idevicediagnostics", $"-u {udid} ioregentry AppleSmartBattery", 5000);
 
-        await Task.WhenAll(tDefault, tGestalt, tDiag, tDisk, tPb, tFmip, tDisp, tCam, tBio, tBatt);
+        await Task.WhenAll(tDefault, tGestalt, tDiag, tDisk, tPb, tFmip);
+        var displayOutput = await tDisp;
+        var cameraOutput = await tCam;
+        var (bioOutput, bioExit) = await tBio;
+        var (battOutput, battExit) = await tBatt;
 
         raw.DefaultXml = tDefault.Result.Output;
         raw.GestaltXml = tGestalt.Result.Output;
@@ -166,10 +212,10 @@ public static class DeviceService
         raw.DiskXml = tDisk.Result.Output;
         raw.PurpleBuddyXml = tPb.Result.Output;
         raw.FmipXml = tFmip.Result.Output;
-        raw.IORegDisplay = tDisp.Result.Output;
-        raw.IORegCamera = tCam.Result.Output;
-        raw.IORegBio = tBio.Result.Output;
-        raw.IORegBattery = tBatt.Result.Output;
+        raw.IORegDisplay = displayOutput;
+        raw.IORegCamera = cameraOutput;
+        raw.IORegBio = bioExit == 0 ? bioOutput : "";
+        raw.IORegBattery = battExit == 0 ? battOutput : "";
 
         // Parse XML directly
         raw.DefaultDict = Parsers.ParsePlistXml(raw.DefaultXml);
