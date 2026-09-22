@@ -19,9 +19,9 @@ public static class ComponentVerificationService
 
         try
         {
-            // Query diagnostics for AST2 validation messages
+            // Query diagnostics for AST2 validation messages (valid TYPE is All, WiFi, GasGauge, NAND)
             var (diagOutput, _, _) = await ToolRunner.ExecuteAsync("idevicediagnostics", 
-                $"-u {udid} diagnostics IORegistry");
+                $"-u {udid} diagnostics All");
 
             if (!string.IsNullOrWhiteSpace(diagOutput))
             {

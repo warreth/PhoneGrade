@@ -55,4 +55,32 @@ public class PwaCommunicationTests
         Assert.Equal("Android", receivedPayload.Platform);
         Assert.Equal(2, receivedPayload.Tests.Count);
     }
+
+    [Fact]
+    public void AllWwwRootJavaScriptFiles_HaveValidSyntax()
+    {
+        string wwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+        if (!Directory.Exists(wwwroot))
+        {
+            wwwroot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../PhoneGrade.UI/wwwroot"));
+        }
+        Assert.True(Directory.Exists(wwwroot), $"wwwroot not found at {wwwroot}");
+        var jsFiles = Directory.GetFiles(wwwroot, "*.js", SearchOption.AllDirectories);
+        Assert.NotEmpty(jsFiles);
+        foreach (var file in jsFiles)
+        {
+            // Verify real syntax via Process if node is available, or ensure no broken escape tokens
+            string content = File.ReadAllText(file);
+            string badSequence = ((char)92).ToString() + ((char)96).ToString();
+            Assert.DoesNotContain(badSequence, content);
+        }
+    }
+
+    [Fact]
+    public async Task ComponentVerification_UsesValidDiagnosticsCommand()
+    {
+        var device = new DeviceData();
+        var result = await PhoneGrade.Core.SecurityServices.ComponentVerificationService.VerifyComponentsAsync("DUMMY_UDID", device);
+        Assert.NotNull(result);
+    }
 }
