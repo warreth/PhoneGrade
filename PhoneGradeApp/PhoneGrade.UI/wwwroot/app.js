@@ -18,7 +18,9 @@ class RestApiClient {
     constructor() {
         this.sessionId = this.getUrlParam('sessionId') || 'UNKNOWN';
         this.connected = false;
-        this.baseUrl = `${window.location.protocol}//${window.location.host}`;
+        const host = window.location.hostname || '127.0.0.1';
+        const port = window.location.port ? window.location.port : '5056';
+        this.baseUrl = `${window.location.protocol}//${host}:${port}`;
         this.pollInterval = null;
         this.consoleLogger = null;
     }

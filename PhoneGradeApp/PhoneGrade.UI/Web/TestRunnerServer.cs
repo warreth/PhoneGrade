@@ -199,16 +199,35 @@ public class TestRunnerServer : IAsyncDisposable
                                     {
                                         using var reader = new StreamReader(context.Request.Body);
                                         string body = await reader.ReadToEndAsync();
-                                        var msg = JsonSerializer.Deserialize<DeviceSessionMessage>(body);
-                                        if (msg != null && msg.Payload != null)
+                                        var opt = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                                        
+                                        DeviceSessionMessage? msg = null;
+                                        try { msg = JsonSerializer.Deserialize<DeviceSessionMessage>(body, opt); } catch { }
+
+                                        InteractiveTestSuiteResult? suiteResult = msg?.Payload;
+                                        if (suiteResult == null)
                                         {
+                                            try { suiteResult = JsonSerializer.Deserialize<InteractiveTestSuiteResult>(body, opt); } catch { }
+                                        }
+
+                                        if (suiteResult != null)
+                                        {
+                                            msg ??= new DeviceSessionMessage
+                                            {
+                                                Type = "suite_complete",
+                                                SessionId = suiteResult.SessionId,
+                                                Payload = suiteResult
+                                            };
+                                            msg.Payload = suiteResult;
+
                                             SuiteCompleted?.Invoke(this, new DeviceSessionEventArgs
                                             {
-                                                SessionId = msg.SessionId ?? "UNKNOWN",
+                                                SessionId = suiteResult.SessionId ?? msg.SessionId ?? "UNKNOWN",
                                                 Message = msg
                                             });
                                         }
-                                        await context.Response.WriteAsync("{\"ok\":true}");
+                                        context.Response.ContentType = "application/json";
+                                        await context.Response.WriteAsync("{"ok":true}");
                                         return;
                                     }
 
