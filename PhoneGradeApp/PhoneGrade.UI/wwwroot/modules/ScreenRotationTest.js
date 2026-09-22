@@ -15,11 +15,11 @@ export class ScreenRotationTest extends DeviceTest {
         
         container.innerHTML = `
             <div style="text-align: center; padding: 20px;">
-                <p style="margin-bottom: 20px; color: #cbd5e1;">Current orientation:</p>
-                <div id="orientation-display" style="font-size: 32px; font-weight: 700; color: #00d9ff; margin-bottom: 20px; font-family: monospace;">
+                <p style="margin-bottom: 20px; color: #64748b;">Current orientation:</p>
+                <div id="orientation-display" style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 20px; font-family: monospace;">
                     ${this.getOrientationType(isModernApi)}
                 </div>
-                <p style="color: #cbd5e1; margin-bottom: 10px;">Rotate your device to test</p>
+                <p style="color: #64748b; margin-bottom: 10px;">Rotate your device to test</p>
                 <p id="rotation-count" style="font-size: 14px; color: #94a3b8; font-family: monospace;">
                     Rotations detected: 0
                 </p>
@@ -59,7 +59,7 @@ export class ScreenRotationTest extends DeviceTest {
                 orientationDisplay.textContent = current.type;
             }
             if (rotationCountEl) {
-                rotationCountEl.textContent = \`Rotations detected: ${this.transitionCount}\`;
+                rotationCountEl.textContent = 'Rotations detected: ' + this.transitionCount;
             }
 
             // Update safe area info
@@ -69,11 +69,11 @@ export class ScreenRotationTest extends DeviceTest {
             const leftInset = this.getSafeAreaInset('left');
             
             if (safeAreaEl) {
-                safeAreaEl.textContent = \`Safe area - T:${topInset} R:${rightInset} B:${bottomInset} L:${leftInset}\`;
+                safeAreaEl.textContent = 'Safe area - T:' + topInset + ' R:' + rightInset + ' B:' + bottomInset + ' L:' + leftInset;
             }
 
             const progress = Math.min(50 + (this.transitionCount * 10), 90);
-            this.reportProgress(wsClient, progress, \`Detected ${current.type}\`);
+            this.reportProgress(wsClient, progress, 'Detected ' + current.type);
         };
 
         if (isModernApi) {
@@ -100,7 +100,7 @@ export class ScreenRotationTest extends DeviceTest {
                     }
 
                     if (this.transitionCount >= 1) {
-                        this.pass(\`Device orientation working - ${this.transitionCount} transitions detected\`);
+                        this.pass('Device orientation working - ' + this.transitionCount + ' transitions detected');
                         this.details.transitionCount = this.transitionCount;
                         this.details.orientationTypes = [...new Set(this.orientationHistory.map(o => o.type))];
                     } else {
@@ -130,8 +130,7 @@ export class ScreenRotationTest extends DeviceTest {
     }
 
     getSafeAreaInset(side) {
-        const value = getComputedStyle(document.documentElement).getPropertyValue(\`--safe-area-inset-${side}\`).trim();
+        const value = getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-' + side).trim();
         return value || '0px';
     }
-}
 }
