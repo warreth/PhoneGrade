@@ -29,6 +29,8 @@ public class MainWindowViewModel : ReactiveObject
 
     public ObservableCollection<DiagnosticIssue> Issues { get; } = [];
     public ObservableCollection<ComponentStatus> ComponentChecks { get; } = [];
+    public ObservableCollection<ComponentStatus> DefectiveComponents { get; } = [];
+    public ObservableCollection<InteractiveTestResult> FailedInteractiveTests { get; } = [];
     public UnifiedLogsViewModel LogsViewModel { get; } = new();
     public TroubleshootViewModel TroubleshootViewModel { get; } = new();
 
@@ -589,11 +591,11 @@ public class MainWindowViewModel : ReactiveObject
                     if (DeviceSessionManager.TryGetPreservedSession(udid, out var preserved) && preserved?.Data != null)
                     {
                         DeviceData = preserved.Data;
-                        Progress = preserved.SavedProgress;
+                        Progress = 0; // Always restart from 0 on reconnect
                         ComponentChecks.Clear();
                         foreach (var c in DeviceData.ComponentChecks) ComponentChecks.Add(c);
                         WorkflowState = AppWorkflowState.Active;
-                        Status = "Toestel heraangesloten: sessie hervat.";
+                        Status = "Toestel heraangesloten: data herladen (vanaf 0%).";
                         DeviceSessionManager.MarkStarted(udid, DeviceData);
                         UpdateWebRunnerSession(udid);
                         return;
@@ -865,6 +867,28 @@ public class MainWindowViewModel : ReactiveObject
         IsPaymentPopupVisible = false;
         Progress = 100;
         Status = "Testen voltooid. Controleer de resultaten en print het label.";
+        // Populate defect inspection report (only non-OEM/mismatch components and failed tests)
+        DefectiveComponents.Clear();
+        foreach (var c in DeviceData.ComponentChecks)
+        {
+            if (c.Status == ComponentStatusType.Mismatch || c.Status == ComponentStatusType.Untrusted)
+            {
+                DefectiveComponents.Add(c);
+            }
+        }
+
+        FailedInteractiveTests.Clear();
+        if (DeviceData.InteractiveTests?.Tests != null)
+        {
+            foreach (var t in DeviceData.InteractiveTests.Tests)
+            {
+                if (t.Status == TestStatus.Failed)
+                {
+                    FailedInteractiveTests.Add(t);
+                }
+            }
+        }
+
         WorkflowState = AppWorkflowState.Summary;
 
         string? udid = SelectedDevice.Key;

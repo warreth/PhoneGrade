@@ -101,17 +101,29 @@ public class SummaryViewModel : ReactiveObject
     private void UpdateComponentChecks()
     {
         ComponentChecks.Clear();
+        // Only show defective or replaced (non-OEM) components in the inspection report
         foreach (var check in _deviceData.ComponentChecks)
-            ComponentChecks.Add(check);
+        {
+            if (check.Status == ComponentStatusType.Mismatch || check.Status == ComponentStatusType.Untrusted)
+            {
+                ComponentChecks.Add(check);
+            }
+        }
     }
 
     private void UpdateInteractiveTests()
     {
         InteractiveTests.Clear();
+        // Only show failed interactive tests in the inspection report
         if (_deviceData.InteractiveTests?.Tests != null)
         {
             foreach (var test in _deviceData.InteractiveTests.Tests)
-                InteractiveTests.Add(test);
+            {
+                if (test.Status == TestStatus.Failed)
+                {
+                    InteractiveTests.Add(test);
+                }
+            }
         }
     }
 

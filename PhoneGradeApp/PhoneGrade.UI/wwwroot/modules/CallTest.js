@@ -9,7 +9,9 @@ export class CallTest extends DeviceTest {
         this.start();
         this.reportProgress(wsClient, 0, 'Setting up call interface...');
 
-        const testNumber = '*#06#';
+        // Get configurable phone number from URL params or default to IMEI query
+        const params = new URLSearchParams(window.location.search);
+        const testNumber = params.get('testPhoneNumber') || '*#06#';
 
         container.innerHTML = `
             <div style="padding: 16px;">
