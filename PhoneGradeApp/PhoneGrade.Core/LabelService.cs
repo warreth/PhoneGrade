@@ -38,9 +38,20 @@ public static class LabelService
         string template = FindTemplate();
         Directory.CreateDirectory(Path.GetDirectoryName(OutputPath)!);
 
-        string battery = data.BatteryHealth.Contains('%') || data.BatteryHealth.Contains("NOBATT")
-            ? data.BatteryHealth
-            : $"{data.BatteryHealth}%";
+        // Format battery health: add [X] warning on label if < 85%
+        string battery;
+        if (data.BatteryHealth.Contains("NOBATT"))
+        {
+            battery = data.BatteryHealth;
+        }
+        else if (int.TryParse(data.BatteryHealth.TrimEnd('%'), out int health))
+        {
+            battery = health < 85 ? $"{health}% [X]" : $"{health}%";
+        }
+        else
+        {
+            battery = data.BatteryHealth.Contains('%') ? data.BatteryHealth : $"{data.BatteryHealth}%";
+        }
 
         string content = File.ReadAllText(template)
             .Replace("IDENTIFIER", data.Identifier)

@@ -449,11 +449,17 @@ public class LabelServiceTests : IDisposable
     }
 
     [Fact]
-    public void GenerateLabel_KeepsExistingPercentSign()
+    public void GenerateLabel_AddsWarningForLowBattery()
     {
-        // The 85% checker writes "100%-X" — must not become "100%-X%"
-        string path = LabelService.GenerateLabel(new DeviceData { BatteryHealth = "100%-X" });
-        Assert.Contains("B=100%-X", File.ReadAllText(path));
+        // Battery < 85% should show "[X]" warning on label
+        string path = LabelService.GenerateLabel(new DeviceData { BatteryHealth = "68" });
+        Assert.Contains("68% [X]", File.ReadAllText(path));
+        
+        // Battery >= 85% should NOT show "[X]"
+        path = LabelService.GenerateLabel(new DeviceData { BatteryHealth = "92" });
+        string content = File.ReadAllText(path);
+        Assert.Contains("92%", content);
+        Assert.DoesNotContain("[X]", content);
     }
 
     [Fact]
