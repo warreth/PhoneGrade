@@ -616,11 +616,29 @@ class TestRunner {
 
     showResultsScreen(suiteResult) {
         this.showScreen('results-screen');
-        const resultsEl = document.getElementById('test-results');
-        if (resultsEl) {
-            const passedCount = suiteResult.tests.filter(t => t.status === 'passed').length;
-            const totalCount = suiteResult.tests.length;
-            resultsEl.innerHTML = `<h2>Test Suite Complete</h2><p>${passedCount}/${totalCount} tests passed</p>`;
+        const passedCount = suiteResult.tests.filter(t => t.status === 'passed').length;
+        const failedCount = suiteResult.tests.filter(t => t.status === 'failed').length;
+        const totalCount = suiteResult.tests.length;
+
+        const elTotal = document.getElementById('total-count');
+        const elPassed = document.getElementById('passed-count');
+        const elFailed = document.getElementById('failed-count');
+        if (elTotal) elTotal.textContent = totalCount;
+        if (elPassed) elPassed.textContent = passedCount;
+        if (elFailed) elFailed.textContent = failedCount;
+
+        const resultsDetails = document.getElementById('results-details');
+        if (resultsDetails) {
+            resultsDetails.innerHTML = '';
+            suiteResult.tests.forEach(test => {
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
+                    <span style="font-weight:600;">${test.name}</span>
+                    <span class="result-badge ${test.status}">${test.status.toUpperCase()}</span>
+                `;
+                resultsDetails.appendChild(item);
+            });
         }
     }
 }
