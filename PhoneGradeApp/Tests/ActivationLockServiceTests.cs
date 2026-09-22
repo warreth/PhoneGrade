@@ -55,4 +55,66 @@ public class ActivationLockServiceTests
         Assert.True(status.SIMPresent);
         Assert.Equal("Present", status.SIMState);
     }
+
+    [Theory]
+    [InlineData("true")]
+    [InlineData("1")]
+    [InlineData("YES")]
+    [InlineData("enabled")]
+    public async Task DetectAsync_WhenFmipEnabledIsTruthy_ReturnsLocked(string truthyValue)
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.FmipDict["FmipEnabled"] = truthyValue;
+        
+        var status = await ActivationLockService.DetectAsync("DUMMY_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Locked, status);
+    }
+
+    [Theory]
+    [InlineData("true")]
+    [InlineData("1")]
+    public async Task DetectAsync_WhenPurpleBuddyFindMyiPhoneActiveIsTruthy_ReturnsLocked(string truthyValue)
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.PurpleBuddyDict["FindMyiPhoneActive"] = truthyValue;
+        
+        var status = await ActivationLockService.DetectAsync("DUMMY_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Locked, status);
+    }
+
+    [Theory]
+    [InlineData("true")]
+    [InlineData("1")]
+    public async Task DetectAsync_WhenMobileGestaltTargetIsInternalOrFmiActiveIsTruthy_ReturnsLocked(string truthyValue)
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.GestaltDict["TargetIsInternal"] = truthyValue;
+        
+        var status = await ActivationLockService.DetectAsync("DUMMY_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Locked, status);
+    }
+
+    [Fact]
+    public async Task DetectAsync_WhenOnlyActivationStateIsActivated_DoesNotReturnUnlocked_ReturnsUnknown()
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.DefaultDict["ActivationState"] = "Activated";
+        
+        // A device being activated locally does NOT mean FMI is OFF on Apple server!
+        var status = await ActivationLockService.DetectAsync("DUMMY_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Unknown, status);
+    }
+
+    [Theory]
+    [InlineData("false")]
+    [InlineData("0")]
+    [InlineData("off")]
+    public async Task DetectAsync_WhenFmipEnabledIsExplicitlyFalse_ReturnsUnlocked(string falseValue)
+    {
+        var raw = new DeviceService.DeviceRawData();
+        raw.FmipDict["FmipEnabled"] = falseValue;
+        
+        var status = await ActivationLockService.DetectAsync("DUMMY_UDID", raw);
+        Assert.Equal(ActivationLockService.ActivationLockStatus.Unlocked, status);
+    }
 }
