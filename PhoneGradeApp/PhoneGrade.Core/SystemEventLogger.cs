@@ -9,6 +9,7 @@ namespace PhoneGrade.Core;
 
 public enum LogLevel
 {
+    Trace,
     Debug,
     Info,
     Warning,
@@ -150,6 +151,9 @@ public static class SystemEventLogger
         if (source == LogSource.UsbDetector && !LogThrottler.ShouldLog(message, source)) return;
         Log(LogLevel.Error, source, message, sessionId, context);
     }
+
+    public static void Trace(LogSource source, string message, string? sessionId = null, Dictionary<string, string>? context = null)
+        => Log(LogLevel.Trace, source, message, sessionId, context);
 
     public static void Debug(LogSource source, string message, string? sessionId = null, Dictionary<string, string>? context = null)
         => Log(LogLevel.Debug, source, message, sessionId, context);

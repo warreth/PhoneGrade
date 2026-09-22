@@ -99,6 +99,61 @@
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
         </Style>
 
+        <!-- Centralized Mandatory Unified Styles -->
+        <Style Selector="Border.Card">
+            <Setter Property="Background" Value="{DynamicResource CardColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12"/>
+        </Style>
+        <Style Selector="TextBlock.SectionHeader">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+        </Style>
+        <Style Selector="TextBlock.TableHeader">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+        <Style Selector="Border.BadgeOriginal">
+            <Setter Property="Background" Value="{DynamicResource SuccessColor}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Border.BadgeOriginal > TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Border.BadgeUnknown">
+            <Setter Property="Background" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Border.BadgeUnknown > TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+        <Style Selector="Border.BadgeWarning">
+            <Setter Property="Background" Value="{DynamicResource WarnColor}"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Border.BadgeWarning > TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
         <!-- Primary / secondary buttons -->
         <Style Selector="Button">
             <Setter Property="Background" Value="{DynamicResource InputBgColor}"/>

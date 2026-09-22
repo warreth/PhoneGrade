@@ -49,6 +49,7 @@ public class TestRunnerServer : IAsyncDisposable
 
     public int BoundPort { get; private set; }
     public bool IsRunning => _host != null;
+    public static bool EnableVerboseNetworkLogging { get; set; } = false;
 
     public event EventHandler<DeviceSessionEventArgs>? DeviceConnected;
     public event EventHandler<DeviceSessionEventArgs>? MessageReceived;
@@ -130,6 +131,13 @@ public class TestRunnerServer : IAsyncDisposable
                             app.Use(async (context, next) =>
                             {
                                 string path = context.Request.Path.Value ?? "";
+                                
+                                // Verbose network tracing
+                                if (EnableVerboseNetworkLogging)
+                                {
+                                    var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                                    SystemEventLogger.Trace(LogSource.WebSocket, $"[HTTP {context.Request.Method}] {path} from {clientIp}");
+                                }
 
                                 // 1. HTTP REST API endpoints (for iOS Safari PWA)
                                 if (path.StartsWith("/api/pwa/", StringComparison.OrdinalIgnoreCase))
@@ -148,6 +156,8 @@ public class TestRunnerServer : IAsyncDisposable
                                     {
                                         using var reader = new StreamReader(context.Request.Body);
                                         string body = await reader.ReadToEndAsync();
+                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
+                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
                                         var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
                                         string sid = doc.RootElement.TryGetProperty("sessionId", out var sProp) ? sProp.GetString() ?? "UNKNOWN" : "UNKNOWN";
 
@@ -165,6 +175,8 @@ public class TestRunnerServer : IAsyncDisposable
                                     {
                                         using var reader = new StreamReader(context.Request.Body);
                                         string body = await reader.ReadToEndAsync();
+                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
+                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
                                         var telMsg = JsonSerializer.Deserialize<LogEventMessage>(body);
                                         if (telMsg?.ClientTelemetry != null)
                                         {
@@ -182,6 +194,8 @@ public class TestRunnerServer : IAsyncDisposable
                                     {
                                         using var reader = new StreamReader(context.Request.Body);
                                         string body = await reader.ReadToEndAsync();
+                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
+                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
                                         var msg = JsonSerializer.Deserialize<DeviceSessionMessage>(body);
                                         if (msg != null)
                                         {
@@ -199,6 +213,8 @@ public class TestRunnerServer : IAsyncDisposable
                                     {
                                         using var reader = new StreamReader(context.Request.Body);
                                         string body = await reader.ReadToEndAsync();
+                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
+                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
                                         var opt = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                                         
                                         DeviceSessionMessage? msg = null;
@@ -235,6 +251,8 @@ public class TestRunnerServer : IAsyncDisposable
                                     {
                                         using var reader = new StreamReader(context.Request.Body);
                                         string body = await reader.ReadToEndAsync();
+                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
+                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
                                         var logMsg = JsonSerializer.Deserialize<LogEventMessage>(body);
                                         if (logMsg?.LogEvent != null)
                                         {

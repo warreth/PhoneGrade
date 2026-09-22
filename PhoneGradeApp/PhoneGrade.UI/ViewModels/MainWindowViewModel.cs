@@ -389,6 +389,10 @@ public class MainWindowViewModel : ReactiveObject
         _defaultQuality = _settings.DefaultQuality;
         _defaultPaymentMethod = _settings.DefaultPaymentMethod;
         LabelService.ConfiguredTemplatePath = _settings.TemplatePath;
+        
+        // Wire verbose logging flag from settings
+        ToolRunner.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
+        TestRunnerServer.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
 
         var canStart = this.WhenAnyValue(x => x.Busy).Select(b => !b);
         RefreshDevicesCommand = ReactiveCommand.CreateFromTask(RefreshDeviceListAsync);
