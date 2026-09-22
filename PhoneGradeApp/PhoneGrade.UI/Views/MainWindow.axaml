@@ -300,45 +300,67 @@
                         </Border>
                     </Grid>
 
-                    <!-- Middle Row: 3uTools Comparative Component Audit Table with self-contained scroll if window is small -->
+                    <!-- Middle Row: Inspection Report (Defects & Non-OEM Only) -->
                     <Border Grid.Row="1" Classes="card" Padding="12,10" Margin="0,0,0,10">
-                        <Grid RowDefinitions="Auto,Auto,*">
+                        <Grid RowDefinitions="Auto,Auto,*,Auto,*">
                             <!-- Table Title Bar -->
                             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
-                                <TextBlock Classes="cardTitle" Text="{DynamicResource Summary_AuditTitle}" FontSize="12" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="1" Text="{DynamicResource Summary_AuditSubtitle}" Classes="dim" FontSize="10" VerticalAlignment="Center"/>
+                                <TextBlock Classes="cardTitle" Text="INSPECTIERAPPORT (AFWIJKINGEN &amp; DEFECTEN)" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="Enkel niet-originele onderdelen en mislukte tests" Classes="dim" FontSize="10" VerticalAlignment="Center"/>
                             </Grid>
 
-                            <!-- Table Header -->
-                            <Border Grid.Row="1" Background="{DynamicResource TrackColor}" CornerRadius="4" Padding="8,4" Margin="0,0,0,4">
-                                <Grid ColumnDefinitions="200,*,*,90">
-                                    <TextBlock Grid.Column="0" Text="{DynamicResource Summary_ColComponent}" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}"/>
-                                    <TextBlock Grid.Column="1" Text="{DynamicResource Summary_ColFactory}" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}"/>
-                                    <TextBlock Grid.Column="2" Text="{DynamicResource Summary_ColRead}" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}"/>
-                                    <TextBlock Grid.Column="3" Text="{DynamicResource Summary_ColStatus}" FontWeight="Bold" FontSize="10" HorizontalAlignment="Right" Foreground="{DynamicResource TextDimColor}"/>
-                                </Grid>
-                            </Border>
+                            <!-- Component Defects Section -->
+                            <TextBlock Grid.Row="1" Text="ONDERDELEN AUDIT (NIET-OEM / VERVANGEN)" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}" Margin="0,4,0,4"/>
+                            
+                            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="130">
+                                <StackPanel>
+                                    <ItemsControl ItemsSource="{Binding DefectiveComponents}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#fee2e2" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
+                                                        BorderBrush="#fca5a5" BorderThickness="1">
+                                                    <Grid ColumnDefinitions="200,*,*,90">
+                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#991b1b" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding SerialOriginal}" FontSize="11" Foreground="#7f1d1d" VerticalAlignment="Center" Classes="dim"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding SerialRead}" FontSize="11" Foreground="#991b1b" VerticalAlignment="Center"/>
+                                                        <Border Grid.Column="3" CornerRadius="3" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#dc2626">
+                                                            <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Border IsVisible="{Binding !DefectiveComponents.Count}" Background="#dcfce7" CornerRadius="4" Padding="8,6" BorderBrush="#86efac" BorderThickness="1">
+                                        <TextBlock Text="[OK] Alle onderdelen zijn origineel (OEM)" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
 
-                            <!-- Table Rows List inside ScrollViewer -->
-                            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                <ItemsControl ItemsSource="{Binding ComponentChecks}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="{DynamicResource CardDeepColor}" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
-                                                    BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                                <Grid ColumnDefinitions="200,*,*,90">
-                                                    <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding SerialOriginal}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Classes="dim"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding SerialRead}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                    <Border Grid.Column="3" CornerRadius="3" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                                            Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
-                                                        <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}" FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                            <!-- Failed Interactive Tests Section -->
+                            <TextBlock Grid.Row="3" Text="INTERACTIEVE HARDWARETESTS (MISLUKT)" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}" Margin="0,8,0,4"/>
+                            
+                            <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="130">
+                                <StackPanel>
+                                    <ItemsControl ItemsSource="{Binding FailedInteractiveTests}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#fee2e2" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
+                                                        BorderBrush="#fca5a5" BorderThickness="1">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#991b1b" VerticalAlignment="Center"/>
+                                                        <Border Grid.Column="1" CornerRadius="3" Padding="6,2" Background="#dc2626">
+                                                            <TextBlock Text="MISLUKT" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Border IsVisible="{Binding !FailedInteractiveTests.Count}" Background="#dcfce7" CornerRadius="4" Padding="8,6" BorderBrush="#86efac" BorderThickness="1">
+                                        <TextBlock Text="[OK] Alle interactieve tests zijn geslaagd" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/>
+                                    </Border>
+                                </StackPanel>
                             </ScrollViewer>
                         </Grid>
                     </Border>

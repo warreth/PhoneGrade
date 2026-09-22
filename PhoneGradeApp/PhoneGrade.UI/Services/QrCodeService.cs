@@ -55,11 +55,12 @@ public static class QrCodeService
         return "127.0.0.1";
     }
 
-    public static string GenerateSessionUrl(string localIp, int port, string deviceUdid, bool isDebug = false)
+    public static string GenerateSessionUrl(string localIp, int port, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null)
     {
         var cleanUdid = Uri.EscapeDataString(deviceUdid ?? "UNKNOWN");
         string url = $"http://{localIp}:{port}/?sessionId={cleanUdid}";
         if (isDebug) url += "&debug=true";
+        if (!string.IsNullOrWhiteSpace(testPhoneNumber)) url += $"&testPhoneNumber={Uri.EscapeDataString(testPhoneNumber)}";
         return url;
     }
 

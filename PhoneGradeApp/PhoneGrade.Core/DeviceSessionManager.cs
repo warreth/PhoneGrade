@@ -49,12 +49,13 @@ public static class DeviceSessionManager
         _sessions[udid] = new DeviceSession(udid, DateTime.UtcNow, DeviceSessionState.ReadingOrActive, data);
     }
 
-    /// <summary>Preserves session state on disconnect for resumption.</summary>
+    /// <summary>Preserves session state on disconnect for resumption (progress intentionally reset).</summary>
     public static void PreserveDisconnectedSession(string udid, DeviceData data, int progress)
     {
         if (string.IsNullOrWhiteSpace(udid)) return;
-        _sessions[udid] = new DeviceSession(udid, DateTime.UtcNow, DeviceSessionState.DisconnectedMidTest, data, progress);
-        SystemEventLogger.Info(LogSource.Desktop, $"Sessie bewaard voor heraansluiting: {udid}", udid);
+        // User requested to reset progress on reconnect, so we pass 0 for saved progress
+        _sessions[udid] = new DeviceSession(udid, DateTime.UtcNow, DeviceSessionState.DisconnectedMidTest, data, 0);
+        SystemEventLogger.Info(LogSource.Desktop, $"Sessie (zonder progress) bewaard voor heraansluiting: {udid}", udid);
     }
 
     /// <summary>Tries to retrieve a preserved session for resumption.</summary>

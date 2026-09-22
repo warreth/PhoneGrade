@@ -335,7 +335,7 @@ public class MappersTests
 
         Assert.True(DeviceSessionManager.TryGetPreservedSession(testUdid, out var session));
         Assert.NotNull(session);
-        Assert.Equal(65, session.SavedProgress);
+        Assert.Equal(0, session.SavedProgress); // Progress is intentionally reset to 0 per user requirement
         Assert.Equal("iPhone 13", session.Data?.Model);
 
         DeviceSessionManager.ResetDevice(testUdid);

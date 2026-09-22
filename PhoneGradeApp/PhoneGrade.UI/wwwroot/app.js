@@ -473,6 +473,10 @@ class TestRunner {
         
         const container = document.getElementById('test-container');
         container.innerHTML = '';
+        
+        // Hide test list and header while test is running
+        const testScreen = document.getElementById('test-screen');
+        if (testScreen) testScreen.classList.add('test-running');
 
         try {
             await test.run(this.wsClient, container);
@@ -480,6 +484,9 @@ class TestRunner {
             test.fail('Exception: ' + error.message);
             console.error('Test error:', error);
         } finally {
+            // Remove test-running class
+            if (testScreen) testScreen.classList.remove('test-running');
+            
             // Guarantee immediate test_complete dispatch to host even on error/exception
             this.wsClient.send({
                 type: 'test_complete',
@@ -531,6 +538,58 @@ class TestRunner {
         return 'Unknown';
     }
 
+    async retryTest(testIndex) {
+        if (testIndex < 0 || testIndex >= this.tests.length) return;
+        
+        this.currentTestIndex = testIndex;
+        this.showScreen('test-screen');
+        
+        const test = this.tests[testIndex];
+        test.start();
+        
+        this.updateTestListUI();
+        this.updateTestHeader(test);
+        
+        const container = document.getElementById('test-container');
+        container.innerHTML = '';
+        
+        const testScreen = document.getElementById('test-screen');
+        if (testScreen) testScreen.classList.add('test-running');
+
+        try {
+            await test.run(this.wsClient, container);
+        } catch (error) {
+            test.fail('Exception: ' + error.message);
+            console.error('Test error:', error);
+        } finally {
+            if (testScreen) testScreen.classList.remove('test-running');
+            
+            this.wsClient.send({
+                type: 'test_complete',
+                sessionId: this.wsClient.sessionId,
+                testId: test.id,
+                testName: test.name,
+                status: test.status,
+                notes: test.notes,
+                durationMs: test.getDuration(),
+                details: test.details
+            });
+        }
+        
+        // Return to results after retry
+        setTimeout(() => {
+            this.showResultsScreen({
+                sessionId: this.wsClient.sessionId,
+                deviceUdid: this.wsClient.sessionId,
+                userAgent: navigator.userAgent,
+                platform: this.getPlatform(),
+                startedAt: new Date(this.startTime).toISOString(),
+                completedAt: new Date().toISOString(),
+                tests: this.tests.map(t => t.toJSON())
+            });
+        }, 1000);
+    }
+
     showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(el => el.style.display = 'none');
         const screen = document.getElementById(screenId);
@@ -572,14 +631,30 @@ class TestRunner {
         const resultsDetails = document.getElementById('results-details');
         if (resultsDetails) {
             resultsDetails.innerHTML = '';
-            suiteResult.tests.forEach(test => {
+            suiteResult.tests.forEach((test, index) => {
                 const item = document.createElement('div');
                 item.className = 'result-item';
+                item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 8px;';
+                
+                const canRetry = test.status === 'failed' || test.status === 'skipped';
+                
                 item.innerHTML = `
-                    <span style="font-weight:600;">${test.name}</span>
-                    <span class="result-badge ${test.status}">${test.status.toUpperCase()}</span>
+                    <span style="font-weight:600; flex: 1;">${test.name}</span>
+                    <span class="result-badge ${test.status}" style="margin-right: 8px;">${test.status.toUpperCase()}</span>
+                    ${canRetry ? '<button class="btn btn-secondary retry-test-btn" data-test-index="' + index + '" style="padding: 4px 12px; font-size: 12px; height: 32px;">Opnieuw</button>' : ''}
                 `;
                 resultsDetails.appendChild(item);
+            });
+            
+            // Wire up retry buttons
+            const retryButtons = resultsDetails.querySelectorAll('.retry-test-btn');
+            retryButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const testIndex = parseInt(btn.dataset.testIndex, 10);
+                    if (window.testRunner) {
+                        window.testRunner.retryTest(testIndex);
+                    }
+                });
             });
         }
     }
@@ -597,5 +672,59 @@ window.addEventListener('DOMContentLoaded', () => {
         startBtn.addEventListener('click', () => {
             window.testRunner.startSuite();
         });
+    }
+
+    // Hold-to-skip functionality (requires 2-second hold)
+    const skipBtn = document.getElementById('skip-test-btn');
+    if (skipBtn) {
+        let holdTimer = null;
+        let holdProgress = 0;
+        let holdInterval = null;
+        const holdDuration = 2000;
+        const originalText = skipBtn.textContent;
+
+        const startHold = () => {
+            holdProgress = 0;
+            skipBtn.textContent = 'Houd vast om over te slaan (0%)';
+            skipBtn.style.background = '#94a3b8';
+            
+            holdTimer = setTimeout(() => {
+                if (window.testRunner && window.testRunner.isRunning) {
+                    const test = window.testRunner.tests[window.testRunner.currentTestIndex];
+                    if (test) {
+                        test.skip();
+                    }
+                }
+                skipBtn.textContent = 'Overgeslagen';
+                skipBtn.style.background = '#64748b';
+                setTimeout(() => {
+                    skipBtn.textContent = originalText;
+                    skipBtn.style.background = '';
+                }, 1000);
+            }, holdDuration);
+
+            holdInterval = setInterval(() => {
+                holdProgress += 50;
+                const pct = Math.round((holdProgress / holdDuration) * 100);
+                skipBtn.textContent = 'Houd vast om over te slaan (' + pct + '%)';
+            }, 50);
+        };
+
+        const cancelHold = () => {
+            if (holdTimer) clearTimeout(holdTimer);
+            if (holdInterval) clearInterval(holdInterval);
+            holdTimer = null;
+            holdInterval = null;
+            holdProgress = 0;
+            skipBtn.textContent = originalText;
+            skipBtn.style.background = '';
+        };
+
+        skipBtn.addEventListener('mousedown', startHold);
+        skipBtn.addEventListener('touchstart', startHold);
+        skipBtn.addEventListener('mouseup', cancelHold);
+        skipBtn.addEventListener('mouseleave', cancelHold);
+        skipBtn.addEventListener('touchend', cancelHold);
+        skipBtn.addEventListener('touchcancel', cancelHold);
     }
 });
