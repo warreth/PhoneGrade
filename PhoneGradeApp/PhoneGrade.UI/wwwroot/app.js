@@ -557,7 +557,6 @@ class TestRunner {
             new ForceTouchTest(),
             new DisplayTest(),
             new ScreenRotationTest(),
-            new ScreenBrightnessTest(),
             new SpeakerTest(),
             new MicrophoneTest(),
             new CallTest(),
@@ -787,6 +786,13 @@ class TestRunner {
 
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', async () => {
+    // 1. Check iOS standalone mode
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isIos && !isStandalone) {
+        const banner = document.getElementById('ios-standalone-banner');
+        if (banner) banner.style.display = 'block';
+    }
     const wsClient = new RestApiClient();
     
     // Run capability scan before connection
