@@ -52,4 +52,4 @@ Results sync automatically to the desktop application with offline fallback.
 
 ## License
 
-Proprietary. All rights reserved.
+AGPLv3
