@@ -283,11 +283,6 @@ class RestApiClient {
     }
 
     async send(message) {
-        if (!this.connected) {
-            console.warn('Not connected, dropping message:', message);
-            return;
-        }
-
         try {
             let endpoint = '/api/pwa/submit-step';
             if (message.type === 'suite_complete') {
@@ -296,13 +291,58 @@ class RestApiClient {
                 endpoint = '/api/pwa/log';
             }
 
-            await fetch(`${this.baseUrl}${endpoint}`, {
+            const response = await fetch(`${this.baseUrl}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(message)
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
         } catch (e) {
-            console.error('Failed to send message:', e);
+            console.warn('Failed to send message, saving to offline queue:', e);
+            this.saveToOfflineQueue(message);
+            this.updateConnectionStatus('offline', 'Offline - Changes saved locally');
+        }
+    }
+
+    saveToOfflineQueue(message) {
+        try {
+            const queue = JSON.parse(localStorage.getItem('pwa_offline_queue') || '[]');
+            queue.push({ timestamp: Date.now(), message });
+            localStorage.setItem('pwa_offline_queue', JSON.stringify(queue));
+        } catch (e) {
+            console.error('Failed to save to offline queue:', e);
+        }
+    }
+
+    async syncOfflineQueue() {
+        try {
+            const queue = JSON.parse(localStorage.getItem('pwa_offline_queue') || '[]');
+            if (queue.length === 0) return;
+
+            console.log(`Syncing ${queue.length} offline messages...`);
+            const failed = [];
+
+            for (const item of queue) {
+                try {
+                    await this.send(item.message);
+                } catch (e) {
+                    failed.push(item);
+                }
+            }
+
+            if (failed.length === 0) {
+                localStorage.removeItem('pwa_offline_queue');
+                this.updateConnectionStatus('connected', 'Connected');
+                console.log('All offline messages synced successfully');
+            } else {
+                localStorage.setItem('pwa_offline_queue', JSON.stringify(failed));
+                console.log(`${failed.length} messages still pending`);
+            }
+        } catch (e) {
+            console.error('Failed to sync offline queue:', e);
         }
     }
 
@@ -815,6 +855,17 @@ window.addEventListener('DOMContentLoaded', async () => {
             window.testRunner.startSuite();
         });
     }
+
+    // Network event listeners for offline sync
+    window.addEventListener('online', async () => {
+        console.log('Network restored, syncing offline queue...');
+        await wsClient.syncOfflineQueue();
+    });
+
+    window.addEventListener('offline', () => {
+        console.log('Network lost, messages will be queued locally');
+        wsClient.updateConnectionStatus('offline', 'Offline - Changes saved locally');
+    });
 
     // Hold-to-skip functionality (requires 2-second hold)
     const skipBtn = document.getElementById('skip-test-btn');
