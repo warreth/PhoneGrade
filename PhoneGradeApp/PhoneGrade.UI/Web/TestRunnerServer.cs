@@ -303,7 +303,7 @@ public class TestRunnerServer : IAsyncDisposable
                                         var req = JsonSerializer.Deserialize<MissingApiRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                                         if (req != null && !string.IsNullOrWhiteSpace(req.MissingApi))
                                         {
-                                            SystemEventLogger.Warning(LogSource.PwaClient, $"[PWA] Missing API on client device: {req.MissingApi} (OS/UA: {req.UserAgent})", req.SessionId);
+                                            SystemEventLogger.Warning(LogSource.PwaClient, $"[PWA] Missing API on client: {req.MissingApi}", req.SessionId);
                                             
                                             // Register the missing API as a failed component check for the session
                                             if (!string.IsNullOrWhiteSpace(req.SessionId) && DeviceSessionManager.TryGetSession(req.SessionId, out var session) && session.Data != null)
