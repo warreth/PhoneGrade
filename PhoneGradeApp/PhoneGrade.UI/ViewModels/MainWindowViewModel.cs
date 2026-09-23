@@ -490,6 +490,38 @@ public class MainWindowViewModel : ReactiveObject
                 SystemEventLogger.Log(e.LogEvent.Level, LogSource.PwaClient, e.LogEvent.Message ?? "", e.SessionId);
             };
 
+            _webServer.MissingApiReported += (s, e) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    // Flag the session in the backend. 
+                    // Add it as a component issue so grading logic will pick it up and prevent 'A' grade.
+                    DeviceData.ComponentChecks.Add(new ComponentStatus
+                    {
+                        Name = $"API Missing: {e.MissingApi}",
+                        State = ComponentStatusType.Failed,
+                        Details = $"The mandatory browser API '{e.MissingApi}' is missing on this device."
+                    });
+                    
+                    // Also add a diagnostic issue so it's visible in the UI
+                    DeviceData.InteractiveTests ??= new InteractiveTestSuiteResult 
+                    { 
+                        SessionId = e.SessionId, 
+                        DeviceName = "Unknown", 
+                        Tests = new List<InteractiveTestResult>() 
+                    };
+                    
+                    DeviceData.InteractiveTests.Tests.Add(new InteractiveTestResult
+                    {
+                        Id = $"api_check_{e.MissingApi}",
+                        Name = $"Browser API: {e.MissingApi}",
+                        Status = TestStatus.Failed,
+                        Notes = $"De PWA kon deze vereiste hardware API niet vinden.",
+                        DurationMs = 0
+                    });
+                });
+            };
+
             _webServer.TelemetryReceived += (s, e) =>
             {
                 Dispatcher.UIThread.Post(() =>
@@ -845,6 +877,14 @@ public class MainWindowViewModel : ReactiveObject
 
     private async Task ContinueAfterQualityAsync(string quality)
     {
+        bool hasMissingApis = DeviceData.ComponentChecks.Any(c => c.State == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
+        if (hasMissingApis && quality == "A")
+        {
+            quality = "B";
+            SystemEventLogger.Warning(LogSource.Desktop, "Prevented Grade 'A' selection due to missing mandatory browser APIs.", DeviceData.Identifier);
+            Status = "Klasse A is niet toegestaan (ontbrekende API's). Automatisch verlaagd naar B.";
+        }
+        
         SelectedGrade = quality;
         IsQualityPopupVisible = false;
 
@@ -921,9 +961,20 @@ public class MainWindowViewModel : ReactiveObject
             return;
         }
 
+        // Enforce Grading Penalty: Prevent auto 'A' grade if missing mandatory APIs
+        bool hasMissingApis = DeviceData.ComponentChecks.Any(c => c.State == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
+        string targetQuality = DefaultQuality;
+
+        if (hasMissingApis && targetQuality == "A")
+        {
+            // Downgrade or force manual selection
+            targetQuality = "B"; 
+            SystemEventLogger.Warning(LogSource.Desktop, "Downgraded automatic grade from A to B due to missing mandatory browser APIs.", DeviceData.Identifier);
+        }
+
         // 6. Quality + payment: defaults from settings, else popup
-        if (DefaultQuality is { Length: > 0 })
-            await ContinueAfterQualityAsync(DefaultQuality);
+        if (!string.IsNullOrEmpty(targetQuality))
+            await ContinueAfterQualityAsync(targetQuality);
         else
         {
             IsQualityPopupVisible = true;

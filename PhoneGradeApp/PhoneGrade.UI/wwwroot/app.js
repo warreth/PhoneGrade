@@ -16,6 +16,80 @@ import { LocationTest } from './modules/LocationTest.js';
 import { VibrationTest } from './modules/VibrationTest.js';
 import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 
+// CapabilityScanner - detects missing browser APIs at PWA initialization
+class CapabilityScanner {
+    constructor() {
+        this.mandatoryApis = [
+            'DeviceMotionEvent',
+            'DeviceOrientationEvent', 
+            'geolocation',
+            'getUserMedia',
+            'vibrate',
+            'wakeLock'
+        ];
+        this.missingApis = [];
+    }
+
+    scan() {
+        const results = {
+            DeviceMotionEvent: typeof DeviceMotionEvent !== 'undefined',
+            DeviceOrientationEvent: typeof DeviceOrientationEvent !== 'undefined',
+            geolocation: 'geolocation' in navigator,
+            getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+            vibrate: typeof navigator.vibrate === 'function',
+            wakeLock: 'wakeLock' in navigator
+        };
+
+        this.missingApis = Object.entries(results)
+            .filter(([api, present]) => !present)
+            .map(([api]) => api);
+
+        return {
+            allPresent: this.missingApis.length === 0,
+            missing: this.missingApis,
+            results
+        };
+    }
+
+    async reportMissing(apiClient) {
+        if (this.missingApis.length === 0) return;
+
+        const ua = navigator.userAgent;
+        let os = 'Unknown';
+        let osVersion = '';
+
+        if (/iPhone|iPad|iPod/.test(ua)) {
+            os = 'iOS';
+            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || '';
+        } else if (/Android/.test(ua)) {
+            os = 'Android';
+            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || '';
+        } else if (/Macintosh/.test(ua)) {
+            os = 'macOS';
+            osVersion = ua.match(/Mac OS X ([\d_]+)/)?.[1]?.replace(/_/g, '.') || '';
+        } else if (/Windows/.test(ua)) {
+            os = 'Windows';
+        }
+
+        for (const missingApi of this.missingApis) {
+            try {
+                await fetch(`${apiClient.baseUrl}/api/pwa/log-warning`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: apiClient.sessionId,
+                        missingApi,
+                        userAgent: ua,
+                        osVersion: `${os} ${osVersion}`.trim()
+                    })
+                });
+            } catch (e) {
+                console.warn('Failed to report missing API:', missingApi, e);
+            }
+        }
+    }
+}
+
 class RestApiClient {
     constructor() {
         this.sessionId = this.getUrlParam('sessionId') || 'UNKNOWN';
@@ -663,9 +737,20 @@ class TestRunner {
 }
 
 // Initialize on page load
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     const wsClient = new RestApiClient();
-    wsClient.connect();
+    
+    // Run capability scan before connection
+    const scanner = new CapabilityScanner();
+    const scanResult = scanner.scan();
+    console.log('[CapabilityScanner] Scan results:', scanResult);
+    
+    await wsClient.connect();
+    
+    // Report missing APIs to desktop host
+    if (scanResult.missing.length > 0) {
+        await scanner.reportMissing(wsClient);
+    }
     
     window.testRunner = new TestRunner(wsClient);
     
