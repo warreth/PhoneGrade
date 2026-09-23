@@ -1,134 +1,26 @@
-# PhoneGrade
-
-Plug an iPhone or iPad into USB and the sales label comes out by itself. The
-app reads the device with **libimobiledevice**, runs **diagnostics** over the
-panic logs (think 3uTools), and opens the filled-in label in DYMO Label
-software.
+<div align="center">
+  <img src="./PhoneGradeApp/PhoneGrade.UI/Assets/app-icon.svg" width="100" height="100" alt="PhoneGrade Logo">
+  <h1>PhoneGrade</h1>
+  <p>Automated iOS and Android hardware testing and label generation.</p>
+</div>
 
 ![platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)
 
-## Installing (Windows and macOS)
+PhoneGrade reads device hardware data via USB, runs diagnostic checks, and automatically guides you through interactive PWA hardware tests (touch, cameras, sensors). Once complete, it outputs a ready-to-print DYMO label.
 
-Grab the installer from the [Releases](https://github.com/warreth/PhoneGrade/releases)
-page:
+## Installing
 
-- **Windows**: `PhoneGrade-win-Setup.exe`. Velopack installer, no admin
-  rights needed.
-- **macOS**: `PhoneGrade-osx-arm64-*.pkg` (Apple Silicon) or
-  `PhoneGrade-osx-x64-*.pkg` (Intel). Drag into Applications.
-- **Linux**: `PhoneGrade-linux-*.AppImage`. `chmod +x` and run.
+Grab the installer from the [Releases](https://github.com/warreth/PhoneGrade/releases) page:
 
-The installers bundle the `libimobiledevice` command line tools
-(`ideviceinfo`, `idevicediagnostics`, `idevicecrashreport`, and friends) so
-there is nothing to set up yourself.
+- **Windows**: `PhoneGrade-win-Setup.exe` (No admin rights needed)
+- **macOS**: `PhoneGrade-osx-arm64-*.pkg` (Apple Silicon) or `PhoneGrade-osx-x64-*.pkg` (Intel)
+- **Linux**: `PhoneGrade-linux-*.AppImage`
 
-Once installed, the app updates itself. On startup it checks the GitHub
-releases for a newer version and installs it silently ([Velopack](https://docs.velopack.io/getting-started/csharp)
-`UpdateManager` with a `GithubSource`). No action needed.
+All required CLI tools (`libimobiledevice`, `adb`) are bundled automatically.
 
+## Usage
 
-### Advanced USB Security & Component Locks
-
-The app includes advanced hardware security and lock validation:
-
-- **Activation Lock (iCloud / FRP)**: Detects Find My iPhone status via lockdownd and Android FRP mode via adb. Optional real-time IMEI lookup integration via SickW or IMEIPro APIs.
-- **Carrier & SIM Lock**: Reads SIM status and carrier bundle information to identify provider-locked devices.
-- **OEM Component Verification**: Cross-references live component serial numbers (battery, display, cameras) against factory original values and parses Apple Service Toolkit (AST2) diagnostic messages.
-- **Blacklist / Stolen Check**: Optional GSMA or third-party IMEI registry lookup to flag lost or stolen devices.
-
-### Requirements
-
-- **DYMO Label** software, free from [dymo.com](https://www.dymo.com), to open
-  and print the label.
-- .NET 8 Desktop Runtime. The installer downloads it if it is missing.
-- On Windows, if a device never shows up, install iTunes from the Microsoft
-  Store once. It ships the Apple Mobile Device USB driver.
-
-## How it works
-
-1. **Plug in**. The app notices the device within about two seconds and starts
-   on its own (can be turned off in settings).
-2. **Trust and activation**. Missing trust or activation gets detected. The
-   app can bypass activation with `ideviceactivation activate -b`.
-3. **Read**. Model, color, storage, IMEI or serial number, battery condition.
-4. **Diagnose**. Panic logs (`panic-full-*.ips`) get pulled off the device and
-   translated into plain language: what is broken and what to replace.
-5. **Label**. You only get asked for what is not set yet (quality, payment
-   method, both can be defaulted), then the label opens in DYMO Label.
-
-With the defaults filled in this is zero clicks. The label just opens.
-
-## Diagnostics
-
-The app reads the device CrashReporter through `idevicecrashreport` and parses
-kernel panics with a rule database built from public knowledge:
-[iFixit's Kernel Panics wiki](https://www.ifixit.com/Wiki/iPhone_Kernel_Panics)
-and the [vccboardrepairs panic log list](https://vccboardrepairs.com/panic-log-list/).
-
-| Panic text | Meaning | Repair |
-|---|---|---|
-| `Missing sensor(s): PRS0` | Barometer on the charge port flex | Replace charge port |
-| `Missing sensor(s): Mic1` | Bottom microphone | Charge port flex (OEM) |
-| `Missing sensor(s): Mic2` | Rear microphone | Power button / flash flex |
-| `Missing sensor(s): TG0B` | Battery sensor (Tigris) | Check battery and connector |
-| `AOP PANIC ... prox` | Proximity sensor, often liquid damage | Ear speaker / sensor flex |
-| `ANS2 ... panic` | NAND storage | Board level repair |
-| `AppleSocHot` | CPU power line | Board level repair |
-
-Even without a panic log the app checks for an untrusted connection, missing
-battery SFI data, low battery condition (below 80%), and missing tools.
-
-## Settings
-
-Stored at `%LOCALAPPDATA%/PhoneGrade/settings.json`:
-
-```json
-{
-  "Theme": "Dark",                  // Dark | Light | System
-  "AutoActivate": true,
-  "AutoDetectOnPlug": true,
-  "RunDiagnostics": true,
-  "Enable85PercentChecker": true,   // writes X + "100%" on the label below 85%
-  "OpenEditorBeforePrint": false,
-  "DefaultQuality": "",             // "" | A | B | C
-  "DefaultPaymentMethod": "",       // "" | Marge | BTW
-  "TemplatePath": null              // your own my.dymo template
-}
-```
-
-Every option can also be changed in the app under Settings.
-
-## Developing
-
-```bash
-dotnet build PhoneGradeApp/PhoneGrade.sln
-dotnet test PhoneGradeApp/Tests/Tests.csproj
-dotnet run --project PhoneGradeApp/PhoneGrade.UI
-```
-
-Without bundled tools the app looks for them on PATH (`brew install
-libimobiledevice` on macOS).
-
-
-# License
-[AGPLv3](LICENSE)
-
-## Android ADB Setup Requirements
-
-To enable diagnostic analysis and PWA test runner features on Android devices, the following setup must be completed:
-
-1. **Enable Developer Options:**
-   - Navigate to **Settings > About Phone**.
-   - Tap **Build Number** 7 times until you see the prompt "You are now a developer!".
-
-2. **Enable USB Debugging:**
-   - Go to **Settings > System > Developer Options**.
-   - Toggle **USB Debugging** to ON.
-
-3. **Select Connection Mode:**
-   - Connect the device to the computer via USB.
-   - When prompted on the device, choose **File Transfer / Android Auto (MTP)** instead of "Charging only".
-
-4. **Authorize the Computer:**
-   - When the "Allow USB debugging?" dialog appears on the phone screen, check **Always allow from this computer** and tap **Allow**.
-   - If the prompt does not appear, disconnect and reconnect the USB cable, or click **Retry ADB Detection** in the desktop application.
+1. Launch the PhoneGrade application.
+2. Connect a device via USB (Unlock and "Trust" if prompted).
+3. Follow the on-screen kiosk steps and scan the QR code to run interactive browser tests.
+4. Set the Quality grade to print the label.
