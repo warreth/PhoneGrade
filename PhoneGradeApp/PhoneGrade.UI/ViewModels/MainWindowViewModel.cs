@@ -390,6 +390,12 @@ public class MainWindowViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> RetestCommand { get; }
     public ReactiveCommand<string, Unit> SetQualityCommand { get; }
     public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
+
+    private bool _showAdbWarning;
+    public bool ShowAdbWarning { get => _showAdbWarning; set => this.RaiseAndSetIfChanged(ref _showAdbWarning, value); }
+    
+    public ReactiveCommand<Unit, Unit> RetryAdbDetectionCommand { get; }
+
     public ReactiveCommand<Unit, Unit> OpenLabelCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenEditorCommand { get; }
     public ReactiveCommand<Unit, Unit> FinishInspectionCommand { get; }
@@ -424,6 +430,10 @@ public class MainWindowViewModel : ReactiveObject
         RefreshDevicesCommand = ReactiveCommand.CreateFromTask(RefreshDeviceListAsync);
         StartCommand = ReactiveCommand.CreateFromTask(() => RunFlowAsync(), canStart);
         RetestCommand = ReactiveCommand.CreateFromTask(RetestCurrentDeviceAsync, canStart);
+        RetryAdbDetectionCommand = ReactiveCommand.CreateFromTask(async () => {
+            ShowAdbWarning = false;
+            await RefreshDeviceListAsync();
+        });
         SetQualityCommand = ReactiveCommand.Create<string>(q => _ = ContinueAfterQualityAsync(q));
         SetPaymentMethodCommand = ReactiveCommand.Create<string>(p => ContinueAfterPaymentAsync(p));
         OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
@@ -436,6 +446,32 @@ public class MainWindowViewModel : ReactiveObject
         OpenTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = true; IsSettingsDrawerOpen = false; });
         CloseTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = false; });
         BackToIdleCommand = ReactiveCommand.Create(() => { WorkflowState = AppWorkflowState.Idle; });
+
+
+        UsbEventWatcher.UsbDeviceConnected += (s, e) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (AutoDetectOnPlug && !Busy)
+                {
+                    _ = RefreshDeviceListSilentAsync();
+                }
+            });
+        };
+
+        UsbEventWatcher.UsbDeviceDisconnected += (s, e) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                // Auto reset detection state and clean UI
+                _ = RefreshDeviceListSilentAsync();
+                if (WorkflowState != AppWorkflowState.Idle)
+                {
+                    ResetToIdle();
+                }
+            });
+        };
+        UsbEventWatcher.StartMonitoring();
 
         _ = RefreshDeviceListAsync();
         if (_autoDetectOnPlug) StartWatcher();
@@ -720,6 +756,16 @@ public class MainWindowViewModel : ReactiveObject
             }
 
             var (_, _, diagState) = await DeviceService.ListUdidsSafeAsync();
+            
+            if (diagState == DeviceService.ConnectionState.Unauthorized)
+            {
+                ShowAdbWarning = true;
+            }
+            else
+            {
+                ShowAdbWarning = false;
+            }
+            
             Status = diagState switch
             {
                 DeviceService.ConnectionState.ToolsMissing =>

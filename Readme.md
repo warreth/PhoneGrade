@@ -112,3 +112,23 @@ libimobiledevice` on macOS).
 
 # License
 [AGPLv3](LICENSE)
+
+## Android ADB Setup Requirements
+
+To enable diagnostic analysis and PWA test runner features on Android devices, the following setup must be completed:
+
+1. **Enable Developer Options:**
+   - Navigate to **Settings > About Phone**.
+   - Tap **Build Number** 7 times until you see the prompt "You are now a developer!".
+
+2. **Enable USB Debugging:**
+   - Go to **Settings > System > Developer Options**.
+   - Toggle **USB Debugging** to ON.
+
+3. **Select Connection Mode:**
+   - Connect the device to the computer via USB.
+   - When prompted on the device, choose **File Transfer / Android Auto (MTP)** instead of "Charging only".
+
+4. **Authorize the Computer:**
+   - When the "Allow USB debugging?" dialog appears on the phone screen, check **Always allow from this computer** and tap **Allow**.
+   - If the prompt does not appear, disconnect and reconnect the USB cable, or click **Retry ADB Detection** in the desktop application.
