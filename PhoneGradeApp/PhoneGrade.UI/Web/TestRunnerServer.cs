@@ -37,6 +37,20 @@ public class LogMessageEventArgs : EventArgs
     public required LogEvent LogEvent { get; init; }
 }
 
+public class MissingApiWarning
+{
+    public string? SessionId { get; set; }
+    public string? MissingApi { get; set; }
+    public string? UserAgent { get; set; }
+    public string? OsVersion { get; set; }
+}
+
+public class MissingApiEventArgs : EventArgs
+{
+    public required string SessionId { get; init; }
+    public required string MissingApi { get; init; }
+}
+
 /// <summary>
 /// Embedded Kestrel minimal web server serving the PWA test suite and WebSocket hub.
 /// </summary>
@@ -56,6 +70,7 @@ public class TestRunnerServer : IAsyncDisposable
     public event EventHandler<DeviceSessionEventArgs>? SuiteCompleted;
     public event EventHandler<LogMessageEventArgs>? LogEventReceived;
     public event EventHandler<TelemetryEventArgs>? TelemetryReceived;
+    public event EventHandler<MissingApiEventArgs>? MissingApiReported;
 
     public TestRunnerServer(int preferredPort = 5056, string? contentRootPath = null)
     {
@@ -284,6 +299,36 @@ public class TestRunnerServer : IAsyncDisposable
                                                 LogEvent = logMsg.LogEvent
                                             });
                                         }
+                                        await context.Response.WriteAsync("{\"ok\":true}");
+                                        return;
+                                    }
+
+                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/log-warning", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        using var reader = new StreamReader(context.Request.Body);
+                                        string body = await reader.ReadToEndAsync();
+                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
+                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
+                                        
+                                        var opt = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                                        try 
+                                        {
+                                            var warning = JsonSerializer.Deserialize<MissingApiWarning>(body, opt);
+                                            if (warning != null)
+                                            {
+                                                SystemEventLogger.Warning(LogSource.PwaClient, 
+                                                    $"[PWA] Missing API on client device: {warning.MissingApi} (OS/UA: {warning.UserAgent})", 
+                                                    warning.SessionId);
+                                                
+                                                MissingApiReported?.Invoke(this, new MissingApiEventArgs 
+                                                { 
+                                                    SessionId = warning.SessionId ?? "UNKNOWN",
+                                                    MissingApi = warning.MissingApi ?? "unknown" 
+                                                });
+                                            }
+                                        } 
+                                        catch { }
+                                        
                                         await context.Response.WriteAsync("{\"ok\":true}");
                                         return;
                                     }
