@@ -7,7 +7,8 @@
         Width="1050" Height="740"
         MinWidth="850" MinHeight="620"
         CanResize="True"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/avalonia-logo.ico">
 
     <Panel>
         <Grid RowDefinitions="64,*">
@@ -18,6 +19,14 @@
                 <Grid ColumnDefinitions="280,*,200" VerticalAlignment="Center">
                     <!-- Left: Brand / Connection Status Pill -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        
+                        <!-- Unified PG SVG Logo -->
+                        <Viewbox Width="24" Height="24" Stretch="Uniform" VerticalAlignment="Center">
+                            <Canvas Width="100" Height="100">
+                                <Rectangle Fill="#2563eb" Width="100" Height="100" RadiusX="16" RadiusY="16"/>
+                                <TextBlock Text="PG" FontSize="54" Foreground="#ffffff" FontFamily="system-ui, -apple-system" FontWeight="Bold" Canvas.Left="19" Canvas.Top="14"/>
+                            </Canvas>
+                        </Viewbox>
                         <TextBlock Text="PhoneGrade" FontSize="18" FontWeight="Bold" 
                                    Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center"/>
                         
