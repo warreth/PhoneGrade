@@ -197,6 +197,81 @@ public class WebTestRunnerTests : IAsyncLifetime
         bool deviceConnectedFired = false;
         string connectedSessionId = string.Empty;
 
+
+    [Fact]
+    public async Task PostSubmitStepEndpoint_ParsesAndDispatchesStepPayload()
+    {
+        // Arrange
+        var sessionId = "TEST_STEP_SYNC_123";
+        DeviceSessionEventArgs? receivedArgs = null;
+        _server!.MessageReceived += (s, e) => receivedArgs = e;
+
+        var message = new DeviceSessionMessage
+        {
+            Type = "test_step_complete",
+            SessionId = sessionId,
+            TestId = "camera",
+            TestName = "Camera Test",
+            Status = TestStatus.Passed,
+            Notes = "Front and rear camera verified"
+        };
+
+        var json = JsonSerializer.Serialize(message);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        // Act
+        using var client = new HttpClient();
+        var response = await client.PostAsync($"http://localhost:{_server.BoundPort}/api/pwa/submit-step", content);
+
+        // Assert
+        response.EnsureSuccessStatusCode();
+        Assert.NotNull(receivedArgs);
+        Assert.Equal(sessionId, receivedArgs!.SessionId);
+        Assert.Equal("camera", receivedArgs.Message?.TestId);
+        Assert.Equal(TestStatus.Passed, receivedArgs.Message?.Status);
+    }
+
+    [Fact]
+    public async Task PostSubmitEndpoint_ParsesAndDispatchesSuiteCompletePayload()
+    {
+        // Arrange
+        var sessionId = "TEST_SUITE_SYNC_456";
+        DeviceSessionEventArgs? receivedArgs = null;
+        _server!.SuiteCompleted += (s, e) => receivedArgs = e;
+
+        var suiteResult = new InteractiveTestSuiteResult
+        {
+            SessionId = sessionId,
+            DeviceUdid = sessionId,
+            Tests = new System.Collections.Generic.List<InteractiveTestResult>
+            {
+                new() { Id = "touch", Name = "Touch", Status = TestStatus.Passed },
+                new() { Id = "display", Name = "Display", Status = TestStatus.Passed }
+            }
+        };
+
+        var message = new DeviceSessionMessage
+        {
+            Type = "suite_complete",
+            SessionId = sessionId,
+            Payload = suiteResult
+        };
+
+        var json = JsonSerializer.Serialize(message);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        // Act
+        using var client = new HttpClient();
+        var response = await client.PostAsync($"http://localhost:{_server.BoundPort}/api/pwa/submit", content);
+
+        // Assert
+        response.EnsureSuccessStatusCode();
+        Assert.NotNull(receivedArgs);
+        Assert.Equal(sessionId, receivedArgs!.SessionId);
+        Assert.NotNull(receivedArgs.Message?.Payload);
+        Assert.Equal(2, receivedArgs.Message?.Payload?.Tests.Count);
+    }
+
         _server!.DeviceConnected += (s, e) =>
         {
             deviceConnectedFired = true;
