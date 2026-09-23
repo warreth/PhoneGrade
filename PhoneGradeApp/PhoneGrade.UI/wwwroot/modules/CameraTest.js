@@ -25,7 +25,7 @@ export class CameraTest extends DeviceTest {
                         <canvas id="photo-canvas" style="display: none; width: 100%; height: 100%; object-fit: cover;"></canvas>
                         
                         <div id="torch-overlay" style="display: none; position: absolute; top: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 11px;">
-                            Ensure light source is adequate. Enable flash manually on screen if available.
+                            Inspect the photo carefully. Ensure the lighting is adequate before confirming.
                         </div>
                     </div>
 

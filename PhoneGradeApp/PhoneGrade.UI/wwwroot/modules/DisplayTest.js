@@ -59,7 +59,7 @@ export class DisplayTest extends DeviceTest {
                     <div style="max-width: 450px; width: 100%; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md);">
                         <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">Display Quality & Brightness</h3>
                         <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 20px;">
-                            Set screen brightness to 100% in your device settings, then tap to check for display discoloration or dead pixels.
+                            Manually swipe to Control Center / Quick Settings and set brightness to 100 percent while inspecting white, black, and colored screens.
                         </p>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
