@@ -23,7 +23,7 @@ export class SensorTest extends DeviceTest {
                     </p>
 
                     <div id="sensor-permission-area" style="margin-bottom: 16px;">
-                        <button id="btn-request-sensors" class="btn btn-primary" style="width: 100%;">Activeer Sensoren</button>
+                        <button id="btn-request-sensors" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold;">Grant Motion Sensor Access</button>
                     </div>
 
                     <div id="sensor-data-area" style="display: none; flex-direction: column; gap: 14px;">
@@ -127,26 +127,87 @@ export class SensorTest extends DeviceTest {
                 }, 4000);
             };
 
+            const logMissingApi = async (missingApi) => {
+                if (wsClient && wsClient.sessionId) {
+                    try {
+                        const ua = navigator.userAgent;
+                        let osVersion = 'Unknown';
+                        if (/iPhone|iPad|iPod/.test(ua)) {
+                            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
+                        } else if (/Android/.test(ua)) {
+                            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
+                        }
+
+                        await fetch(`${wsClient.baseUrl}/api/pwa/log-warning`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                sessionId: wsClient.sessionId,
+                                missingApi: missingApi,
+                                userAgent: ua,
+                                osVersion: osVersion
+                            })
+                        });
+                    } catch (e) {
+                        console.error('Failed to report missing API', e);
+                    }
+                }
+            };
+
+            const handleFallbackAndSkip = async (reason) => {
+                permissionArea.style.display = 'none';
+                dataArea.style.display = 'none';
+                fallbackArea.style.display = 'none';
+                this.skip(reason);
+                resolve();
+            };
+
             btnRequest.onclick = async () => {
                 try {
+                    let deviceMotionGranted = false;
+                    let deviceOrientationGranted = false;
+
+                    // Check and request DeviceMotionEvent permission
                     if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                         const res = await DeviceMotionEvent.requestPermission();
                         if (res === 'granted') {
-                            startListening();
-                            return;
+                            deviceMotionGranted = true;
+                        } else {
+                            await logMissingApi('DeviceMotionEvent');
+                            return handleFallbackAndSkip('Permission denied for DeviceMotionEvent');
                         }
+                    } else if (typeof DeviceMotionEvent !== 'undefined') {
+                        deviceMotionGranted = true;
+                    } else {
+                        await logMissingApi('DeviceMotionEvent');
+                        return handleFallbackAndSkip('DeviceMotionEvent not supported');
                     }
+
+                    // Check and request DeviceOrientationEvent permission
                     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                         const res = await DeviceOrientationEvent.requestPermission();
                         if (res === 'granted') {
-                            startListening();
-                            return;
+                            deviceOrientationGranted = true;
+                        } else {
+                            await logMissingApi('DeviceOrientationEvent');
+                            return handleFallbackAndSkip('Permission denied for DeviceOrientationEvent');
                         }
+                    } else if (typeof DeviceOrientationEvent !== 'undefined') {
+                        deviceOrientationGranted = true;
+                    } else {
+                        await logMissingApi('DeviceOrientationEvent');
+                        return handleFallbackAndSkip('DeviceOrientationEvent not supported');
+                    }
+
+                    if (deviceMotionGranted || deviceOrientationGranted) {
+                        startListening();
+                    } else {
+                        return handleFallbackAndSkip('Sensors not supported');
                     }
                 } catch (e) {
-                    // Fallback to direct listener or manual fallback
+                    await logMissingApi('DeviceMotionEvent');
+                    return handleFallbackAndSkip('Sensor API error or missing capability');
                 }
-                startListening();
             };
 
             btnManualYes.onclick = () => {
@@ -158,6 +219,9 @@ export class SensorTest extends DeviceTest {
                 this.fail('Bewegingssensoren / gyroscoop reageren niet');
                 resolve();
             };
+            
+            // If API does not need permission, we can just show the button and pressing it will proceed
+            // However iOS requires the button press explicitly.
         });
     }
 }
