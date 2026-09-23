@@ -92,6 +92,22 @@
                             </StackPanel>
                         </Border>
 
+
+                        <!-- ADB Unauthorized Warning Card -->
+                        <Border Classes="card" IsVisible="{Binding ShowAdbWarning}" 
+                                Background="#FFF3CD" BorderBrush="#FFD700" BorderThickness="2" 
+                                Padding="16" Margin="0,16,0,0">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Android Device Detected" FontWeight="Bold" 
+                                           FontSize="16" Foreground="#856404"/>
+                                <TextBlock TextWrapping="Wrap" Foreground="#856404" LineHeight="20">
+                                    <Run>Please ensure USB Debugging is turned ON in Developer Options and File Transfer (MTP) mode is selected on the phone screen.</Run>
+                                </TextBlock>
+                                <Button Classes="cta" Command="{Binding RetryAdbDetectionCommand}" 
+                                        Content="Retry ADB Detection" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Border>
+
                         <Button Classes="kioskSecondary" Command="{Binding RefreshDevicesCommand}" Content="Handmatig Scannen" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Grid>
