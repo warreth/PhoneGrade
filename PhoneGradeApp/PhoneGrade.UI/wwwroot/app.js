@@ -90,6 +90,51 @@ class CapabilityScanner {
     }
 }
 
+
+class CapabilityScanner {
+    constructor(apiClient) {
+        this.apiClient = apiClient;
+        this.requiredApis = {
+            'DeviceMotionEvent': () => typeof DeviceMotionEvent !== 'undefined',
+            'DeviceOrientationEvent': () => typeof DeviceOrientationEvent !== 'undefined',
+            'navigator.geolocation': () => 'geolocation' in navigator,
+            'navigator.mediaDevices.getUserMedia': () => navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function',
+            'navigator.vibrate': () => typeof navigator.vibrate === 'function',
+            'navigator.wakeLock': () => 'wakeLock' in navigator
+        };
+    }
+
+    async scanAndReport() {
+        const ua = navigator.userAgent;
+        let osVersion = 'Unknown';
+        if (/iPhone|iPad|iPod/.test(ua)) {
+            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
+        } else if (/Android/.test(ua)) {
+            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
+        }
+
+        for (const [apiName, checkFn] of Object.entries(this.requiredApis)) {
+            if (!checkFn()) {
+                console.warn(`[CapabilityScanner] Missing API: ${apiName}`);
+                try {
+                    await fetch(`${this.apiClient.baseUrl}/api/pwa/log-warning`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sessionId: this.apiClient.sessionId,
+                            missingApi: apiName,
+                            userAgent: ua,
+                            osVersion: osVersion
+                        })
+                    });
+                } catch (e) {
+                    console.error(`Failed to report missing API ${apiName}:`, e);
+                }
+            }
+        }
+    }
+}
+
 class RestApiClient {
     constructor() {
         this.sessionId = this.getUrlParam('sessionId') || 'UNKNOWN';
@@ -130,7 +175,11 @@ class RestApiClient {
                     this.consoleLogger = new RemoteConsoleLogger(this);
                 }
                 
-                // 4. Start polling for server messages
+                // 4. Run capability scanner
+                const scanner = new CapabilityScanner(this);
+                await scanner.scanAndReport();
+                
+                // 5. Start polling for server messages
                 this.startPolling();
             } else {
                 throw new Error(`Handshake failed: ${resp.status}`);

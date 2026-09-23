@@ -25,6 +25,15 @@ public class DeviceSessionEventArgs : EventArgs
     public DeviceSessionMessage? Message { get; init; }
 }
 
+
+public class MissingApiRequest
+{
+    public string? SessionId { get; set; }
+    public string? MissingApi { get; set; }
+    public string? UserAgent { get; set; }
+    public string? OsVersion { get; set; }
+}
+
 public class TelemetryEventArgs : EventArgs
 {
     public required string SessionId { get; init; }
@@ -280,6 +289,33 @@ public class TestRunnerServer : IAsyncDisposable
                                             });
                                         }
                                         context.Response.ContentType = "application/json";
+                                        await context.Response.WriteAsync("{\"ok\":true}");
+                                        return;
+                                    }
+
+                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/log-warning", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        using var reader = new StreamReader(context.Request.Body);
+                                        string body = await reader.ReadToEndAsync();
+                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
+                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
+                                        
+                                        var req = JsonSerializer.Deserialize<MissingApiRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                                        if (req != null && !string.IsNullOrWhiteSpace(req.MissingApi))
+                                        {
+                                            SystemEventLogger.Warning(LogSource.PwaClient, $"[PWA] Missing API on client device: {req.MissingApi} (OS/UA: {req.UserAgent})", req.SessionId);
+                                            
+                                            // Register the missing API as a failed component check for the session
+                                            if (!string.IsNullOrWhiteSpace(req.SessionId) && DeviceSessionManager.TryGetSession(req.SessionId, out var session) && session.Data != null)
+                                            {
+                                                session.Data.ComponentChecks.Add(new PhoneGrade.Core.ComponentStatus
+                                                {
+                                                    Name = $"API Missing: {req.MissingApi}",
+                                                    State = PhoneGrade.Core.ComponentStatusType.Failed,
+                                                    Description = $"Device is missing {req.MissingApi} capability."
+                                                });
+                                            }
+                                        }
                                         await context.Response.WriteAsync("{\"ok\":true}");
                                         return;
                                     }

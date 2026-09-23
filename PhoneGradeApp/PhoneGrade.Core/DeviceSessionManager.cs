@@ -28,6 +28,18 @@ public static class DeviceSessionManager
 {
     private static readonly ConcurrentDictionary<string, DeviceSession> _sessions = new();
 
+    public static bool TryGetSession(string udid, out DeviceSession? session)
+    {
+        session = null;
+        if (string.IsNullOrWhiteSpace(udid)) return false;
+        if (_sessions.TryGetValue(udid, out var s))
+        {
+            session = s;
+            return true;
+        }
+        return false;
+    }
+
     /// <summary>Checks if a device has already completed testing.</summary>
     public static bool IsDeviceCompleted(string udid)
     {
