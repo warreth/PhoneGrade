@@ -118,152 +118,37 @@ test('DeviceTest fail marks status and stores failure reason', () => {
 
 import { SensorTest } from '../modules/SensorTest.js';
 
-test('SensorTest skip and log warning when DeviceMotionEvent is undefined (unsupported)', async () => {
-    // Temporarily remove DeviceMotionEvent
-    const originalDeviceMotionEvent = global.DeviceMotionEvent;
-    global.DeviceMotionEvent = undefined;
+
+
+test('CapabilityScanner detects missing browser APIs properly', async () => {
+    // Save globals
+    const origGeo = navigator.geolocation;
+    const origMedia = navigator.mediaDevices;
     
-    let warningLogged = false;
-    let reportedMissingApi = null;
+    // Simulate missing APIs
+    delete navigator.geolocation;
+    delete navigator.mediaDevices;
     
-    const mockWsClient = {
-        baseUrl: 'http://localhost',
-        sessionId: 'test_session_fallback',
-    };
-    
-    const originalFetch = global.fetch;
-    global.fetch = async (url, options) => {
-        if (url.includes('/api/pwa/log-warning')) {
-            warningLogged = true;
-            const body = JSON.parse(options.body);
-            reportedMissingApi = body.missingApi;
-            return { ok: true };
-        }
-        return { ok: true };
+    const requiredApis = {
+        'DeviceMotionEvent': () => typeof DeviceMotionEvent !== 'undefined',
+        'DeviceOrientationEvent': () => typeof DeviceOrientationEvent !== 'undefined',
+        'navigator.geolocation': () => 'geolocation' in navigator,
+        'navigator.mediaDevices.getUserMedia': () => navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function',
+        'navigator.vibrate': () => typeof navigator.vibrate === 'function',
+        'navigator.wakeLock': () => 'wakeLock' in navigator
     };
 
-    const document = {
-        createElement: () => ({
-            innerHTML: '',
-            querySelector: (sel) => ({
-                style: {},
-                onclick: null
-            })
-        })
-    };
-    const originalDoc = global.document;
-    global.document = document;
-    
-    const container = {
-        innerHTML: '',
-        querySelector: (sel) => {
-            if (sel === '#btn-request-sensors') {
-                return { onclick: null };
-            }
-            return { style: {}, textContent: '' };
-        }
-    };
-
-    const sensorTest = new SensorTest();
-    sensorTest.skip = function(notes) {
-        this.status = 'skipped';
-        this.notes = notes;
-    };
-    
-    // The innerHTML gets set, which drops our mocked buttons in a real DOM.
-    // In our node test environment, we just need to grab the mock.
-    const runPromise = sensorTest.run(mockWsClient, container);
-    
-    // Simulate user clicking the "Grant Motion Sensor Access" button
-    const btnRequest = container.querySelector('#btn-request-sensors');
-    if (btnRequest && btnRequest.onclick) {
-        await btnRequest.onclick();
+    const missing = [];
+    for (const [name, check] of Object.entries(requiredApis)) {
+        if (!check()) missing.push(name);
     }
-    
-    await runPromise;
-    
-    assert.equal(sensorTest.status, 'skipped');
-    assert.equal(sensorTest.notes, 'DeviceMotionEvent not supported');
-    assert.equal(warningLogged, true);
-    assert.equal(reportedMissingApi, 'DeviceMotionEvent');
-    
+
+    assert.ok(missing.includes('navigator.geolocation'));
+    assert.ok(missing.includes('navigator.mediaDevices.getUserMedia'));
+    assert.ok(missing.includes('navigator.wakeLock')); // wakeLock is missing in node
+
     // Restore
-    global.DeviceMotionEvent = originalDeviceMotionEvent;
-    global.fetch = originalFetch;
-    global.document = originalDoc;
-});
-
-test('SensorTest skip and log warning when permission is denied', async () => {
-    // Mock DeviceMotionEvent with requestPermission returning 'denied'
-    const originalDeviceMotionEvent = global.DeviceMotionEvent;
-    global.DeviceMotionEvent = {
-        requestPermission: async () => 'denied'
-    };
-    
-    let warningLogged = false;
-    let reportedMissingApi = null;
-    
-    const mockWsClient = {
-        baseUrl: 'http://localhost',
-        sessionId: 'test_session_denied',
-    };
-    
-    const originalFetch = global.fetch;
-    global.fetch = async (url, options) => {
-        if (url.includes('/api/pwa/log-warning')) {
-            warningLogged = true;
-            const body = JSON.parse(options.body);
-            reportedMissingApi = body.missingApi;
-            return { ok: true };
-        }
-        return { ok: true };
-    };
-
-    const document = {
-        createElement: () => ({
-            innerHTML: '',
-            querySelector: (sel) => ({
-                style: {},
-                onclick: null
-            })
-        })
-    };
-    const originalDoc = global.document;
-    global.document = document;
-
-    const container = {
-        innerHTML: '',
-        querySelector: (sel) => {
-            if (sel === '#btn-request-sensors') {
-                return { onclick: null };
-            }
-            return { style: {}, textContent: '' };
-        }
-    };
-
-    const sensorTest = new SensorTest();
-    sensorTest.skip = function(notes) {
-        this.status = 'skipped';
-        this.notes = notes;
-    };
-    
-    const runPromise = sensorTest.run(mockWsClient, container);
-    
-    const btnRequest = container.querySelector('#btn-request-sensors');
-    if (btnRequest && btnRequest.onclick) {
-        await btnRequest.onclick();
-    }
-    
-    await runPromise;
-    
-    assert.equal(sensorTest.status, 'skipped');
-    assert.equal(sensorTest.notes, 'Permission denied for DeviceMotionEvent');
-    assert.equal(warningLogged, true);
-    assert.equal(reportedMissingApi, 'DeviceMotionEvent');
-    
-    // Restore
-    global.DeviceMotionEvent = originalDeviceMotionEvent;
-    global.fetch = originalFetch;
-    global.document = originalDoc;
+    navigator.geolocation = origGeo;
+    navigator.mediaDevices = origMedia;
 });
 

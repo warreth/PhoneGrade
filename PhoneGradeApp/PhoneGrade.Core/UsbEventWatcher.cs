@@ -1,79 +1,101 @@
 using System;
-using System.Management;
-using System.Threading;
+using System.Runtime.InteropServices;
 
 namespace PhoneGrade.Core;
 
 /// <summary>
-/// Monitors native Windows WMI events for USB insertions and removals to trigger faster polling
-/// and auto-reset disconnected device sessions reliably.
+/// Watches for USB insertion and removal so the kiosk can react the instant a cable
+/// is pulled instead of waiting for the next polling tick.
+/// The WMI implementation is Windows only. On other platforms the class stays inert
+/// and the regular polling loop remains the single source of truth.
 /// </summary>
 public static class UsbEventWatcher
 {
-    private static ManagementEventWatcher? _insertWatcher;
-    private static ManagementEventWatcher? _removeWatcher;
-    private static SynchronizationContext? _syncContext;
-
     public static event EventHandler? UsbDeviceConnected;
     public static event EventHandler? UsbDeviceDisconnected;
 
+    /// <summary>True when a native OS watcher is running on this platform.</summary>
+    public static bool IsNativeMonitoringActive { get; private set; }
+
     public static void StartMonitoring()
     {
-        _syncContext = SynchronizationContext.Current;
+        if (IsNativeMonitoringActive) return;
 
-        try
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var insertQuery = new WqlEventQuery("SELECT * FROM __InstanceCreationEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
-            _insertWatcher = new ManagementEventWatcher(insertQuery);
-            _insertWatcher.EventArrived += (sender, e) =>
-            {
-                if (_syncContext != null)
-                    _syncContext.Post(_ => UsbDeviceConnected?.Invoke(null, EventArgs.Empty), null);
-                else
-                    UsbDeviceConnected?.Invoke(null, EventArgs.Empty);
-            };
-            _insertWatcher.Start();
-
-            var removeQuery = new WqlEventQuery("SELECT * FROM __InstanceDeletionEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
-            _removeWatcher = new ManagementEventWatcher(removeQuery);
-            _removeWatcher.EventArrived += (sender, e) =>
-            {
-                if (_syncContext != null)
-                    _syncContext.Post(_ => UsbDeviceDisconnected?.Invoke(null, EventArgs.Empty), null);
-                else
-                    UsbDeviceDisconnected?.Invoke(null, EventArgs.Empty);
-            };
-            _removeWatcher.Start();
-
-            SystemEventLogger.Info(LogSource.System, "Windows USB Event Monitoring gestart via WMI.");
+            SystemEventLogger.Info(LogSource.System,
+                "USB event monitoring is Windows only. Falling back to the polling loop.");
+            return;
         }
-        catch (Exception ex)
-        {
-            SystemEventLogger.Error(LogSource.System, $"Fout bij starten USB Event Monitoring: {ex.Message}");
-        }
+
+#if WINDOWS
+        StartWindowsMonitoring();
+#else
+        SystemEventLogger.Info(LogSource.System,
+            "USB event monitoring was not built for this target. Falling back to the polling loop.");
+#endif
     }
 
     public static void StopMonitoring()
     {
+#if WINDOWS
+        StopWindowsMonitoring();
+#endif
+        IsNativeMonitoringActive = false;
+    }
+
+    /// <summary>Raises the connected event. Exposed for tests that simulate a plug event.</summary>
+    public static void RaiseConnected() => UsbDeviceConnected?.Invoke(null, EventArgs.Empty);
+
+    /// <summary>Raises the disconnected event. Exposed for tests that simulate an unplug event.</summary>
+    public static void RaiseDisconnected() => UsbDeviceDisconnected?.Invoke(null, EventArgs.Empty);
+
+#if WINDOWS
+    private static System.Management.ManagementEventWatcher? _insertWatcher;
+    private static System.Management.ManagementEventWatcher? _removeWatcher;
+
+    private static void StartWindowsMonitoring()
+    {
         try
         {
-            if (_insertWatcher != null)
-            {
-                _insertWatcher.Stop();
-                _insertWatcher.Dispose();
-                _insertWatcher = null;
-            }
+            var insertQuery = new System.Management.WqlEventQuery(
+                "SELECT * FROM __InstanceCreationEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
+            _insertWatcher = new System.Management.ManagementEventWatcher(insertQuery);
+            _insertWatcher.EventArrived += (_, _) => RaiseConnected();
+            _insertWatcher.Start();
 
-            if (_removeWatcher != null)
-            {
-                _removeWatcher.Stop();
-                _removeWatcher.Dispose();
-                _removeWatcher = null;
-            }
+            var removeQuery = new System.Management.WqlEventQuery(
+                "SELECT * FROM __InstanceDeletionEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
+            _removeWatcher = new System.Management.ManagementEventWatcher(removeQuery);
+            _removeWatcher.EventArrived += (_, _) => RaiseDisconnected();
+            _removeWatcher.Start();
+
+            IsNativeMonitoringActive = true;
+            SystemEventLogger.Info(LogSource.System, "Windows USB event monitoring started via WMI.");
         }
         catch (Exception ex)
         {
-            SystemEventLogger.Error(LogSource.System, $"Fout bij stoppen USB Event Monitoring: {ex.Message}");
+            IsNativeMonitoringActive = false;
+            SystemEventLogger.Error(LogSource.System, $"Failed to start USB event monitoring: {ex.Message}");
         }
     }
+
+    private static void StopWindowsMonitoring()
+    {
+        try
+        {
+            _insertWatcher?.Stop();
+            _insertWatcher?.Dispose();
+            _insertWatcher = null;
+
+            _removeWatcher?.Stop();
+            _removeWatcher?.Dispose();
+            _removeWatcher = null;
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Error(LogSource.System, $"Failed to stop USB event monitoring: {ex.Message}");
+        }
+    }
+#endif
 }

@@ -196,7 +196,21 @@ public class WebTestRunnerTests : IAsyncLifetime
         // Arrange
         bool deviceConnectedFired = false;
         string connectedSessionId = string.Empty;
+        
+        _server!.DeviceConnected += (s, e) =>
+        {
+            deviceConnectedFired = true;
+            connectedSessionId = e.SessionId;
+        };
 
+        // Act
+        _clientWebSocket = await ConnectWebSocketAsync("EVENT_TEST_SESSION");
+        await Task.Delay(100);
+
+        // Assert
+        Assert.True(deviceConnectedFired);
+        Assert.Equal("EVENT_TEST_SESSION", connectedSessionId);
+    }
 
     [Fact]
     public async Task PostSubmitStepEndpoint_ParsesAndDispatchesStepPayload()

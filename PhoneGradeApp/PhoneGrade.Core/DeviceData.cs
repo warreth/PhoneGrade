@@ -288,15 +288,30 @@ public enum ComponentStatusType
     Match,
     Mismatch,
     Untrusted,
-    Unknown
+    Unknown,
+    Failed,
+    Passed
 }
 
 public class ComponentStatus
 {
-    public required string Name { get; init; }
-    public string? SerialRead { get; init; }
-    public string? SerialOriginal { get; init; }
-    public ComponentStatusType Status { get; init; } = ComponentStatusType.Unknown;
+    public required string Name { get; set; }
+
+    public string? SerialRead { get; set; }
+
+    public string? SerialOriginal { get; set; }
+
+    /// <summary>
+    /// Verification outcome. The PWA reports this field as "state", so the JSON
+    /// name is pinned to keep the browser payload and the desktop model in sync.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("state")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
+    public ComponentStatusType Status { get; set; } = ComponentStatusType.Unknown;
+
+    public string? Description { get; set; }
+
+    public string? Details { get; set; }
 }
 
 /// <summary>A diagnostic finding for the device, e.g. from a panic log.</summary>
