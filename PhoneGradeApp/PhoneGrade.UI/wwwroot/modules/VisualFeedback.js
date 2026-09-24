@@ -176,7 +176,7 @@ export class VisualFeedback {
 }
 
 // Inject CSS animations for ripple and checkmark
-if (!document.getElementById('visual-feedback-styles')) {
+if (typeof document !== 'undefined' && document.head && !document.getElementById('visual-feedback-styles')) {
     const style = document.createElement('style');
     style.id = 'visual-feedback-styles';
     style.textContent = `

@@ -311,7 +311,7 @@ public class TestRunnerServer : IAsyncDisposable
                                                 session.Data.ComponentChecks.Add(new PhoneGrade.Core.ComponentStatus
                                                 {
                                                     Name = $"API Missing: {req.MissingApi}",
-                                                    State = PhoneGrade.Core.ComponentStatusType.Failed,
+                                                    Status = PhoneGrade.Core.ComponentStatusType.Failed,
                                                     Description = $"Device is missing {req.MissingApi} capability."
                                                 });
                                             }

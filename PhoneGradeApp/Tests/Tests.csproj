@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -15,8 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PhoneGrade.Core\PhoneGrade.Core.csproj" />
-    <ProjectReference Include="..\PhoneGrade.UI\PhoneGrade.UI.csproj" />
+    <ProjectReference Include="..PhoneGrade.CorePhoneGrade.Core.csproj" />
+    <ProjectReference Include="..PhoneGrade.UIPhoneGrade.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +26,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.14.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

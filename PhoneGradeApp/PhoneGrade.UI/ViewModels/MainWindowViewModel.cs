@@ -535,7 +535,7 @@ public class MainWindowViewModel : ReactiveObject
                     DeviceData.ComponentChecks.Add(new ComponentStatus
                     {
                         Name = $"API Missing: {e.MissingApi}",
-                        State = ComponentStatusType.Failed,
+                        Status = ComponentStatusType.Failed,
                         Details = $"The mandatory browser API '{e.MissingApi}' is missing on this device."
                     });
                     
@@ -543,7 +543,7 @@ public class MainWindowViewModel : ReactiveObject
                     DeviceData.InteractiveTests ??= new InteractiveTestSuiteResult 
                     { 
                         SessionId = e.SessionId, 
-                        DeviceName = "Unknown", 
+                        DeviceUdid = "Unknown", 
                         Tests = new List<InteractiveTestResult>() 
                     };
                     
@@ -923,7 +923,7 @@ public class MainWindowViewModel : ReactiveObject
 
     private async Task ContinueAfterQualityAsync(string quality)
     {
-        bool hasMissingApis = DeviceData.ComponentChecks.Any(c => c.State == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
+        bool hasMissingApis = DeviceData.ComponentChecks.Any(c => c.Status == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
         if (hasMissingApis && quality == "A")
         {
             quality = "B";
@@ -1008,7 +1008,7 @@ public class MainWindowViewModel : ReactiveObject
         }
 
         // Enforce Grading Penalty: Prevent auto 'A' grade if missing mandatory APIs
-        bool hasMissingApis = DeviceData.ComponentChecks.Any(c => c.State == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
+        bool hasMissingApis = DeviceData.ComponentChecks.Any(c => c.Status == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
         string targetQuality = DefaultQuality;
 
         if (hasMissingApis && targetQuality == "A")

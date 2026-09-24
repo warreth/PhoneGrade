@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -10,10 +10,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Include="Assets**" />
     <!-- Copy the label template to the publish folder so LabelService.FindTemplate()
          can resolve it next to the exe at runtime. -->
-    <Content Include="Assets\my.dymo" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assetsmy.dymo" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -37,15 +37,15 @@
     <PackageReference Include="Velopack" Version="1.2.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PhoneGrade.Core\PhoneGrade.Core.csproj" />
+    <ProjectReference Include="..PhoneGrade.CorePhoneGrade.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="Views\DataEditorWindow.axaml.cs">
+    <Compile Update="ViewsDataEditorWindow.axaml.cs">
       <DependentUpon>DataEditorWindow.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <AvaloniaXaml Update="Views\DataEditorWindow.axaml">
+    <AvaloniaXaml Update="ViewsDataEditorWindow.axaml">
       <SubType>Designer</SubType>
     </AvaloniaXaml>
   </ItemGroup>
