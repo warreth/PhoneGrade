@@ -25,6 +25,12 @@ jobs:
       - name: Run tests (xUnit + headless Avalonia)
         run: dotnet test PhoneGradeApp/Tests/Tests.csproj -c Release --no-build
 
+      # The PWA modules have their own suite under wwwroot/tests. Nothing else
+      # ran it, so it silently rotted whenever a module changed.
+      - name: Run PWA module tests (node)
+        shell: bash
+        run: node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
+
       # Smoke test the release packaging path on each OS: publish + vpk pack.
       # Catches bundle/tool breakage before a tag is cut.
       - name: Packaging smoke test (vpk)
