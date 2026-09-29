@@ -139,6 +139,64 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         Assert.Contains("document.body.removeChild", displayTestContent);
     }
 
+    // Task 3: The speaker tone can be played again and the verdict changed
+    [Fact]
+    public void Task3_Speaker_ToneIsReplayableAndTheVerdictIsNotFinal()
+    {
+        var speakerTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/SpeakerTest.js");
+
+        // The old step disabled the play button and hid it when the tone finished,
+        // and hid the verdict buttons the moment they were pressed. That left one
+        // chance to get it right on something judged by listening, and a tone
+        // missed while the volume was still coming up reads exactly like a dead
+        // speaker.
+        Assert.DoesNotContain("playEarpieceBtn.disabled = true", speakerTestContent);
+        Assert.DoesNotContain("style.display = 'none'", speakerTestContent);
+
+        // The replay path and the corrigible verdict are what replaced it.
+        Assert.Contains("plays[section] += 1", speakerTestContent);
+        Assert.Contains("feedback.hidden = false", speakerTestContent);
+        Assert.Contains("settled", speakerTestContent);
+    }
+
+    // Task 3: The speaker tone is planned, not played blind
+    [Fact]
+    public void Task3_Speaker_ToneIsPlannedBeforeItIsPlayed()
+    {
+        var toneContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/SpeakerTone.js");
+
+        // Frequencies and timings are the whole content of a speaker test. Spelled
+        // out up front, they can be checked without a phone and a pair of ears.
+        Assert.Contains("planChime", toneContent);
+        Assert.Contains("isAudible", toneContent);
+        Assert.Contains("isWithinRange", toneContent);
+        Assert.Contains("describeOutcome", toneContent);
+
+        // And the two verdicts stay apart on the label, because "the earpiece works
+        // and the loudspeaker does not" is a phone someone can still take calls on.
+        Assert.Contains("Hoofdluidspreker", toneContent);
+        Assert.Contains("Oorluidspreker", toneContent);
+    }
+
+    // Task 3: The audio context cannot hang the step
+    [Fact]
+    public void Task3_Speaker_ResumeIsBounded()
+    {
+        var speakerTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/SpeakerTest.js");
+
+        // Measured on a real Pixel over the secure origin: resume() does not always
+        // settle. An unbounded await meant the status line never changed, no verdict
+        // buttons appeared, and the operator pressed a dead button until the
+        // failsafe ended the step a minute and a half later.
+        Assert.Contains("RESUME_TIMEOUT_MS", speakerTestContent);
+        Assert.Contains("Promise.race", speakerTestContent);
+
+        // And a context that is not running is reported as a tone that was not
+        // produced, rather than judged as a dead speaker.
+        Assert.Contains("audioProblem", speakerTestContent);
+        Assert.Contains("De browser gaf geen toon af", speakerTestContent);
+    }
+
     // Task 3: iOS Fullscreen Banner
     [Fact]
     public async Task Task3_iOS_DisplaysFullscreenBanner()
