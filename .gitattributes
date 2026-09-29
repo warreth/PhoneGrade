@@ -1,2 +1,17 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Binary assets must never be line-ending converted. An icon that gets CRLF
+# bytes injected is rejected by the OS packaging tools, and auto-detection only
+# works while the file actually contains binary data - a mistake that writes
+# text into one of these paths would otherwise be silently corrupted on checkout.
+*.icns binary
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ttf binary
+*.otf binary
+*.dymo binary
