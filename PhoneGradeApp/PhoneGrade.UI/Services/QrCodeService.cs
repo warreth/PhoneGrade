@@ -55,10 +55,16 @@ public static class QrCodeService
         return "127.0.0.1";
     }
 
-    public static string GenerateSessionUrl(string localIp, int port, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null)
+    /// <summary>
+    /// Builds the address the phone should open. The host is passed in rather than
+    /// discovered here, because there are two of them: the LAN address, and the
+    /// localhost the adb reverse tunnel makes a secure origin.
+    /// </summary>
+    public static string GenerateSessionUrl(string host, int port, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null)
     {
         var cleanUdid = Uri.EscapeDataString(deviceUdid ?? "UNKNOWN");
-        string url = $"http://{localIp}:{port}/?sessionId={cleanUdid}";
+        string cleanHost = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host.Trim();
+        string url = $"http://{cleanHost}:{port}/?sessionId={cleanUdid}";
         if (isDebug) url += "&debug=true";
         if (!string.IsNullOrWhiteSpace(testPhoneNumber)) url += $"&testPhoneNumber={Uri.EscapeDataString(testPhoneNumber)}";
         return url;

@@ -65,6 +65,7 @@ public class MainWindowViewModel : ReactiveObject
 
     // Web Test Runner (PWA) Properties
     private TestRunnerServer? _webServer;
+    private readonly AdbReverseTunnel _adbTunnel = AdbReverseTunnel.CreateDefault();
     private string _webRunnerUrl = "";
     public string WebRunnerUrl
     {
@@ -199,6 +200,25 @@ public class MainWindowViewModel : ReactiveObject
             TestRunnerServer.EnableVerboseNetworkLogging = value;
             ToolRunner.EnableVerboseNetworkLogging = value;
             this.RaiseAndSetIfChanged(ref _isDebugMode, value); 
+        }
+    }
+
+    private bool _useSecureOrigin = true;
+
+    /// <summary>
+    /// Serves the PWA over the adb reverse tunnel so the browser treats it as a
+    /// secure origin. Turning it off falls back to the LAN address, which is what
+    /// iOS needs because it has no adb to build a tunnel with.
+    /// </summary>
+    public bool UseSecureOrigin
+    {
+        get => _useSecureOrigin;
+        set
+        {
+            if (!this.RaiseAndSetIfChanged(ref _useSecureOrigin, value)) return;
+            _settings.UseSecureOrigin = value;
+            _settings.Save();
+            RefreshWebRunnerAddress();
         }
     }
 
@@ -417,6 +437,7 @@ public class MainWindowViewModel : ReactiveObject
         _runDiagnostics = _settings.RunDiagnostics;
         _enable85PercentChecker = _settings.Enable85PercentChecker;
         _isDebugMode = _settings.IsDebugMode;
+        _useSecureOrigin = _settings.UseSecureOrigin;
         _openEditorBeforePrint = _settings.OpenEditorBeforePrint;
         _autoStartWebTest = _settings.AutoStartWebTest;
         _showSummaryScreenAfterTesting = _settings.ShowSummaryScreenAfterTesting;
@@ -612,12 +633,15 @@ public class MainWindowViewModel : ReactiveObject
     {
         try
         {
-            var ip = QrCodeService.GetLocalIpAddress();
             int port = _webServer?.BoundPort > 0 ? _webServer.BoundPort : 5055;
             var sessionUdid = !string.IsNullOrWhiteSpace(udid) ? udid : (DeviceData.Identifier != "NOID" ? DeviceData.Identifier : "DEMO");
-            WebRunnerUrl = QrCodeService.GenerateSessionUrl(ip, port, sessionUdid, IsDebugMode);
+
+            string host = ResolveWebRunnerHost(sessionUdid, port);
+            WebRunnerUrl = QrCodeService.GenerateSessionUrl(host, port, sessionUdid, IsDebugMode);
             QrCodeBitmap = QrCodeService.GenerateQrCodeBitmap(WebRunnerUrl);
-            InteractiveSessionStatus = $"Scan QR of open: {WebRunnerUrl}";
+            InteractiveSessionStatus = host == AdbReverseTunnel.LoopbackHost
+                ? $"Scan QR om te openen via USB: {WebRunnerUrl}"
+                : $"Scan QR of open: {WebRunnerUrl}";
 
             // If AutoStartWebTest is enabled, send a signal to connected PWA clients to auto-start the test suite
             if (AutoStartWebTest && _webServer != null)
@@ -629,6 +653,43 @@ public class MainWindowViewModel : ReactiveObject
         {
             InteractiveSessionStatus = $"QR fout: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Picks the address the phone should open. The tunnel is preferred because a
+    /// browser only grants camera, microphone, motion and orientation access on a
+    /// secure origin, and localhost is the one plain address it accepts. iOS has
+    /// no adb to build a tunnel with, so it stays on the LAN address.
+    /// </summary>
+    private string ResolveWebRunnerHost(string sessionUdid, int port)
+    {
+        var ip = QrCodeService.GetLocalIpAddress();
+
+        if (!UseSecureOrigin || !AdbReverseTunnel.SupportsReverse(sessionUdid))
+            return ip;
+
+        bool opened = _adbTunnel.OpenAsync(sessionUdid, port).GetAwaiter().GetResult();
+        if (!opened)
+        {
+            // Falling back silently would hand the operator a QR code whose camera
+            // and motion steps cannot run, so the reason is stated in the status.
+            InteractiveSessionStatus =
+                "adb reverse lukte niet, uitwijken naar het netwerk. Camera en bewegingssensoren blijven dan onbeschikbaar.";
+        }
+
+        return opened ? AdbReverseTunnel.LoopbackHost : ip;
+    }
+
+    /// <summary>Rebuilds the QR code after the origin setting changed.</summary>
+    private void RefreshWebRunnerAddress()
+    {
+        if (_webServer is null) return;
+
+        string serial = SelectedDevice.Key;
+        if (string.IsNullOrWhiteSpace(serial))
+            serial = DeviceData.Identifier != "NOID" ? DeviceData.Identifier : "DEMO";
+
+        UpdateWebRunnerSession(serial);
     }
 
     public void ApplyInteractiveResults(InteractiveTestSuiteResult suite)

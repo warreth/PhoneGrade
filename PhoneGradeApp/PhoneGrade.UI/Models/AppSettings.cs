@@ -26,6 +26,16 @@ public class AppSettings
     public bool EnableVerboseNetworkLogging { get; set; } = false; // Trace HTTP requests, CLI stdout/stderr, JSON payloads
     public bool IsDebugMode { get; set; } = false; // Global debug toggle for mobile PWA overlay and verbose tracing
 
+    /// <summary>
+    /// Serves the PWA to the phone as http://localhost through an adb reverse
+    /// tunnel instead of the LAN address. A browser only grants camera,
+    /// microphone, motion and orientation access on a secure origin, and a plain
+    /// http:// LAN address is not one, so over the network those four steps have
+    /// nothing to run on. The tunnel needs the cable that is required anyway, so
+    /// this is the default. Turn it off for iOS, which has no adb.
+    /// </summary>
+    public bool UseSecureOrigin { get; set; } = true;
+
     [JsonIgnore]
     private static string SettingsDir =>
         Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR") is { Length: > 0 } overrideDir

@@ -80,6 +80,8 @@
     <x:String x:Key="Settings_RunDiagnostics">Hardware diagnose draaien (panic-logs)</x:String>
     <x:String x:Key="Settings_Enable85Checker">85% Batterijcheck (100%-X label)</x:String>
     <x:String x:Key="Settings_OpenEditor">Label editor openen voor printen</x:String>
+    <x:String x:Key="Settings_SecureOrigin">Webtest via USB (localhost)</x:String>
+    <x:String x:Key="Settings_SecureOriginDesc">Stuurt de webtest naar http://localhost in plaats van het IP-adres van de pc. Een browser geeft alleen op een beveiligde herkomst toegang tot de camera, microfoon en bewegingssensoren. Aanzetten voor Android, uitzetten voor iPhone, want die heeft geen adb.</x:String>
     <x:String x:Key="Btn_Troubleshoot">USB en Driver Diagnose</x:String>
     <x:String x:Key="Btn_Logs">Systeemlogboeken Bekijken</x:String>
 
