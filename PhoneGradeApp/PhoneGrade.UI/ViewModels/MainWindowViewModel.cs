@@ -24,6 +24,7 @@ namespace PhoneGrade.UI.ViewModels;
 public class MainWindowViewModel : ReactiveObject
 {
     private readonly AppSettings _settings;
+    private readonly DevicePresenceTracker _presence = new();
     private CancellationTokenSource? _flowCts;
     private IDisposable? _watcher;
 
@@ -473,7 +474,8 @@ public class MainWindowViewModel : ReactiveObject
                 // decides it. Resetting on the raw event would tear down an
                 // inspection because someone unplugged a peripheral.
                 int count = await RefreshDeviceListSilentAsync();
-                if (count == 0 && WorkflowState != AppWorkflowState.Idle)
+                _presence.Report(count);
+                if (count == 0 && _presence.IsUnplugged && WorkflowState != AppWorkflowState.Idle)
                 {
                     ResetToIdle();
                 }
@@ -658,10 +660,15 @@ public class MainWindowViewModel : ReactiveObject
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(count =>
             {
-                // Hot Unplug Detection
+                _presence.Report(count);
+
+                // Hot Unplug Detection. An empty list on its own is not proof:
+                // adb restarting or the phone re-enumerating on the bus empties
+                // it for a few seconds. The tracker holds the disconnect back
+                // until the absence has lasted longer than its grace period.
                 if (count == 0)
                 {
-                    if (WorkflowState != AppWorkflowState.Idle)
+                    if (WorkflowState != AppWorkflowState.Idle && _presence.IsUnplugged)
                     {
                         ResetToIdle();
                     }
