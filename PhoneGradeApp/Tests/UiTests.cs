@@ -160,6 +160,47 @@ public class UiTests : IDisposable
         Assert.NotNull(c.Convert(null, typeof(IBrush), null, null));
     }
 
+    [AvaloniaFact]
+    public void ModelDisplayConverter_DoesNotCallAnAndroidPhoneAnIPhone()
+    {
+        var c = new PhoneGrade.UI.Converters.ModelDisplayConverter();
+        var pixel = new DeviceData
+        {
+            Model = "Google Pixel 8 Pro",
+            ProductType = "Android (Google Pixel 8 Pro)",
+        };
+
+        Assert.Equal("Google Pixel 8 Pro", c.Convert(pixel, typeof(string), null, null));
+    }
+
+    [AvaloniaFact]
+    public void ModelDisplayConverter_StillPrefixesAppleModels()
+    {
+        var c = new PhoneGrade.UI.Converters.ModelDisplayConverter();
+        var iphone = new DeviceData { Model = "8", ProductType = "iPhone10,1" };
+        var ipad = new DeviceData { Model = "Air 11", ProductType = "iPad14,3" };
+
+        Assert.Equal("iPhone 8", c.Convert(iphone, typeof(string), null, null));
+        Assert.Equal("iPad Air 11", c.Convert(ipad, typeof(string), null, null));
+    }
+
+    [AvaloniaFact]
+    public void ModelDisplayConverter_FallsBackForNonDeviceData()
+    {
+        var c = new PhoneGrade.UI.Converters.ModelDisplayConverter();
+        Assert.Equal("Onbekend Toestel", c.Convert(null, typeof(string), null, null));
+        Assert.Equal("iPhone 8", c.Convert("8", typeof(string), null, null));
+    }
+
+    [AvaloniaFact]
+    public void BatteryLevelConverter_ShowsTheChargeOnlyWhenKnown()
+    {
+        var c = new PhoneGrade.UI.Converters.BatteryLevelConverter();
+        Assert.Equal("Lading 20%", c.Convert(20, typeof(string), null, null));
+        Assert.Equal("", c.Convert(null, typeof(string), null, null));
+        Assert.Equal("", c.Convert(0, typeof(string), null, null));
+    }
+
     public void Dispose()
     {
         if (_origOverride is null)
