@@ -26,33 +26,67 @@ export function indexSteps(progress) {
     return map;
 }
 
-/** The index of the first test the desktop has no verdict for. */
+/**
+ * The rows a step reports under.
+ *
+ * Read from the step rather than assumed to be one, because a step may produce
+ * more than one row: the touchscreen step measures the grid and the outer edges
+ * and reports each separately. A step that has not been asked yet falls back to
+ * its own id, so an older module still resumes.
+ */
+export function resultIdsOf(test) {
+    const ids = typeof test.resultIds === 'function' ? test.resultIds() : null;
+    if (!ids || ids.length === 0) return [test.id];
+    return ids;
+}
+
+/** True when every row this step reports has a stored verdict. */
+export function isStepSettled(test, stored) {
+    return resultIdsOf(test).every(id => stored.has(String(id).toLowerCase()));
+}
+
+/**
+ * The index of the first test the desktop has no verdict for.
+ *
+ * A step counts as done only when all of its rows are stored. Half a step is not
+ * a step, and treating the grid as finished while the edges are missing would
+ * skip the edges without ever having run them.
+ */
 export function firstPendingIndex(tests, progress) {
     const stored = indexSteps(progress);
-    const index = tests.findIndex(t => !stored.has(String(t.id).toLowerCase()));
+    const index = tests.findIndex(t => !isStepSettled(t, stored));
     return index < 0 ? tests.length : index;
 }
 
 /**
- * Copies stored verdicts onto the matching tests.
+ * Copies stored verdicts onto the matching steps.
  *
  * The statuses are copied rather than recomputed. The phone already ran these,
  * and re-running them would mean putting the operator through the same steps a
  * second time, which is the whole thing this is meant to avoid.
+ *
+ * Where a step reports more than one row, the step's own status is taken from its
+ * first row and the other rows are left on the step for toResults() to read back.
+ * Overwriting the step with whichever row happened to be stored last would let a
+ * passing grid hide a failing edge.
  */
 export function applyStoredResults(tests, progress) {
     const stored = indexSteps(progress);
     const applied = [];
 
     tests.forEach(test => {
-        const step = stored.get(String(test.id).toLowerCase());
-        if (!step) return;
+        const rows = resultIdsOf(test);
+        const found = rows.map(id => stored.get(String(id).toLowerCase())).filter(Boolean);
+        if (found.length === 0) return;
 
-        test.status = step.status || 'passed';
-        test.notes = step.status === 'skipped' || step.status === 'failed'
-            ? `Onthouden van de vorige run: ${step.status}`
+        const own = found[0];
+        test.status = own.status || 'passed';
+        test.notes = own.status === 'skipped' || own.status === 'failed'
+            ? `Onthouden van de vorige run: ${own.status}`
             : 'Onthouden van de vorige run';
         test.details = test.details || {};
+        test.storedRows = found;
+
         applied.push(test.id);
     });
 
