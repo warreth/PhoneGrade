@@ -90,9 +90,20 @@ public class AdbDiagnosticsTests
     [InlineData("unauthorized")]
     [InlineData("device unauthorized")]
     [InlineData("error: device unauthorized.")]
+    [InlineData("UNAUTHORIZED")]
     public void UnauthorizedAdbOutput_IsDetected(string adbOutput)
     {
-        Assert.Contains("unauthorized", adbOutput, StringComparison.OrdinalIgnoreCase);
+        Assert.True(DeviceService.IsUnauthorizedAdbState(adbOutput));
+    }
+
+    [Theory]
+    [InlineData("device")]
+    [InlineData("offline")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void AuthorizedOrEmptyAdbOutput_IsNotUnauthorized(string? adbOutput)
+    {
+        Assert.False(DeviceService.IsUnauthorizedAdbState(adbOutput));
     }
 
     [Fact]
@@ -110,8 +121,19 @@ public class AdbDiagnosticsTests
     [Fact]
     public void IosUdid_IsRecognized()
     {
-        Assert.True(DeviceService.LooksLikeIosUdid("00008030-001A2B3C4D5E6F7G"));
+        // The modern 25 character form: 8 hex, a hyphen, 16 hex.
+        Assert.True(DeviceService.LooksLikeIosUdid("00008030-001A2B3C4D5E6F78"));
+        // The legacy 40 character form.
         Assert.True(DeviceService.LooksLikeIosUdid("a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"));
+    }
+
+    [Fact]
+    public void IosUdid_WithNonHexCharacter_IsRejected()
+    {
+        // Guards the format itself: a UDID is hexadecimal, so a stray letter
+        // outside 0-9A-F must not be accepted as a device identifier.
+        Assert.False(DeviceService.LooksLikeIosUdid("00008030-001A2B3C4D5E6F7G"));
+        Assert.False(DeviceService.LooksLikeIosUdid("not-a-udid-at-all"));
     }
 
     [Fact]
