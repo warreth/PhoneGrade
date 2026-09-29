@@ -490,6 +490,14 @@
                             <CheckBox Content="{DynamicResource Settings_OpenEditor}" IsChecked="{Binding OpenEditorBeforePrint}"/>
                             <CheckBox Content="Debug Modus &amp; Netwerk Tracing" IsChecked="{Binding IsDebugMode}"/>
                         </StackPanel>
+
+                        <CheckBox IsChecked="{Binding UseSecureOrigin}" Margin="0,8,0,0">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{DynamicResource Settings_SecureOrigin}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource Settings_SecureOriginDesc}" Classes="dim"
+                                           FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
+                            </StackPanel>
+                        </CheckBox>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
