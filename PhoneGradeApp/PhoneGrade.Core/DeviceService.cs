@@ -34,7 +34,7 @@ public static class DeviceService
                 {
                     string model = await GetAndroidPropAsync(id, "ro.product.model");
                     string brand = await GetAndroidPropAsync(id, "ro.product.brand");
-                    string display = string.IsNullOrWhiteSpace(brand) ? model : $"{brand} {model}".Trim();
+                    string display = Mappers.MapAndroidDisplayModel(brand, model);
                     devices[id] = string.IsNullOrWhiteSpace(display) ? $"Android Device ({id})" : $"{display} (Android)";
                     // Android device identified
                 }
@@ -552,7 +552,7 @@ public static class DeviceService
         string brand = await GetAndroidPropAsync(serial, "ro.product.brand");
         string androidVer = await GetAndroidPropAsync(serial, "ro.build.version.release");
         string hardwareSerial = await GetAndroidPropAsync(serial, "ro.serialno");
-        string displayModel = string.IsNullOrWhiteSpace(brand) ? model : $"{brand} {model}".Trim();
+        string displayModel = Mappers.MapAndroidDisplayModel(brand, model);
 
         var data = new DeviceData
         {

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace PhoneGrade.Core;
@@ -102,6 +103,50 @@ public static partial class Mappers
     /// <summary>True for the ProductType the Android collector writes, e.g. "Android (Google Pixel 8 Pro)".</summary>
     public static bool IsAndroidProductType(string? productType) =>
         productType is not null && productType.StartsWith("Android", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The only brands a plain title case gets wrong, because they are written as
+    /// acronyms. Everything else title cases correctly from the lowercased string
+    /// Android reports, so there is no reason to enumerate the rest.
+    /// </summary>
+    private static readonly HashSet<string> AndroidBrandAcronyms = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "lg", "zte", "htc", "umx", "tcl", "bbk", "meizu", "gionee", "intex", "micromax",
+    };
+
+    /// <summary>Display name for an Android handset: "Google Pixel 8 Pro".</summary>
+    public static string MapAndroidDisplayModel(string? brand, string? model)
+    {
+        string modelName = (model ?? "").Trim();
+        string brandName = (brand ?? "").Trim();
+        if (brandName.Length == 0) return modelName;
+        if (modelName.Length == 0) return MapAndroidBrand(brandName);
+
+        // Some handsets repeat the brand inside the model ("motorola one vision").
+        // Drop the repeat rather than print it twice, and keep the proper spelling.
+        string spelled = MapAndroidBrand(brandName);
+        if (modelName.StartsWith(brandName, StringComparison.OrdinalIgnoreCase))
+        {
+            string rest = modelName[brandName.Length..].Trim();
+            return rest.Length == 0 ? spelled : $"{spelled} {rest}";
+        }
+
+        return $"{spelled} {modelName}";
+    }
+
+    /// <summary>
+    /// Android brand name with its proper capitalisation. <c>ro.product.brand</c>
+    /// arrives lowercased, so "google" has to become "Google". Acronym brands are
+    /// the exception a title case cannot handle; anything else is title cased
+    /// per word, so a multi-word brand like "motorola mobility" also comes out right.
+    /// </summary>
+    public static string MapAndroidBrand(string? brand)
+    {
+        string trimmed = (brand ?? "").Trim();
+        if (trimmed.Length == 0) return "";
+        if (AndroidBrandAcronyms.Contains(trimmed)) return trimmed.ToUpperInvariant();
+        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(trimmed.ToLowerInvariant());
+    }
 
     /// <summary>DeviceEnclosureColor raw value or hex → Dutch color name.</summary>
     public static string MapColor(string raw)

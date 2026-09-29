@@ -60,6 +60,51 @@ public class ParsersTests
         Assert.Equal(88, Parsers.ParseAndroidBatteryCondition("4400000", "5000000"));
     }
 
+    /// <summary>Verbatim `dumpsys battery` from a Pixel 8 Pro, note "Capacity level: 2" at the end.</summary>
+    private const string Pixel8ProDumpsys = """
+        Current Battery Service state:
+          AC powered: false
+          USB powered: true
+          Wireless powered: false
+          Dock powered: false
+          Max charging current: 500000
+         Time when the latest updated value of the Max charging current was sent via battery changed broadcast: +14h58m53s789ms
+          Max charging voltage: 5000000
+          Charge counter: 1082000
+          status: 2
+          health: 2
+          present: true
+          level: 22
+          scale: 100
+          voltage: 3764
+         Time when the latest updated value of the voltage was sent via battery changed broadcast: +14h59m21s407ms
+         The last voltage value sent via the battery changed broadcast: 3775
+          temperature: 280
+          technology: Li-ion
+          Charging state: 4
+          Charging policy: 2
+          Capacity level: 2
+        """;
+
+    [Fact]
+    public void AndroidBattery_RealPixel8ProOutput()
+    {
+        // The counters this handset actually reports.
+        Assert.Equal(92, Parsers.ParseAndroidBatteryCondition("4618000", "5022000"));
+        Assert.Equal(22, Parsers.ParseAndroidChargeLevel(Pixel8ProDumpsys));
+        Assert.Equal("Goed", Parsers.ParseAndroidBatteryStatus(Pixel8ProDumpsys));
+    }
+
+    [Fact]
+    public void AndroidChargeLevel_IgnoresTheCapacityLevelLine()
+    {
+        // "Capacity level: 2" sits after "level: 22" here. A pattern that is not
+        // anchored to the line start reads whichever comes first in the output,
+        // which on some builds is the capacity bucket rather than the charge.
+        string reordered = "  Capacity level: 2\n  level: 22\n  health: 2\n";
+        Assert.Equal(22, Parsers.ParseAndroidChargeLevel(reordered));
+    }
+
     [Theory]
     [InlineData("4400000", "5000000", 88)]
     [InlineData("5000000", "5000000", 100)]
@@ -254,6 +299,48 @@ public class MappersTests
     [Fact]
     public void DisplayModel_AppleNameIsNotDoublePrefixed()
         => Assert.Equal("iPhone 13 Pro", Mappers.FormatDisplayModel("iPhone 13 Pro", "iPhone14,5"));
+
+    [Theory]
+    [InlineData("google", "Pixel 8 Pro", "Google Pixel 8 Pro")]
+    [InlineData("samsung", "SM-G991B", "Samsung SM-G991B")]
+    [InlineData("Google", "Pixel 8 Pro", "Google Pixel 8 Pro")]
+    [InlineData("oneplus", "CPH2449", "Oneplus CPH2449")] // plain title case, no table entry
+    [InlineData("lg", "LM-G850", "LG LM-G850")] // acronym
+    [InlineData("zte", "ZTE Axon", "ZTE Axon")] // brand already repeated, acronym kept
+    [InlineData("nokia", "Nokia 8.1", "Nokia 8.1")] // already repeats the brand
+    [InlineData("motorola", "motorola one vision", "Motorola one vision")]
+    [InlineData("motorola", "MOTOROLA one", "Motorola one")]
+    [InlineData("nokia", "nokia", "Nokia")] // the model is nothing but the brand
+    [InlineData("motorola mobility", "edge 30", "Motorola Mobility edge 30")]
+    [InlineData("motorola", "moto g84", "Motorola moto g84")]
+    [InlineData("", "Pixel 8 Pro", "Pixel 8 Pro")]
+    [InlineData("google", "", "Google")]
+    [InlineData("google", "   ", "Google")]
+    [InlineData("  ", "  ", "")]
+    public void AndroidDisplayModel_WritesTheBrandProperly(string? brand, string? model, string expected)
+        => Assert.Equal(expected, Mappers.MapAndroidDisplayModel(brand, model));
+
+    [Theory]
+    [InlineData("google", "Google")]
+    [InlineData("samsung", "Samsung")]
+    [InlineData("  xiaomi  ", "Xiaomi")]
+    [InlineData("motorola mobility", "Motorola Mobility")]
+    [InlineData("LG", "LG")]
+    [InlineData("zte", "ZTE")]
+    [InlineData("hTC", "HTC")] // mixed input, still an acronym
+    [InlineData("", "")]
+    [InlineData(null, "")]
+    public void AndroidBrand_TitleCasesWithAcronymsApart(string? brand, string expected)
+        => Assert.Equal(expected, Mappers.MapAndroidBrand(brand));
+
+    [Fact]
+    public void AndroidBrand_DoesNotNeedATableEntryPerBrand()
+    {
+        // A brand nobody has ever heard of still comes out capitalised, which is
+        // what a lookup table could not guarantee.
+        Assert.Equal("Fairphone", Mappers.MapAndroidBrand("fairphone"));
+        Assert.Equal("Wiko", Mappers.MapAndroidBrand("wiko"));
+    }
 
     [Theory]
     [InlineData("android (pixel)", true)]
