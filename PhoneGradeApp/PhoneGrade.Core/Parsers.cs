@@ -162,10 +162,14 @@ public static class Parsers
         return Math.Clamp(pct, 1, 100);
     }
 
-    /// <summary>Charge level in percent from `dumpsys battery`, or 0 when it cannot be read.</summary>
+    /// <summary>
+    /// Charge level in percent from `dumpsys battery`, or 0 when it cannot be read.
+    /// Anchored to the start of a line because the same output carries a separate
+    /// "Capacity level:" line that a loose pattern would happily match instead.
+    /// </summary>
     public static int ParseAndroidChargeLevel(string? dumpsysBattery)
     {
-        var match = Regex.Match(dumpsysBattery ?? "", @"level:\s*(\d+)");
+        var match = Regex.Match(dumpsysBattery ?? "", @"^\s*level:\s*(\d+)", RegexOptions.Multiline);
         return match.Success && int.TryParse(match.Groups[1].Value, out int level)
             ? Math.Clamp(level, 0, 100)
             : 0;
