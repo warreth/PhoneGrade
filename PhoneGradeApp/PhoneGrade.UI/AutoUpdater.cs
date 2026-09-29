@@ -7,7 +7,10 @@ namespace PhoneGrade.UI;
 /// Only acts on Velopack-installed apps; dev runs and portable copies skip silently.</summary>
 public static class AutoUpdater
 {
-    private const string RepoUrl = "https://github.com/warreth/Auto-Dymo-Label";
+    // The repository was renamed from Auto-Dymo-Label to PhoneGrade. GitHub
+    // still redirects the old path, but the updater should not depend on a
+    // redirect that can be dropped whenever the old name is reused.
+    private const string RepoUrl = "https://github.com/warreth/PhoneGrade";
 
     public static async Task CheckAndApplyAsync()
     {
