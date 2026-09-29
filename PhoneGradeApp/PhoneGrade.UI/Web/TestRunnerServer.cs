@@ -66,6 +66,20 @@ public class MissingApiEventArgs : EventArgs
 }
 
 /// <summary>
+/// Raised when the phone reports a finished step, so the desktop can show where
+/// the phone is without waiting for the whole suite.
+///
+/// Only fires when the step was actually taken. A result replayed out of the
+/// phone's offline queue changes nothing, and raising the event for it would make
+/// the desktop redraw the same numbers on every reconnect.
+/// </summary>
+public class PwaProgressEventArgs : EventArgs
+{
+    public required string SessionId { get; init; }
+    public required PwaProgressSnapshot Snapshot { get; init; }
+}
+
+/// <summary>
 /// Embedded Kestrel minimal web server serving the PWA test suite and WebSocket hub.
 /// </summary>
 public class TestRunnerServer : IAsyncDisposable
@@ -79,12 +93,46 @@ public class TestRunnerServer : IAsyncDisposable
     public bool IsRunning => _host != null;
     public static bool EnableVerboseNetworkLogging { get; set; } = false;
 
+    /// <summary>
+    /// How far the phone got, kept on the desktop so a reload can be picked up
+    /// where it stopped and so the operator can watch progress from the PC.
+    /// </summary>
+    public PwaProgressStore ProgressStore { get; } = new();
+
+    /// <summary>
+    /// The device the desktop last paired with, for a page that arrived without
+    /// a sessionId. Set whenever a QR code is issued.
+    /// </summary>
+    public string? ActiveSessionId { get; private set; }
+
+    /// <summary>Records which device new QR codes are for.</summary>
+    public void SetActiveSession(string? sessionId)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId)) return;
+        ActiveSessionId = SanitizeToken(sessionId, 128);
+    }
+
+    /// <summary>Reads a sessionId out of a request body without failing on junk.</summary>
+    private static string ReadSessionId(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
+            return doc.RootElement.TryGetProperty("sessionId", out var prop) ? prop.GetString() ?? "" : "";
+        }
+        catch (JsonException)
+        {
+            return "";
+        }
+    }
+
     public event EventHandler<DeviceSessionEventArgs>? DeviceConnected;
     public event EventHandler<DeviceSessionEventArgs>? MessageReceived;
     public event EventHandler<DeviceSessionEventArgs>? SuiteCompleted;
     public event EventHandler<LogMessageEventArgs>? LogEventReceived;
     public event EventHandler<TelemetryEventArgs>? TelemetryReceived;
     public event EventHandler<MissingApiEventArgs>? MissingApiReported;
+    public event EventHandler<PwaProgressEventArgs>? ProgressChanged;
 
     public TestRunnerServer(int preferredPort = 5056, string? contentRootPath = null)
     {
@@ -92,6 +140,76 @@ public class TestRunnerServer : IAsyncDisposable
         // PhysicalFileProvider rejects relative paths, so normalise here instead of
         // letting the host fail at startup with "The path must be absolute".
         _contentRootPath = Path.GetFullPath(contentRootPath ?? ResolveWwwRootPath());
+    }
+
+    /// <summary>
+    /// Strips control characters and bounds the length of a value that came off
+    /// the wire before it is logged or stored as a component name. Anything a
+    /// client sends is untrusted, and a newline in a log line can forge entries.
+    /// </summary>
+    /// <summary>
+    /// Folds one phone message into the progress store. Both message shapes are
+    /// accepted because older phones send the step fields on the message and the
+    /// suite shape carries them inside the payload.
+    /// </summary>
+    private void RecordStepProgress(DeviceSessionMessage msg)
+    {
+        string sessionId = msg.SessionId ?? "UNKNOWN";
+        int total = msg.Payload?.Tests.Count ?? 0;
+
+        switch (msg.Type)
+        {
+            case "test_start":
+                ProgressStore.RecordStart(sessionId, msg.TestId, msg.TestName, total);
+                break;
+
+            case "test_complete":
+                if (string.IsNullOrWhiteSpace(msg.TestId)) break;
+
+                var step = new PwaStepRecord
+                {
+                    TestId = msg.TestId!,
+                    TestName = msg.TestName ?? "",
+                    Status = msg.Status?.ToString()?.ToLowerInvariant() ?? "",
+                    // Without a stamp the server has to invent one, and an invented
+                    // stamp is always newer, so a replayed result would win.
+                    ReportedAt = msg.ClientTimestamp ?? DateTimeOffset.UtcNow,
+                };
+
+                if (ProgressStore.RecordStep(sessionId, step, total))
+                {
+                    ProgressChanged?.Invoke(this, new PwaProgressEventArgs
+                    {
+                        SessionId = sessionId,
+                        Snapshot = ProgressStore.Get(sessionId),
+                    });
+                }
+                break;
+        }
+    }
+
+    private void RecordFinishProgress(DeviceSessionMessage msg, InteractiveTestSuiteResult suite)
+    {
+        string sessionId = suite.SessionId ?? msg.SessionId ?? "UNKNOWN";
+
+        foreach (var result in suite.Tests)
+        {
+            ProgressStore.RecordStep(sessionId, new PwaStepRecord
+            {
+                TestId = result.Id,
+                TestName = result.Name,
+                Status = result.Status.ToString().ToLowerInvariant(),
+                ReportedAt = msg.ClientTimestamp ?? suite.CompletedAt ?? DateTimeOffset.UtcNow,
+            }, suite.Tests.Count);
+        }
+
+        ProgressStore.RecordFinish(sessionId, msg.ClientTimestamp ?? suite.CompletedAt ?? DateTimeOffset.UtcNow);
+
+        ProgressChanged?.Invoke(this, new PwaProgressEventArgs
+        {
+            SessionId = sessionId,
+            Snapshot = ProgressStore.Get(sessionId),
+        });
     }
 
     /// <summary>
@@ -224,6 +342,44 @@ public class TestRunnerServer : IAsyncDisposable
                                         return;
                                     }
 
+                                    // The phone asks where it got to before it starts or resumes.
+                                    // An unknown session is an empty snapshot rather than a 404,
+                                    // so the phone can treat "first run" and "nothing stored"
+                                    // as the same case and start at the top.
+                                    if (context.Request.Method == "GET" && path.Equals("/api/pwa/progress", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        string sid = SanitizeToken(context.Request.Query["sessionId"].ToString(), 128);
+                                        var snapshot = ProgressStore.Get(sid);
+                                        await context.Response.WriteAsync(JsonSerializer.Serialize(snapshot));
+                                        return;
+                                    }
+
+                                    // A launch from the home screen lands on "/" with no
+                                    // sessionId on it. The desktop knows which device is on
+                                    // the bench, so the phone asks instead of guessing and
+                                    // reporting its results against the wrong device.
+                                    if (context.Request.Method == "GET" && path.Equals("/api/pwa/active-session", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        await context.Response.WriteAsync(JsonSerializer.Serialize(new
+                                        {
+                                            sessionId = ActiveSessionId ?? "UNKNOWN"
+                                        }));
+                                        return;
+                                    }
+
+                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/progress/reset", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        using var reader = new StreamReader(context.Request.Body);
+                                        string body = await reader.ReadToEndAsync();
+                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
+                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
+
+                                        string sid = SanitizeToken(ReadSessionId(body), 128);
+                                        ProgressStore.Reset(sid);
+                                        await context.Response.WriteAsync("{\"ok\":true}");
+                                        return;
+                                    }
+
                                     if (context.Request.Method == "POST" && path.Equals("/api/pwa/handshake", StringComparison.OrdinalIgnoreCase))
                                     {
                                         using var reader = new StreamReader(context.Request.Body);
@@ -268,9 +424,27 @@ public class TestRunnerServer : IAsyncDisposable
                                         string body = await reader.ReadToEndAsync();
                                         if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
                                             SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
-                                        var msg = JsonSerializer.Deserialize<DeviceSessionMessage>(body);
+
+                                        // A body that will not parse must not escape the
+                                        // middleware as a 500. The phone does not read the
+                                        // response code, so an exception here would stop
+                                        // every later step from being recorded as well.
+                                        DeviceSessionMessage? msg = null;
+                                        try
+                                        {
+                                            msg = JsonSerializer.Deserialize<DeviceSessionMessage>(body,
+                                                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                                        }
+                                        catch (JsonException)
+                                        {
+                                            await context.Response.WriteAsync("{\"ok\":false}");
+                                            return;
+                                        }
+
                                         if (msg != null)
                                         {
+                                            RecordStepProgress(msg);
+
                                             MessageReceived?.Invoke(this, new DeviceSessionEventArgs
                                             {
                                                 SessionId = msg.SessionId ?? "UNKNOWN",
@@ -307,6 +481,8 @@ public class TestRunnerServer : IAsyncDisposable
                                                 Payload = suiteResult
                                             };
                                             msg.Payload = suiteResult;
+
+                                            RecordFinishProgress(msg, suiteResult);
 
                                             SuiteCompleted?.Invoke(this, new DeviceSessionEventArgs
                                             {
