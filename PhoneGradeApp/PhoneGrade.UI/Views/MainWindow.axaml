@@ -42,7 +42,7 @@
                     <!-- Center: Current Device Summary (if active) -->
                     <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="True">
                         <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasDevice}">
-                            <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
                             <TextBlock Text="|" Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="12" VerticalAlignment="Center"/>
                             <TextBlock Text="|" Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
@@ -143,7 +143,7 @@
                                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0,2,0,0">
                                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="1" Margin="0,0,6,8">
                                             <TextBlock Classes="dim" Text="Model" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="12"/>
+                                            <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="1" Margin="0,0,6,8">
                                             <TextBlock Classes="dim" Text="Serienummer" FontSize="10"/>
@@ -161,6 +161,7 @@
                                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="1" Margin="0,0,6,0">
                                             <TextBlock Classes="dim" Text="Batterijconditie" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="SemiBold" FontSize="12"/>
+                                            <TextBlock Text="{Binding DeviceData.BatteryLevel, Converter={StaticResource BatteryLevelConverter}}" Classes="dim" FontSize="10"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="1" Grid.Column="2" Spacing="1">
                                             <TextBlock Classes="dim" Text="Kwaliteitsklasse" FontSize="10"/>
@@ -269,7 +270,7 @@
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                     <TextBlock Text="{DynamicResource Summary_Title}" Classes="cardTitle" FontSize="11"/>
-                                    <TextBlock Text="{Binding DeviceData.Model, Converter={StaticResource ModelDisplayConverter}}" FontSize="18" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontSize="18" FontWeight="Bold"/>
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <TextBlock Text="{Binding DeviceData.Identifier, StringFormat='IMEI / Serienummer: {0}'}" Classes="dim" FontSize="11"/>
                                         <TextBlock Text="{Binding DeviceData.Storage, StringFormat='Opslag: {0}'}" Classes="dim" FontSize="11"/>

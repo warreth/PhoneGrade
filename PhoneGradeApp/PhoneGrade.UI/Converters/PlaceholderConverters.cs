@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
+using PhoneGrade.Core;
 
 namespace PhoneGrade.UI.Converters;
 
@@ -38,6 +39,19 @@ public class BatteryHealthConverter : IValueConverter
             "" => "Onbekend",
             _ => str
         };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>Shows the current charge level as a subline under the battery condition.</summary>
+public class BatteryLevelConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not int level || level <= 0) return "";
+        return $"Lading {level}%";
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -142,13 +156,20 @@ public class PayMethodConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts raw model name to full friendly display model (e.g. '8' -> 'iPhone 8').</summary>
+/// <summary>
+/// Turns the raw model into the friendly display model (e.g. '8' -> 'iPhone 8').
+/// Takes the whole <see cref="DeviceData"/> rather than the model string, because
+/// deciding between an "iPhone " prefix and no prefix at all needs the platform.
+/// </summary>
 public class ModelDisplayConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
+        if (value is DeviceData data)
+            return Mappers.FormatDisplayModel(data.Model, data.ProductType);
+
         if (value is not string model) return "Onbekend Toestel";
-        return PhoneGrade.Core.Mappers.FormatDisplayModel(model);
+        return Mappers.FormatDisplayModel(model);
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

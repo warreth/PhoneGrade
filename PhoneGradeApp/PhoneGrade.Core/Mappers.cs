@@ -89,11 +89,19 @@ public static partial class Mappers
         if (string.IsNullOrWhiteSpace(model) || model == "Onbekend") return "Onbekend Toestel";
         if (model.StartsWith("iPhone") || model.StartsWith("iPad") || model.StartsWith("iPod")) return model;
 
+        // An Android model is already the marketing name ("Google Pixel 8 Pro").
+        // Prefixing it with "iPhone" turned a Pixel into an iPhone.
+        if (IsAndroidProductType(productType)) return model;
+
         if (productType != null && productType.StartsWith("iPad"))
             return $"iPad {model}";
 
         return $"iPhone {model}";
     }
+
+    /// <summary>True for the ProductType the Android collector writes, e.g. "Android (Google Pixel 8 Pro)".</summary>
+    public static bool IsAndroidProductType(string? productType) =>
+        productType is not null && productType.StartsWith("Android", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>DeviceEnclosureColor raw value or hex → Dutch color name.</summary>
     public static string MapColor(string raw)

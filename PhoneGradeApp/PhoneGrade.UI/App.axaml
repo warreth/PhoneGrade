@@ -13,6 +13,7 @@
             <!-- Converters -->
             <converters:PlaceholderToFriendlyConverter x:Key="PlaceholderConverter"/>
             <converters:BatteryHealthConverter x:Key="BatteryConverter"/>
+            <converters:BatteryLevelConverter x:Key="BatteryLevelConverter"/>
             <converters:ColorConverter x:Key="ColorConverter"/>
             <converters:QualityConverter x:Key="QualityConverter"/>
             <converters:ActivationLockConverter x:Key="ActivationLockConverter"/>

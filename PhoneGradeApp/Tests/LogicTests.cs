@@ -44,6 +44,71 @@ public class ParsersTests
     }
 
     [Fact]
+    public void AndroidBatteryCondition_ComputesFromCapacityCounters()
+    {
+        // 4400 of 5000 microAh left, the shape a Pixel reports
+        Assert.Equal(88, Parsers.ParseAndroidBatteryCondition("4400000", "5000000"));
+    }
+
+    [Fact]
+    public void AndroidBatteryCondition_IsNotTheChargeLevel()
+    {
+        // The bug this guards: a phone sitting at 20% charge was reported as
+        // having 20% condition, which reads as a nearly dead battery.
+        string dumpsys = "  level: 20\n  health: 2\n";
+        Assert.Equal(20, Parsers.ParseAndroidChargeLevel(dumpsys));
+        Assert.Equal(88, Parsers.ParseAndroidBatteryCondition("4400000", "5000000"));
+    }
+
+    [Theory]
+    [InlineData("4400000", "5000000", 88)]
+    [InlineData("5000000", "5000000", 100)]
+    [InlineData("5000000", "4400000", 100)] // replaced battery, clamped
+    [InlineData("0", "5000000", 0)] // unreadable
+    [InlineData("4400000", "0", 0)]
+    [InlineData("", "", 0)]
+    [InlineData("cat: no such file", "5000000", 0)]
+    [InlineData("4400000", "cat: no such file", 0)]
+    [InlineData(null, null, 0)]
+    public void AndroidBatteryCondition_HandlesUnreadableCounters(string? full, string? design, int expected)
+        => Assert.Equal(expected, Parsers.ParseAndroidBatteryCondition(full, design));
+
+    [Fact]
+    public void AndroidChargeLevel_ReadsLevel()
+    {
+        string dumpsys = "  AC powered: false\n  USB powered: true\n  level: 20\n  scale: 100\n";
+        Assert.Equal(20, Parsers.ParseAndroidChargeLevel(dumpsys));
+    }
+
+    [Theory]
+    [InlineData("", 0)]
+    [InlineData("  scale: 100\n", 0)]
+    [InlineData("  level: 150\n", 100)] // clamped
+    [InlineData("  level: -5\n", 0)]
+    public void AndroidChargeLevel_UnreadableGivesZero(string dumpsys, int expected)
+        => Assert.Equal(expected, Parsers.ParseAndroidChargeLevel(dumpsys));
+
+    [Theory]
+    [InlineData(2, "Goed")]
+    [InlineData(3, "Oververhit")]
+    [InlineData(4, "Defect")]
+    [InlineData(5, "Overspanning")]
+    [InlineData(6, "Storing")]
+    [InlineData(7, "Te koud")]
+    public void AndroidBatteryStatus_MapsTheStatusCode(int code, string expected)
+    {
+        string dumpsys = $"  status: 2\n  health: {code}\n  level: 55\n";
+        Assert.Equal(expected, Parsers.ParseAndroidBatteryStatus(dumpsys));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  health: 99\n")]
+    [InlineData("no battery service")]
+    public void AndroidBatteryStatus_UnknownCodeIsNOBatt(string dumpsys)
+        => Assert.Equal("NOBATT", Parsers.ParseAndroidBatteryStatus(dumpsys));
+
+    [Fact]
     public void Identifier_PrefersValidImei()
         => Assert.Equal("356938035643809", Parsers.ParseIdentifier("356938035643809", "F2LX9"));
 
@@ -165,6 +230,39 @@ public class MappersTests
     [Fact]
     public void MapModel_EmptyReturnsOnbekend()
         => Assert.Equal("Onbekend", Mappers.MapModel("  "));
+
+    [Fact]
+    public void DisplayModel_AndroidKeepsItsOwnName()
+    {
+        // A Pixel was shown as "iPhone Google Pixel 8 Pro" because the formatter
+        // prefixed anything that was not already an Apple name.
+        Assert.Equal("Google Pixel 8 Pro",
+            Mappers.FormatDisplayModel("Google Pixel 8 Pro", "Android (Google Pixel 8 Pro)"));
+    }
+
+    [Fact]
+    public void DisplayModel_AndroidWithoutBrandKeepsItsOwnName()
+        => Assert.Equal("SM-G991B", Mappers.FormatDisplayModel("SM-G991B", "Android (SM-G991B)"));
+
+    [Fact]
+    public void DisplayModel_AppleStillGetsThePrefix()
+    {
+        Assert.Equal("iPhone 8", Mappers.FormatDisplayModel("8", "iPhone10,1"));
+        Assert.Equal("iPad Air 11", Mappers.FormatDisplayModel("Air 11", "iPad14,3"));
+    }
+
+    [Fact]
+    public void DisplayModel_AppleNameIsNotDoublePrefixed()
+        => Assert.Equal("iPhone 13 Pro", Mappers.FormatDisplayModel("iPhone 13 Pro", "iPhone14,5"));
+
+    [Theory]
+    [InlineData("android (pixel)", true)]
+    [InlineData("Android (Pixel)", true)]
+    [InlineData("iPhone14,2", false)]
+    [InlineData("iPad14,3", false)]
+    [InlineData(null, false)]
+    public void IsAndroidProductType_OnlyMatchesAndroid(string? productType, bool expected)
+        => Assert.Equal(expected, Mappers.IsAndroidProductType(productType));
 
     [Theory]
     [InlineData("#ffffff", "Wit")]
@@ -460,6 +558,36 @@ public class LabelServiceTests : IDisposable
         string content = File.ReadAllText(path);
         Assert.Contains("92%", content);
         Assert.DoesNotContain("[X]", content);
+    }
+
+    [Fact]
+    public void GenerateLabel_AndroidPercentFromCapacityCounters()
+    {
+        string path = LabelService.GenerateLabel(new DeviceData
+        {
+            BatteryHealth = $"{Parsers.ParseAndroidBatteryCondition("4400000", "5000000")}%",
+        });
+        Assert.Contains("B=88%", File.ReadAllText(path));
+        Assert.DoesNotContain("[X]", File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void GenerateLabel_AndroidStatusWordGetsNoPercentSign()
+    {
+        // When the capacity counters are unreadable Android can only report a
+        // status code. "Goed%" on a label would be nonsense.
+        string path = LabelService.GenerateLabel(new DeviceData
+        {
+            BatteryHealth = Parsers.ParseAndroidBatteryStatus("  health: 2\n  level: 20\n"),
+        });
+        Assert.Contains("B=Goed ", File.ReadAllText(path));
+    }
+
+    [Fact]
+    public void GenerateLabel_NoBatteryData_StaysUnchanged()
+    {
+        string path = LabelService.GenerateLabel(new DeviceData { BatteryHealth = "NOBATT" });
+        Assert.Contains("B=NOBATT", File.ReadAllText(path));
     }
 
     [Fact]
