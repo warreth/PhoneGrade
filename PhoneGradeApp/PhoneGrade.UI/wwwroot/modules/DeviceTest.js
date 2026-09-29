@@ -33,20 +33,40 @@ export class DeviceTest {
 
     /**
      * Report progress to the desktop app via WebSocket.
+     *
+     * The id and name are overridable because a step may report progress for one
+     * row while it is working on another. The touchscreen step measures the grid
+     * and then the outer edges, and the operator watching the PC should be told
+     * which of the two is moving.
      * @param {WebSocketClient} wsClient
      * @param {number} progress - 0-100 percentage
      * @param {string} message - Optional status message
+     * @param {string} testId
+     * @param {string} testName
      */
-    reportProgress(wsClient, progress, message = '') {
+    reportProgress(wsClient, progress, message = '', testId = this.id, testName = this.name) {
         if (wsClient && wsClient.isConnected()) {
             wsClient.send({
                 type: 'test_progress',
-                testId: this.id,
-                testName: this.name,
+                testId: testId,
+                testName: testName,
                 progress: Math.round(progress),
                 message: message
             });
         }
+    }
+
+    /**
+     * How long the runner may wait for this step before failing it.
+     *
+     * The runner races every run() against a failsafe so a step that never
+     * settles cannot stall the suite. A step that measures more than one thing
+     * needs a longer budget, and it is better for the step to say how much of it
+     * it needs than for the runner to have to guess or for a phase to be quietly
+     * cut short. 90 s suits a single measurement.
+     */
+    getFailsafeMs() {
+        return 90000;
     }
 
     /**
@@ -142,5 +162,28 @@ export class DeviceTest {
             durationMs: this.getDuration(),
             details: this.details
         };
+    }
+
+    /**
+     * The result rows this step produces.
+     *
+     * One row per verdict, and by default that is one. A step that measures two
+     * things reports two, which is why this is a list: the runner, the desktop
+     * progress store and the results screen all work in rows, and folding a second
+     * verdict into the first would leave a grading label claiming something was
+     * checked when it was not, or the other way round.
+     */
+    toResults() {
+        return [this.toJSON()];
+    }
+
+    /**
+     * The ids this step reports its rows under, in the same order as toResults().
+     *
+     * Paired with toResults so the resume logic can tell whether a step is
+     * settled: a two-row step is only done when both of its ids are stored.
+     */
+    resultIds() {
+        return [this.id];
     }
 }

@@ -2,7 +2,6 @@
 
 import { DeviceTest } from './modules/DeviceTest.js';
 import { TouchTest } from './modules/TouchTest.js';
-import { DigitizerTest } from './modules/DigitizerTest.js';
 import { ForceTouchTest } from './modules/ForceTouchTest.js';
 import { DisplayTest } from './modules/DisplayTest.js';
 import { ScreenRotationTest } from './modules/ScreenRotationTest.js';
@@ -368,8 +367,9 @@ class TestRunner {
     constructor(wsClient) {
         this.wsClient = wsClient;
         this.tests = [
+            // The digitizer edges live inside TouchTest, and report under their
+            // own id, so they cost one step instead of two without costing a row.
             new TouchTest(),
-            new DigitizerTest(),
             new ForceTouchTest(),
             new DisplayTest(),
             new ScreenRotationTest(),
@@ -461,16 +461,22 @@ class TestRunner {
         let settleSkip;
         this._skipSettler = () => settleSkip && settleSkip();
 
+        // Each step states how long it needs rather than sharing one ceiling. A
+        // step that measures two things needs longer, and a fixed 90 s would cut
+        // its second half off and report a fail for hardware it never finished.
+        const budgetMs = typeof test.getFailsafeMs === 'function' ? test.getFailsafeMs() : 90000;
+        const budgetSeconds = Math.round(budgetMs / 1000);
+
         const guarded = Promise.race([
             test.run(this.wsClient, container),
             new Promise((resolve) => {
                 this._runFailsafe = setTimeout(() => {
                     if (test.status === 'running') {
-                        test.fail('Test timed out (90s limit reached)');
+                        test.fail(`Test timed out (${budgetSeconds}s limit reached)`);
                         console.warn(`Test ${test.id} timed out.`);
                     }
                     resolve();
-                }, 90000);
+                }, budgetMs);
             }),
             new Promise((resolve) => { settleSkip = resolve; })
         ]);
@@ -484,6 +490,19 @@ class TestRunner {
             if (test.status === 'running') {
                 test.fail('Test ended without a result');
             }
+
+            // A step that reports several rows has to settle all of them when the
+            // runner cuts in. One left pending would count as unfinished on the
+            // desktop for the rest of the run, and a skipped step would look like
+            // a step that never ran.
+            if (typeof test.settleEdgeFromRunner === 'function') {
+                test.settleEdgeFromRunner(
+                    test.status === 'skipped' ? 'skipped' : 'failed',
+                    test.status === 'skipped'
+                        ? 'Overgeslagen samen met de stap'
+                        : 'Afgebroken voordat de randen klaar waren');
+            }
+
             try {
                 test.dispose();
             } catch (e) {
@@ -534,17 +553,22 @@ class TestRunner {
             document.body.classList.remove('test-running');
             if (testScreen) testScreen.classList.remove('test-running');
 
-            // Guarantee immediate test_complete dispatch to host even on error/exception
-            this.wsClient.send({
-                type: 'test_complete',
-                sessionId: this.wsClient.sessionId,
-                testId: test.id,
-                testName: test.name,
-                status: test.status,
-                notes: test.notes,
-                durationMs: test.getDuration(),
-                details: test.details
-            });
+            // One test_complete per result row, even on an exception. A step that
+            // reports two rows has to report both here: sending only the first
+            // would leave the second unrecorded on the desktop, and the progress
+            // store would keep offering to resume a step that had already run.
+            for (const result of test.toResults()) {
+                this.wsClient.send({
+                    type: 'test_complete',
+                    sessionId: this.wsClient.sessionId,
+                    testId: result.id,
+                    testName: result.name,
+                    status: result.status,
+                    notes: result.notes,
+                    durationMs: result.durationMs,
+                    details: result.details
+                });
+            }
 
             this.updateTestListUI();
         }
@@ -596,7 +620,10 @@ class TestRunner {
             platform: this.getPlatform(),
             startedAt: this.startTime ? new Date(this.startTime).toISOString() : new Date().toISOString(),
             completedAt: new Date().toISOString(),
-            tests: this.tests.map(t => t.toJSON())
+            // Flattened, not mapped one-to-one. A step that measures two things
+            // contributes two rows, so a grading label that showed only the first
+            // would silently drop a verdict.
+            tests: this.tests.flatMap(t => t.toResults())
         };
     }
 
@@ -609,11 +636,19 @@ class TestRunner {
         return 'Unknown';
     }
 
-    async retryTest(testIndex) {
-        if (testIndex < 0 || testIndex >= this.tests.length) return;
+    /**
+     * Reruns one step.
+     *
+     * Indexed by id, not by position. The results screen lists rows and a step
+     * can produce more than one of them, so row 2 is not step 2 any more: a
+     * positional lookup would rerun whichever step happened to land there.
+     */
+    async retryTest(testId) {
+        const index = this.tests.findIndex(t => t.resultIds().includes(testId));
+        if (index < 0) return;
 
         this.showScreen('test-screen');
-        await this.runOne(testIndex, { then: 'results' });
+        await this.runOne(index, { then: 'results' });
 
         // Return to results after retry
         setTimeout(() => this.showResultsScreen(this.buildSuiteResult()), 1000);
@@ -668,7 +703,7 @@ class TestRunner {
         const resultsDetails = document.getElementById('results-details');
         if (resultsDetails) {
             resultsDetails.innerHTML = '';
-            suiteResult.tests.forEach((test, index) => {
+            suiteResult.tests.forEach((test) => {
                 const item = document.createElement('div');
                 item.className = 'result-item';
 
@@ -691,7 +726,9 @@ class TestRunner {
                 if (canRetry) {
                     const retry = document.createElement('button');
                     retry.className = 'btn btn-secondary retry-test-btn';
-                    retry.dataset.testIndex = String(index);
+                    // The row's own id, not its position. A step can produce more
+                    // than one row, so the row at index 2 is not step 2.
+                    retry.dataset.testId = test.id;
                     retry.textContent = 'Opnieuw';
                     item.appendChild(retry);
                 }
@@ -703,9 +740,8 @@ class TestRunner {
             const retryButtons = resultsDetails.querySelectorAll('.retry-test-btn');
             retryButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const testIndex = parseInt(btn.dataset.testIndex, 10);
                     if (window.testRunner) {
-                        window.testRunner.retryTest(testIndex);
+                        window.testRunner.retryTest(btn.dataset.testId);
                     }
                 });
             });
