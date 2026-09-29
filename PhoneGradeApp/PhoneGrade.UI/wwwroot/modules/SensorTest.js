@@ -127,7 +127,10 @@ export class SensorTest extends DeviceTest {
                 }, 4000);
             };
 
-            const logMissingApi = async (missingApi) => {
+            // reason is 'missing' when the browser does not expose the sensor API
+            // at all, and 'denied' when it does but the permission prompt was
+            // refused. Only 'missing' counts as a capability gap.
+            const logMissingApi = async (missingApi, reason = 'missing') => {
                 if (wsClient && wsClient.sessionId) {
                     try {
                         const ua = navigator.userAgent;
@@ -145,7 +148,8 @@ export class SensorTest extends DeviceTest {
                                 sessionId: wsClient.sessionId,
                                 missingApi: missingApi,
                                 userAgent: ua,
-                                osVersion: osVersion
+                                osVersion: osVersion,
+                                reason: reason
                             })
                         });
                     } catch (e) {
@@ -173,13 +177,14 @@ export class SensorTest extends DeviceTest {
                         if (res === 'granted') {
                             deviceMotionGranted = true;
                         } else {
-                            await logMissingApi('DeviceMotionEvent');
+                            // The API exists; the prompt was refused.
+                            await logMissingApi('DeviceMotionEvent', 'denied');
                             return handleFallbackAndSkip('Permission denied for DeviceMotionEvent');
                         }
                     } else if (typeof DeviceMotionEvent !== 'undefined') {
                         deviceMotionGranted = true;
                     } else {
-                        await logMissingApi('DeviceMotionEvent');
+                        await logMissingApi('DeviceMotionEvent', 'missing');
                         return handleFallbackAndSkip('DeviceMotionEvent not supported');
                     }
 
@@ -189,13 +194,14 @@ export class SensorTest extends DeviceTest {
                         if (res === 'granted') {
                             deviceOrientationGranted = true;
                         } else {
-                            await logMissingApi('DeviceOrientationEvent');
+                            // The API exists; the prompt was refused.
+                            await logMissingApi('DeviceOrientationEvent', 'denied');
                             return handleFallbackAndSkip('Permission denied for DeviceOrientationEvent');
                         }
                     } else if (typeof DeviceOrientationEvent !== 'undefined') {
                         deviceOrientationGranted = true;
                     } else {
-                        await logMissingApi('DeviceOrientationEvent');
+                        await logMissingApi('DeviceOrientationEvent', 'missing');
                         return handleFallbackAndSkip('DeviceOrientationEvent not supported');
                     }
 
@@ -205,7 +211,10 @@ export class SensorTest extends DeviceTest {
                         return handleFallbackAndSkip('Sensors not supported');
                     }
                 } catch (e) {
-                    await logMissingApi('DeviceMotionEvent');
+                    // The genuinely-absent cases are already handled above, so a
+                    // throw out of requestPermission() is a refusal or a browser
+                    // policy block, not a missing API.
+                    await logMissingApi('DeviceMotionEvent', 'denied');
                     return handleFallbackAndSkip('Sensor API error or missing capability');
                 }
             };

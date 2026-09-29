@@ -50,20 +50,23 @@ export class DeviceTest {
     }
 
     /**
+     * Called by the runner once run() has finished, however it finished: normal
+     * completion, an exception, a skip, or the 90 s failsafe. Subclasses that
+     * hold hardware resources release them here so an abandoned step cannot
+     * leave a camera or a torch switched on.
+     */
+    dispose() {
+    }
+
+    /**
      * Mark test as started and lock viewport.
+     * The time limit is enforced by TestRunner, which races every run() against
+     * a failsafe so a test that never settles cannot stall the suite.
      */
     start() {
         this.status = 'running';
         this.startTime = Date.now();
         this.viewportLocker.lock();
-        
-        // Failsafe timeout for all tests (90 seconds max)
-        this._globalTimeout = setTimeout(() => {
-            if (this.status === 'running') {
-                this.fail('Test timed out (90s limit reached)');
-                console.warn(`Test ${this.id} timed out.`);
-            }
-        }, 90000);
     }
 
     /**
@@ -71,7 +74,6 @@ export class DeviceTest {
      * @param {string} notes - Optional notes about the test
      */
     pass(notes = '') {
-        if (this._globalTimeout) clearTimeout(this._globalTimeout);
         this.status = 'passed';
         this.endTime = Date.now();
         this.notes = notes;
@@ -84,7 +86,6 @@ export class DeviceTest {
      * @param {string} notes - Explanation of what failed
      */
     fail(notes = '') {
-        if (this._globalTimeout) clearTimeout(this._globalTimeout);
         this.status = 'failed';
         this.endTime = Date.now();
         this.notes = notes;
@@ -97,7 +98,6 @@ export class DeviceTest {
      * @param {string} reason - Why the test was skipped
      */
     skip(reason = '') {
-        if (this._globalTimeout) clearTimeout(this._globalTimeout);
         this.status = 'skipped';
         this.endTime = Date.now();
         this.notes = reason;

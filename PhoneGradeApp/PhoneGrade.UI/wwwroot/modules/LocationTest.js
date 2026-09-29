@@ -1,5 +1,10 @@
 import { DeviceTest } from './DeviceTest.js';
 
+// How long the retry button stays useful after a permission denial. Long enough
+// to flip the setting in the OS and come back, short enough that the suite never
+// sits on a single step.
+const DENIAL_RETRY_GRACE_MS = 45000;
+
 export class LocationTest extends DeviceTest {
     constructor() {
         super('location', 'GPS / Location', 'Test Geolocation API functionality');
@@ -45,7 +50,10 @@ export class LocationTest extends DeviceTest {
         const errorMsgEl = container.querySelector('#loc-error-msg');
         const btnRetry = container.querySelector('#btn-retry-location');
 
-        const logMissingApi = async (missingApi) => {
+        // reason is 'missing' when the browser has no geolocation at all, and
+        // 'denied' when it does but the operator refused the prompt. Only the
+        // former is a capability gap that should cost the device a grade.
+        const logMissingApi = async (missingApi, reason = 'missing') => {
             if (wsClient && wsClient.sessionId) {
                 try {
                     const ua = navigator.userAgent;
@@ -63,13 +71,37 @@ export class LocationTest extends DeviceTest {
                             sessionId: wsClient.sessionId,
                             missingApi: missingApi,
                             userAgent: ua,
-                            osVersion: osVersion
+                            osVersion: osVersion,
+                            reason: reason
                         })
                     });
                 } catch (e) {
                     console.error('Failed to report missing API', e);
                 }
             }
+        };
+
+        // The promise that run() returns is created below, but requestLocation()
+        // runs from a click long after that point, so the resolver is held here
+        // where both sides can see it. Referencing `resolve` directly inside
+        // requestLocation() was a ReferenceError that left the promise pending
+        // and stalled the whole suite on the GPS step.
+        let settleRun = null;
+        let finishTimer = null;
+
+        // Settles after an optional delay. Any pending delay is replaced, so a
+        // retry that succeeds can take over from an earlier denial timeout.
+        const finish = (delayMs = 0) => {
+            if (finishTimer) {
+                clearTimeout(finishTimer);
+                finishTimer = null;
+            }
+            const release = () => {
+                finishTimer = null;
+                if (settleRun) settleRun();
+            };
+            if (delayMs <= 0) release();
+            else finishTimer = setTimeout(release, delayMs);
         };
 
         const requestLocation = () => {
@@ -103,7 +135,7 @@ export class LocationTest extends DeviceTest {
                     this.details.accuracy = accuracy;
                     this.reportProgress(wsClient, 100, 'GPS test complete');
                     
-                    setTimeout(() => resolve(), 1500);
+                    finish(1500);
                 },
                 async (error) => {
                     spinnerEl.style.display = 'none';
@@ -113,23 +145,29 @@ export class LocationTest extends DeviceTest {
                     switch(error.code) {
                         case error.PERMISSION_DENIED:
                             errorMsgEl.textContent = 'Location permission denied. Enable location access in settings and retry.';
-                            await logMissingApi('navigator.geolocation');
+                            // The API is present, the operator refused it. Report
+                            // it as a denial so it does not cap the grade.
+                            await logMissingApi('navigator.geolocation', 'denied');
                             this.skip('User denied location permission');
+                            // Keep the retry button usable for a while so the operator
+                            // can switch on location in settings, but never wait
+                            // indefinitely: the suite has to move on.
+                            finish(DENIAL_RETRY_GRACE_MS);
                             break;
                         case error.POSITION_UNAVAILABLE:
                             errorMsgEl.textContent = 'Location information unavailable';
                             this.fail('GPS Hardware reported position unavailable');
-                            setTimeout(() => resolve(), 2000);
+                            finish(2000);
                             break;
                         case error.TIMEOUT:
                             errorMsgEl.textContent = 'Location request timed out';
                             this.fail('GPS Hardware timed out acquiring fix');
-                            setTimeout(() => resolve(), 2000);
+                            finish(2000);
                             break;
                         default:
                             errorMsgEl.textContent = 'An unknown error occurred';
                             this.fail('Unknown geolocation error: ' + error.message);
-                            setTimeout(() => resolve(), 2000);
+                            finish(2000);
                             break;
                     }
                     this.details.errorCode = error.code;
@@ -143,12 +181,17 @@ export class LocationTest extends DeviceTest {
         };
 
         return new Promise((resolve) => {
+            settleRun = resolve;
+
             if (!navigator.geolocation) {
                 permissionArea.style.display = 'none';
                 errorArea.style.display = 'block';
                 errorMsgEl.textContent = 'Geolocation API not supported';
+                // A real capability gap, so it is reported as 'missing'. The
+                // endpoint dedupes, so overlapping with the startup scan is fine.
+                logMissingApi('navigator.geolocation', 'missing');
                 this.skip('Geolocation API not supported by browser');
-                setTimeout(() => resolve(), 2000);
+                finish(2000);
                 return;
             }
 

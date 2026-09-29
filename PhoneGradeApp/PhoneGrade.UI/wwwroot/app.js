@@ -6,7 +6,6 @@ import { DigitizerTest } from './modules/DigitizerTest.js';
 import { ForceTouchTest } from './modules/ForceTouchTest.js';
 import { DisplayTest } from './modules/DisplayTest.js';
 import { ScreenRotationTest } from './modules/ScreenRotationTest.js';
-import { ScreenBrightnessTest } from './modules/ScreenBrightnessTest.js';
 import { SpeakerTest } from './modules/SpeakerTest.js';
 import { MicrophoneTest } from './modules/MicrophoneTest.js';
 import { CallTest } from './modules/CallTest.js';
@@ -15,125 +14,7 @@ import { SensorTest } from './modules/SensorTest.js';
 import { LocationTest } from './modules/LocationTest.js';
 import { VibrationTest } from './modules/VibrationTest.js';
 import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
-
-// CapabilityScanner - detects missing browser APIs at PWA initialization
-class CapabilityScanner {
-    constructor() {
-        this.mandatoryApis = [
-            'DeviceMotionEvent',
-            'DeviceOrientationEvent', 
-            'geolocation',
-            'getUserMedia',
-            'vibrate',
-            'wakeLock'
-        ];
-        this.missingApis = [];
-    }
-
-    scan() {
-        const results = {
-            DeviceMotionEvent: typeof DeviceMotionEvent !== 'undefined',
-            DeviceOrientationEvent: typeof DeviceOrientationEvent !== 'undefined',
-            geolocation: 'geolocation' in navigator,
-            getUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
-            vibrate: typeof navigator.vibrate === 'function',
-            wakeLock: 'wakeLock' in navigator
-        };
-
-        this.missingApis = Object.entries(results)
-            .filter(([api, present]) => !present)
-            .map(([api]) => api);
-
-        return {
-            allPresent: this.missingApis.length === 0,
-            missing: this.missingApis,
-            results
-        };
-    }
-
-    async reportMissing(apiClient) {
-        if (this.missingApis.length === 0) return;
-
-        const ua = navigator.userAgent;
-        let os = 'Unknown';
-        let osVersion = '';
-
-        if (/iPhone|iPad|iPod/.test(ua)) {
-            os = 'iOS';
-            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || '';
-        } else if (/Android/.test(ua)) {
-            os = 'Android';
-            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || '';
-        } else if (/Macintosh/.test(ua)) {
-            os = 'macOS';
-            osVersion = ua.match(/Mac OS X ([\d_]+)/)?.[1]?.replace(/_/g, '.') || '';
-        } else if (/Windows/.test(ua)) {
-            os = 'Windows';
-        }
-
-        for (const missingApi of this.missingApis) {
-            try {
-                await fetch(`${apiClient.baseUrl}/api/pwa/log-warning`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionId: apiClient.sessionId,
-                        missingApi,
-                        userAgent: ua,
-                        osVersion: `${os} ${osVersion}`.trim()
-                    })
-                });
-            } catch (e) {
-                console.warn('Failed to report missing API:', missingApi, e);
-            }
-        }
-    }
-}
-
-
-class CapabilityScanner {
-    constructor(apiClient) {
-        this.apiClient = apiClient;
-        this.requiredApis = {
-            'DeviceMotionEvent': () => typeof DeviceMotionEvent !== 'undefined',
-            'DeviceOrientationEvent': () => typeof DeviceOrientationEvent !== 'undefined',
-            'navigator.geolocation': () => 'geolocation' in navigator,
-            'navigator.mediaDevices.getUserMedia': () => navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function',
-            'navigator.vibrate': () => typeof navigator.vibrate === 'function',
-            'navigator.wakeLock': () => 'wakeLock' in navigator
-        };
-    }
-
-    async scanAndReport() {
-        const ua = navigator.userAgent;
-        let osVersion = 'Unknown';
-        if (/iPhone|iPad|iPod/.test(ua)) {
-            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
-        } else if (/Android/.test(ua)) {
-            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
-        }
-
-        for (const [apiName, checkFn] of Object.entries(this.requiredApis)) {
-            if (!checkFn()) {
-                console.warn(`[CapabilityScanner] Missing API: ${apiName}`);
-                try {
-                    await fetch(`${this.apiClient.baseUrl}/api/pwa/log-warning`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            sessionId: this.apiClient.sessionId,
-                            missingApi: apiName,
-                            userAgent: ua,
-                            osVersion: osVersion
-                        })
-                    });
-                } catch (e) {
-                    console.error(`Failed to report missing API ${apiName}:`, e);
-                }
-            }
-        }
-    }
-}
+import { CapabilityScanner } from './modules/CapabilityScanner.js';
 
 class RestApiClient {
     constructor() {
@@ -175,11 +56,9 @@ class RestApiClient {
                     this.consoleLogger = new RemoteConsoleLogger(this);
                 }
                 
-                // 4. Run capability scanner
-                const scanner = new CapabilityScanner(this);
-                await scanner.scanAndReport();
-                
-                // 5. Start polling for server messages
+                // 4. Start polling for server messages
+                //    Capability scanning is owned by the bootstrap below so the
+                //    missing-API report is sent exactly once per page load.
                 this.startPolling();
             } else {
                 throw new Error(`Handshake failed: ${resp.status}`);
@@ -282,7 +161,13 @@ class RestApiClient {
         return this.connected;
     }
 
-    async send(message) {
+    /**
+     * Posts a message to the desktop host.
+     * Returns true when the server acknowledged it. Failures are appended to the
+     * offline queue unless the caller is already replaying that queue, which is
+     * what keeps syncOfflineQueue() from re-queueing items it is about to retry.
+     */
+    async send(message, { enqueueOnFailure = true } = {}) {
         try {
             let endpoint = '/api/pwa/submit-step';
             if (message.type === 'suite_complete') {
@@ -300,10 +185,16 @@ class RestApiClient {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
+
+            this.updateConnectionStatus('connected', 'Connected');
+            return true;
         } catch (e) {
             console.warn('Failed to send message, saving to offline queue:', e);
-            this.saveToOfflineQueue(message);
-            this.updateConnectionStatus('offline', 'Offline - Changes saved locally');
+            if (enqueueOnFailure) {
+                this.saveToOfflineQueue(message);
+                this.updateConnectionStatus('offline', 'Offline - Changes saved locally');
+            }
+            return false;
         }
     }
 
@@ -311,6 +202,8 @@ class RestApiClient {
         try {
             const queue = JSON.parse(localStorage.getItem('pwa_offline_queue') || '[]');
             queue.push({ timestamp: Date.now(), message });
+            // Bound the queue so a long outage cannot fill localStorage.
+            while (queue.length > 200) queue.shift();
             localStorage.setItem('pwa_offline_queue', JSON.stringify(queue));
         } catch (e) {
             console.error('Failed to save to offline queue:', e);
@@ -326,11 +219,11 @@ class RestApiClient {
             const failed = [];
 
             for (const item of queue) {
-                try {
-                    await this.send(item.message);
-                } catch (e) {
-                    failed.push(item);
-                }
+                // send() reports failure instead of throwing, so the outcome has to
+                // be read from its return value; otherwise the queue looks empty
+                // even when every message was rejected.
+                const delivered = await this.send(item.message, { enqueueOnFailure: false });
+                if (!delivered) failed.push(item);
             }
 
             if (failed.length === 0) {
@@ -339,6 +232,7 @@ class RestApiClient {
                 console.log('All offline messages synced successfully');
             } else {
                 localStorage.setItem('pwa_offline_queue', JSON.stringify(failed));
+                this.updateConnectionStatus('offline', `${failed.length} results still waiting to sync`);
                 console.log(`${failed.length} messages still pending`);
             }
         } catch (e) {
@@ -621,6 +515,50 @@ class TestRunner {
         await this.runNextTest();
     }
 
+    /**
+     * Runs a single test, but never waits on it forever.
+     *
+     * Several tests only settle from a user gesture (permission prompts, capture
+     * buttons, GPS fix). If that gesture never happens the suite used to stall on
+     * `await test.run(...)` and no result ever reached the desktop. Two guards
+     * release it: a 90 s failsafe, and the hold-to-skip button, which settles the
+     * same promise the instant an operator skips.
+     */
+    async runTestSafely(test, container) {
+        let settleSkip;
+        this._skipSettler = () => settleSkip && settleSkip();
+
+        const guarded = Promise.race([
+            test.run(this.wsClient, container),
+            new Promise((resolve) => {
+                this._runFailsafe = setTimeout(() => {
+                    if (test.status === 'running') {
+                        test.fail('Test timed out (90s limit reached)');
+                        console.warn(`Test ${test.id} timed out.`);
+                    }
+                    resolve();
+                }, 90000);
+            }),
+            new Promise((resolve) => { settleSkip = resolve; })
+        ]);
+
+        try {
+            await guarded;
+        } finally {
+            clearTimeout(this._runFailsafe);
+            this._runFailsafe = null;
+            this._skipSettler = null;
+            if (test.status === 'running') {
+                test.fail('Test ended without a result');
+            }
+            try {
+                test.dispose();
+            } catch (e) {
+                console.warn(`Cleanup failed for test ${test.id}:`, e);
+            }
+        }
+    }
+
     async runNextTest() {
         if (this.currentTestIndex >= this.tests.length) {
             await this.finishSuite();
@@ -642,7 +580,7 @@ class TestRunner {
         if (testScreen) testScreen.classList.add('test-running');
 
         try {
-            await test.run(this.wsClient, container);
+            await this.runTestSafely(test, container);
         } catch (error) {
             test.fail('Exception: ' + error.message);
             console.error('Test error:', error);
@@ -721,7 +659,7 @@ class TestRunner {
         if (testScreen) testScreen.classList.add('test-running');
 
         try {
-            await test.run(this.wsClient, container);
+            await this.runTestSafely(test, container);
         } catch (error) {
             test.fail('Exception: ' + error.message);
             console.error('Test error:', error);
@@ -867,6 +805,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         wsClient.updateConnectionStatus('offline', 'Offline - Changes saved locally');
     });
 
+    // Flush anything queued while the kiosk was offline. The 'online' listener
+    // only fires on a transition, so a queue left behind by a previous run would
+    // otherwise sit in localStorage until the network drops and comes back.
+    await wsClient.syncOfflineQueue();
+
     // Hold-to-skip functionality (requires 2-second hold)
     const skipBtn = document.getElementById('skip-test-btn');
     if (skipBtn) {
@@ -886,6 +829,9 @@ window.addEventListener('DOMContentLoaded', async () => {
                     const test = window.testRunner.tests[window.testRunner.currentTestIndex];
                     if (test) {
                         test.skip();
+                        // skip() only records the status; the runner is still awaiting
+                        // run(), so settle it or the suite never advances.
+                        if (window.testRunner._skipSettler) window.testRunner._skipSettler();
                     }
                 }
                 skipBtn.textContent = 'Overgeslagen';
