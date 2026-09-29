@@ -20,12 +20,22 @@ public class DeviceData : INotifyPropertyChanged
         set { if (_identifier != value) { _identifier = value; OnPropertyChanged(); } } 
     }
 
+    /// <summary>
+    /// Battery condition: how much of the original capacity is left, as the iOS
+    /// collector reports it. Not the charge level, see <see cref="BatteryLevel"/>.
+    /// </summary>
     private string _batteryHealth = "NOBATT";
     public string BatteryHealth 
     { 
         get => _batteryHealth; 
         set { if (_batteryHealth != value) { _batteryHealth = value; OnPropertyChanged(); } } 
     }
+
+    /// <summary>
+    /// Current charge in percent, empty when the platform does not report it.
+    /// Separate from <see cref="BatteryHealth"/>, which is the condition.
+    /// </summary>
+    public int? BatteryLevel { get; set; }
 
     private string _color = "NOCOLOR";
     public string Color 

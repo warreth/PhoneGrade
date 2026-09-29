@@ -565,15 +565,23 @@ public static class DeviceService
             MotherboardSerialNumber = hardwareSerial,
         };
 
-        // Battery level from dumpsys battery
+        // Battery: condition and charge level are different things. dumpsys only
+        // reports the charge level and a status code, so the condition comes from
+        // the capacity counters, and the status code is what is left over.
         try
         {
             var (battOut, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell dumpsys battery");
-            var match = System.Text.RegularExpressions.Regex.Match(battOut, @"level:\s*(\d+)");
-            if (match.Success)
-            {
-                data.BatteryHealth = $"{match.Groups[1].Value}%";
-            }
+
+            int level = Parsers.ParseAndroidChargeLevel(battOut);
+            if (level > 0) data.BatteryLevel = level;
+
+            var (fullOut, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell cat /sys/class/power_supply/battery/charge_full");
+            var (designOut, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell cat /sys/class/power_supply/battery/charge_full_design");
+
+            int condition = Parsers.ParseAndroidBatteryCondition(fullOut, designOut);
+            data.BatteryHealth = condition > 0
+                ? $"{condition}%"
+                : Parsers.ParseAndroidBatteryStatus(battOut);
         }
         catch { }
 
