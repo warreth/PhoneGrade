@@ -1,192 +1,352 @@
 import { DeviceTest } from './DeviceTest.js';
+import {
+    planChime,
+    isAudible,
+    isWithinRange,
+    describeOutcome,
+    SECTION_VOLUMES
+} from './SpeakerTone.js';
 
+/**
+ * The earpiece and the loudspeaker, judged by ear.
+ *
+ * Both halves used to be one-shot. The play button disabled itself, vanished when
+ * the tone finished, and the verdict buttons appeared once and then hid
+ * themselves again the moment they were pressed. That left the operator with a
+ * single chance to get it right, and a single chance is not enough for something
+ * judged by listening: a missed tone while the volume was still coming up reads
+ * exactly like a dead earpiece, and the verdict it produced was final.
+ *
+ * So the play button stays, the verdict buttons stay, and a verdict can be
+ * changed. The tone can be played as many times as the operator wants before
+ * answering, and how many times it was played is recorded, because a pass
+ * reached on the second listen is not the same claim as one reached on the first.
+ *
+ * A tone that could not be produced is reported as such. If the audio context
+ * will not start, or the destination will not accept a source, the honest note
+ * is that no tone was played, and the operator is asked to try again. Blaming the
+ * loudspeaker for a failure in the browser would put a fault on a grading label
+ * that is not in the phone.
+ */
 export class SpeakerTest extends DeviceTest {
+    /** How long to wait for the audio context to wake before giving up on it. */
+    static RESUME_TIMEOUT_MS = 1000;
+
     constructor() {
         super('speaker', 'Luidspreker & Oorstuk', 'Controleer de oorluidspreker en hoofdluidspreker');
         this.audioContext = null;
-        this.earpieceWorking = false;
-        this.loudspeakerWorking = false;
+
+        // Null until judged, not false. A section nobody has answered is not a
+        // section that failed, and the difference is what keeps a step that was
+        // abandoned halfway from being reported as a dead speaker.
+        this.earpieceWorking = null;
+        this.loudspeakerWorking = null;
+
+        this.plays = { earpiece: 0, loudspeaker: 0 };
+        this.audioProblem = null;
+    }
+
+    reset() {
+        super.reset();
+        this.earpieceWorking = null;
+        this.loudspeakerWorking = null;
+        this.plays = { earpiece: 0, loudspeaker: 0 };
+        this.audioProblem = null;
+    }
+
+    /**
+     * Closes the audio context.
+     *
+     * Called by the runner on every exit, including a skip and the failsafe. A
+     * context left open keeps the audio hardware awake, and on a phone that shows
+     * up as the operator reaching the next step and finding the volume slider not
+     * doing anything.
+     */
+    dispose() {
+        if (!this.audioContext) return;
+
+        try { this.audioContext.close(); } catch (e) { /* already closed */ }
+        this.audioContext = null;
+    }
+
+    /**
+     * The two speaker cards.
+     *
+     * The layout is inert on arrival and gets wired up section by section, so
+     * building it up front is what lets the sections exist without being live.
+     * Both cards are rendered at once but the second starts locked: a phone has to
+     * be held against the ear for one test and flat on a table for the other, and
+     * asking for both in the same position tests one of them in a place it cannot
+     * work.
+     */
+    markup() {
+        return `
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title">Audio en luidsprekers</h3>
+
+                    <div class="step-warning">
+                        Zet de stille-modusschakelaar uit en zet het mediavolume op
+                        maximaal voordat je begint.
+                    </div>
+
+                    <div id="earpiece-section" class="audio-section">
+                        <p class="audio-section-title">1. Oorluidspreker (bovenin)</p>
+                        <p class="audio-section-hint">Houd het toestel tegen je oor zodra de toon klinkt.</p>
+                        <button id="play-earpiece-btn" class="btn btn-primary">Speel de toon</button>
+                        <div id="earpiece-feedback" class="audio-verdicts" hidden>
+                            <button id="earpiece-yes" class="btn btn-success">Duidelijk gehoord</button>
+                            <button id="earpiece-no" class="btn btn-danger">Niets of vervormd</button>
+                        </div>
+                        <p id="earpiece-status" class="audio-status">Nog niet afgespeeld</p>
+                    </div>
+
+                    <div id="loudspeaker-section" class="audio-section is-locked">
+                        <p class="audio-section-title">2. Hoofdluidspreker (onderin)</p>
+                        <p class="audio-section-hint">Leg het toestel op een tafel, de speaker naar boven.</p>
+                        <button id="play-loud-btn" class="btn btn-primary">Speel de toon</button>
+                        <div id="loud-feedback" class="audio-verdicts" hidden>
+                            <button id="loud-yes" class="btn btn-success">Duidelijk gehoord</button>
+                            <button id="loud-no" class="btn btn-danger">Niets of vervormd</button>
+                        </div>
+                        <p id="loud-status" class="audio-status">Nog niet afgespeeld</p>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     async run(wsClient, container) {
         this.start();
         this.reportProgress(wsClient, 0, 'Audiotest voorbereiden...');
 
-        container.innerHTML = `
-            <div style="position: fixed; inset: 0; background: var(--color-bg-primary); z-index: 10000; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center;">
-                <div style="max-width: 450px; width: 100%;">
-                    <h3 style="color: var(--color-text-primary); margin-bottom: 12px; font-size: 22px; text-align: center; font-weight: bold;">Audio &amp; Luidsprekers</h3>
-                    
-                    <div style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; text-align: center; font-size: 13px;">
-                        ⚠️ Zet de stille modus schakelaar UIT en zet je mediavolume op 100%!
-                    </div>
+        container.innerHTML = this.markup();
 
-                    <div id="earpiece-section" style="margin-bottom: 20px; padding: 18px; background: var(--color-bg-secondary); border-radius: 12px; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); text-align: center;">
-                        <p style="margin-bottom: 8px; font-weight: bold; font-size: 15px; color: var(--color-text-primary);">1. Bovenste Oorluidspreker (Earpiece)</p>
-                        <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">Houd het toestel tegen je oor zodra de beltoon start.</p>
-                        <button id="play-earpiece-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 14px;">Speel Beltoon</button>
-                        <div id="earpiece-feedback" style="display: none; justify-content: center; gap: 10px;">
-                            <button id="earpiece-yes" class="btn btn-success" style="flex: 1;">Ik hoorde het goed</button>
-                            <button id="earpiece-no" class="btn btn-danger" style="flex: 1;">Niets gehoord</button>
-                        </div>
-                        <p id="earpiece-status" style="text-align: center; margin-top: 10px; color: var(--color-text-tertiary); font-size: 13px; font-weight: 600;">Wacht op test...</p>
-                    </div>
-                    
-                    <div id="loudspeaker-section" style="padding: 18px; background: var(--color-bg-secondary); border-radius: 12px; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); opacity: 0.5; pointer-events: none; text-align: center;">
-                        <p style="margin-bottom: 8px; font-weight: bold; font-size: 15px; color: var(--color-text-primary);">2. Onderste Hoofdluidspreker (Loudspeaker)</p>
-                        <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary);">Een heldere beltoon speelt af over de hoofdluidspreker.</p>
-                        <button id="play-loud-btn" class="btn btn-primary" style="width: 100%; margin-bottom: 14px;">Speel Beltoon</button>
-                        <div id="loud-feedback" style="display: none; justify-content: center; gap: 10px;">
-                            <button id="loud-yes" class="btn btn-success" style="flex: 1;">Ik hoorde het goed</button>
-                            <button id="loud-no" class="btn btn-danger" style="flex: 1;">Niets gehoord / kraakt</button>
-                        </div>
-                        <p id="loud-status" style="text-align: center; margin-top: 10px; color: var(--color-text-tertiary); font-size: 13px; font-weight: 600;">Wacht op test...</p>
-                    </div>
-                </div>
-            </div>
-        `;
+        await this.walk(wsClient, container);
 
-        const playEarpieceBtn = container.querySelector('#play-earpiece-btn');
-        const playLoudBtn = container.querySelector('#play-loud-btn');
-        const earpieceFeedback = container.querySelector('#earpiece-feedback');
-        const loudFeedback = container.querySelector('#loud-feedback');
-        const earpieceYes = container.querySelector('#earpiece-yes');
-        const earpieceNo = container.querySelector('#earpiece-no');
-        const loudYes = container.querySelector('#loud-yes');
-        const loudNo = container.querySelector('#loud-no');
-        const earpieceStatus = container.querySelector('#earpiece-status');
-        const loudStatus = container.querySelector('#loud-status');
-        const loudSection = container.querySelector('#loudspeaker-section');
+        this.reportProgress(wsClient, 100, 'Audiotests voltooid');
 
-        const initAudio = () => {
-            if (!this.audioContext) {
-                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
-            }
-        };
+        const outcome = describeOutcome(
+            { earpiece: this.earpieceWorking, loudspeaker: this.loudspeakerWorking },
+            this.plays);
 
-        return new Promise(async (resolve) => {
-            const testEarpiece = () => new Promise((res) => {
-                playEarpieceBtn.onclick = () => {
-                    initAudio();
-                    playEarpieceBtn.disabled = true;
-                    earpieceStatus.textContent = 'Beltoon speelt af (zacht)...';
-                    this.playChime(0.12, () => {
-                        playEarpieceBtn.style.display = 'none';
-                        earpieceFeedback.style.display = 'flex';
-                        earpieceStatus.textContent = 'Heb je de beltoon duidelijk gehoord?';
-                    });
-                };
+        this.details.earpiece = this.earpieceWorking;
+        this.details.loudspeaker = this.loudspeakerWorking;
+        this.details.earpiecePlays = this.plays.earpiece;
+        this.details.loudspeakerPlays = this.plays.loudspeaker;
+        this.details.audioProblem = this.audioProblem;
 
-                earpieceYes.onclick = () => {
-                    this.earpieceWorking = true;
-                    earpieceStatus.textContent = 'Geslaagd';
-                    earpieceStatus.style.color = 'var(--color-success)';
-                    earpieceFeedback.style.display = 'none';
-                    loudSection.style.opacity = '1';
-                    loudSection.style.pointerEvents = 'auto';
-                    res();
-                };
+        if (outcome.passed) {
+            this.pass(outcome.notes);
+        } else {
+            this.fail(outcome.notes);
+        }
+    }
 
-                earpieceNo.onclick = () => {
-                    this.earpieceWorking = false;
-                    earpieceStatus.textContent = 'Defect / Geen geluid';
-                    earpieceStatus.style.color = 'var(--color-error)';
-                    earpieceFeedback.style.display = 'none';
-                    loudSection.style.opacity = '1';
-                    loudSection.style.pointerEvents = 'auto';
-                    res();
-                };
-            });
+    /**
+     * Earpiece first, then loudspeaker.
+     *
+     * The second half stays locked until the first is answered, because the phone
+     * has to be held against the ear for one and flat on a table for the other.
+     * Doing both at once means one of the two is always judged in the wrong
+     * position.
+     */
+    async walk(wsClient, container) {
+        await this.askAbout(container, 'earpiece');
+        await this.askAbout(container, 'loudspeaker');
+    }
 
-            const testLoudspeaker = () => new Promise((res) => {
-                playLoudBtn.onclick = () => {
-                    initAudio();
-                    playLoudBtn.disabled = true;
-                    loudStatus.textContent = 'Beltoon speelt af...';
-                    this.playChime(1.0, () => {
-                        playLoudBtn.style.display = 'none';
-                        loudFeedback.style.display = 'flex';
-                        loudStatus.textContent = 'Heb je de beltoon luid en helder gehoord?';
-                    });
-                };
+    /**
+     * Wires up one speaker card and resolves once it has been judged.
+     *
+     * The play button is deliberately never disabled and never hidden. It used to
+     * disable itself and then set display none when the tone finished, and the
+     * verdict buttons appeared once and hid themselves again the moment they were
+     * pressed. That left one chance to get it right on something judged by
+     * listening, and a tone missed while the volume was still coming up reads
+     * exactly like a dead speaker.
+     *
+     * So the button stays and the verdicts stay. The operator can play the tone as
+     * often as they like before answering, and can change their mind afterwards.
+     */
+    askAbout(container, section) {
+        return new Promise((resolve) => {
+            const isEarpiece = section === 'earpiece';
+            const prefix = isEarpiece ? 'earpiece' : 'loud';
+            const volume = isEarpiece ? SECTION_VOLUMES.earpiece : SECTION_VOLUMES.loudspeaker;
 
-                loudYes.onclick = () => {
-                    this.loudspeakerWorking = true;
-                    loudStatus.textContent = 'Geslaagd';
-                    loudStatus.style.color = 'var(--color-success)';
-                    loudFeedback.style.display = 'none';
-                    res();
-                };
+            const playBtn = container.querySelector(`#play-${isEarpiece ? 'earpiece' : 'loud'}-btn`);
+            const feedback = container.querySelector(`#${prefix}-feedback`);
+            const yesBtn = container.querySelector(`#${prefix}-yes`);
+            const noBtn = container.querySelector(`#${prefix}-no`);
+            const status = container.querySelector(`#${prefix}-status`);
 
-                loudNo.onclick = () => {
-                    this.loudspeakerWorking = false;
-                    loudStatus.textContent = 'Defect / Geen geluid';
-                    loudStatus.style.color = 'var(--color-error)';
-                    loudFeedback.style.display = 'none';
-                    res();
-                };
-            });
-
-            this.reportProgress(wsClient, 10, 'Oorluidspreker testen...');
-            await testEarpiece();
-
-            this.reportProgress(wsClient, 50, 'Hoofdluidspreker testen...');
-            await testLoudspeaker();
-
-            this.reportProgress(wsClient, 100, 'Audiotests voltooid');
-
-            if (this.earpieceWorking && this.loudspeakerWorking) {
-                this.pass('Zowel oorluidspreker als hoofdluidspreker werken uitstekend');
-            } else if (this.earpieceWorking || this.loudspeakerWorking) {
-                const w = this.earpieceWorking ? 'Oorluidspreker' : 'Hoofdluidspreker';
-                const f = this.earpieceWorking ? 'Hoofdluidspreker' : 'Oorluidspreker';
-                this.fail(w + ' werkt, maar ' + f + ' is defect');
-            } else {
-                this.fail('Geen van beide luidsprekers werkt');
+            if (!playBtn || !feedback || !yesBtn || !noBtn || !status) {
+                // Wiring up half a card would leave buttons that do nothing, which
+                // is worse than no step at all: the operator would sit there
+                // pressing a dead button with no indication why.
+                console.warn(`SpeakerTest: markup for section '${section}' is incomplete.`);
+                resolve();
+                return;
             }
 
-            this.details.earpiece = this.earpieceWorking;
-            this.details.loudspeaker = this.loudspeakerWorking;
+            const renderVerdict = () => {
+                const value = isEarpiece ? this.earpieceWorking : this.loudspeakerWorking;
+                yesBtn.classList.toggle('is-active', value === true);
+                noBtn.classList.toggle('is-active', value === false);
+            };
 
-            if (this.audioContext) {
-                try { this.audioContext.close(); } catch (e) {}
-            }
-            resolve();
+            const setStatus = (text, kind) => {
+                status.textContent = text;
+                status.className = 'audio-status' + (kind ? ` is-${kind}` : '');
+            };
+
+            const play = async () => {
+                const started = await this.playTone(volume);
+
+                if (!started) {
+                    // Not a verdict on the speaker. The browser would not give us
+                    // a tone, so nothing has been tested yet, and the label has to
+                    // say that rather than blame the hardware.
+                    this.audioProblem = 'De browser gaf geen toon af';
+                    setStatus('Geen toon: controleer het volume en probeer opnieuw', 'error');
+                    return;
+                }
+
+                this.plays[section] += 1;
+                this.audioProblem = null;
+
+                // The verdict buttons appear on the first successful play and stay
+                // there, so the operator can listen again before committing.
+                feedback.hidden = false;
+
+                const plays = this.plays[section];
+                setStatus(plays === 1
+                    ? 'Toon afgespeeld. Heb je hem duidelijk gehoord?'
+                    : `Toon ${plays} keer afgespeeld. Wat heb je gehoord?`);
+            };
+
+            playBtn.addEventListener('click', play);
+
+            // Tracked separately, because they are two different things. Unlocking
+            // happens on the first answer of any kind: a "nothing heard" verdict on
+            // the earpiece is a real result, and the operator still has to be able
+            // to carry on and test the loudspeaker. Settling happens once, on the
+            // first answer, because the runner is waiting on it and cannot be
+            // un-waited. A later change to the verdict is still recorded.
+            let unlocked = false;
+            let settled = false;
+
+            const answer = (value) => {
+                if (isEarpiece) this.earpieceWorking = value;
+                else this.loudspeakerWorking = value;
+
+                renderVerdict();
+                setStatus(value ? 'Goed gehoord' : 'Geen of vervormd geluid', value ? 'success' : 'error');
+
+                this.haptic.tap();
+
+                if (isEarpiece && !unlocked) {
+                    const next = container.querySelector('#loudspeaker-section');
+                    if (next) next.classList.remove('is-locked');
+                    unlocked = true;
+                }
+
+                if (settled) return;
+                settled = true;
+                resolve();
+            };
+
+            yesBtn.addEventListener('click', () => answer(true));
+            noBtn.addEventListener('click', () => answer(false));
         });
     }
 
-    playChime(volume, onComplete) {
-        if (!this.audioContext) return;
-        
-        // Gentle marimba/chime sequence: C5, E5, G5, B5, C6 (warm bells)
-        const notes = [523.25, 659.25, 783.99, 987.77, 1046.50];
-        const stepTime = 0.22;
-        let t = this.audioContext.currentTime;
+    /**
+     * Creates or wakes the audio context, then plays one pass of the chime.
+     *
+     * The context is built inside the click handler because a browser will not
+     * let audio start without a gesture, and it is awaited before the notes are
+     * scheduled: a context that is still suspended when the notes are booked
+     * starts them late, or not at all, and the operator hears silence through no
+     * fault of the speaker.
+     *
+     * @returns {Promise<boolean>} whether a tone was actually produced
+     */
+    async playTone(volume) {
+        try {
+            if (!this.audioContext) {
+                const Ctor = window.AudioContext || window.webkitAudioContext;
+                if (!Ctor) return false;
+                this.audioContext = new Ctor();
+            }
 
-        notes.forEach((freq, idx) => {
-            const osc = this.audioContext.createOscillator();
-            const gain = this.audioContext.createGain();
-            
-            // Warm sine + soft harmonics for natural acoustic bell tone
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, t);
+            if (this.audioContext.state === 'suspended') {
+                // Bounded, and the state is checked afterwards rather than trusted
+                // from the promise.
+                //
+                // Measured on a real Pixel over the secure origin: resume() does
+                // not always settle. When the click does not carry a user
+                // activation, the promise simply never resolves, and an unbounded
+                // await here means playTone never returns, the status line never
+                // changes, no verdict buttons appear, and the operator is left
+                // pressing a button that does nothing until the 90 s failsafe ends
+                // the step. A refusal has to be able to come back as "no tone", not
+                // as nothing at all.
+                await Promise.race([
+                    this.audioContext.resume().catch(() => { /* refused, caught by the state check below */ }),
+                    new Promise(resolve => setTimeout(resolve, SpeakerTest.RESUME_TIMEOUT_MS))
+                ]);
+            }
 
-            gain.gain.setValueAtTime(0, t);
-            gain.gain.linearRampToValueAtTime(volume * 0.7, t + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+            if (this.audioContext.state !== 'running') {
+                // Suspended, closed, or interrupted. Either way nothing is coming
+                // out, and the operator has to be told so before they are asked
+                // whether they heard anything.
+                return false;
+            }
 
-            osc.connect(gain);
-            gain.connect(this.audioContext.destination);
+            const chime = planChime(volume, this.audioContext.currentTime);
 
-            osc.start(t);
-            osc.stop(t + 0.5);
+            // Both checks are about whether anything came out, not about how it
+            // sounded. A sequence that planned itself silent would otherwise be
+            // played and reported to the operator as a tone to judge, and the
+            // verdict they give on silence is the one that puts a fault on the
+            // label.
+            if (!isAudible(chime) || !isWithinRange(chime)) return false;
 
-            t += stepTime;
-        });
+            for (const note of chime.events) {
+                this.scheduleNote(note);
+            }
 
-        setTimeout(onComplete, (notes.length * stepTime + 0.5) * 1000);
+            // Waits for the whole sequence rather than a guess at its length, so
+            // the verdict buttons appear when the last bell has died and not while
+            // it is still ringing.
+            await new Promise(r => setTimeout(r, chime.durationMs));
+            return true;
+        } catch (e) {
+            console.warn('Speaker tone failed:', e);
+            return false;
+        }
+    }
+
+    scheduleNote(note) {
+        const ctx = this.audioContext;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(note.frequency, note.startAt);
+
+        gain.gain.setValueAtTime(0, note.startAt);
+        gain.gain.linearRampToValueAtTime(note.peak, note.attackAt);
+        gain.gain.exponentialRampToValueAtTime(0.0001, note.releaseAt);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(note.startAt);
+        osc.stop(note.stopAt);
     }
 }

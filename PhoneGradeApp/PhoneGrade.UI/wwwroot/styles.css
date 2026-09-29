@@ -578,6 +578,124 @@ body.test-running .test-footer,
     flex: 1;
 }
 
+/* Guided steps: one card at a time, the operator reads down the page */
+.step-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: var(--color-bg-primary);
+    overflow-y: auto;
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.step-column {
+    max-width: 450px;
+    width: 100%;
+}
+
+.step-title {
+    font-size: 22px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+/*
+ * A thing to do before the step means anything.
+ *
+ * Stated as an instruction and not as a warning sign: the operator is being asked
+ * to change a setting, and an alarm-shaped box for a step they can simply do makes
+ * it look like something has already gone wrong.
+ */
+.step-warning {
+    background: var(--color-warning-bg);
+    border: 1px solid var(--color-warning);
+    color: var(--color-warning-text);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-xl);
+    font-weight: 600;
+    text-align: center;
+    font-size: 13px;
+}
+
+/* One speaker under test */
+.audio-section {
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+}
+
+/*
+ * The next speaker, not reachable yet.
+ *
+ * Dimmed and inert rather than hidden, so the operator can see there is a second
+ * half coming and is not left wondering whether the step finished early.
+ */
+.audio-section.is-locked {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.audio-section-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.audio-section-hint {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* The two ways to answer, side by side and equal */
+.audio-verdicts {
+    display: flex;
+    gap: 10px;
+    margin-top: var(--spacing-md);
+}
+
+.audio-verdicts .btn {
+    flex: 1;
+}
+
+/*
+ * The answer that is currently recorded.
+ *
+ * Held on to after it is given, so a verdict chosen by mistake is visible as
+ * something that can be changed rather than something already written down.
+ */
+.audio-verdicts .btn.is-active {
+    outline: 3px solid var(--color-text-primary);
+    outline-offset: -3px;
+}
+
+.audio-status {
+    text-align: center;
+    margin-top: var(--spacing-md);
+    color: var(--color-text-tertiary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.audio-status.is-success {
+    color: var(--color-success-text);
+}
+
+.audio-status.is-error {
+    color: var(--color-error-text);
+}
+
 /* Results & Badges */
 .summary-stats {
     display: grid;
