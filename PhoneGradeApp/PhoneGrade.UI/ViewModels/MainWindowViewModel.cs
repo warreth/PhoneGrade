@@ -393,6 +393,10 @@ public class MainWindowViewModel : ReactiveObject
 
     private bool _showAdbWarning;
     public bool ShowAdbWarning { get => _showAdbWarning; set => this.RaiseAndSetIfChanged(ref _showAdbWarning, value); }
+
+    /// <summary>Result of the most recent device list probe, kept so the manual
+    /// refresh can build its status text without spawning the tools again.</summary>
+    private DeviceService.ConnectionState _lastDiagState = DeviceService.ConnectionState.NotFound;
     
     public ReactiveCommand<Unit, Unit> RetryAdbDetectionCommand { get; }
 
@@ -461,11 +465,15 @@ public class MainWindowViewModel : ReactiveObject
 
         UsbEventWatcher.UsbDeviceDisconnected += (s, e) =>
         {
-            Dispatcher.UIThread.Post(() =>
+            Dispatcher.UIThread.Post(async () =>
             {
-                // Auto reset detection state and clean UI
-                _ = RefreshDeviceListSilentAsync();
-                if (WorkflowState != AppWorkflowState.Idle)
+                // WMI reports every USB removal - a mouse, a headset, a phone
+                // charger - not just the device under test, so the reset is
+                // decided by the device count the same way the polling loop
+                // decides it. Resetting on the raw event would tear down an
+                // inspection because someone unplugged a peripheral.
+                int count = await RefreshDeviceListSilentAsync();
+                if (count == 0 && WorkflowState != AppWorkflowState.Idle)
                 {
                     ResetToIdle();
                 }
@@ -530,26 +538,37 @@ public class MainWindowViewModel : ReactiveObject
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    // Flag the session in the backend. 
-                    // Add it as a component issue so grading logic will pick it up and prevent 'A' grade.
-                    DeviceData.ComponentChecks.Add(new ComponentStatus
+                    // The server records the same check on this DeviceData when
+                    // it finds the session, so guard on absence rather than
+                    // always appending: appending blind would list the gap twice,
+                    // while guarding blind would drop it when no session matched.
+                    string checkName = $"{GradePolicy.MissingApiPrefix} {e.MissingApi}";
+                    if (!DeviceData.ComponentChecks.Any(c => c.Name == checkName))
                     {
-                        Name = $"API Missing: {e.MissingApi}",
-                        Status = ComponentStatusType.Failed,
-                        Details = $"The mandatory browser API '{e.MissingApi}' is missing on this device."
-                    });
-                    
-                    // Also add a diagnostic issue so it's visible in the UI
+                        DeviceData.ComponentChecks.Add(new ComponentStatus
+                        {
+                            Name = checkName,
+                            Status = ComponentStatusType.Failed,
+                            Details = $"The mandatory browser API '{e.MissingApi}' is missing on this device."
+                        });
+                    }
+
                     DeviceData.InteractiveTests ??= new InteractiveTestSuiteResult 
                     { 
                         SessionId = e.SessionId, 
                         DeviceUdid = "Unknown", 
                         Tests = new List<InteractiveTestResult>() 
                     };
-                    
+
+                    string testId = $"api_check_{e.MissingApi}";
+                    if (DeviceData.InteractiveTests.Tests.Any(t => t.Id == testId))
+                    {
+                        return;
+                    }
+
                     DeviceData.InteractiveTests.Tests.Add(new InteractiveTestResult
                     {
-                        Id = $"api_check_{e.MissingApi}",
+                        Id = testId,
                         Name = $"Browser API: {e.MissingApi}",
                         Status = TestStatus.Failed,
                         Notes = $"De PWA kon deze vereiste hardware API niet vinden.",
@@ -709,12 +728,29 @@ public class MainWindowViewModel : ReactiveObject
         IsPaymentPopupVisible = false;
     }
 
+    /// <summary>
+    /// Reads the device list and the adb state in one go, and shows or hides the
+    /// USB debugging warning card to match. Called from both refresh paths:
+    /// doing it only on the manual scan meant the card never appeared on
+    /// auto-detect and never cleared once the cable was pulled.
+    /// </summary>
+    private async Task<(Dictionary<string, string> Devices, DeviceService.ConnectionState State)> GetDevicesWithAdbStateAsync()
+    {
+        var (devices, diagState) = await DeviceService.GetConnectedDevicesWithStateAsync();
+
+        bool unauthorized = diagState == DeviceService.ConnectionState.Unauthorized;
+        await Dispatcher.UIThread.InvokeAsync(() => ShowAdbWarning = unauthorized);
+        _lastDiagState = diagState;
+
+        return (devices, diagState);
+    }
+
     /// <summary>True when a device list refresh surfaced exactly one usable device.</summary>
     private async Task<int> RefreshDeviceListSilentAsync()
     {
         try
         {
-            var devices = await DeviceService.GetConnectedDevicesAsync();
+            var (devices, _) = await GetDevicesWithAdbStateAsync();
             if (devices.Count == 0)
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
@@ -724,6 +760,7 @@ public class MainWindowViewModel : ReactiveObject
                 });
                 return 0;
             }
+
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 Devices = new ObservableCollection<KeyValuePair<string, string>>(devices);
@@ -755,16 +792,9 @@ public class MainWindowViewModel : ReactiveObject
                 WorkflowState = AppWorkflowState.Idle;
             }
 
-            var (_, _, diagState) = await DeviceService.ListUdidsSafeAsync();
-            
-            if (diagState == DeviceService.ConnectionState.Unauthorized)
-            {
-                ShowAdbWarning = true;
-            }
-            else
-            {
-                ShowAdbWarning = false;
-            }
+            // The probe inside the silent refresh already produced this state;
+            // re-running it here would spawn adb and libimobiledevice once more.
+            var diagState = _lastDiagState;
             
             Status = diagState switch
             {
@@ -923,10 +953,10 @@ public class MainWindowViewModel : ReactiveObject
 
     private async Task ContinueAfterQualityAsync(string quality)
     {
-        bool hasMissingApis = DeviceData.ComponentChecks.Any(c => c.Status == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
-        if (hasMissingApis && quality == "A")
+        string penalised = GradePolicy.ApplyMissingApiPenalty(quality, DeviceData.ComponentChecks);
+        if (penalised != quality)
         {
-            quality = "B";
+            quality = penalised;
             SystemEventLogger.Warning(LogSource.Desktop, "Prevented Grade 'A' selection due to missing mandatory browser APIs.", DeviceData.Identifier);
             Status = "Klasse A is niet toegestaan (ontbrekende API's). Automatisch verlaagd naar B.";
         }
@@ -1008,13 +1038,9 @@ public class MainWindowViewModel : ReactiveObject
         }
 
         // Enforce Grading Penalty: Prevent auto 'A' grade if missing mandatory APIs
-        bool hasMissingApis = DeviceData.ComponentChecks.Any(c => c.Status == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
-        string targetQuality = DefaultQuality;
-
-        if (hasMissingApis && targetQuality == "A")
+        string targetQuality = GradePolicy.ApplyMissingApiPenalty(DefaultQuality, DeviceData.ComponentChecks);
+        if (targetQuality != DefaultQuality)
         {
-            // Downgrade or force manual selection
-            targetQuality = "B"; 
             SystemEventLogger.Warning(LogSource.Desktop, "Downgraded automatic grade from A to B due to missing mandatory browser APIs.", DeviceData.Identifier);
         }
 

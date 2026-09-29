@@ -6,7 +6,6 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using PhoneGrade.UI.Models;
-using PhoneGrade.UI.ViewModels;
 using PhoneGrade.UI.Views;
 
 namespace PhoneGrade.UI;
@@ -36,7 +35,11 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             DisableAvaloniaDataAnnotationValidation();
-            desktop.MainWindow = new MainWindow { DataContext = new MainWindowViewModel() };
+            // MainWindow builds its own view model and wires DataEditorRequested
+            // in its constructor. Assigning a second one here would orphan that
+            // instance, so the editor button would never fire, and would start a
+            // second watcher and web server alongside the first.
+            desktop.MainWindow = new MainWindow();
         }
         base.OnFrameworkInitializationCompleted();
     }
