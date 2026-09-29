@@ -39,6 +39,10 @@
                     <TextBox Text="{Binding DeviceData.Storage}"/>
                 </StackPanel>
                 <StackPanel Spacing="7">
+                    <TextBlock Classes="TableHeader" Text="Geheugen"/>
+                    <TextBox Text="{Binding DeviceData.Memory}"/>
+                </StackPanel>
+                <StackPanel Spacing="7">
                     <TextBlock Classes="TableHeader" Text="Batterij"/>
                     <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
                 </StackPanel>

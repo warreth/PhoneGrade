@@ -51,6 +51,17 @@ public class DeviceData : INotifyPropertyChanged
         set { if (_storage != value) { _storage = value; OnPropertyChanged(); } } 
     }
 
+    /// <summary>
+    /// Installed memory, empty when the platform does not report it. iPhones leave
+    /// this empty because the label template has no field for it.
+    /// </summary>
+    private string _memory = "NOMEMORY";
+    public string Memory
+    {
+        get => _memory;
+        set { if (_memory != value) { _memory = value; OnPropertyChanged(); } }
+    }
+
     private string _model = "NOMODEL";
     public string Model 
     { 

@@ -74,7 +74,18 @@ public static partial class Mappers
         ["midnight"] = "Middernacht", ["starlight"] = "Sterrenlicht", ["blue"] = "Blauw",
         ["purple"] = "Paars", ["red"] = "Rood", ["green"] = "Groen", ["yellow"] = "Goud",
         ["geel"] = "Goud",
-        ["pink"] = "Roze", ["coral"] = "Koraal", ["product(red)"] = "Rood"
+        ["pink"] = "Roze", ["coral"] = "Koraal", ["product(red)"] = "Rood",
+
+        // Plain colour words. Android vendors usually publish a marketing name
+        // rather than Apple's raw strings, and those are ordinary words, so they
+        // resolve here instead of in a per-vendor list.
+        ["obsidian"] = "Obsidiaan", ["porcelain"] = "Porselein", ["hazel"] = "Hazel",
+        ["rose"] = "Rosé", ["charcoal"] = "Houtskool", ["mint"] = "Mint", ["navy"] = "Navy",
+        ["sage"] = "Sage", ["olive"] = "Olijf", ["cream"] = "Crème", ["beige"] = "Beige",
+        ["brown"] = "Bruin", ["orange"] = "Oranje", ["teal"] = "Blauwgroen",
+        ["lilac"] = "Lila", ["lavender"] = "Lavendel", ["violet"] = "Violet",
+        ["titanium"] = "Titaan", ["sand"] = "Zand", ["graphite"] = "Grafiet",
+        ["transparent"] = "Transparant", ["clear"] = "Transparant"
     };
 
     /// <summary>ProductType (iPhone14,2) → friendly model. Unknown ProductTypes fall back to the raw value.</summary>
@@ -153,6 +164,95 @@ public static partial class Mappers
     {
         string trimmed = raw.Trim().ToLowerInvariant();
         return Colors.TryGetValue(trimmed, out var c) ? c : "Onbekend";
+    }
+
+    // Android colour properties carry a three letter code, not a word. A title case
+    // cannot expand an abbreviation, so these are the codes that need listing; any
+    // other code is passed through unchanged rather than guessed at.
+    private static readonly Dictionary<string, string> AndroidColorCodes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["WHT"] = "Wit", ["BLK"] = "Zwart", ["BLU"] = "Blauw", ["PNG"] = "Roze", ["RSE"] = "Rosé",
+        ["ORG"] = "Oranje", ["GRN"] = "Groen", ["GRY"] = "Grijs", ["MNT"] = "Mint", ["HZL"] = "Hazel",
+        ["OBS"] = "Obsidiaan", ["POR"] = "Porselein", ["RED"] = "Rood", ["BRN"] = "Bruin",
+        ["GLD"] = "Goud", ["SLV"] = "Zilver", ["TAN"] = "Beige", ["PUR"] = "Paars", ["CRM"] = "Crème",
+        ["BLU2"] = "Blauw", ["NVY"] = "Navy", ["SGE"] = "Sage", ["OLV"] = "Olijf", ["SKY"] = "Lichtblauw",
+    };
+
+    /// <summary>
+    /// Android colour property → Dutch colour name, or the NOCOLOR placeholder when
+    /// the device exposes no colour. A full word goes through the normal colour
+    /// table first, so "Obsidian" and "black" both resolve without an entry here.
+    /// </summary>
+    public static string MapAndroidColor(string? raw)
+    {
+        string trimmed = (raw ?? "").Trim();
+        if (trimmed.Length == 0) return "NOCOLOR";
+
+        if (Colors.TryGetValue(trimmed.ToLowerInvariant(), out string? known)) return known;
+        if (AndroidColorCodes.TryGetValue(trimmed, out string? code)) return code;
+
+        // An unrecognised three letter code is left visible rather than turned into
+        // a guess: a wrong colour on the label is worse than an unfamiliar one.
+        if (LooksLikeAbbreviation(trimmed)) return trimmed.ToUpperInvariant();
+
+        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(trimmed.ToLowerInvariant());
+    }
+
+    // Two to four letters with no digits and no separators, which is the shape
+    // Android uses for its colour codes. "128GB" and "Micron" are not abbreviations.
+    [GeneratedRegex(@"^[A-Za-z]{2,4}$")]
+    private static partial Regex AbbreviationRegex();
+    private static bool LooksLikeAbbreviation(string value) => AbbreviationRegex().IsMatch(value);
+
+    // The storage and memory properties are comma separated records whose first
+    // field is the capacity: "128GB,Samsung" and "12GiB,Micron,LPDDR5,ff07".
+    [GeneratedRegex(@"\b(\d+)\s*(GB|TB|GiB|MB)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex CapacityRegex();
+
+    /// <summary>
+    /// Android storage → marketing capacity. The property is preferred because it
+    /// is the number the device is sold as; the df fallback buckets the usable size,
+    /// which is a little lower because the system takes its own partitions first.
+    /// </summary>
+    public static string MapAndroidStorage(string? raw, long dataBytes)
+    {
+        string advertised = ExtractCapacity(raw);
+        if (advertised.Length > 0) return advertised;
+
+        return dataBytes > 0 ? MapStorage(dataBytes) : "NOSTORAGE";
+    }
+
+    /// <summary>Installed memory, or the NOMEMORY placeholder.</summary>
+    public static string MapAndroidMemory(string? raw)
+    {
+        string capacity = ExtractCapacity(raw);
+        return capacity.Length > 0 ? capacity : "NOMEMORY";
+    }
+
+    /// <summary>
+    /// Pulls the capacity out of a hardware property value. "128GB,Samsung" gives
+    /// "128GB"; the unit is normalised to the decimal form used on the label.
+    /// </summary>
+    private static string ExtractCapacity(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "";
+
+        var match = CapacityRegex().Match(raw);
+        if (!match.Success) return "";
+
+        if (!int.TryParse(match.Groups[1].Value, out int amount) || amount <= 0) return "";
+
+        // GiB is what the device counts in; GB is what it is sold in. A 12GiB
+        // module is a 12GB phone, so the binary unit is only a spelling difference.
+        string unit = match.Groups[2].Value.ToLowerInvariant() switch
+        {
+            "tb" => "TB",
+            "mb" => "MB",
+            _ => "GB",
+        };
+
+        // Some devices report terabytes as 1024GB rather than 1TB.
+        return unit == "GB" && amount % 1024 == 0 ? $"{amount / 1024}TB" : $"{amount}{unit}";
     }
 
     /// <summary>TotalDiskCapacity bytes → nearest marketing bucket (64, 128, 256, 512 GB, 1/2 TB).</summary>

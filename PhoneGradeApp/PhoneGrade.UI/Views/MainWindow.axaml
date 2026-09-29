@@ -140,7 +140,7 @@
                             <Border Classes="card" Padding="10,8">
                                 <StackPanel Spacing="10">
                                     <TextBlock Classes="cardTitle" Text="HARDWARE SPECIFICATIES" FontSize="11"/>
-                                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0,2,0,0">
+                                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" Margin="0,2,0,0">
                                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="1" Margin="0,0,6,8">
                                             <TextBlock Classes="dim" Text="Model" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="12"/>
@@ -166,6 +166,11 @@
                                         <StackPanel Grid.Row="1" Grid.Column="2" Spacing="1">
                                             <TextBlock Classes="dim" Text="Kwaliteitsklasse" FontSize="10"/>
                                             <TextBlock Text="{Binding SelectedGradeDisplay}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentColor}"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="2" Grid.Column="0" Spacing="1">
+                                            <TextBlock Classes="dim" Text="Geheugen" FontSize="10"/>
+                                            <TextBlock Text="{Binding DeviceData.Memory, Converter={StaticResource MemoryConverter}}" FontWeight="SemiBold" FontSize="12"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
@@ -274,6 +279,7 @@
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <TextBlock Text="{Binding DeviceData.Identifier, StringFormat='IMEI / Serienummer: {0}'}" Classes="dim" FontSize="11"/>
                                         <TextBlock Text="{Binding DeviceData.Storage, StringFormat='Opslag: {0}'}" Classes="dim" FontSize="11"/>
+                                        <TextBlock Text="{Binding DeviceData.Memory, Converter={StaticResource MemoryConverter}, StringFormat='Geheugen: {0}'}" Classes="dim" FontSize="11"/>
                                         <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}, StringFormat='Kleur: {0}'}" Classes="dim" FontSize="11"/>
                                     </StackPanel>
                                 </StackPanel>

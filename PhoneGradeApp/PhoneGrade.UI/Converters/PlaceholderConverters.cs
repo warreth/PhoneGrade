@@ -77,6 +77,28 @@ public class ColorConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
+/// <summary>
+/// Installed memory. Android reports it; iOS does not, so the row reads as
+/// unknown there instead of showing the raw placeholder.
+/// </summary>
+public class MemoryConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is not string str) return "Niet opgegeven";
+
+        return str switch
+        {
+            "NOMEMORY" => "Niet opgegeven",
+            "" => "Niet opgegeven",
+            _ => str
+        };
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
 /// <summary>Converts quality placeholder to friendly text in Dutch.</summary>
 public class QualityConverter : IValueConverter
 {
