@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -52,25 +53,147 @@ public class CapabilityScannerTests
     public void GradingPenalty_EnforcedWhenMandatoryApiMissing()
     {
         var deviceData = new DeviceData { Identifier = "Device_Penalty_Test", Quality = "A" };
-        
-        // Add a missing API check
+
         deviceData.ComponentChecks.Add(new ComponentStatus
         {
-            Name = "API Missing: DeviceMotionEvent",
+            Name = GradePolicy.MissingApiPrefix + " DeviceMotionEvent",
             Status = ComponentStatusType.Failed,
             Description = "Device is missing DeviceMotionEvent capability."
         });
 
-        bool hasMissingApis = deviceData.ComponentChecks.Exists(c => c.Status == ComponentStatusType.Failed && c.Name.StartsWith("API Missing:"));
-        Assert.True(hasMissingApis);
+        // The penalty is read from the device's own checks by the production
+        // policy, not reimplemented here.
+        Assert.True(GradePolicy.HasMissingBrowserApis(deviceData.ComponentChecks));
+        Assert.Equal("B", GradePolicy.ApplyMissingApiPenalty(deviceData.Quality, deviceData.ComponentChecks));
+    }
 
-        string targetQuality = deviceData.Quality;
-        if (hasMissingApis && targetQuality == "A")
+    [Fact]
+    public async Task LogWarningEndpoint_DoesNotDuplicateTheSameMissingApi()
+    {
+        // The capability scanner runs on every page load, so a reload must not
+        // stack identical failed checks on the session.
+        var server = new TestRunnerServer(6131, ".");
+        await server.StartAsync();
+
+        string sessionId = "TEST_SESSION_CAP_DEDUPE";
+        DeviceSessionManager.UpdateSessionData(sessionId, new DeviceData { Identifier = "Device_Dedupe", Quality = "A" });
+
+        var requestBody = JsonSerializer.Serialize(new
         {
-            targetQuality = "B";
+            sessionId,
+            missingApi = "navigator.wakeLock",
+            userAgent = "Mozilla/5.0",
+            osVersion = "Windows 10"
+        });
+
+        using var client = new HttpClient();
+        for (int i = 0; i < 3; i++)
+        {
+            using var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+            var response = await client.PostAsync($"http://localhost:{server.BoundPort}/api/pwa/log-warning", content);
+            response.EnsureSuccessStatusCode();
         }
 
-        Assert.Equal("B", targetQuality);
+        Assert.True(DeviceSessionManager.TryGetSession(sessionId, out var session));
+        int duplicates = session!.Data!.ComponentChecks
+            .Count(c => c.Name == "API Missing: navigator.wakeLock");
+
+        Assert.Equal(1, duplicates);
+
+        await server.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task LogWarningEndpoint_RejectsMalformedJsonWithoutFailingTheServer()
+    {
+        // The PWA does not check response.ok, so a bad body must be answered
+        // quietly rather than taking the request pipeline down with a 500.
+        var server = new TestRunnerServer(6132, ".");
+        await server.StartAsync();
+
+        using var client = new HttpClient();
+        using var content = new StringContent("{ not json", Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync($"http://localhost:{server.BoundPort}/api/pwa/log-warning", content);
+
+        Assert.NotEqual(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);
+
+        // The server must still be serving afterwards.
+        var health = await client.GetAsync($"http://localhost:{server.BoundPort}/api/pwa/status");
+        health.EnsureSuccessStatusCode();
+
+        await server.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task LogWarningEndpoint_PermissionDenied_DoesNotCostTheDeviceAGrade()
+    {
+        // A refused permission prompt means the API is there. Recording it as a
+        // missing capability would cap a perfectly good device at grade B.
+        var server = new TestRunnerServer(6133, ".");
+        await server.StartAsync();
+
+        string sessionId = "TEST_SESSION_CAP_DENIED";
+        var deviceData = new DeviceData { Identifier = "Device_Denied", Quality = "A" };
+        DeviceSessionManager.UpdateSessionData(sessionId, deviceData);
+
+        var requestBody = JsonSerializer.Serialize(new
+        {
+            sessionId,
+            missingApi = "navigator.geolocation",
+            userAgent = "Mozilla/5.0",
+            osVersion = "Android 14",
+            reason = "denied"
+        });
+
+        using var client = new HttpClient();
+        using var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync($"http://localhost:{server.BoundPort}/api/pwa/log-warning", content);
+
+        response.EnsureSuccessStatusCode();
+
+        Assert.True(DeviceSessionManager.TryGetSession(sessionId, out var session));
+        Assert.DoesNotContain(session!.Data!.ComponentChecks,
+            c => c.Name == "API Missing: navigator.geolocation");
+
+        // The grade an untouched grade A device would keep.
+        Assert.Equal("A", GradePolicy.ApplyMissingApiPenalty("A", session.Data.ComponentChecks));
+
+        await server.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task LogWarningEndpoint_SanitisesControlCharactersBeforeLogging()
+    {
+        // The api value is interpolated into a log line and a component name,
+        // so an embedded newline must not be able to forge a second entry.
+        var server = new TestRunnerServer(6134, ".");
+        await server.StartAsync();
+
+        string sessionId = "TEST_SESSION_CAP_SANITISE";
+        DeviceSessionManager.UpdateSessionData(sessionId, new DeviceData { Identifier = "Device_San", Quality = "A" });
+
+        var requestBody = JsonSerializer.Serialize(new
+        {
+            sessionId,
+            missingApi = "evil\nFORGED ENTRY: audit cleared",
+            userAgent = "Mozilla/5.0",
+            osVersion = "Windows 10"
+        });
+
+        using var client = new HttpClient();
+        using var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync($"http://localhost:{server.BoundPort}/api/pwa/log-warning", content);
+
+        response.EnsureSuccessStatusCode();
+
+        Assert.True(DeviceSessionManager.TryGetSession(sessionId, out var session));
+        var check = session!.Data!.ComponentChecks.Single();
+
+        Assert.DoesNotContain('\n', check.Name);
+        Assert.DoesNotContain('\r', check.Name);
+
+        await server.DisposeAsync();
     }
 
     [Fact]

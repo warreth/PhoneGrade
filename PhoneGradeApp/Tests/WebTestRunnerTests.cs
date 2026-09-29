@@ -227,7 +227,7 @@ public class WebTestRunnerTests : IAsyncLifetime
             TestId = "camera",
             TestName = "Camera Test",
             Status = TestStatus.Passed,
-            Notes = "Front and rear camera verified"
+            Message = "Front and rear camera verified"
         };
 
         var json = JsonSerializer.Serialize(message);
@@ -243,6 +243,7 @@ public class WebTestRunnerTests : IAsyncLifetime
         Assert.Equal(sessionId, receivedArgs!.SessionId);
         Assert.Equal("camera", receivedArgs.Message?.TestId);
         Assert.Equal(TestStatus.Passed, receivedArgs.Message?.Status);
+        Assert.Equal("Front and rear camera verified", receivedArgs.Message?.Message);
     }
 
     [Fact]
@@ -284,23 +285,6 @@ public class WebTestRunnerTests : IAsyncLifetime
         Assert.Equal(sessionId, receivedArgs!.SessionId);
         Assert.NotNull(receivedArgs.Message?.Payload);
         Assert.Equal(2, receivedArgs.Message?.Payload?.Tests.Count);
-    }
-
-        _server!.DeviceConnected += (s, e) =>
-        {
-            deviceConnectedFired = true;
-            connectedSessionId = e.SessionId;
-        };
-
-        // Act
-        _clientWebSocket = await ConnectWebSocketAsync("EVENT_TEST");
-
-        // Give event handler time to fire
-        await Task.Delay(100);
-
-        // Assert
-        Assert.True(deviceConnectedFired);
-        Assert.Equal("EVENT_TEST", connectedSessionId);
     }
 
     [Fact]

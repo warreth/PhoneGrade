@@ -7,9 +7,17 @@ namespace PhoneGrade.Core;
 public static class DeviceService
 {
     /// <summary>All connected devices: UDID → "Name: Model" for display (iOS and Android).</summary>
-    public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync()
+    public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync() =>
+        (await GetConnectedDevicesWithStateAsync()).Devices;
+
+    /// <summary>
+    /// One probe for both the display names and the diagnostic state. Splitting
+    /// these into two calls would run <see cref="ListUdidsSafeAsync"/> twice per
+    /// refresh, and that spawns adb and libimobiledevice each time.
+    /// </summary>
+    public static async Task<(Dictionary<string, string> Devices, ConnectionState State)> GetConnectedDevicesWithStateAsync()
     {
-        var (udids, _, _) = await ListUdidsSafeAsync();
+        var (udids, _, diagState) = await ListUdidsSafeAsync();
         var devices = new Dictionary<string, string>();
 
         if (udids.Length > 0)
@@ -41,13 +49,23 @@ public static class DeviceService
                     devices[id] = string.IsNullOrWhiteSpace(name) ? model : $"{name} ({model})";
                 }
             }
-            return devices;
+            return (devices, diagState);
         }
 
         // idevice_id was checked in ListUdidsSafeAsync. If no devices were found via idevice_id or adb,
         // do not run redundant fallback queries that flood log output.
-        return devices;
+        return (devices, diagState);
     }
+
+    /// <summary>
+    /// True when an <c>adb -s ... get-state</c> reply reports the device as
+    /// unauthorized, i.e. USB debugging is switched off or the host key has not
+    /// been accepted on the handset. Case is ignored because adb has printed
+    /// this word in more than one casing across releases.
+    /// </summary>
+    public static bool IsUnauthorizedAdbState(string? adbState) =>
+        !string.IsNullOrEmpty(adbState) &&
+        adbState.Contains("unauthorized", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Returns true if the identifier matches an iOS UDID pattern (40 hex chars or 24/25 chars with hyphen).</summary>
     public static bool LooksLikeIosUdid(string id)
@@ -355,7 +373,7 @@ public static class DeviceService
             try
             {
                 var (adbState, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {targetUdid} get-state");
-                if (adbState.Contains("unauthorized"))
+                if (IsUnauthorizedAdbState(adbState))
                 {
                     return ConnectionState.Unauthorized;
                 }

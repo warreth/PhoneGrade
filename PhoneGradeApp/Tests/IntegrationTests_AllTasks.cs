@@ -26,7 +26,10 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     public async Task DisposeAsync()
     {
         _client?.Dispose();
-        await _server?.DisposeAsync();
+        if (_server != null)
+        {
+            await _server.DisposeAsync();
+        }
     }
 
     // Task 1: PWA Capability Scanner & Desktop Logging
@@ -58,7 +61,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     public async Task Task2_MotionSensor_HandlesPermissionDenial()
     {
         // Arrange: Verify that SensorTest.js exists and has requestPermission logic
-        var sensorTestContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/SensorTest.js");
+        var sensorTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/SensorTest.js");
         
         // Assert: Verify the permission handling code is present
         Assert.Contains("requestPermission", sensorTestContent);
@@ -70,19 +73,21 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     [Fact]
     public async Task Task3_GPS_ShowsRetryButtonOnPermissionDenied()
     {
-        var locationTestContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/LocationTest.js");
-        
-        // Verify the retry button UI is present
+        var locationTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/LocationTest.js");
+
+        // The retry button must exist and must be wired up, and a denial must
+        // settle the step instead of leaving the suite waiting forever.
         Assert.Contains("btn-retry-location", locationTestContent);
-        Assert.Contains("Retry", locationTestContent);
-        Assert.Contains("Permission denied", locationTestContent);
+        Assert.Contains("btnRetry.onclick", locationTestContent);
+        Assert.Contains("permission denied", locationTestContent);
+        Assert.Contains("finish(DENIAL_RETRY_GRACE_MS)", locationTestContent);
     }
 
     // Task 3: Display Brightness Integration
     [Fact]
     public async Task Task3_Display_MergesBrightnessCheck()
     {
-        var displayTestContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/DisplayTest.js");
+        var displayTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/DisplayTest.js");
         
         // Verify brightness check is in DisplayTest
         Assert.Contains("showBrightnessCheck", displayTestContent);
@@ -94,19 +99,23 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     [Fact]
     public async Task Task3_iOS_DisplaysFullscreenBanner()
     {
-        var appJsContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/app.js");
-        
-        // Verify standalone detection
+        var appJsContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/app.js");
+        var indexHtml = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/index.html");
+
+        // Verify standalone detection lives in the bootstrap...
         Assert.Contains("display-mode: standalone", appJsContent);
         Assert.Contains("ios-standalone-banner", appJsContent);
-        Assert.Contains("Add to Home Screen", appJsContent);
+
+        // ...and the banner it reveals is declared in the markup.
+        Assert.Contains("ios-standalone-banner", indexHtml);
+        Assert.Contains("Add to Home Screen", indexHtml);
     }
 
     // Task 4: Camera WebRTC Stream
     [Fact]
     public async Task Task4_Camera_UsesWebRTCNotFileInput()
     {
-        var cameraTestContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
+        var cameraTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
         
         // Verify file input is removed
         Assert.DoesNotContain("<input type='file'", cameraTestContent.Replace("\"", "'"));
@@ -119,7 +128,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     [Fact]
     public async Task Task4_Camera_HasPhotoReviewWorkflow()
     {
-        var cameraTestContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
+        var cameraTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
         
         // Verify review buttons
         Assert.Contains("Retake Photo", cameraTestContent);
@@ -133,7 +142,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     [Fact]
     public async Task Task4_Camera_HasTorchFallbackUI()
     {
-        var cameraTestContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
+        var cameraTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
         
         Assert.Contains("Ensure the lighting is adequate before confirming", cameraTestContent);
         Assert.Contains("torch-overlay", cameraTestContent);
@@ -143,7 +152,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     [Fact]
     public async Task Task5_Results_NoExportButton()
     {
-        var indexHtml = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/index.html");
+        var indexHtml = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/index.html");
         
         // Verify Export button is removed
         Assert.DoesNotContain("export-results-btn", indexHtml);
@@ -152,7 +161,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     [Fact]
     public async Task Task5_Results_AutoSyncToServer()
     {
-        var appJsContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/app.js");
+        var appJsContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/app.js");
         
         // Verify auto-sync endpoints
         Assert.Contains("/api/pwa/submit-step", appJsContent);
@@ -162,7 +171,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     [Fact]
     public async Task Task5_Results_OfflineFallback()
     {
-        var appJsContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/wwwroot/app.js");
+        var appJsContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/app.js");
         
         // Verify offline queue
         Assert.Contains("pwa_offline_queue", appJsContent);
@@ -172,25 +181,44 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
 
     // Task 6: USB Event Watcher
     [Fact]
-    public async Task Task6_USB_EventWatcherExistsAndIsWindows()
+    public void Task6_USB_EventWatcherExistsAndIsWindows()
     {
-        var usbWatcherPath = "PhoneGradeApp/PhoneGrade.Core/UsbEventWatcher.cs";
-        Assert.True(System.IO.File.Exists(usbWatcherPath));
-        
-        var content = System.IO.File.ReadAllText(usbWatcherPath);
-        Assert.Contains("ManagementEventWatcher", content);
-        Assert.Contains("UsbDeviceConnected", content);
-        Assert.Contains("UsbDeviceDisconnected", content);
-        Assert.Contains("IsOSPlatform(OSPlatform.Windows)", content);
+        // The watcher must only report native monitoring on Windows, where WMI
+        // is available. Everywhere else the polling loop stays the source of truth.
+        UsbEventWatcher.StopMonitoring();
+        UsbEventWatcher.StartMonitoring();
+
+        Assert.Equal(OperatingSystem.IsWindows(), UsbEventWatcher.IsNativeMonitoringActive);
+
+        // Subscribers must be reachable through the public surface the view model uses.
+        int connected = 0;
+        int disconnected = 0;
+        EventHandler onConnected = (_, _) => connected++;
+        EventHandler onDisconnected = (_, _) => disconnected++;
+        UsbEventWatcher.UsbDeviceConnected += onConnected;
+        UsbEventWatcher.UsbDeviceDisconnected += onDisconnected;
+        try
+        {
+            UsbEventWatcher.RaiseConnected();
+            UsbEventWatcher.RaiseDisconnected();
+        }
+        finally
+        {
+            UsbEventWatcher.UsbDeviceConnected -= onConnected;
+            UsbEventWatcher.UsbDeviceDisconnected -= onDisconnected;
+            UsbEventWatcher.StopMonitoring();
+        }
+
+        Assert.Equal(1, connected);
+        Assert.Equal(1, disconnected);
     }
 
     // Task 6: ADB Diagnostic Warning
     [Fact]
-    public async Task Task6_ADB_WarningCardInUI()
+    public void Task6_ADB_WarningCardInUI()
     {
-        var mainWindowPath = "PhoneGradeApp/PhoneGrade.UI/Views/MainWindow.axaml";
-        var content = System.IO.File.ReadAllText(mainWindowPath);
-        
+        var content = RepoPath.Read("PhoneGradeApp", "PhoneGrade.UI", "Views", "MainWindow.axaml");
+
         // Verify warning card exists
         Assert.Contains("ShowAdbWarning", content);
         Assert.Contains("Android device connected", content);
@@ -200,15 +228,53 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
 
     // Task 1: Grading Penalty Integration
     [Fact]
-    public async Task Task1_Grading_PenalizesGradeAWithMissingApis()
+    public void Task1_Grading_PenalizesGradeAWithMissingApis()
     {
-        var mainVmContent = System.IO.File.ReadAllText("PhoneGradeApp/PhoneGrade.UI/ViewModels/MainWindowViewModel.cs");
-        
-        // Verify grading penalty logic
-        Assert.Contains("hasMissingApis", mainVmContent);
-        Assert.Contains("ComponentStatusType.Failed", mainVmContent);
-        Assert.Contains("API Missing", mainVmContent);
-        Assert.Contains("targetQuality == "A"", mainVmContent);
+        var missingApiCheck = new ComponentStatus
+        {
+            Name = "API Missing: navigator.geolocation",
+            Status = ComponentStatusType.Failed,
+            Description = "Device is missing navigator.geolocation capability."
+        };
+
+        // A grade A device that lost a mandatory browser API drops to B.
+        var penalised = GradePolicy.ApplyMissingApiPenalty("A", new[] { missingApiCheck });
+        Assert.Equal("B", penalised);
+
+        // The penalty only caps A; the grades below it are unaffected.
+        Assert.Equal("B", GradePolicy.ApplyMissingApiPenalty("B", new[] { missingApiCheck }));
+        Assert.Equal("C", GradePolicy.ApplyMissingApiPenalty("C", new[] { missingApiCheck }));
+
+        // Without the missing-API check a grade A device keeps its grade.
+        var healthyCheck = new ComponentStatus
+        {
+            Name = "Battery Health",
+            Status = ComponentStatusType.Passed
+        };
+        Assert.Equal("A", GradePolicy.ApplyMissingApiPenalty("A", new[] { healthyCheck }));
+        Assert.Equal("A", GradePolicy.ApplyMissingApiPenalty("A", Array.Empty<ComponentStatus>()));
+    }
+
+    [Fact]
+    public void Task1_Grading_IgnoresNonFailedAndUnrelatedChecks()
+    {
+        // Only failed checks whose name carries the capability-scanner prefix
+        // count, so an unrelated failed check cannot cap the grade.
+        var unrelated = new ComponentStatus
+        {
+            Name = "Rear Camera",
+            Status = ComponentStatusType.Failed
+        };
+        Assert.False(GradePolicy.HasMissingBrowserApis(new[] { unrelated }));
+
+        // A detected-but-passed capability is not a penalty either.
+        var reportedOk = new ComponentStatus
+        {
+            Name = "API Missing: navigator.wakeLock",
+            Status = ComponentStatusType.Passed
+        };
+        Assert.False(GradePolicy.HasMissingBrowserApis(new[] { reportedOk }));
+        Assert.Equal("A", GradePolicy.ApplyMissingApiPenalty("A", new[] { reportedOk }));
     }
 
     // Integration: All endpoints respond
