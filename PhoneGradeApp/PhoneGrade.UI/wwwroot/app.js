@@ -1,4 +1,4 @@
-
+﻿
 
 import { DeviceTest } from './modules/DeviceTest.js';
 import { TouchTest } from './modules/TouchTest.js';
@@ -15,6 +15,7 @@ import { LocationTest } from './modules/LocationTest.js';
 import { VibrationTest } from './modules/VibrationTest.js';
 import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 import { CapabilityScanner } from './modules/CapabilityScanner.js';
+import { applyStoredResults, firstPendingIndex, canResume, describeResume } from './modules/SuiteProgress.js';
 
 class RestApiClient {
     constructor() {
@@ -25,11 +26,80 @@ class RestApiClient {
         this.baseUrl = `${window.location.protocol}//${host}:${port}`;
         this.pollInterval = null;
         this.consoleLogger = null;
+        this.queueSeq = 0;
     }
 
     getUrlParam(name) {
         const params = new URLSearchParams(window.location.search);
         return params.get(name);
+    }
+
+    /**
+     * Works out which device this page belongs to.
+     *
+     * Launched from the home screen the manifest sends the browser to "/", with no
+     * sessionId on it, and the page then has no idea which device it is grading.
+     * The desktop knows, so it is asked. A copy is kept locally as well, because
+     * the origin changes when the operator switches between the LAN address and
+     * the localhost tunnel, and localStorage does not follow it.
+     */
+    async resolveSessionId() {
+        const fromUrl = this.getUrlParam('sessionId');
+        if (fromUrl) {
+            this.sessionId = fromUrl;
+            this.rememberSessionId(fromUrl);
+            return fromUrl;
+        }
+
+        const remembered = this.rememberedSessionId();
+        if (remembered) this.sessionId = remembered;
+
+        try {
+            const resp = await fetch(`${this.baseUrl}/api/pwa/active-session`);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.sessionId && data.sessionId !== 'UNKNOWN') {
+                    this.sessionId = data.sessionId;
+                    this.rememberSessionId(data.sessionId);
+                }
+            }
+        } catch (e) {
+            // Offline or the desktop is gone. The local copy is the fallback.
+        }
+
+        return this.sessionId;
+    }
+
+    rememberSessionId(sessionId) {
+        try { localStorage.setItem('pwa_session_id', sessionId); } catch (e) { /* private mode */ }
+    }
+
+    rememberedSessionId() {
+        try { return localStorage.getItem('pwa_session_id'); } catch (e) { return null; }
+    }
+
+    /** Asks the desktop how far this device got on the previous run. */
+    async getProgress() {
+        try {
+            const resp = await fetch(`${this.baseUrl}/api/pwa/progress?sessionId=${encodeURIComponent(this.sessionId)}`);
+            if (!resp.ok) return null;
+            return await resp.json();
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /** Throws away the stored progress so "Run Again" starts from the first test. */
+    async resetProgress() {
+        try {
+            await fetch(`${this.baseUrl}/api/pwa/progress/reset`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: this.sessionId })
+            });
+        } catch (e) {
+            // Not fatal: the phone still runs from scratch either way.
+        }
     }
 
     async connect() {
@@ -176,6 +246,13 @@ class RestApiClient {
                 endpoint = '/api/pwa/log';
             }
 
+            // The stamp is what lets the desktop tell a fresh result from one
+            // replayed out of the queue, so it is set here rather than at each call
+            // site. An existing one is left alone: a replayed message already has it.
+            if (!message.clientTimestamp) {
+                message = { ...message, clientTimestamp: new Date().toISOString() };
+            }
+
             const response = await fetch(`${this.baseUrl}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -198,10 +275,23 @@ class RestApiClient {
         }
     }
 
+    /**
+     * Queues a message for later.
+     *
+     * Each entry gets an id of its own. Without one, two results for the same test
+     * are indistinguishable, so a retry that queued a new verdict and the earlier
+     * one still waiting would be replayed in an arbitrary order and the older
+     * verdict could land last and win.
+     */
     saveToOfflineQueue(message) {
         try {
             const queue = JSON.parse(localStorage.getItem('pwa_offline_queue') || '[]');
-            queue.push({ timestamp: Date.now(), message });
+            this.queueSeq++;
+            queue.push({
+                id: `${Date.now()}-${this.queueSeq}`,
+                queuedAt: new Date().toISOString(),
+                message
+            });
             // Bound the queue so a long outage cannot fill localStorage.
             while (queue.length > 200) queue.shift();
             localStorage.setItem('pwa_offline_queue', JSON.stringify(queue));
@@ -274,214 +364,6 @@ class RestApiClient {
     }
 }
 
-class OldWebSocketClient {
-    constructor() {
-        this.socket = null;
-        this.sessionId = this.getUrlParam('sessionId') || 'UNKNOWN';
-        this.connected = false;
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
-        this.messageQueue = [];
-        this.consoleLogger = null;
-    }
-
-    getUrlParam(name) {
-        const params = new URLSearchParams(window.location.search);
-        return params.get(name);
-    }
-
-    connect() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/device-session?sessionId=${this.sessionId}`;
-
-        this.socket = new WebSocket(wsUrl);
-
-        this.socket.onopen = () => {
-            this.connected = true;
-            this.reconnectAttempts = 0;
-            this.updateConnectionStatus('connected', 'Connected');
-            
-            // Send init with session ID
-            this.send({ type: 'init', sessionId: this.sessionId });
-            
-            // Capture and send client telemetry immediately
-            this.sendClientTelemetry();
-            
-            // Start remote console logging
-            if (!this.consoleLogger) {
-                this.consoleLogger = new RemoteConsoleLogger(this);
-            }
-            
-            // Drain message queue
-            while (this.messageQueue.length > 0) {
-                this.send(this.messageQueue.shift());
-            }
-
-            if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
-            this.heartbeatInterval = setInterval(() => {
-                if (this.isConnected()) {
-                    this.send({ type: 'ping', sessionId: this.sessionId });
-                }
-            }, 10000);
-        };
-
-        this.socket.onclose = () => {
-            this.connected = false;
-            if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
-            this.updateConnectionStatus('disconnected', 'Disconnected');
-            
-            if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                this.reconnectAttempts++;
-                setTimeout(() => this.connect(), 1000 * this.reconnectAttempts);
-            }
-        };
-
-        this.socket.onerror = () => {
-            this.updateConnectionStatus('error', 'Connection Error');
-        };
-
-        this.socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                this.handleMessage(data);
-            } catch (e) {
-                console.error('Failed to parse message:', e);
-            }
-        };
-    }
-
-    sendClientTelemetry() {
-        const ua = navigator.userAgent;
-        let browser = 'Unknown';
-        let browserVersion = '';
-        let os = 'Unknown';
-        let osVersion = '';
-
-        // Parse browser
-        if (/Chrome/.test(ua) && !/Edge/.test(ua)) {
-            browser = 'Chrome';
-            browserVersion = ua.match(/Chrome\/(\d+)/)?.[1] || '';
-        } else if (/Safari/.test(ua) && !/Chrome/.test(ua)) {
-            browser = 'Safari';
-            browserVersion = ua.match(/Version\/(\d+)/)?.[1] || '';
-        } else if (/Firefox/.test(ua)) {
-            browser = 'Firefox';
-            browserVersion = ua.match(/Firefox\/(\d+)/)?.[1] || '';
-        } else if (/Edg/.test(ua)) {
-            browser = 'Edge';
-            browserVersion = ua.match(/Edg\/(\d+)/)?.[1] || '';
-        }
-
-        // Parse OS
-        if (/iPhone|iPad|iPod/.test(ua)) {
-            os = 'iOS';
-            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || '';
-        } else if (/Android/.test(ua)) {
-            os = 'Android';
-            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || '';
-        } else if (/Macintosh/.test(ua)) {
-            os = 'macOS';
-            osVersion = ua.match(/Mac OS X ([\d_]+)/)?.[1]?.replace(/_/g, '.') || '';
-        } else if (/Windows/.test(ua)) {
-            os = 'Windows';
-        }
-
-        const clientTelemetry = {
-            userAgent: ua,
-            browser: browser,
-            browserVersion: browserVersion,
-            os: os,
-            osVersion: osVersion,
-            screenWidth: window.screen.width,
-            screenHeight: window.screen.height,
-            pixelRatio: window.devicePixelRatio || 1.0,
-            touchSupport: () => 'ontouchstart' in window || navigator.maxTouchPoints > 0,
-            accelerometerSupport: () => typeof DeviceMotionEvent !== 'undefined',
-            gyroscopeSupport: () => typeof DeviceOrientationEvent !== 'undefined',
-            geolocationSupport: () => 'geolocation' in navigator,
-            webAudioSupport: () => typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined',
-            cameraSupport: () => navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function',
-            microphoneSupport: () => navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function',
-            vibrationSupport: () => typeof navigator.vibrate === 'function',
-            language: navigator.language || 'Unknown',
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        };
-
-        // Convert functions to boolean values
-        const telemetry = {
-            userAgent: clientTelemetry.userAgent,
-            browser: clientTelemetry.browser,
-            browserVersion: clientTelemetry.browserVersion,
-            os: clientTelemetry.os,
-            osVersion: clientTelemetry.osVersion,
-            screenWidth: clientTelemetry.screenWidth,
-            screenHeight: clientTelemetry.screenHeight,
-            pixelRatio: clientTelemetry.pixelRatio,
-            touchSupport: clientTelemetry.touchSupport(),
-            accelerometerSupport: clientTelemetry.accelerometerSupport(),
-            gyroscopeSupport: clientTelemetry.gyroscopeSupport(),
-            geolocationSupport: clientTelemetry.geolocationSupport(),
-            webAudioSupport: clientTelemetry.webAudioSupport(),
-            cameraSupport: clientTelemetry.cameraSupport(),
-            microphoneSupport: clientTelemetry.microphoneSupport(),
-            vibrationSupport: clientTelemetry.vibrationSupport(),
-            language: clientTelemetry.language,
-            timezone: clientTelemetry.timezone
-        };
-
-        this.send({
-            type: 'client_telemetry',
-            sessionId: this.sessionId,
-            clientTelemetry: telemetry
-        });
-    }
-
-    isConnected() {
-        return this.connected && this.socket && this.socket.readyState === WebSocket.OPEN;
-    }
-
-    send(message) {
-        if (this.isConnected()) {
-            this.socket.send(JSON.stringify(message));
-        } else {
-            this.messageQueue.push(message);
-        }
-    }
-
-    updateConnectionStatus(status, message) {
-        const statusEl = document.getElementById('connection-status');
-        if (statusEl) {
-            statusEl.className = 'connection-status ' + status;
-            const textEl = statusEl.querySelector('.status-text');
-            if (textEl) {
-                textEl.textContent = message;
-            }
-        }
-    }
-
-    handleMessage(data) {
-        switch (data.type) {
-            case 'pong':
-                break;
-            case 'auto_start_suite':
-                if (window.testRunner) {
-                    window.testRunner.startSuite();
-                }
-                break;
-            case 'test_start':
-                if (window.testRunner) {
-                    window.testRunner.startTest(data.testId);
-                }
-                break;
-            case 'stop_suite':
-                if (window.testRunner) {
-                    window.testRunner.stopSuite();
-                }
-                break;
-        }
-    }
-}
-
 class TestRunner {
     constructor(wsClient) {
         this.wsClient = wsClient;
@@ -504,15 +386,66 @@ class TestRunner {
         this.startTime = null;
     }
 
-    async startSuite() {
+    /**
+     * Starts the suite, optionally picking up from what the desktop already has.
+     *
+     * A phone reloads for all sorts of reasons: a locked screen, a dropped tab, a
+     * launch from the home screen. Restarting from the first step every time means
+     * walking the operator through the whole thing again, so the stored verdicts
+     * are copied onto the matching tests and the run continues at the first one
+     * that has none.
+     */
+    async startSuite({ resume = null } = {}) {
         this.isRunning = true;
         this.startTime = Date.now();
         this.currentTestIndex = 0;
-        
+
+        if (resume) this.applyStoredResults(resume);
+
         this.showScreen('test-screen');
         this.updateTestListUI();
-        
+        this.updateTestCounter();
+
         await this.runNextTest();
+    }
+
+    /**
+     * Copies stored verdicts onto the tests that have the same id, then moves the
+     * cursor to the first test without one.
+     */
+    applyStoredResults(progress) {
+        applyStoredResults(this.tests, progress);
+        this.currentTestIndex = firstPendingIndex(this.tests, progress);
+        return this.currentTestIndex;
+    }
+
+    /**
+     * Runs one test by id, on the desktop's request.
+     *
+     * The server sends this when an operator clicks a test on the PC, so an id
+     * that is not in the list is ignored rather than throwing: the list on the
+     * desktop may be a round trip out of date.
+     */
+    async startTest(testId) {
+        if (!testId) return;
+
+        const index = this.tests.findIndex(t => t.id === testId);
+        if (index < 0) {
+            console.warn(`Ignoring request for unknown test ${testId}`);
+            return;
+        }
+
+        this.isRunning = true;
+        if (!this.startTime) this.startTime = Date.now();
+        this.currentTestIndex = index;
+
+        await this.runOne(index, { then: 'results' });
+    }
+
+    /** Stops the run and shows what came in, which is what the desktop asks for. */
+    stopSuite() {
+        this.isRunning = false;
+        this.showResultsScreen(this.buildSuiteResult());
     }
 
     /**
@@ -559,36 +492,48 @@ class TestRunner {
         }
     }
 
-    async runNextTest() {
-        if (this.currentTestIndex >= this.tests.length) {
-            await this.finishSuite();
-            return;
-        }
+    /**
+     * Runs the test at the given index, reports it, and leaves the runner in a
+     * defined state either way.
+     *
+     * Both the suite walk and a single test asked for from the desktop came down
+     * to the same body, duplicated once and drifting apart: the suite version
+     * toggled the body class, the single version did not, and only one of them
+     * reported the counter. `then` decides where control goes afterwards.
+     */
+    async runOne(index, { then = 'next' } = {}) {
+        const test = this.tests[index];
+        if (!test) return;
 
-        const test = this.tests[this.currentTestIndex];
         test.start();
-        
         this.updateTestListUI();
         this.updateTestHeader(test);
-        
+        this.updateTestCounter();
+
         const container = document.getElementById('test-container');
-        container.innerHTML = '';
-        
+        if (container) container.innerHTML = '';
+
         // Hide test list and header while test is running
         document.body.classList.add('test-running');
         const testScreen = document.getElementById('test-screen');
         if (testScreen) testScreen.classList.add('test-running');
 
         try {
+            this.wsClient.send({
+                type: 'test_start',
+                sessionId: this.wsClient.sessionId,
+                testId: test.id,
+                testName: test.name
+            });
+
             await this.runTestSafely(test, container);
         } catch (error) {
             test.fail('Exception: ' + error.message);
             console.error('Test error:', error);
         } finally {
-            // Remove test-running class
             document.body.classList.remove('test-running');
             if (testScreen) testScreen.classList.remove('test-running');
-            
+
             // Guarantee immediate test_complete dispatch to host even on error/exception
             this.wsClient.send({
                 type: 'test_complete',
@@ -600,27 +545,32 @@ class TestRunner {
                 durationMs: test.getDuration(),
                 details: test.details
             });
+
+            this.updateTestListUI();
         }
 
-        this.currentTestIndex++;
-        
-        setTimeout(() => {
-            this.runNextTest();
-        }, 500);
+        this.currentTestIndex = index + 1;
+
+        if (then === 'next') {
+            setTimeout(() => this.runNextTest(), 500);
+        }
+    }
+
+    async runNextTest() {
+        if (!this.isRunning) return;
+
+        if (this.currentTestIndex >= this.tests.length) {
+            await this.finishSuite();
+            return;
+        }
+
+        await this.runOne(this.currentTestIndex, { then: 'next' });
     }
 
     async finishSuite() {
         this.isRunning = false;
-        
-        const suiteResult = {
-            sessionId: this.wsClient.sessionId,
-            deviceUdid: this.wsClient.sessionId,
-            userAgent: navigator.userAgent,
-            platform: this.getPlatform(),
-            startedAt: new Date(this.startTime).toISOString(),
-            completedAt: new Date().toISOString(),
-            tests: this.tests.map(t => t.toJSON())
-        };
+
+        const suiteResult = this.buildSuiteResult();
 
         this.wsClient.send({
             type: 'suite_complete',
@@ -629,6 +579,25 @@ class TestRunner {
         });
 
         this.showResultsScreen(suiteResult);
+    }
+
+    /**
+     * The whole run as the desktop wants it.
+     *
+     * Three places needed this and each built it by hand, so a field added to the
+     * payload only reached one of them. Built once here, from the same tests, in
+     * the same shape, every time.
+     */
+    buildSuiteResult() {
+        return {
+            sessionId: this.wsClient.sessionId,
+            deviceUdid: this.wsClient.sessionId,
+            userAgent: navigator.userAgent,
+            platform: this.getPlatform(),
+            startedAt: this.startTime ? new Date(this.startTime).toISOString() : new Date().toISOString(),
+            completedAt: new Date().toISOString(),
+            tests: this.tests.map(t => t.toJSON())
+        };
     }
 
     getPlatform() {
@@ -642,54 +611,12 @@ class TestRunner {
 
     async retryTest(testIndex) {
         if (testIndex < 0 || testIndex >= this.tests.length) return;
-        
-        this.currentTestIndex = testIndex;
-        this.showScreen('test-screen');
-        
-        const test = this.tests[testIndex];
-        test.start();
-        
-        this.updateTestListUI();
-        this.updateTestHeader(test);
-        
-        const container = document.getElementById('test-container');
-        container.innerHTML = '';
-        
-        const testScreen = document.getElementById('test-screen');
-        if (testScreen) testScreen.classList.add('test-running');
 
-        try {
-            await this.runTestSafely(test, container);
-        } catch (error) {
-            test.fail('Exception: ' + error.message);
-            console.error('Test error:', error);
-        } finally {
-            if (testScreen) testScreen.classList.remove('test-running');
-            
-            this.wsClient.send({
-                type: 'test_complete',
-                sessionId: this.wsClient.sessionId,
-                testId: test.id,
-                testName: test.name,
-                status: test.status,
-                notes: test.notes,
-                durationMs: test.getDuration(),
-                details: test.details
-            });
-        }
-        
+        this.showScreen('test-screen');
+        await this.runOne(testIndex, { then: 'results' });
+
         // Return to results after retry
-        setTimeout(() => {
-            this.showResultsScreen({
-                sessionId: this.wsClient.sessionId,
-                deviceUdid: this.wsClient.sessionId,
-                userAgent: navigator.userAgent,
-                platform: this.getPlatform(),
-                startedAt: new Date(this.startTime).toISOString(),
-                completedAt: new Date().toISOString(),
-                tests: this.tests.map(t => t.toJSON())
-            });
-        }, 1000);
+        setTimeout(() => this.showResultsScreen(this.buildSuiteResult()), 1000);
     }
 
     showScreen(screenId) {
@@ -710,6 +637,14 @@ class TestRunner {
             if (index === this.currentTestIndex) li.classList.add('active');
             testList.appendChild(li);
         });
+    }
+
+    /** Keeps the "3/12" readout in step with the list next to it. */
+    updateTestCounter() {
+        const current = document.getElementById('current-test-num');
+        const total = document.getElementById('total-tests');
+        if (total) total.textContent = this.tests.length;
+        if (current) current.textContent = Math.min(this.currentTestIndex + 1, this.tests.length);
     }
 
     updateTestHeader(test) {
@@ -736,15 +671,31 @@ class TestRunner {
             suiteResult.tests.forEach((test, index) => {
                 const item = document.createElement('div');
                 item.className = 'result-item';
-                item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 8px;';
-                
+
                 const canRetry = test.status === 'failed' || test.status === 'skipped';
-                
-                item.innerHTML = `
-                    <span style="font-weight:600; flex: 1;">${test.name}</span>
-                    <span class="result-badge ${test.status}" style="margin-right: 8px;">${test.status.toUpperCase()}</span>
-                    ${canRetry ? '<button class="btn btn-secondary retry-test-btn" data-test-index="' + index + '" style="padding: 4px 12px; font-size: 12px; height: 32px;">Opnieuw</button>' : ''}
-                `;
+
+                // Built as elements rather than markup. An innerHTML with a test
+                // name in it puts a device-controlled string into the parser, and
+                // a name is not something the PWA gets to choose.
+                const name = document.createElement('span');
+                name.className = 'result-item-name';
+                name.textContent = test.name;
+
+                const badge = document.createElement('span');
+                badge.className = 'result-badge ' + test.status;
+                badge.textContent = test.status.toUpperCase();
+
+                item.appendChild(name);
+                item.appendChild(badge);
+
+                if (canRetry) {
+                    const retry = document.createElement('button');
+                    retry.className = 'btn btn-secondary retry-test-btn';
+                    retry.dataset.testIndex = String(index);
+                    retry.textContent = 'Opnieuw';
+                    item.appendChild(retry);
+                }
+
                 resultsDetails.appendChild(item);
             });
             
@@ -760,6 +711,28 @@ class TestRunner {
             });
         }
     }
+
+    /**
+     * Shows how much of a previous run is already settled, so the operator can
+     * pick up instead of starting over.
+     *
+     * Nothing is shown for a session with no stored steps, which is the ordinary
+     * first run and needs no explanation.
+     */
+    showResumeBanner(progress) {
+        const banner = document.getElementById('resume-banner');
+        if (!banner) return;
+
+        if (!canResume(progress)) {
+            banner.style.display = 'none';
+            return;
+        }
+
+        const text = banner.querySelector('.resume-text');
+        if (text) text.textContent = describeResume(progress);
+
+        banner.style.display = 'flex';
+    }
 }
 
 // Initialize on page load
@@ -772,7 +745,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (banner) banner.style.display = 'block';
     }
     const wsClient = new RestApiClient();
-    
+
+    // A launch from the home screen arrives without a sessionId, so it is worked
+    // out before anything is sent. Everything below is tagged with it.
+    await wsClient.resolveSessionId();
+
     // Run capability scan before connection
     const scanner = new CapabilityScanner();
     const scanResult = scanner.scan();
@@ -786,10 +763,43 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     
     window.testRunner = new TestRunner(wsClient);
-    
+
+    // Ask the desktop how far this device got. The page may be a reload in the
+    // middle of a run, or a fresh launch of a device that is already half done.
+    const storedProgress = await wsClient.getProgress();
+    if (storedProgress) window.testRunner.showResumeBanner(storedProgress);
+
+    let resumeFrom = storedProgress;
+
     const startBtn = document.getElementById('start-test-btn');
     if (startBtn) {
-        startBtn.addEventListener('click', () => {
+        startBtn.addEventListener('click', async () => {
+            // Starting over on purpose clears the stored run, otherwise the next
+            // reload would offer to resume the one that was just abandoned.
+            if (resumeFrom) {
+                await wsClient.resetProgress();
+                resumeFrom = null;
+                window.testRunner.tests.forEach(t => t.reset());
+            }
+            window.testRunner.startSuite();
+        });
+    }
+
+    const resumeBtn = document.getElementById('resume-btn');
+    if (resumeBtn) {
+        resumeBtn.addEventListener('click', () => {
+            const progress = resumeFrom;
+            resumeFrom = null;
+            window.testRunner.startSuite({ resume: progress });
+        });
+    }
+
+    const restartBtn = document.getElementById('restart-btn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', async () => {
+            await wsClient.resetProgress();
+            window.testRunner.tests.forEach(t => t.reset());
+            resumeFrom = null;
             window.testRunner.startSuite();
         });
     }

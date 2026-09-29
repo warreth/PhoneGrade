@@ -115,6 +115,22 @@ export class DeviceTest {
     }
 
     /**
+     * Puts the test back to its untouched state.
+     *
+     * Used when the operator starts the suite over on purpose. Without it the
+     * previous verdicts stayed on the objects, so a step that was about to fail
+     * would be reported with the old status until it actually settled, and the
+     * run would look finished before it had begun.
+     */
+    reset() {
+        this.status = 'pending';
+        this.notes = '';
+        this.startTime = null;
+        this.endTime = null;
+        this.details = {};
+    }
+
+    /**
      * Serialize test result for transmission to desktop app.
      */
     toJSON() {

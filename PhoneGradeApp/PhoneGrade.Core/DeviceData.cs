@@ -300,6 +300,14 @@ public class DeviceSessionMessage
     [System.Text.Json.Serialization.JsonPropertyName("message")]
     public string? Message { get; set; }
 
+    /// <summary>
+    /// When the phone sent this message, in UTC. Only the phone can say this, and
+    /// it is what tells a fresh result apart from one replayed out of the offline
+    /// queue after a reconnect.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("clientTimestamp")]
+    public DateTimeOffset? ClientTimestamp { get; set; }
+
     [System.Text.Json.Serialization.JsonPropertyName("payload")]
     public InteractiveTestSuiteResult? Payload { get; set; }
 }

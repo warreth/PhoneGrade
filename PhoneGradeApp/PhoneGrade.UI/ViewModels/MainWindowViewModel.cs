@@ -537,6 +537,17 @@ public class MainWindowViewModel : ReactiveObject
                 });
             };
 
+            _webServer.ProgressChanged += (s, e) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (!string.IsNullOrEmpty(SelectedDevice.Key) &&
+                        !e.SessionId.Equals(SelectedDevice.Key, StringComparison.OrdinalIgnoreCase)) return;
+
+                    ApplyPwaProgress(e.Snapshot);
+                });
+            };
+
             _webServer.SuiteCompleted += (s, e) =>
             {
                 Dispatcher.UIThread.Post(() =>
@@ -637,6 +648,7 @@ public class MainWindowViewModel : ReactiveObject
             var sessionUdid = !string.IsNullOrWhiteSpace(udid) ? udid : (DeviceData.Identifier != "NOID" ? DeviceData.Identifier : "DEMO");
 
             string host = ResolveWebRunnerHost(sessionUdid, port);
+            _webServer?.SetActiveSession(sessionUdid);
             WebRunnerUrl = QrCodeService.GenerateSessionUrl(host, port, sessionUdid, IsDebugMode);
             QrCodeBitmap = QrCodeService.GenerateQrCodeBitmap(WebRunnerUrl);
             InteractiveSessionStatus = host == AdbReverseTunnel.LoopbackHost
@@ -690,6 +702,41 @@ public class MainWindowViewModel : ReactiveObject
             serial = DeviceData.Identifier != "NOID" ? DeviceData.Identifier : "DEMO";
 
         UpdateWebRunnerSession(serial);
+    }
+
+    /// <summary>
+    /// Shows where the phone is, so the operator can walk away from it.
+    ///
+    /// The phone owns the run, but the operator is standing at the PC. Without
+    /// this the desktop only said anything when the whole suite was done, which
+    /// is no help to someone waiting on a phone on the other side of a counter.
+    /// </summary>
+    public void ApplyPwaProgress(PhoneGrade.UI.Web.PwaProgressSnapshot snapshot)
+    {
+        if (snapshot == null) return;
+
+        int done = snapshot.CompletedCount;
+        int total = snapshot.TotalTests > 0 ? snapshot.TotalTests : snapshot.Steps.Count;
+
+        if (snapshot.Finished)
+        {
+            InteractiveSessionStatus = $"Webtest klaar: {done} van {total} tests afgerond.";
+            return;
+        }
+
+        if (!snapshot.Started)
+        {
+            InteractiveSessionStatus = "Webtest staat klaar op de telefoon.";
+            return;
+        }
+
+        string where = string.IsNullOrWhiteSpace(snapshot.CurrentTestName)
+            ? "volgende stap"
+            : snapshot.CurrentTestName;
+
+        InteractiveSessionStatus = done == 0
+            ? $"Webtest gestart, bezig met {where}."
+            : $"Webtest bezig: {where} ({done} van {total} afgerond).";
     }
 
     public void ApplyInteractiveResults(InteractiveTestSuiteResult suite)

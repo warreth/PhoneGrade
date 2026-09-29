@@ -345,6 +345,31 @@ body.test-running .test-footer,
     margin-top: var(--spacing-md);
 }
 
+/* Resume banner: shown when the desktop still holds part of an earlier run */
+.resume-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    font-size: 13px;
+    color: var(--color-text-primary);
+}
+
+.resume-text {
+    flex: 1;
+}
+
+.resume-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
 /* Test Flow & Progress */
 .test-header {
     margin-bottom: var(--spacing-md);
@@ -452,10 +477,23 @@ body.test-running .test-footer,
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: var(--spacing-md);
+}
+
+.result-item-name {
+    flex: 1;
+    font-weight: 600;
+}
+
+.result-item .retry-test-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    height: 32px;
+    flex-shrink: 0;
 }
 
 .result-badge {
