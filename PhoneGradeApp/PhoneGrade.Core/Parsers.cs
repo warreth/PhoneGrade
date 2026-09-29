@@ -146,6 +146,54 @@ public static class Parsers
         return $"{Math.Min((double)current / design.Value * 100, 100):F0}";
     }
 
+    /// <summary>
+    /// Battery condition percentage for Android from the capacity counters under
+    /// /sys/class/power_supply/battery: what the battery can still hold against
+    /// what it held when new. Returns 0 when either counter is missing or
+    /// nonsensical, so the caller can fall back to the health status.
+    /// </summary>
+    public static int ParseAndroidBatteryCondition(string? chargeFull, string? chargeFullDesign)
+    {
+        if (!long.TryParse((chargeFull ?? "").Trim(), out long full)) return 0;
+        if (!long.TryParse((chargeFullDesign ?? "").Trim(), out long design)) return 0;
+        if (full <= 0 || design <= 0) return 0;
+
+        var pct = (int)Math.Round((double)full / design * 100);
+        return Math.Clamp(pct, 1, 100);
+    }
+
+    /// <summary>Charge level in percent from `dumpsys battery`, or 0 when it cannot be read.</summary>
+    public static int ParseAndroidChargeLevel(string? dumpsysBattery)
+    {
+        var match = Regex.Match(dumpsysBattery ?? "", @"level:\s*(\d+)");
+        return match.Success && int.TryParse(match.Groups[1].Value, out int level)
+            ? Math.Clamp(level, 0, 100)
+            : 0;
+    }
+
+    /// <summary>
+    /// The health status Android reports for the battery, as label text. The
+    /// status code is a fixed list from the BatteryManager, not a percentage,
+    /// so it is kept apart from the condition.
+    /// </summary>
+    public static string ParseAndroidBatteryStatus(string? dumpsysBattery)
+    {
+        var match = Regex.Match(dumpsysBattery ?? "", @"^\s*health:\s*(\d+)", RegexOptions.Multiline);
+        if (!match.Success || !int.TryParse(match.Groups[1].Value, out int code)) return "NOBATT";
+
+        return code switch
+        {
+            1 => "Onbekend",
+            2 => "Goed",
+            3 => "Oververhit",
+            4 => "Defect",
+            5 => "Overspanning",
+            6 => "Storing",
+            7 => "Te koud",
+            _ => "NOBATT",
+        };
+    }
+
     /// <summary>Identifier for the label: IMEI if the device has one (iPhones), else serial number.</summary>
     public static string ParseIdentifier(string imeiOutput, string serialOutput)
     {

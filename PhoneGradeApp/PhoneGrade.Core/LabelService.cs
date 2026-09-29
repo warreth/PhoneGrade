@@ -38,7 +38,9 @@ public static class LabelService
         string template = FindTemplate();
         Directory.CreateDirectory(Path.GetDirectoryName(OutputPath)!);
 
-        // Format battery health: add [X] warning on label if < 85%
+        // Format battery health: add [X] warning on label if < 85%. Android can
+        // report a status word instead of a percentage when the capacity
+        // counters are unreadable, and a word gets no percent sign.
         string battery;
         if (data.BatteryHealth.Contains("NOBATT"))
         {
@@ -50,7 +52,7 @@ public static class LabelService
         }
         else
         {
-            battery = data.BatteryHealth.Contains('%') ? data.BatteryHealth : $"{data.BatteryHealth}%";
+            battery = data.BatteryHealth;
         }
 
         string content = File.ReadAllText(template)
