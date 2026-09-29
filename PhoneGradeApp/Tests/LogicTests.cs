@@ -1,6 +1,7 @@
 using Xunit;
 using PhoneGrade.Core;
 using PhoneGrade.Core.Diagnostics;
+using PhoneGrade.Core.SecurityServices;
 
 namespace Tests;
 
@@ -103,6 +104,206 @@ public class ParsersTests
         // which on some builds is the capacity bucket rather than the charge.
         string reordered = "  Capacity level: 2\n  level: 22\n  health: 2\n";
         Assert.Equal(22, Parsers.ParseAndroidChargeLevel(reordered));
+    }
+
+    /// <summary>
+    /// Verbatim `getprop` lines a Pixel 8 Pro reports, cut down to the ones the
+    /// collector reads. The brackets and the spacing are the device's own.
+    /// </summary>
+    private const string Pixel8ProGetprop = """
+        [ro.boot.hardware]: [husky]
+        [ro.boot.hardware.color]: [WHT]
+        [ro.boot.hardware.coo]: [CN]
+        [ro.boot.hardware.cpu.pagesize]: [4096]
+        [ro.boot.hardware.ddr]: [12GiB,Micron,LPDDR5,ff07]
+        [ro.boot.hardware.devcfg]: [G950-10158-02]
+        [ro.boot.hardware.pcbcfg]: [G650-09345-06]
+        [ro.boot.hardware.platform]: [zuma]
+        [ro.boot.hardware.sku]: [GC3VE]
+        [ro.boot.hardware.ufs]: [128GB,Samsung]
+        [ro.boot.product.hardware.sku]: [GC3VE]
+        [ro.boot.flash.locked]: [1]
+        [ro.boot.vbmeta.device_state]: [locked]
+        [ro.boot.verifiedbootstate]: [yellow]
+        [ro.build.fingerprint]: [google/husky/husky:17/CP3A.260905.009/2026092501:user/release-keys]
+        [ro.product.brand]: [google]
+        [ro.product.model]: [Pixel 8 Pro]
+        [ro.build.version.release]: [17]
+        [ro.serialno]: [38091FDJG00EMF]
+        [ro.boot.warranty_bit]: []
+        [persist.sys.sf.color_saturation]: [1.0]
+        [ro.surface_flinger.has_wide_color_display]: [true]
+        """;
+
+    /// <summary>Verbatim `df -k /data` from the same handset, per-user mount and all.</summary>
+    private const string Pixel8ProDf = """
+        Filesystem       1K-blocks     Used Available Use% Mounted on
+        /dev/block/dm-30 114982996 94844540  20007384  83% /data/user/0
+        """;
+
+    [Fact]
+    public void GetpropOutput_ReadsTheBracketedDump()
+    {
+        var props = AndroidDeviceReader.ParseGetpropOutput(Pixel8ProGetprop);
+
+        Assert.Equal("WHT", props["ro.boot.hardware.color"]);
+        Assert.Equal("128GB,Samsung", props["ro.boot.hardware.ufs"]);
+        Assert.Equal("12GiB,Micron,LPDDR5,ff07", props["ro.boot.hardware.ddr"]);
+        Assert.Equal("Pixel 8 Pro", props["ro.product.model"]);
+        Assert.Equal("google", props["ro.product.brand"]);
+        Assert.Equal("1", props["ro.boot.flash.locked"]);
+        Assert.Equal("locked", props["ro.boot.vbmeta.device_state"]);
+        Assert.Equal("yellow", props["ro.boot.verifiedbootstate"]);
+        Assert.Equal("17", props["ro.build.version.release"]);
+        Assert.Equal("38091FDJG00EMF", props["ro.serialno"]);
+
+        // A property the device does not set reads as an empty value, not as
+        // missing: the bracket pair is still there, the content is not.
+        Assert.Equal("", props["ro.boot.warranty_bit"]);
+    }
+
+    [Fact]
+    public void GetpropOutput_IgnoresLinesThatAreNotProperties()
+    {
+        // Boot banners and adb warnings arrive in the same stream. A line without
+        // the bracket pair must not become a property with a garbage key.
+        var props = AndroidDeviceReader.ParseGetpropOutput(
+            "adb: warning: device offline\n[ro.product.model]: [Pixel 8 Pro]\nrandom text\n");
+
+        Assert.Single(props);
+        Assert.Equal("Pixel 8 Pro", props["ro.product.model"]);
+    }
+
+    [Fact]
+    public void GetpropOutput_EmptyInputGivesAnEmptyLookup()
+    {
+        Assert.Empty(AndroidDeviceReader.ParseGetpropOutput(null));
+        Assert.Empty(AndroidDeviceReader.ParseGetpropOutput(""));
+        Assert.Empty(AndroidDeviceReader.ParseGetpropOutput("   \n  \n"));
+    }
+
+    [Fact]
+    public void AndroidDataBytes_UsesTheDataMountNotTheHeader()
+    {
+        // 114982996 blocks of 1K is what this handset reports for /data.
+        Assert.Equal(114982996L * 1024, Parsers.ParseAndroidDataBytes(Pixel8ProDf));
+    }
+
+    [Fact]
+    public void AndroidDataBytes_SkipsOtherMountsAndTheHeader()
+    {
+        string table = """
+            Filesystem     1K-blocks     Used Available Use% Mounted on
+            /dev/block/dm-15 2097152 1048576  1048576  50% /system
+            /dev/block/dm-30 114982996 94844540  20007384  83% /data
+            """;
+
+        // The /system row is far smaller, so picking the first row instead of the
+        // /data one would bucket a 128GB phone as 32GB.
+        Assert.Equal(114982996L * 1024, Parsers.ParseAndroidDataBytes(table));
+    }
+
+    [Fact]
+    public void AndroidDataBytes_ReadsThePlainDataMountToo()
+    {
+        // The same figure on a device without per-user encryption mounts at /data
+        // itself, and both spellings have to give the same capacity.
+        string plain = """
+            Filesystem     1K-blocks     Used Available Use% Mounted on
+            /dev/block/dm-30 114982996 94844540  20007384  83% /data
+            """;
+        Assert.Equal(114982996L * 1024, Parsers.ParseAndroidDataBytes(plain));
+    }
+
+    [Fact]
+    public void AndroidDataBytes_UnreadableOutputIsZero()
+    {
+        Assert.Equal(0, Parsers.ParseAndroidDataBytes(null));
+        Assert.Equal(0, Parsers.ParseAndroidDataBytes(""));
+        Assert.Equal(0, Parsers.ParseAndroidDataBytes("df: /data: Permission denied"));
+        Assert.Equal(0, Parsers.ParseAndroidDataBytes(
+            "Filesystem     1K-blocks     Used Available Use% Mounted on\n"));
+    }
+
+    [Fact]
+    public async Task AndroidCollector_ReadsARealPixel8Pro()
+    {
+        // Drives the real collector against the output this handset actually
+        // produces, so the mapping is proved end to end and not just per helper.
+        var reader = new AndroidDeviceReader("38091FDJG00EMF", command => Task.FromResult(ShellFor(command)));
+        var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
+
+        Assert.Equal("Google Pixel 8 Pro", data.Model);
+        Assert.Equal("Android (Google Pixel 8 Pro)", data.ProductType);
+        Assert.Equal("38091FDJG00EMF", data.Identifier);
+
+        // The three values that used to come out as placeholders.
+        Assert.Equal("Wit", data.Color);
+        Assert.Equal("128GB", data.Storage);
+        Assert.Equal("12GB", data.Memory);
+
+        // Battery: the condition and the charge level are different numbers.
+        Assert.Equal("92%", data.BatteryHealth);
+        Assert.Equal(22, data.BatteryLevel);
+    }
+
+    /// <summary>Replays the captured output for whichever command the reader asks for.</summary>
+    private static string ShellFor(string command) => command switch
+    {
+        "getprop" => Pixel8ProGetprop,
+        "df -k /data" => Pixel8ProDf,
+        "dumpsys battery" => Pixel8ProDumpsys,
+        "cat /sys/class/power_supply/battery/charge_full" => "4618000\n",
+        "cat /sys/class/power_supply/battery/charge_full_design" => "5022000\n",
+        _ => "",
+    };
+
+    [Fact]
+    public async Task AndroidCollector_SurvivesADesktopThatAnswersNothing()
+    {
+        // A device that only answers getprop, which is the realistic minimum.
+        var reader = new AndroidDeviceReader("emulator-5554", command => Task.FromResult(
+            command == "getprop" ? "[ro.product.brand]: [google]\n[ro.product.model]: [Pixel 2]\n" : ""));
+        var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
+
+        Assert.Equal("Google Pixel 2", data.Model);
+        Assert.Equal("NOCOLOR", data.Color);
+        Assert.Equal("NOSTORAGE", data.Storage);
+        Assert.Equal("NOMEMORY", data.Memory);
+        Assert.Equal("NOBATT", data.BatteryHealth);
+    }
+
+    [Fact]
+    public async Task AndroidCollector_UsesTheAdbSerialWhenThePropertyIsEmpty()
+    {
+        // Some builds leave ro.serialno empty. The adb serial identifies the device
+        // in the list and on the label, so it has to win over a blank property.
+        var reader = new AndroidDeviceReader("R5CT30XXXXX", command => Task.FromResult(
+            command == "getprop" ? "[ro.product.model]: [Galaxy S23]\n[ro.product.brand]: [samsung]\n[ro.serialno]: []\n" : ""));
+        var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
+
+        Assert.Equal("R5CT30XXXXX", data.Identifier);
+        Assert.Equal("R5CT30XXXXX", data.MotherboardSerialNumber);
+    }
+
+    [Fact]
+    public async Task AndroidCollector_KeepsGoingWhenOneCommandFails()
+    {
+        // A read that throws must not cost the other values: a device that refuses
+        // the battery sysfs nodes should still report its colour and storage.
+        var reader = new AndroidDeviceReader("38091FDJG00EMF", command => command switch
+        {
+            "getprop" => Task.FromResult(Pixel8ProGetprop),
+            "df -k /data" => Task.FromResult(Pixel8ProDf),
+            "dumpsys battery" => throw new InvalidOperationException("closed"),
+            _ => Task.FromResult(""),
+        });
+
+        var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
+
+        Assert.Equal("Wit", data.Color);
+        Assert.Equal("128GB", data.Storage);
+        Assert.Equal("NOBATT", data.BatteryHealth);
     }
 
     [Theory]
@@ -340,6 +541,185 @@ public class MappersTests
         // what a lookup table could not guarantee.
         Assert.Equal("Fairphone", Mappers.MapAndroidBrand("fairphone"));
         Assert.Equal("Wiko", Mappers.MapAndroidBrand("wiko"));
+    }
+
+    [Theory]
+    [InlineData("WHT", "Wit")]        // the code a Pixel 8 Pro actually reports
+    [InlineData("BLK", "Zwart")]
+    [InlineData("wht", "Wit")]        // case does not matter
+    [InlineData("OBS", "Obsidiaan")]
+    [InlineData("MNT", "Mint")]
+    [InlineData("HZL", "Hazel")]
+    public void AndroidColor_MapsTheVendorCode(string raw, string expected)
+        => Assert.Equal(expected, Mappers.MapAndroidColor(raw));
+
+    [Fact]
+    public void AndroidColor_AWordNeedsNoCodeEntry()
+    {
+        // Some vendors publish the marketing name instead of a code, and those go
+        // through the normal colour table first.
+        Assert.Equal("Obsidiaan", Mappers.MapAndroidColor("obsidian"));
+        Assert.Equal("Zwart", Mappers.MapAndroidColor("black"));
+        Assert.Equal("Roze", Mappers.MapAndroidColor("pink"));
+    }
+
+    [Fact]
+    public void AndroidColor_AnUnknownCodeStaysVisible()
+    {
+        // Guessing here would put a wrong colour on a graded device's label, so
+        // an unrecognised code is shown as it is instead of being expanded.
+        Assert.Equal("QQQ", Mappers.MapAndroidColor("QQQ"));
+    }
+
+    [Fact]
+    public void AndroidColor_NoPropertyMeansNoColor()
+    {
+        Assert.Equal("NOCOLOR", Mappers.MapAndroidColor(null));
+        Assert.Equal("NOCOLOR", Mappers.MapAndroidColor(""));
+        Assert.Equal("NOCOLOR", Mappers.MapAndroidColor("   "));
+    }
+
+    [Theory]
+    // "128GB,Samsung" is what the Pixel 8 Pro reports, and 128GB is what it is sold as.
+    [InlineData("128GB,Samsung", 0L, "128GB")]
+    [InlineData("256GB,Micron", 0L, "256GB")]
+    [InlineData("64GB", 0L, "64GB")]
+    [InlineData("1TB,Kingston", 0L, "1TB")]
+    [InlineData("512GB", 0L, "512GB")]
+    [InlineData("", 128_000_000_000L, "128GB")]
+    [InlineData("", 0L, "NOSTORAGE")]
+    [InlineData(null, 0L, "NOSTORAGE")]
+    public void AndroidStorage_PrefersTheAdvertisedCapacity(string? raw, long dataBytes, string expected)
+        => Assert.Equal(expected, Mappers.MapAndroidStorage(raw, dataBytes));
+
+    [Fact]
+    public void AndroidStorage_UsableSizeFallsBackToTheSameBucketAsTheAd()
+    {
+        // A real 128GB phone reports about 115GB usable because the system takes
+        // its own partitions. The fallback has to land on the same 128GB bucket,
+        // or the label would disagree with itself depending on the property.
+        Assert.Equal("128GB", Mappers.MapAndroidStorage("", 114982996L * 1024));
+        Assert.Equal("256GB", Mappers.MapAndroidStorage("", 236_000_000_000L));
+    }
+
+    [Fact]
+    public void AndroidMemory_ReadsTheInstalledSize()
+    {
+        // "12GiB,Micron,LPDRAM5,ff07": binary and decimal units both land on 12GB
+        // because a phone is sold in decimal gigabytes.
+        Assert.Equal("12GB", Mappers.MapAndroidMemory("12GiB,Micron,LPDDR5,ff07"));
+        Assert.Equal("8GB", Mappers.MapAndroidMemory("8GiB,Samsung"));
+        Assert.Equal("16GB", Mappers.MapAndroidMemory("16GB"));
+        Assert.Equal("NOMEMORY", Mappers.MapAndroidMemory(null));
+        Assert.Equal("NOMEMORY", Mappers.MapAndroidMemory(""));
+        Assert.Equal("NOMEMORY", Mappers.MapAndroidMemory("unreadable"));
+    }
+
+    [Fact]
+    public void AndroidIntegrity_SeesACleanStockPixel8Pro()
+    {
+        var facts = new AndroidDeviceFacts
+        {
+            BuildFingerprint = "google/husky/husky:17/CP3A.260905.009/2026092501:user/release-keys",
+            FlashLocked = "1",
+            VbmetaDeviceState = "locked",
+            VerifiedBootState = "yellow",
+            WarrantyBit = "",
+        };
+
+        var checks = AndroidIntegrityChecks.Build(facts);
+        ComponentStatus Row(string name) => checks.Single(c => c.Name == name);
+
+        Assert.Equal(ComponentStatusType.Passed, Row("Bootloader").Status);
+        Assert.Equal(ComponentStatusType.Passed, Row("Vbmeta").Status);
+        Assert.Equal(ComponentStatusType.Passed, Row("Systeemimage").Status);
+    }
+
+    [Fact]
+    public void AndroidIntegrity_YellowIsNotAVerdict()
+    {
+        // This is the reason the verified boot row is informational. A stock,
+        // locked and unmodified Pixel 8 Pro reports "yellow", so a check that
+        // failed on anything but green would condemn a clean device.
+        var checks = AndroidIntegrityChecks.Build(new AndroidDeviceFacts
+        {
+            BuildFingerprint = "google/husky/husky:17/CP3A.260905.009/2026092501:user/release-keys",
+            FlashLocked = "1",
+            VbmetaDeviceState = "locked",
+            VerifiedBootState = "yellow",
+        });
+
+        var verifiedBoot = checks.Single(c => c.Name == "Verified Boot");
+        Assert.Equal(ComponentStatusType.Unknown, verifiedBoot.Status);
+        Assert.Contains("schone toestel", verifiedBoot.Details);
+        Assert.DoesNotContain(checks, c => c.Status == ComponentStatusType.Failed);
+    }
+
+    [Fact]
+    public void AndroidIntegrity_CatchesAnUnlockedBootloader()
+    {
+        var checks = AndroidIntegrityChecks.Build(new AndroidDeviceFacts
+        {
+            BuildFingerprint = "google/husky/husky:17/CP3A.260905.009/2026092501:user/release-keys",
+            FlashLocked = "0",
+            VbmetaDeviceState = "unlocked",
+            VerifiedBootState = "orange",
+        });
+
+        Assert.Equal(ComponentStatusType.Failed, checks.Single(c => c.Name == "Bootloader").Status);
+        Assert.Equal(ComponentStatusType.Failed, checks.Single(c => c.Name == "Vbmeta").Status);
+    }
+
+    [Fact]
+    public void AndroidIntegrity_CatchesAModifiedSystemImage()
+    {
+        // A custom ROM is not signed with the factory key, so the fingerprint no
+        // longer ends in the stock tag even with the bootloader relocked.
+        var checks = AndroidIntegrityChecks.Build(new AndroidDeviceFacts
+        {
+            BuildFingerprint = "google/husky/husky:17/CP3A.260905.009/2026092501:user/test-keys",
+            FlashLocked = "1",
+            VbmetaDeviceState = "locked",
+        });
+
+        var system = checks.Single(c => c.Name == "Systeemimage");
+        Assert.Equal(ComponentStatusType.Failed, system.Status);
+        Assert.Contains("Aangepast systeem", system.Description);
+    }
+
+    [Fact]
+    public void AndroidIntegrity_ReadsTheSamsungWarrantyBit()
+    {
+        // The one Android signal that actually says something about non-original
+        // parts, and the reason it is worth reading where it exists.
+        var tripped = AndroidIntegrityChecks.Build(new AndroidDeviceFacts
+        {
+            BuildFingerprint = "samsung/beyond1/beyond1:14/UP1A.231005.007/1234:user/release-keys",
+            FlashLocked = "1",
+            WarrantyBit = "0x1",
+        });
+
+        Assert.Equal(ComponentStatusType.Failed, tripped.Single(c => c.Name == "Warrantybit").Status);
+
+        var intact = AndroidIntegrityChecks.Build(new AndroidDeviceFacts
+        {
+            BuildFingerprint = "samsung/beyond1/beyond1:14/UP1A.231005.007/1234:user/release-keys",
+            FlashLocked = "1",
+            WarrantyBit = "0x0",
+        });
+
+        Assert.Equal(ComponentStatusType.Passed, intact.Single(c => c.Name == "Warrantybit").Status);
+    }
+
+    [Fact]
+    public void AndroidIntegrity_UnknownDeviceIsNotACleanBillOfHealth()
+    {
+        // A device that reports none of these must not read as verified. Every row
+        // lands on Unknown, which is the honest answer rather than a pass.
+        var checks = AndroidIntegrityChecks.Build(new AndroidDeviceFacts());
+
+        Assert.All(checks, c => Assert.Equal(ComponentStatusType.Unknown, c.Status));
+        Assert.DoesNotContain(checks, c => c.Status == ComponentStatusType.Passed);
     }
 
     [Theory]

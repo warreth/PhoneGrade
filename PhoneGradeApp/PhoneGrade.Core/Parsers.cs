@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -273,6 +274,35 @@ public static class Parsers
     {
         if (string.IsNullOrWhiteSpace(s) || s.Length < 6) return false;
         return s.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_');
+    }
+
+    /// <summary>
+    /// Usable /data size in bytes from the output of <c>df -k /data</c>, or 0 when
+    /// it cannot be read. Only the filesystem that holds user data is of interest:
+    /// the other mounts in the table are far smaller and would bucket wrongly.
+    ///
+    /// The row is found by mount point, not by position, and not by an exact match
+    /// on "/data". A handset with per-user encryption mounts the same filesystem at
+    /// /data/user/0, which is what a Pixel 8 Pro reports.
+    /// </summary>
+    public static long ParseAndroidDataBytes(string? dfOutput)
+    {
+        if (string.IsNullOrWhiteSpace(dfOutput)) return 0;
+
+        foreach (string rawLine in dfOutput.Split('\n'))
+        {
+            var columns = rawLine.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            if (columns.Length < 2) continue;
+
+            // The header row has no leading slash, so it cannot match either.
+            string mount = columns[^1];
+            if (!mount.StartsWith("/data", StringComparison.Ordinal)) continue;
+
+            if (long.TryParse(columns[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long blocks))
+                return blocks > 0 ? blocks * 1024 : 0;
+        }
+
+        return 0;
     }
 
     /// <summary>Checks whether a value represents an empty, missing, or error response.</summary>

@@ -201,6 +201,19 @@ public class UiTests : IDisposable
         Assert.Equal("", c.Convert(0, typeof(string), null, null));
     }
 
+    [AvaloniaFact]
+    public void MemoryConverter_PassesTheSizeThroughAndSoftensThePlaceholder()
+    {
+        var c = new PhoneGrade.UI.Converters.MemoryConverter();
+        Assert.Equal("12GB", c.Convert("12GB", typeof(string), null, null));
+
+        // iOS never reports the installed memory, and a raw placeholder on a
+        // graded device's label would read as a fault rather than as a gap.
+        Assert.Equal("Niet opgegeven", c.Convert("NOMEMORY", typeof(string), null, null));
+        Assert.Equal("Niet opgegeven", c.Convert("", typeof(string), null, null));
+        Assert.Equal("Niet opgegeven", c.Convert(null, typeof(string), null, null));
+    }
+
     public void Dispose()
     {
         if (_origOverride is null)

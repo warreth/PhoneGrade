@@ -15,6 +15,7 @@
             <converters:BatteryHealthConverter x:Key="BatteryConverter"/>
             <converters:BatteryLevelConverter x:Key="BatteryLevelConverter"/>
             <converters:ColorConverter x:Key="ColorConverter"/>
+            <converters:MemoryConverter x:Key="MemoryConverter"/>
             <converters:QualityConverter x:Key="QualityConverter"/>
             <converters:ActivationLockConverter x:Key="ActivationLockConverter"/>
             <converters:ActivationLockBrushConverter x:Key="ActivationLockBrushConverter"/>

@@ -548,47 +548,20 @@ public static class DeviceService
     public static async Task<DeviceData> GetAndroidDeviceDataAsync(string serial)
     {
         SystemEventLogger.Info(LogSource.UsbDetector, $"Reading Android device data for {serial}", serial);
-        string model = await GetAndroidPropAsync(serial, "ro.product.model");
-        string brand = await GetAndroidPropAsync(serial, "ro.product.brand");
-        string androidVer = await GetAndroidPropAsync(serial, "ro.build.version.release");
-        string hardwareSerial = await GetAndroidPropAsync(serial, "ro.serialno");
-        string displayModel = Mappers.MapAndroidDisplayModel(brand, model);
 
-        var data = new DeviceData
-        {
-            DeviceId = serial,
-            ProductType = $"Android ({displayModel})",
-            Model = string.IsNullOrWhiteSpace(displayModel) ? "Android Device" : displayModel,
-            Identifier = string.IsNullOrWhiteSpace(hardwareSerial) ? serial : hardwareSerial,
-            Color = "NOCOLOR",
-            IosVersion = string.IsNullOrWhiteSpace(androidVer) ? "Android" : $"Android {androidVer}",
-            MotherboardSerialNumber = hardwareSerial,
-        };
+        var reader = AndroidDeviceReader.CreateDefault(serial);
+        var facts = await reader.ReadAsync();
+        var data = AndroidDeviceReader.ToDeviceData(facts);
 
-        // Battery: condition and charge level are different things. dumpsys only
-        // reports the charge level and a status code, so the condition comes from
-        // the capacity counters, and the status code is what is left over.
-        try
-        {
-            var (battOut, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell dumpsys battery");
+        // Android has no equivalent of Apple's AST2, so a per-component serial
+        // cannot be verified here. What every Android device does expose is
+        // checked instead, rather than leaving the panel blank.
+        // data.ComponentChecks = SecurityServices.AndroidIntegrityChecks.Build(facts);
 
-            int level = Parsers.ParseAndroidChargeLevel(battOut);
-            if (level > 0) data.BatteryLevel = level;
-
-            var (fullOut, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell cat /sys/class/power_supply/battery/charge_full");
-            var (designOut, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell cat /sys/class/power_supply/battery/charge_full_design");
-
-            int condition = Parsers.ParseAndroidBatteryCondition(fullOut, designOut);
-            data.BatteryHealth = condition > 0
-                ? $"{condition}%"
-                : Parsers.ParseAndroidBatteryStatus(battOut);
-        }
-        catch { }
-
-        // Security checks
         data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(serial);
 
-        SystemEventLogger.Info(LogSource.UsbDetector, $"Android data collected: {data.Model}, Battery: {data.BatteryHealth}", serial);
+        SystemEventLogger.Info(LogSource.UsbDetector,
+            $"Android data collected: {data.Model}, {data.Color}, {data.Storage}, Battery: {data.BatteryHealth}", serial);
         return data;
     }
 
