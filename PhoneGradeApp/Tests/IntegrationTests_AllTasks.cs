@@ -88,11 +88,55 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
     public async Task Task3_Display_MergesBrightnessCheck()
     {
         var displayTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/DisplayTest.js");
-        
-        // Verify brightness check is in DisplayTest
+
+        // The brightness gate is still there, and the operator is still told to
+        // turn the brightness up first.
         Assert.Contains("showBrightnessCheck", displayTestContent);
-        Assert.Contains("100 percent", displayTestContent);
-        Assert.Contains("Control Center", displayTestContent);
+        Assert.Contains("helderheid", displayTestContent);
+        Assert.Contains("maximaal", displayTestContent);
+
+        // What changed is that it can no longer condemn the display. A phone at a
+        // third brightness is a brightness setting, not a broken panel, and
+        // recording it as a display failure let a dim phone be graded faulty for
+        // it. The only way forward is "yes"; the way out is the runner's skip.
+        Assert.DoesNotContain("brightness-no", displayTestContent);
+        Assert.DoesNotContain("Scherm niet helder genoeg om dode pixels te beoordelen", displayTestContent);
+    }
+
+    // Task 3: Display inspection is per patch, not one verdict for the whole panel
+    [Fact]
+    public async Task Task3_Display_RecordsAVerdictPerPatch()
+    {
+        var displayTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/DisplayTest.js");
+        var inspectionContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/DisplayInspection.js");
+
+        // A stuck subpixel is smaller than the eye resolves at arm's length, so a
+        // single pass/fail over the whole panel cannot find one. The step walks a
+        // grid and records a verdict per patch per colour.
+        Assert.Contains("patchRect", displayTestContent);
+        Assert.Contains("setVerdict", displayTestContent);
+        Assert.Contains("INSPECTION_COLORS", displayTestContent);
+
+        // The counting has to exist and be the shared version, or the label would
+        // still say nothing about where a defect is.
+        Assert.Contains("describeDefects", inspectionContent);
+        Assert.Contains("isDisplayFaulty", inspectionContent);
+        Assert.Contains("inspectedCount", inspectionContent);
+    }
+
+    // Task 3: The display step is the only one that escapes the test container
+    [Fact]
+    public async Task Task3_Display_CleansUpItsFullScreenOverlay()
+    {
+        var displayTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/DisplayTest.js");
+
+        // The overlay goes on document.body so it can sit above everything, which
+        // means the runner clearing the container does not touch it. Without a
+        // dispose, a skip or the failsafe in the middle of a colour left a
+        // full-screen block of red over the next step.
+        Assert.Contains("dispose()", displayTestContent);
+        Assert.Contains("removeOverlay", displayTestContent);
+        Assert.Contains("document.body.removeChild", displayTestContent);
     }
 
     // Task 3: iOS Fullscreen Banner
