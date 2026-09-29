@@ -556,7 +556,7 @@ public static class DeviceService
         // Android has no equivalent of Apple's AST2, so a per-component serial
         // cannot be verified here. What every Android device does expose is
         // checked instead, rather than leaving the panel blank.
-        // data.ComponentChecks = SecurityServices.AndroidIntegrityChecks.Build(facts);
+        data.ComponentChecks = SecurityServices.AndroidIntegrityChecks.Build(facts);
 
         data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(serial);
 
