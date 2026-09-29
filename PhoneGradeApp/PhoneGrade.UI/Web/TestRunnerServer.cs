@@ -32,6 +32,19 @@ public class MissingApiRequest
     public string? MissingApi { get; set; }
     public string? UserAgent { get; set; }
     public string? OsVersion { get; set; }
+
+    /// <summary>
+    /// Why the API could not be used: <c>missing</c> (default) when the browser
+    /// does not expose it at all, or <c>denied</c> when the capability is there
+    /// but the operator refused the permission prompt. Only <c>missing</c> is a
+    /// hardware defect worth capping the grade for; a denial is a choice and
+    /// must not cost the device a grade.
+    /// </summary>
+    public string? Reason { get; set; }
+
+    /// <summary>True when this report should count against the grade.</summary>
+    public bool IsCapabilityGap =>
+        !string.Equals(Reason, "denied", StringComparison.OrdinalIgnoreCase);
 }
 
 public class TelemetryEventArgs : EventArgs
@@ -44,14 +57,6 @@ public class LogMessageEventArgs : EventArgs
 {
     public required string SessionId { get; init; }
     public required LogEvent LogEvent { get; init; }
-}
-
-public class MissingApiWarning
-{
-    public string? SessionId { get; set; }
-    public string? MissingApi { get; set; }
-    public string? UserAgent { get; set; }
-    public string? OsVersion { get; set; }
 }
 
 public class MissingApiEventArgs : EventArgs
@@ -84,7 +89,28 @@ public class TestRunnerServer : IAsyncDisposable
     public TestRunnerServer(int preferredPort = 5056, string? contentRootPath = null)
     {
         _preferredPort = preferredPort;
-        _contentRootPath = contentRootPath ?? ResolveWwwRootPath();
+        // PhysicalFileProvider rejects relative paths, so normalise here instead of
+        // letting the host fail at startup with "The path must be absolute".
+        _contentRootPath = Path.GetFullPath(contentRootPath ?? ResolveWwwRootPath());
+    }
+
+    /// <summary>
+    /// Strips control characters and bounds the length of a value that came off
+    /// the wire before it is logged or stored as a component name. Anything a
+    /// client sends is untrusted, and a newline in a log line can forge entries.
+    /// </summary>
+    private static string SanitizeToken(string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+
+        var cleaned = new System.Text.StringBuilder(Math.Min(value.Length, maxLength));
+        foreach (char c in value)
+        {
+            if (char.IsControl(c) && c != '\t') continue;
+            if (cleaned.Length >= maxLength) break;
+            cleaned.Append(c);
+        }
+        return cleaned.ToString().Trim();
     }
 
     public static string ResolveWwwRootPath()
@@ -299,22 +325,81 @@ public class TestRunnerServer : IAsyncDisposable
                                         string body = await reader.ReadToEndAsync();
                                         if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
                                             SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
-                                        
-                                        var req = JsonSerializer.Deserialize<MissingApiRequest>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                                        // A malformed body must not escape the middleware as a 500:
+                                        // the PWA does not check response.ok, so a 400 is just
+                                        // dropped on the client, but an unhandled exception would
+                                        // take the request pipeline down with it.
+                                        MissingApiRequest? req = null;
+                                        try
+                                        {
+                                            req = JsonSerializer.Deserialize<MissingApiRequest>(body,
+                                                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                                        }
+                                        catch (JsonException)
+                                        {
+                                            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                                            await context.Response.WriteAsync("{\"ok\":false}");
+                                            return;
+                                        }
+
                                         if (req != null && !string.IsNullOrWhiteSpace(req.MissingApi))
                                         {
-                                            SystemEventLogger.Warning(LogSource.PwaClient, $"[PWA] Missing API on client: {req.MissingApi}", req.SessionId);
-                                            
-                                            // Register the missing API as a failed component check for the session
-                                            if (!string.IsNullOrWhiteSpace(req.SessionId) && DeviceSessionManager.TryGetSession(req.SessionId, out var session) && session.Data != null)
+                                            // The value is interpolated into a log line and into a
+                                            // component name, so strip control characters (embedded
+                                            // newlines could forge log entries) and bound the length.
+                                            string missingApi = SanitizeToken(req.MissingApi, 120);
+                                            string sessionId = SanitizeToken(req.SessionId ?? "", 128);
+
+                                            if (missingApi.Length == 0)
                                             {
-                                                session.Data.ComponentChecks.Add(new PhoneGrade.Core.ComponentStatus
-                                                {
-                                                    Name = $"API Missing: {req.MissingApi}",
-                                                    Status = PhoneGrade.Core.ComponentStatusType.Failed,
-                                                    Description = $"Device is missing {req.MissingApi} capability."
-                                                });
+                                                await context.Response.WriteAsync("{\"ok\":true}");
+                                                return;
                                             }
+
+                                            string contextDetail = SanitizeToken(req.OsVersion ?? req.UserAgent ?? "", 200);
+                                            bool capabilityGap = req.IsCapabilityGap;
+                                            SystemEventLogger.Warning(LogSource.PwaClient,
+                                                capabilityGap
+                                                    ? $"[PWA] Missing API on client: {missingApi} (OS/UA: {contextDetail})"
+                                                    : $"[PWA] Permission denied for {missingApi} (OS/UA: {contextDetail})",
+                                                sessionId);
+
+                                            if (!capabilityGap)
+                                            {
+                                                // The API exists; the operator turned it down. That is
+                                                // worth a log line but must not become a failed check,
+                                                // because a failed check caps the device at grade B.
+                                                await context.Response.WriteAsync("{\"ok\":true}");
+                                                return;
+                                            }
+
+                                            // Register the missing API as a failed component check for the session
+                                            if (!string.IsNullOrWhiteSpace(sessionId) &&
+                                                DeviceSessionManager.TryGetSession(sessionId, out var session) &&
+                                                session.Data != null)
+                                            {
+                                                string checkName = $"{GradePolicy.MissingApiPrefix} {missingApi}";
+
+                                                // The scan runs on every page load, so an unchanged
+                                                // repeat must not stack duplicate failed checks.
+                                                if (!session.Data.ComponentChecks.Any(c => c.Name == checkName))
+                                                {
+                                                    session.Data.ComponentChecks.Add(new PhoneGrade.Core.ComponentStatus
+                                                    {
+                                                        Name = checkName,
+                                                        Status = PhoneGrade.Core.ComponentStatusType.Failed,
+                                                        Description = $"Device is missing {missingApi} capability."
+                                                    });
+                                                }
+                                            }
+
+                                            // Let the view model apply the grade penalty for the current device.
+                                            MissingApiReported?.Invoke(this, new MissingApiEventArgs
+                                            {
+                                                SessionId = sessionId.Length == 0 ? "UNKNOWN" : sessionId,
+                                                MissingApi = missingApi
+                                            });
                                         }
                                         await context.Response.WriteAsync("{\"ok\":true}");
                                         return;
@@ -335,36 +420,6 @@ public class TestRunnerServer : IAsyncDisposable
                                                 LogEvent = logMsg.LogEvent
                                             });
                                         }
-                                        await context.Response.WriteAsync("{\"ok\":true}");
-                                        return;
-                                    }
-
-                                    if (context.Request.Method == "POST" && path.Equals("/api/pwa/log-warning", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        using var reader = new StreamReader(context.Request.Body);
-                                        string body = await reader.ReadToEndAsync();
-                                        if (EnableVerboseNetworkLogging && !string.IsNullOrWhiteSpace(body))
-                                            SystemEventLogger.Trace(LogSource.PwaClient, $"[PWA PAYLOAD] {path}: {body}");
-                                        
-                                        var opt = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                                        try 
-                                        {
-                                            var warning = JsonSerializer.Deserialize<MissingApiWarning>(body, opt);
-                                            if (warning != null)
-                                            {
-                                                SystemEventLogger.Warning(LogSource.PwaClient, 
-                                                    $"[PWA] Missing API on client device: {warning.MissingApi} (OS/UA: {warning.UserAgent})", 
-                                                    warning.SessionId);
-                                                
-                                                MissingApiReported?.Invoke(this, new MissingApiEventArgs 
-                                                { 
-                                                    SessionId = warning.SessionId ?? "UNKNOWN",
-                                                    MissingApi = warning.MissingApi ?? "unknown" 
-                                                });
-                                            }
-                                        } 
-                                        catch { }
-                                        
                                         await context.Response.WriteAsync("{\"ok\":true}");
                                         return;
                                     }
