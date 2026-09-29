@@ -433,6 +433,151 @@ body.test-running .test-footer,
     margin-bottom: var(--spacing-md);
 }
 
+/* Display inspection: a flat colour with one patch framed on it */
+.display-test-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    touch-action: none;
+    user-select: none;
+}
+
+.display-patch {
+    position: absolute;
+    border: 2px dashed currentColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+/*
+ * The loupe: a fine matrix inside the framed patch.
+ *
+ * It is a reference grid, not a magnification. The page has no way to read the
+ * panel's own pixels, so it cannot enlarge what the screen is emitting. What it
+ * can do is show the operator the size of the thing being looked for, which is
+ * what a flat rectangle of colour fails to do.
+ */
+.display-loupe {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    width: 100%;
+    height: 100%;
+    opacity: 0.5;
+}
+
+.display-loupe span {
+    border: 0.5px solid currentColor;
+}
+
+.display-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.92);
+    color: #ffffff;
+    padding: var(--spacing-md) var(--spacing-lg) calc(var(--spacing-md) + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.display-bar-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 700;
+}
+
+.display-color-name {
+    font-size: 20px;
+}
+
+.display-progress {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.display-patch-label {
+    font-size: 12px;
+    opacity: 0.75;
+}
+
+.display-bar-actions,
+.display-bar-nav {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.display-bar-actions .btn,
+.display-bar-nav .btn {
+    flex: 1;
+}
+
+/* Set once a patch has been judged, so the operator can see it stuck */
+.display-bar-actions .btn.is-active {
+    outline: 3px solid #ffffff;
+    outline-offset: -3px;
+}
+
+/* Guided checks: brightness before the colours */
+.check-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: var(--color-bg-primary);
+    overflow-y: auto;
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.check-card {
+    max-width: 450px;
+    width: 100%;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.check-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-primary);
+}
+
+.check-text {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.check-question {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.check-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.check-actions .btn {
+    flex: 1;
+}
+
 /* Results & Badges */
 .summary-stats {
     display: grid;
