@@ -140,34 +140,161 @@ public class DeviceSessionManagerTests
     }
 }
 
-public class DeviceRefreshGuardTests
+public class DevicePresenceTrackerTests
 {
-    [Fact]
-    public void EmptyDictionary_DoesNotThrowNullReference()
+    /// <summary>Clock the tests drive by hand, so no test ever has to sleep.</summary>
+    private sealed class FakeClock
     {
-        var devices = new Dictionary<string, string>();
-        
-        // Simulate the fixed logic from RefreshDeviceListSilentAsync
-        bool hasDevices = devices.Count > 0;
-        Assert.False(hasDevices);
-        
-        // Should not attempt to access Devices[0] when count is 0
-        if (hasDevices)
+        public DateTimeOffset Now { get; set; } = new(2026, 9, 29, 12, 0, 0, TimeSpan.Zero);
+        public void Advance(double seconds) => Now = Now.AddSeconds(seconds);
+    }
+
+    private static (DevicePresenceTracker Tracker, FakeClock Clock) NewTracker(double graceSeconds = 7.5)
+    {
+        var clock = new FakeClock();
+        return (new DevicePresenceTracker(TimeSpan.FromSeconds(graceSeconds), () => clock.Now), clock);
+    }
+
+    [Fact]
+    public void ConnectedDevice_IsNeverUnplugged()
+    {
+        var (tracker, _) = NewTracker();
+        for (int i = 0; i < 50; i++) tracker.Report(1);
+        Assert.False(tracker.IsUnplugged);
+        Assert.Null(tracker.AbsentFor);
+    }
+
+    [Fact]
+    public void OneEmptyPoll_KeepsTheSessionAlive()
+    {
+        // The reported bug: a single adb hiccup reset the whole inspection.
+        var (tracker, clock) = NewTracker();
+        tracker.Report(1);
+
+        tracker.Report(0);
+        clock.Advance(2.5); // one polling interval
+        Assert.False(tracker.IsUnplugged);
+    }
+
+    [Fact]
+    public void AbsentAcrossSeveralPolls_StaysBelowTheGrace()
+    {
+        // Two empty polls, five seconds, session intact.
+        var (tracker, clock) = NewTracker();
+        tracker.Report(1);
+
+        for (int i = 0; i < 2; i++)
         {
-            // This branch should not execute
-            Assert.Fail("Should not reach here when devices is empty");
+            tracker.Report(0);
+            clock.Advance(2.5);
+            Assert.False(tracker.IsUnplugged);
         }
     }
 
     [Fact]
-    public void DefaultKeyValuePair_KeyIsNull()
+    public void ThirdEmptyPoll_ReachesTheGrace()
     {
-        var defaultPair = default(KeyValuePair<string, string>);
-        Assert.Null(defaultPair.Key);
-        
-        // Verify our guard handles null keys
-        string? key = defaultPair.Key;
-        bool isNullOrEmpty = string.IsNullOrWhiteSpace(key);
-        Assert.True(isNullOrEmpty);
+        var (tracker, clock) = NewTracker();
+        tracker.Report(1);
+
+        for (int i = 0; i < 3; i++)
+        {
+            tracker.Report(0);
+            clock.Advance(2.5);
+        }
+
+        Assert.True(tracker.IsUnplugged);
+    }
+
+    [Fact]
+    public void AbsentLongerThanTheGrace_CountsAsUnplugged()
+    {
+        var (tracker, clock) = NewTracker();
+        tracker.Report(1);
+
+        tracker.Report(0);
+        clock.Advance(6.0);
+        Assert.False(tracker.IsUnplugged);
+
+        clock.Advance(2.0);
+        Assert.True(tracker.IsUnplugged);
+    }
+
+    [Fact]
+    public void ReconnectBeforeTheGrace_ClearsTheAbsence()
+    {
+        var (tracker, clock) = NewTracker();
+        tracker.Report(1);
+
+        tracker.Report(0);
+        clock.Advance(5.0);
+        tracker.Report(1);
+        clock.Advance(60.0);
+
+        Assert.False(tracker.IsUnplugged);
+        Assert.Null(tracker.AbsentFor);
+    }
+
+    [Fact]
+    public void RepeatedEmptyReports_DoNotExtendTheGrace()
+    {
+        // The polling loop and the USB event both report, so the clock, not the
+        // report count, has to decide. Otherwise a device that keeps being
+        // probed would never be called unplugged.
+        var (tracker, clock) = NewTracker();
+        tracker.Report(1);
+
+        tracker.Report(0);
+        for (int i = 0; i < 20; i++)
+        {
+            clock.Advance(0.5);
+            tracker.Report(0);
+        }
+
+        Assert.True(tracker.IsUnplugged);
+    }
+
+    [Fact]
+    public void AbsentFor_GrowsFromTheFirstEmptyReport()
+    {
+        var (tracker, clock) = NewTracker();
+        tracker.Report(1);
+        tracker.Report(0);
+
+        clock.Advance(3.25);
+        Assert.Equal(TimeSpan.FromSeconds(3.25), tracker.AbsentFor);
+    }
+
+    [Fact]
+    public void Reset_ClearsTheAbsence()
+    {
+        var (tracker, clock) = NewTracker();
+        tracker.Report(0);
+        clock.Advance(60.0);
+        Assert.True(tracker.IsUnplugged);
+
+        tracker.Reset();
+        Assert.False(tracker.IsUnplugged);
+    }
+
+    [Fact]
+    public void ZeroGrace_DisconnectsOnTheNextObservation()
+    {
+        var clock = new FakeClock();
+        var tracker = new DevicePresenceTracker(TimeSpan.Zero, () => clock.Now);
+        tracker.Report(0);
+        Assert.True(tracker.IsUnplugged);
+    }
+
+    [Fact]
+    public void NegativeGrace_IsRejected()
+        => Assert.Throws<ArgumentOutOfRangeException>(() => new DevicePresenceTracker(TimeSpan.FromSeconds(-1), () => DateTimeOffset.UtcNow));
+
+    [Fact]
+    public void DefaultGrace_CoversThreePollingIntervals()
+    {
+        // StartWatcher polls every 2.5s, so the default has to span three of
+        // them for the "wait a bit longer" behaviour to actually hold.
+        Assert.Equal(TimeSpan.FromSeconds(7.5), DevicePresenceTracker.DefaultGrace);
     }
 }
