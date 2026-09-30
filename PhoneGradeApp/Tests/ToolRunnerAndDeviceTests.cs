@@ -107,6 +107,33 @@ public class ToolRunnerAndDeviceTests : IDisposable
         Assert.DoesNotContain("OUT", stderr);
     }
 
+    /// <summary>
+    /// A child that hands its output to a grandchild is gone while the pipe is still
+    /// held open by the one that stayed behind. WaitForExit only covers the child, so a
+    /// read that is not bounded waits until the grandchild feels like closing it, and
+    /// the caller never gets its timeout back.
+    /// </summary>
+    [Fact]
+    public async Task ToolRunner_ExecuteAsync_GrandchildHoldingThePipe_ReturnsWithinTheTimeout()
+    {
+        string tool = OperatingSystem.IsWindows() ? "cmd" : "sh";
+        string args = OperatingSystem.IsWindows()
+            ? "/c start /b ping -n 30 127.0.0.1"
+            : "-c \"sleep 30 & echo started\"";
+
+        Task<(string Stdout, string Stderr, int ExitCode)> run =
+            ToolRunner.ExecuteAsync(tool, args, timeoutMs: 2500);
+
+        Task finished = await Task.WhenAny(run, Task.Delay(TimeSpan.FromSeconds(20)));
+        Assert.True(ReferenceEquals(finished, run),
+            "ExecuteAsync never came back: the grandchild keeps the pipe open and the read waits for it.");
+
+        var (stdout, stderr, exitCode) = await run;
+
+        Assert.Equal(-1, exitCode);
+        Assert.Equal("ERROR: command timed out", stderr);
+    }
+
     [Fact]
     public async Task ToolRunner_RunAsync_MaintainsBackwardCompatibility()
     {
