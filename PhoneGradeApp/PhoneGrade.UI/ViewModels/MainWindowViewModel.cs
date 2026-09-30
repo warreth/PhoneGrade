@@ -879,20 +879,28 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    /// <summary>Called when the licensing card activates a key; re-evaluates the gate and refreshes UI.</summary>
+    /// <summary>
+    /// Re-raises everything that shows the licensing state. The gate mutates its
+    /// counter during a scan, but the bindings only follow property changes, so
+    /// without this the settings card and the banner keep showing the count the
+    /// app started with.
+    /// </summary>
+    private void RefreshLicensingState()
+    {
+        this.RaisePropertyChanged(nameof(IsProLicenseActive));
+        this.RaisePropertyChanged(nameof(TrialScanCount));
+        this.RaisePropertyChanged(nameof(IsTrialLimitReached));
+        this.RaisePropertyChanged(nameof(LicensingStatusText));
+        _settingsViewModel?.UpdateStatusText();
+    }
+
+    /// <summary>Called when a key was activated; re-validates in the background and refreshes the UI.</summary>
     private void RequestLicenseRefresh()
     {
         _ = Task.Run(async () =>
         {
             await _trialGate.RefreshLicenseStatusAsync().ConfigureAwait(false);
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                this.RaisePropertyChanged(nameof(IsProLicenseActive));
-                this.RaisePropertyChanged(nameof(TrialScanCount));
-                this.RaisePropertyChanged(nameof(IsTrialLimitReached));
-                this.RaisePropertyChanged(nameof(LicensingStatusText));
-                _settingsViewModel?.UpdateStatusText();
-            });
+            await Dispatcher.UIThread.InvokeAsync(RefreshLicensingState);
         });
     }
 
@@ -1201,6 +1209,20 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// The licensing half of starting a scan: asks the gate, then refreshes the
+    /// status bindings with whatever the gate decided. The gate spends a free
+    /// scan (or validates Pro) inside EvaluateAsync, so the count on screen is
+    /// stale from that moment on until this raises the changes. Returns false
+    /// when the trial limit blocks the scan, and then no device is touched.
+    /// </summary>
+    public async Task<bool> PassScanGateAsync()
+    {
+        DeviceService.ScanInitResult verdict = await DeviceService.InitializeScanAsync().ConfigureAwait(false);
+        RefreshLicensingState();
+        return verdict == DeviceService.ScanInitResult.Proceed;
+    }
+
     /// <summary>The whole pipeline for one device.</summary>
     private async Task RunFlowAsync()
     {
@@ -1212,8 +1234,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
 
         // Licensing gate: block at the limit before any device work starts.
-        DeviceService.ScanInitResult gate = await DeviceService.InitializeScanAsync().ConfigureAwait(false);
-        if (gate == DeviceService.ScanInitResult.TrialLimitReached)
+        if (!await PassScanGateAsync().ConfigureAwait(false))
         {
             Status = "Gratis proefversie limiet bereikt (10/10). Koop een licentie om door te gaan met scannen.";
             return;
