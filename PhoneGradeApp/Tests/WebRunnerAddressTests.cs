@@ -19,7 +19,7 @@ public class WebRunnerAddressTests
         // send the phone to a service that is not listening.
         string url = QrCodeService.GenerateSessionUrl("https://quiet-marble-otter.trycloudflare.com", "00008030-001234567890ABCD");
 
-        Assert.Equal("https://quiet-marble-otter.trycloudflare.com/?sessionId=00008030-001234567890ABCD", url);
+        Assert.Equal($"https://quiet-marble-otter.trycloudflare.com/?sessionId=00008030-001234567890ABCD&lang={Language}", url);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class WebRunnerAddressTests
     {
         string url = QrCodeService.GenerateSessionUrl("https://quiet-marble-otter.trycloudflare.com/", "X");
 
-        Assert.Equal("https://quiet-marble-otter.trycloudflare.com/?sessionId=X", url);
+        Assert.Equal($"https://quiet-marble-otter.trycloudflare.com/?sessionId=X&lang={Language}", url);
     }
 
     [Fact]
@@ -35,16 +35,43 @@ public class WebRunnerAddressTests
     {
         string url = QrCodeService.GenerateSessionUrl("https://a-b-c.trycloudflare.com", "X", isDebug: true, testPhoneNumber: "0470 12 34 56");
 
-        Assert.Equal("https://a-b-c.trycloudflare.com/?sessionId=X&debug=true&testPhoneNumber=0470%2012%2034%2056", url);
+        Assert.Equal($"https://a-b-c.trycloudflare.com/?sessionId=X&debug=true&testPhoneNumber=0470%2012%2034%2056&lang={Language}", url);
     }
 
     [Fact]
     public void SessionUrl_FallsBackToTheLocalServerWithoutAnAddress()
     {
-        Assert.Equal("http://127.0.0.1:5055/?sessionId=X",
+        Assert.Equal($"http://127.0.0.1:5055/?sessionId=X&lang={Language}",
             QrCodeService.GenerateSessionUrl((string?)null!, "X"));
-        Assert.Equal("http://127.0.0.1:5055/?sessionId=X",
+        Assert.Equal($"http://127.0.0.1:5055/?sessionId=X&lang={Language}",
             QrCodeService.GenerateSessionUrl("   ", "X"));
+    }
+
+    /// <summary>The language the desk is showing, read at the moment the assertion runs.</summary>
+    private static string Language => LocalizationManager.CurrentLanguage;
+
+    [Fact]
+    public void SessionUrl_SaysWhichLanguageTheDeskIsShowing()
+    {
+        // The phone cannot know what language the operator's desk is in, and a
+        // Dutch operator grading on an English phone would otherwise be reading
+        // two languages off one screen. The language goes out on the address the
+        // QR code carries, so the phone matches the desk that opened it.
+        string url = QrCodeService.GenerateSessionUrl("https://a-b-c.trycloudflare.com", "X");
+
+        Assert.Matches(@"[?&]lang=[a-z]{2}(&|$)", url);
+        Assert.EndsWith($"&lang={Language}", url);
+    }
+
+    [Fact]
+    public void SessionUrl_CarriesALanguageItIsHanded()
+    {
+        // Not hardcoded to whatever the desk happens to be showing: the address is
+        // built from the language it is given, so the value on the URL is the one
+        // that was asked for and not a value the builder picked on its own.
+        string url = QrCodeService.GenerateSessionUrl("https://a-b-c.trycloudflare.com", "X", language: "en");
+
+        Assert.EndsWith("&lang=en", url);
     }
 
     [Fact]

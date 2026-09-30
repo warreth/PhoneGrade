@@ -157,7 +157,7 @@ public class AdbReverseTunnelTests
         // which is the entire reason the tunnel exists.
         string url = QrCodeService.GenerateSessionUrl(AdbReverseTunnel.LoopbackHost, 5055, "38091FDJG00EMF");
 
-        Assert.Equal("http://localhost:5055/?sessionId=38091FDJG00EMF", url);
+        Assert.Equal($"http://localhost:5055/?sessionId=38091FDJG00EMF&lang={LocalizationManager.CurrentLanguage}", url);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public class AdbReverseTunnelTests
     {
         // iOS stays on the network address, which is the pre-tunnel behaviour.
         string url = QrCodeService.GenerateSessionUrl("192.168.0.216", 5055, "DEVICE_UDID_123");
-        Assert.Equal("http://192.168.0.216:5055/?sessionId=DEVICE_UDID_123", url);
+        Assert.Equal($"http://192.168.0.216:5055/?sessionId=DEVICE_UDID_123&lang={LocalizationManager.CurrentLanguage}", url);
     }
 
     [Fact]
