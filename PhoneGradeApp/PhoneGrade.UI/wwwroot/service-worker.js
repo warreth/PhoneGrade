@@ -1,4 +1,4 @@
-const CACHE_NAME = 'phonegrade-v2';
+const CACHE_NAME = 'phonegrade-v3';
 const ASSETS = [
     '/',
     '/manifest.json',
@@ -8,6 +8,9 @@ const ASSETS = [
     '/modules/CommandDispatch.js',
     '/modules/SuiteCounts.js',
     '/modules/ResultRows.js',
+    '/modules/i18n.js',
+    '/locales/nl.js',
+    '/locales/en.js',
     '/modules/serverUrl.js',
     '/modules/TouchTest.js',
     '/modules/DisplayTest.js',

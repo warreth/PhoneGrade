@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 /**
  * One row on the results screen: what ran, how it came out, and why.
  *
@@ -35,7 +37,7 @@ export function buildResultRow(test) {
         // The row's own id, not its position: a step can produce more than one
         // row, so the row at index 2 is not step 2.
         retry.dataset.testId = test.id;
-        retry.textContent = 'Opnieuw';
+        retry.textContent = t('results.retry');
         item.appendChild(retry);
     }
 

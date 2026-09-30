@@ -7,7 +7,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#ffffff">
     <meta name="description" content="PhoneGrade Hardware Test Suite">
-    <title>PhoneGrade Test Suite</title>
+    <!--
+        Every sentence an operator reads is marked with data-i18n (or
+        data-i18n-label for an aria label) and filled in from the dictionary by
+        i18n.js at startup. The English below is only what is on screen before
+        that happens; which language stays is decided by the query string and
+        then by the browser.
+    -->
+    <title data-i18n="shell.title">PhoneGrade Test Suite</title>
     <!-- Load debug console first to catch all early fetch/log calls -->
     <script src="/debug-console.js"></script>
     <link rel="manifest" href="/manifest.json">
@@ -16,7 +23,7 @@
 </head>
 <body>
     <div id="app" class="app-container">
-        <div id="ios-standalone-banner" style="display: none; background: var(--color-warning); color: #fff; text-align: center; padding: 10px; font-size: 13px; font-weight: bold;">
+        <div id="ios-standalone-banner" data-i18n="shell.iosBanner" style="display: none; background: var(--color-warning); color: #fff; text-align: center; padding: 10px; font-size: 13px; font-weight: bold;">
             For borderless kiosk view, tap Share and select Add to Home Screen.
         </div>
         <header class="app-header" role="banner">
@@ -30,91 +37,91 @@
                 </div>
                 <div class="connection-status" id="connection-status" aria-live="polite">
                     <span class="status-dot"></span>
-                    <span class="status-text">Connecting...</span>
+                    <span class="status-text" data-i18n="shell.connecting">Connecting...</span>
                 </div>
             </div>
         </header>
 
         <main id="main-content" class="main-content" role="main">
             <!-- Welcome Screen -->
-            <section id="welcome-screen" class="screen screen-active" role="region" aria-label="Welcome screen">
+            <section id="welcome-screen" class="screen screen-active" role="region" aria-label="Welcome screen" data-i18n-label="aria.welcomeScreen">
                 <div class="screen-content">
                     <div class="welcome-card">
                         <div class="card-header">
-                            <h2>Welcome to PhoneGrade</h2>
-                            <p class="subtitle">Professional Hardware Testing</p>
+                            <h2 data-i18n="shell.welcome">Welcome to PhoneGrade</h2>
+                            <p class="subtitle" data-i18n="shell.subtitle">Professional Hardware Testing</p>
                         </div>
 
                         <div class="device-info" id="device-info">
                             <div class="info-row">
-                                <span class="label">Device:</span>
-                                <span class="value" id="device-type">Detecting...</span>
+                                <span class="label" data-i18n="shell.device">Device:</span>
+                                <span class="value" id="device-type" data-i18n="shell.detecting">Detecting...</span>
                             </div>
                             <div class="info-row">
-                                <span class="label">Browser:</span>
-                                <span class="value" id="browser-info">Detecting...</span>
+                                <span class="label" data-i18n="shell.browser">Browser:</span>
+                                <span class="value" id="browser-info" data-i18n="shell.detecting">Detecting...</span>
                             </div>
                         </div>
 
                         <div class="test-overview">
-                            <p>This test suite will verify:</p>
+                            <p data-i18n="shell.willVerify">This test suite will verify:</p>
                             <ul class="feature-list">
                                 <li>
                                     <svg viewBox="0 0 24 24" width="20" height="20">
                                         <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
                                     </svg>
-                                    <span>Touch Response</span>
+                                    <span data-i18n="shell.featureTouch">Touch Response</span>
                                 </li>
                                 <li>
                                     <svg viewBox="0 0 24 24" width="20" height="20">
                                         <path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
                                     </svg>
-                                    <span>Display Quality</span>
+                                    <span data-i18n="shell.featureDisplay">Display Quality</span>
                                 </li>
                                 <li>
                                     <svg viewBox="0 0 24 24" width="20" height="20">
                                         <path fill="currentColor" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
                                     </svg>
-                                    <span>Audio Systems</span>
+                                    <span data-i18n="shell.featureAudio">Audio Systems</span>
                                 </li>
                                 <li>
                                     <svg viewBox="0 0 24 24" width="20" height="20">
                                         <path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-5-9l-2.5 3 3.5 4.5h5L16 10z"/>
                                     </svg>
-                                    <span>Cameras</span>
+                                    <span data-i18n="shell.featureCameras">Cameras</span>
                                 </li>
                                 <li>
                                     <svg viewBox="0 0 24 24" width="20" height="20">
                                         <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
                                     </svg>
-                                    <span>Motion Sensors</span>
+                                    <span data-i18n="shell.featureSensors">Motion Sensors</span>
                                 </li>
                             </ul>
                         </div>
 
                         <div id="resume-banner" class="resume-banner" style="display: none;" role="status">
                             <span class="resume-text"></span>
-                            <button id="resume-btn" class="btn btn-secondary resume-btn">Doorgaan</button>
+                            <button id="resume-btn" class="btn btn-secondary resume-btn" data-i18n="shell.resume">Doorgaan</button>
                         </div>
 
-                        <button id="start-test-btn" class="btn btn-primary btn-large" aria-label="Start test suite">
-                            <span>Begin Test Suite</span>
+                        <button id="start-test-btn" class="btn btn-primary btn-large" aria-label="Start test suite" data-i18n-label="aria.startTest">
+                            <span data-i18n="shell.start">Begin Test Suite</span>
                             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                                 <path fill="currentColor" d="M8 5v14l11-7z"/>
                             </svg>
                         </button>
 
-                        <p class="disclaimer">All tests are non-destructive and safe to run.</p>
+                        <p class="disclaimer" data-i18n="shell.disclaimer">All tests are non-destructive and safe to run.</p>
                     </div>
                 </div>
             </section>
 
             <!-- Test Progress Screen -->
-            <section id="test-screen" class="screen" role="region" aria-label="Test execution screen">
+            <section id="test-screen" class="screen" role="region" aria-label="Test execution screen" data-i18n-label="aria.testScreen">
                 <div class="test-header">
                     <div class="test-title-block">
-                        <h2 id="current-test-name">Loading Test...</h2>
-                        <p id="current-test-description" class="test-description">Please wait...</p>
+                        <h2 id="current-test-name" data-i18n="shell.loadingTest">Loading Test...</h2>
+                        <p id="current-test-description" class="test-description" data-i18n="shell.pleaseWait">Please wait...</p>
                     </div>
                     <div class="test-counter" id="test-counter" aria-live="polite">
                         <span id="current-test-num">0</span>/<span id="total-tests">0</span>
@@ -127,35 +134,35 @@
 
                 <div id="test-list" class="test-list" role="list"></div>
 
-                <div id="test-container" class="test-container" role="region" aria-label="Current test interface"></div>
+                <div id="test-container" class="test-container" role="region" aria-label="Current test interface" data-i18n-label="aria.testContainer"></div>
 
                 <div class="test-footer">
-                    <button id="skip-test-btn" class="btn btn-secondary" aria-label="Skip this test">Skip Test</button>
+                    <button id="skip-test-btn" class="btn btn-secondary" aria-label="Skip this test" data-i18n-label="aria.skipTest" data-i18n="shell.skipTest">Skip Test</button>
                 </div>
             </section>
 
             <!-- Results Screen -->
-            <section id="results-screen" class="screen" role="region" aria-label="Test results screen">
+            <section id="results-screen" class="screen" role="region" aria-label="Test results screen" data-i18n-label="aria.resultsScreen">
                 <div class="results-header">
                     <div id="results-status-icon" class="status-icon" aria-hidden="true"></div>
-                    <h2 id="results-title">Test Suite Complete</h2>
+                    <h2 id="results-title" data-i18n="results.title">Test Suite Complete</h2>
                 </div>
 
                 <div class="summary-stats">
                     <div class="summary-stat-box">
-                        <div class="stat-label">Tests</div>
+                        <div class="stat-label" data-i18n="results.tests">Tests</div>
                         <div class="stat-value" id="total-count">0</div>
                     </div>
                     <div class="summary-stat-box">
-                        <div class="stat-label">Passed</div>
+                        <div class="stat-label" data-i18n="results.passed">Passed</div>
                         <div class="stat-value passed" id="passed-count">0</div>
                     </div>
                     <div class="summary-stat-box">
-                        <div class="stat-label">Failed</div>
+                        <div class="stat-label" data-i18n="results.failed">Failed</div>
                         <div class="stat-value failed" id="failed-count">0</div>
                     </div>
                     <div class="summary-stat-box">
-                        <div class="stat-label">Skipped</div>
+                        <div class="stat-label" data-i18n="results.skipped">Skipped</div>
                         <div class="stat-value skipped" id="skipped-count">0</div>
                     </div>
                 </div>
@@ -163,8 +170,8 @@
                 <div id="results-details" class="results-details" role="list"></div>
 
                 <div class="results-actions">
-                    <button id="restart-btn" class="btn btn-primary" aria-label="Restart test suite">
-                        Run Again
+                    <button id="restart-btn" class="btn btn-primary" aria-label="Restart test suite" data-i18n-label="aria.restart">
+                        <span data-i18n="results.runAgain">Run Again</span>
                     </button>
                 </div>
             </section>
