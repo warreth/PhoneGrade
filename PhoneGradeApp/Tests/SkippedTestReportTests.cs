@@ -123,6 +123,35 @@ public class SkippedTestReportTests
     }
 
     /// <summary>
+    /// The reason for a skip reaches the list and stays attached to the row it
+    /// belongs to, and the view has to bind it.
+    ///
+    /// The row already carried the note the phone sent; the report read the name
+    /// and the badge and left it there, so GPS came out as a bare OVERGESLAGEN.
+    /// </summary>
+    [Fact]
+    public void TheReasonForASkipStaysOnTheRowThatIsShown()
+    {
+        using var vm = new MainWindowViewModel();
+
+        vm.ApplyInteractiveResults(ReadSuite(SuitePayload));
+
+        var skipped = Assert.Single(vm.SkippedInteractiveTests);
+        Assert.Equal("De browser heeft geen locatie-API", skipped.Notes);
+
+        var failed = Assert.Single(vm.FailedInteractiveTests);
+        Assert.Equal("Geen zicht op de sensor", failed.Notes);
+
+        string view = RepoPath.Read("PhoneGradeApp", "PhoneGrade.UI", "Views", "MainWindow.axaml");
+        Assert.Contains("Text=\"{Binding Notes}\"", view);
+
+        // The note is null on a row with nothing to say, and a bound TextBlock
+        // with an empty string still takes a line. The row must not grow a
+        // blank one.
+        Assert.Contains("StringConverters.IsNotNullOrEmpty", view);
+    }
+
+    /// <summary>
     /// The lists are only worth filling if something puts them on the screen.
     /// </summary>
     [Fact]
