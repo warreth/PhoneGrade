@@ -1,207 +1,390 @@
 import { DeviceTest } from './DeviceTest.js';
+import { CAPABILITY } from './MediaCapability.js';
 
-// How long the retry button stays useful after a permission denial. Long enough
-// to flip the setting in the OS and come back, short enough that the suite never
-// sits on a single step.
-const DENIAL_RETRY_GRACE_MS = 45000;
+/**
+ * How long the operator can go and change the location setting.
+ *
+ * Long enough to unlock the phone, find the browser's site permissions, switch
+ * location on and come back, short enough that the suite is not held up by a
+ * step nobody intends to finish. It is measured from the first refusal and is
+ * never restarted, so pressing retry cannot keep the step alive for ever.
+ */
+const RETRY_GRACE_MS = 90000;
+
+/** How often the remaining grace is rewritten on screen. */
+const COUNTDOWN_TICK_MS = 1000;
+
+/**
+ * A window of time that is opened once and then only counted down.
+ *
+ * The old step started a fresh 45 s every time the browser said no, so an
+ * operator on a phone that kept refusing could hold the suite on this step by
+ * pressing retry. Here arming is refused the second time, which is what stops
+ * the window from sliding, and the test can check that without a clock.
+ */
+export class RetryDeadline {
+    constructor(graceMs) {
+        this.graceMs = graceMs;
+        this.at = null;
+    }
+
+    /** @returns {boolean} true only the first time it is opened. */
+    arm(now = Date.now()) {
+        if (this.at !== null) return false;
+        this.at = now + this.graceMs;
+        return true;
+    }
+
+    get isArmed() {
+        return this.at !== null;
+    }
+
+    remainingMs(now = Date.now()) {
+        if (this.at === null) return this.graceMs;
+        return Math.max(0, this.at - now);
+    }
+
+    remainingSeconds(now = Date.now()) {
+        return Math.ceil(this.remainingMs(now) / 1000);
+    }
+
+    clear() {
+        this.at = null;
+    }
+}
 
 export class LocationTest extends DeviceTest {
     constructor() {
-        super('location', 'GPS / Location', 'Test Geolocation API functionality');
+        super('location', 'GPS / Locatie', 'Controleer de Geolocation API');
+    }
+
+    /**
+     * The browser's own timeout is 15 s, and the operator may then be away for the
+     * grace period. 90 s of runner failsafe ended the step while they were still
+     * in the settings.
+     */
+    getFailsafeMs() {
+        return RETRY_GRACE_MS + 90000;
+    }
+
+    reset() {
+        super.reset();
+        this.details = {};
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Awaiting location permission...');
+        this.reportProgress(wsClient, 0, 'Wachten op locatietoegang...');
+
+        if (!hasGeolocation()) {
+            return this.reportNoApi(wsClient, container);
+        }
 
         container.innerHTML = `
-            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md); width: 100%; max-width: 400px;">
-                    <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">GPS & Location</h3>
-                    <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 16px;">
-                        Allow location access when prompted to verify GPS hardware.
-                    </p>
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title">GPS en locatie</h3>
+                    <div class="step-card">
+                        <p class="step-lead">
+                            Sta locatietoegang toe wanneer de browser erom vraagt. Zet
+                            het toestel liefst buiten of bij een raam, dan doet de
+                            eerste fix er het langst over.
+                        </p>
 
-                    <div id="location-permission-area" style="margin-bottom: 16px;">
-                        <button id="btn-request-location" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold;">Request Location Access</button>
-                    </div>
-                    
-                    <div id="location-status-area" style="display: none;">
-                        <div id="loc-spinner" style="display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(0, 217, 255, 0.3); border-radius: 50%; border-top-color: var(--color-accent); animation: spin 1s ease-in-out infinite; margin-bottom: 16px;"></div>
-                        <p id="loc-status" style="color: var(--color-text-secondary);">Requesting coordinates...</p>
-                        <div id="loc-data" style="margin-top: 16px; font-family: monospace; color: var(--color-success); font-size: 14px; display: none;"></div>
-                    </div>
+                        <button id="btn-request-location" class="btn btn-primary step-block">
+                            Locatietoegang aanvragen
+                        </button>
 
-                    <div id="location-error-area" style="display: none; margin-top: 16px;">
-                        <p id="loc-error-msg" style="color: var(--color-error); margin-bottom: 12px;">Location access denied</p>
-                        <button id="btn-retry-location" class="btn btn-secondary" style="width: 100%;">Retry</button>
+                        <div id="location-status-area" class="step-stack" hidden>
+                            <div id="loc-spinner" class="loc-spinner"></div>
+                            <p id="loc-status">Wachten op coördinaten...</p>
+                            <p id="loc-data" class="loc-readout" hidden></p>
+                        </div>
+
+                        <div id="location-error-area" class="step-stack" hidden>
+                            <p class="step-note" id="loc-error-msg"></p>
+                            <ol class="fix-steps" id="loc-fix-steps"></ol>
+                            <div class="step-actions">
+                                <button id="btn-retry-location" class="btn btn-primary">Opnieuw proberen</button>
+                                <button id="btn-loc-give-up" class="btn btn-secondary">Locatietoegang lukt niet</button>
+                            </div>
+                            <p class="step-hint" id="loc-grace-note" hidden></p>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
 
         const btnRequest = container.querySelector('#btn-request-location');
-        const permissionArea = container.querySelector('#location-permission-area');
         const statusArea = container.querySelector('#location-status-area');
         const errorArea = container.querySelector('#location-error-area');
-        const statusEl = container.querySelector('#loc-status');
         const spinnerEl = container.querySelector('#loc-spinner');
+        const statusEl = container.querySelector('#loc-status');
         const dataEl = container.querySelector('#loc-data');
         const errorMsgEl = container.querySelector('#loc-error-msg');
+        const fixStepsEl = container.querySelector('#loc-fix-steps');
+        const graceNoteEl = container.querySelector('#loc-grace-note');
         const btnRetry = container.querySelector('#btn-retry-location');
-
-        // reason is 'missing' when the browser has no geolocation at all, and
-        // 'denied' when it does but the operator refused the prompt. Only the
-        // former is a capability gap that should cost the device a grade.
-        const logMissingApi = async (missingApi, reason = 'missing') => {
-            if (wsClient && wsClient.sessionId) {
-                try {
-                    const ua = navigator.userAgent;
-                    let osVersion = 'Unknown';
-                    if (/iPhone|iPad|iPod/.test(ua)) {
-                        osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
-                    } else if (/Android/.test(ua)) {
-                        osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
-                    }
-
-                    await fetch(`${wsClient.baseUrl}/api/pwa/log-warning`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            sessionId: wsClient.sessionId,
-                            missingApi: missingApi,
-                            userAgent: ua,
-                            osVersion: osVersion,
-                            reason: reason
-                        })
-                    });
-                } catch (e) {
-                    console.error('Failed to report missing API', e);
-                }
-            }
-        };
-
-        // The promise that run() returns is created below, but requestLocation()
-        // runs from a click long after that point, so the resolver is held here
-        // where both sides can see it. Referencing `resolve` directly inside
-        // requestLocation() was a ReferenceError that left the promise pending
-        // and stalled the whole suite on the GPS step.
-        let settleRun = null;
-        let finishTimer = null;
-
-        // Settles after an optional delay. Any pending delay is replaced, so a
-        // retry that succeeds can take over from an earlier denial timeout.
-        const finish = (delayMs = 0) => {
-            if (finishTimer) {
-                clearTimeout(finishTimer);
-                finishTimer = null;
-            }
-            const release = () => {
-                finishTimer = null;
-                if (settleRun) settleRun();
-            };
-            if (delayMs <= 0) release();
-            else finishTimer = setTimeout(release, delayMs);
-        };
-
-        const requestLocation = () => {
-            permissionArea.style.display = 'none';
-            statusArea.style.display = 'block';
-            errorArea.style.display = 'none';
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude, accuracy } = position.coords;
-                    
-                    spinnerEl.style.display = 'none';
-                    statusEl.textContent = 'Location acquired successfully';
-                    statusEl.style.color = 'var(--color-success)';
-                    
-                    dataEl.style.display = 'block';
-                    dataEl.innerHTML = `
-                        Lat: ${latitude.toFixed(5)}<br>
-                        Lon: ${longitude.toFixed(5)}<br>
-                        Accuracy: ${accuracy.toFixed(1)}m
-                    `;
-
-                    if (accuracy <= 100) {
-                        this.pass(`High accuracy GPS fix (${accuracy.toFixed(1)}m)`);
-                    } else {
-                        this.pass(`Low accuracy GPS fix (${accuracy.toFixed(1)}m) - Indoors?`);
-                    }
-
-                    this.details.latitude = latitude;
-                    this.details.longitude = longitude;
-                    this.details.accuracy = accuracy;
-                    this.reportProgress(wsClient, 100, 'GPS test complete');
-                    
-                    finish(1500);
-                },
-                async (error) => {
-                    spinnerEl.style.display = 'none';
-                    statusArea.style.display = 'none';
-                    errorArea.style.display = 'block';
-                    
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            errorMsgEl.textContent = 'Location permission denied. Enable location access in settings and retry.';
-                            // The API is present, the operator refused it. Report
-                            // it as a denial so it does not cap the grade.
-                            await logMissingApi('navigator.geolocation', 'denied');
-                            this.skip('User denied location permission');
-                            // Keep the retry button usable for a while so the operator
-                            // can switch on location in settings, but never wait
-                            // indefinitely: the suite has to move on.
-                            finish(DENIAL_RETRY_GRACE_MS);
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            errorMsgEl.textContent = 'Location information unavailable';
-                            this.fail('GPS Hardware reported position unavailable');
-                            finish(2000);
-                            break;
-                        case error.TIMEOUT:
-                            errorMsgEl.textContent = 'Location request timed out';
-                            this.fail('GPS Hardware timed out acquiring fix');
-                            finish(2000);
-                            break;
-                        default:
-                            errorMsgEl.textContent = 'An unknown error occurred';
-                            this.fail('Unknown geolocation error: ' + error.message);
-                            finish(2000);
-                            break;
-                    }
-                    this.details.errorCode = error.code;
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 0
-                }
-            );
-        };
+        const btnGiveUp = container.querySelector('#btn-loc-give-up');
 
         return new Promise((resolve) => {
-            settleRun = resolve;
+            let settled = false;
+            let requestInFlight = false;
+            let grantedOnce = false;
 
-            if (!navigator.geolocation) {
-                permissionArea.style.display = 'none';
-                errorArea.style.display = 'block';
-                errorMsgEl.textContent = 'Geolocation API not supported';
-                // A real capability gap, so it is reported as 'missing'. The
-                // endpoint dedupes, so overlapping with the startup scan is fine.
-                logMissingApi('navigator.geolocation', 'missing');
-                this.skip('Geolocation API not supported by browser');
-                finish(2000);
-                return;
-            }
+            // Opened on the first refusal and only counted down from there. A
+            // retry re-asks the browser but never re-opens the window.
+            const grace = new RetryDeadline(RETRY_GRACE_MS);
+            let graceTimer = null;
+            let countdownTimer = null;
 
-            btnRequest.onclick = () => {
-                requestLocation();
+            const settle = () => {
+                if (settled) return;
+                settled = true;
+                if (graceTimer) clearTimeout(graceTimer);
+                if (countdownTimer) clearInterval(countdownTimer);
+                graceTimer = null;
+                countdownTimer = null;
+                resolve();
             };
 
-            btnRetry.onclick = () => {
-                requestLocation();
+            const showRemaining = () => {
+                const left = grace.remainingSeconds();
+                graceNoteEl.hidden = left <= 0;
+                graceNoteEl.textContent = `Over ${left} seconden gaat deze stap verder.`;
+            };
+
+            const armGrace = () => {
+                if (!grace.arm()) return;
+
+                showRemaining();
+                countdownTimer = setInterval(showRemaining, COUNTDOWN_TICK_MS);
+                graceTimer = setTimeout(() => {
+                    graceNoteEl.hidden = true;
+                    // A request the operator started is allowed to come back first,
+                    // so a fix that arrives in the last seconds is not thrown away.
+                    if (requestInFlight) {
+                        graceTimer = setTimeout(() => {
+                            if (!settled) {
+                                this.skip('Locatietoegang niet verleend binnen de ingestelde tijd');
+                                settle();
+                            }
+                        }, 20000);
+                        return;
+                    }
+                    if (!settled) {
+                        this.skip('Locatietoegang niet verleend binnen de ingestelde tijd');
+                        settle();
+                    }
+                }, RETRY_GRACE_MS);
+            };
+
+            const requestLocation = () => {
+                requestInFlight = true;
+                btnRequest.hidden = true;
+                errorArea.hidden = true;
+                statusArea.hidden = false;
+                spinnerEl.hidden = false;
+                dataEl.hidden = true;
+                statusEl.textContent = 'Wachten op coördinaten...';
+                statusEl.style.color = '';
+                this.reportProgress(wsClient, 30, 'GPS-fix ophalen...');
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        requestInFlight = false;
+                        grantedOnce = true;
+                        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+                        if (graceTimer) { clearTimeout(graceTimer); graceTimer = null; }
+                        grace.clear();
+                        graceNoteEl.hidden = true;
+
+                        const { latitude, longitude, accuracy } = position.coords;
+                        const accurate = accuracy <= 100;
+
+                        spinnerEl.hidden = true;
+                        statusEl.textContent = accurate
+                            ? 'Nauwkeurige positie gevonden'
+                            : 'Positie gevonden, maar grof';
+                        statusEl.style.color = accurate
+                            ? 'var(--color-success-text)'
+                            : 'var(--color-warning-text)';
+
+                        dataEl.hidden = false;
+                        dataEl.textContent =
+                            `Breedtegraad: ${latitude.toFixed(5)}\n` +
+                            `Lengtegraad: ${longitude.toFixed(5)}\n` +
+                            `Nauwkeurigheid: ${accuracy.toFixed(1)} m`;
+
+                        this.details.latitude = latitude;
+                        this.details.longitude = longitude;
+                        this.details.accuracy = accuracy;
+                        this.details.accuracyGrade = accurate ? 'high' : 'low';
+
+                        this.pass(accurate
+                            ? `Nauwkeurige GPS-fix op ${accuracy.toFixed(1)} m`
+                            : `GPS-fix op ${accuracy.toFixed(1)} m, grover dan 100 m (binnen?)`);
+
+                        this.reportProgress(wsClient, 100, 'GPS-test afgerond');
+                        setTimeout(settle, 1500);
+                    },
+                    (error) => {
+                        requestInFlight = false;
+                        spinnerEl.hidden = true;
+                        statusArea.hidden = true;
+                        errorArea.hidden = false;
+                        this.details.errorCode = error.code;
+                        this.showLocationError(errorMsgEl, fixStepsEl, error, grantedOnce);
+                        this.reportProgress(wsClient, grantedOnce ? 60 : 30, 'GPS-fix niet verkregen');
+
+                        // A refusal is a question to the operator, not an answer.
+                        // A timeout or an unavailable position is a finding about the
+                        // hardware, and it stands on its own.
+                        if (error.code === error.PERMISSION_DENIED) {
+                            armGrace();
+                        } else {
+                            this.details.failure = describeFailure(error);
+                            this.fail(this.details.failure);
+                            setTimeout(settle, 2500);
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    }
+                );
+            };
+
+            btnRequest.onclick = requestLocation;
+
+            // A retry re-asks the browser. It does not touch the deadline and it
+            // does not clear the verdict either, so a step that failed on a
+            // timeout can still come back as a pass before the grace runs out.
+            btnRetry.onclick = requestLocation;
+
+            btnGiveUp.onclick = () => {
+                this.details.failure = 'Locatietoegang niet verleend';
+                this.skip('Locatietoegang niet verleend; GPS is niet gecontroleerd');
+                settle();
             };
         });
+    }
+
+    /**
+     * Says what went wrong and, where there is something to do about it, lists
+     * the settings to change in the order they have to be changed.
+     *
+     * The old step said "enable location in settings and retry" and stopped
+     * there. On Android the browser keeps its own answer: turning location on in
+     * the quick settings is not enough, the site permission in the browser's
+     * settings has to be set to allow, or the retry returns the same refusal
+     * without ever asking again. That is what made retry look broken.
+     */
+    showLocationError(errorMsgEl, fixStepsEl, error, grantedOnce) {
+        const isAndroid = /Android/.test(navigator.userAgent);
+
+        switch (error.code) {
+            case error.PERMISSION_DENIED:
+                errorMsgEl.textContent = 'De browser gaf geen toestemming voor de locatie.';
+                fixStepsEl.innerHTML = [
+                    isAndroid
+                        ? 'Open de browserinstellingen en zet <b>Locatie</b> op <b>Toestaan</b> voor deze site.'
+                        : 'Open de website-instellingen van de browser en zet <b>Locatie</b> op <b>Toestaan</b>.',
+                    isAndroid
+                        ? 'Zet de locatiedienst van het toestel aan.'
+                        : 'Zet de locatiedienst van het toestel aan.',
+                    'Druk op <b>Opnieuw proberen</b>.'
+                ].map(s => `<li>${s}</li>`).join('');
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMsgEl.textContent = 'Het toestel gaf geen positie door.';
+                fixStepsEl.innerHTML = [
+                    'Ga naar buiten of zet het toestel bij een raam.',
+                    'Zet de gps aan in de instellingen van het toestel.',
+                    'Druk op <b>Opnieuw proberen</b>.'
+                ].map(s => `<li>${s}</li>`).join('');
+                break;
+            case error.TIMEOUT:
+                errorMsgEl.textContent = 'Binnen 15 seconden geen positie ontvangen.';
+                fixStepsEl.innerHTML = [
+                    'Ga naar buiten of zet het toestel bij een raam.',
+                    'Druk op <b>Opnieuw proberen</b>.'
+                ].map(s => `<li>${s}</li>`).join('');
+                break;
+            default:
+                errorMsgEl.textContent = 'Er ging iets anders mis bij het ophalen van de locatie.';
+                fixStepsEl.innerHTML = ['Druk op <b>Opnieuw proberen</b>.'].map(s => `<li>${s}</li>`).join('');
+                break;
+        }
+
+        // A refusal after a fix that worked once is worth saying out loud: the
+        // hardware is fine, and the only thing left is the browser's answer.
+        if (grantedOnce && error.code === error.PERMISSION_DENIED) {
+            errorMsgEl.textContent += ' De GPS werkte eerder in deze run, dus dit is een instelling van de browser.';
+        }
+    }
+
+    /** The one case nothing can be done about, and the only automatic skip left. */
+    async reportNoApi(wsClient, container) {
+        container.innerHTML = `
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title">GPS en locatie</h3>
+                    <div class="step-card">
+                        <p class="step-note">
+                            Deze browser heeft geen Geolocation API. De GPS van het
+                            toestel is daarmee niet te controleren.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.details.capabilityGap = CAPABILITY.MISSING;
+        await this.reportCapabilityGap(wsClient, 'navigator.geolocation', 'missing');
+        this.skip('Geolocation API ontbreekt in deze browser');
+        this.reportProgress(wsClient, 100, 'Geolocation niet beschikbaar');
+    }
+
+    async reportCapabilityGap(wsClient, missingApi, reason) {
+        if (!wsClient || !wsClient.sessionId) return;
+        try {
+            const ua = navigator.userAgent;
+            let osVersion = 'Unknown';
+            if (/Android/.test(ua)) osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
+            else if (/iPhone|iPad|iPod/.test(ua)) osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
+
+            await fetch(`${wsClient.baseUrl}/api/pwa/log-warning`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: wsClient.sessionId,
+                    missingApi,
+                    userAgent: ua,
+                    osVersion,
+                    reason
+                })
+            });
+        } catch (e) {
+            console.warn('Could not report the missing geolocation API:', e);
+        }
+    }
+}
+
+/** True only when there is something to call. */
+function hasGeolocation() {
+    return !!(navigator.geolocation && typeof navigator.geolocation.getCurrentPosition === 'function');
+}
+
+/** The sentence that goes on the label for a failed fix. */
+function describeFailure(error) {
+    switch (error.code) {
+        case error.POSITION_UNAVAILABLE:
+            return 'GPS gaf geen positie door (position unavailable)';
+        case error.TIMEOUT:
+            return 'GPS gaf binnen 15 seconden geen fix (timeout)';
+        default:
+            return 'Onbekende locatiefout: ' + (error.message || String(error.code));
     }
 }

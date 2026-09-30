@@ -80,17 +80,49 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         Assert.Contains("rotationConfirmed", sensorTestContent);
     }
 
+    // Task 3: GPS Error Recovery
+    [Fact]
+    public void Task3_GPS_ShowsRetryButtonOnPermissionDenied()
+    {
+        var locationTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/LocationTest.js");
+
+        // The retry button must exist and must be wired up, and a denial must not
+        // settle the step before the operator has been asked about it. The old step
+        // called skip() on the refusal, so the suite moved on without anyone
+        // getting a chance to grant it.
+        Assert.Contains("btn-retry-location", locationTestContent);
+        Assert.Contains("btnRetry.onclick", locationTestContent);
+        Assert.Contains("geen toestemming", locationTestContent);
+        Assert.DoesNotContain("'User denied location permission'", locationTestContent);
+
+        // It does settle, though, and that is the half that was broken. The window
+        // is opened once and a retry cannot reopen it, so a phone that keeps saying
+        // no cannot hold the suite on this step by pressing retry, and the operator
+        // can see how long the retry is still worth making.
+        Assert.Contains("RetryDeadline", locationTestContent);
+        Assert.Contains("btn-loc-give-up", locationTestContent);
+        Assert.Contains("grace.remainingSeconds()", locationTestContent);
+
+        // The reason the retry looked dead is now on the card. On Android the
+        // browser keeps its own refusal, so only its own site permission changes
+        // it; the quick-settings toggle alone returns the same refusal for ever.
+        Assert.Contains("browserinstellingen", locationTestContent);
+
+        // The runner's 90 s failsafe ended the step while the operator was still in
+        // the settings, so the step asks for its own.
+        Assert.Contains("getFailsafeMs", locationTestContent);
+    }
+
     // Task 3: The steps that used to end themselves
     [Fact]
     public void Task3_PermissionSteps_DoNotReachAVerdictWithoutTheOperator()
     {
-        // The rule behind the camera, motion and microphone fixes, in one place. A
-        // refusal is a question, and only a genuinely absent API is a gap the step
-        // may record on its own. The location step is held to the same rule and is
-        // checked with its own tests.
+        // The rule behind the camera, motion, microphone and location fixes, in one
+        // place. A refusal is a question, and only a genuinely absent API is a gap
+        // the step may record on its own.
         foreach (var module in new[]
                  {
-                     "CameraTest", "SensorTest", "MicrophoneTest"
+                     "CameraTest", "SensorTest", "MicrophoneTest", "LocationTest"
                  })
         {
             var content = RepoPath.Read($"PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/{module}.js");
@@ -99,6 +131,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
             // label reading "NotAllowedError: Permission denied" tells a technician
             // nothing they can act on.
             Assert.DoesNotContain("this.fail('Failed to access camera", content);
+            Assert.DoesNotContain("'User denied location permission'", content);
 
             // And a step that measures more than one thing, or needs a person to
             // read a card and answer it, cannot have the single-measurement budget.
@@ -191,11 +224,16 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
                  {
                      ".step-card", ".step-lead", ".step-stack", ".step-block", ".step-hint",
                      ".step-question", ".step-note", ".step-actions", ".sensor-bowl",
-                     ".sensor-track", ".mic-meter", ".camera-view"
+                     ".sensor-track", ".mic-meter", ".camera-view", ".loc-readout", ".fix-steps"
                  })
         {
             Assert.Contains(className, styles);
         }
+
+        // The location step's spinner asked for a keyframe that was never defined,
+        // so it never turned. It was a static ring on the one step where waiting is
+        // the most likely outcome, and it read as a picture rather than a wait.
+        Assert.Contains("@keyframes spin", styles);
 
         // The hidden attribute has to beat a class that sets a display, or the
         // parts of a card that are not reachable yet are on screen anyway. That is
