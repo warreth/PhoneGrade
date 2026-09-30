@@ -37,6 +37,9 @@ public class WebRunnerOriginResolverTests
         public Exception? UsbFailure { get; set; }
         public Exception? InternetFailure { get; set; }
 
+        /// <summary>Sent down the status line by the internet route, in order.</summary>
+        public IReadOnlyList<string> InternetMessages { get; set; } = Array.Empty<string>();
+
         public IReadOnlyList<string> Calls
         {
             get { lock (_calls) return _calls.ToArray(); }
@@ -49,10 +52,11 @@ public class WebRunnerOriginResolverTests
                 if (UsbFailure != null) throw UsbFailure;
                 return Task.FromResult(UsbOpens);
             },
-            (port, _) =>
+            (port, onStatus) =>
             {
                 lock (_calls) _calls.Add($"internet {port}");
                 if (InternetFailure != null) throw InternetFailure;
+                foreach (string message in InternetMessages) onStatus?.Invoke(message);
                 return Task.FromResult(InternetAddress);
             });
     }
@@ -114,7 +118,47 @@ public class WebRunnerOriginResolverTests
         Assert.Equal(Lan, origin.Address);
         Assert.False(origin.IsSecure);
         Assert.Contains("de veilige verbinding via internet lukte niet", origin.Warning);
-        Assert.Contains("Camera, microfoon en bewegingssensoren werken daardoor niet", origin.Warning);
+        Assert.Contains("Camera, microfoon, bewegingssensoren en locatie werken daardoor niet", origin.Warning);
+    }
+
+    [Fact]
+    public async Task AFailingTunnel_ReportsWhatTheConnectorSaidInFrontOfTheOperator()
+    {
+        // The connector knows why it could not open an address, and used to say so
+        // only to the event log, which nobody reads while a phone waits on a QR
+        // code. The window can only ever say the route did not work.
+        var routes = new Routes
+        {
+            InternetAddress = null,
+            InternetMessages = new[]
+            {
+                "Beveiligde verbinding via internet opzetten...",
+                "De veilige verbinding via internet komt niet op. De connector zei: ERRTunnel instance limited"
+            }
+        };
+
+        WebRunnerOrigin origin = await Resolve(routes, IphoneUdid);
+
+        Assert.Contains("ERRTunnel instance limited", origin.Warning);
+        Assert.Contains("locatie", origin.Warning);
+    }
+
+    [Fact]
+    public async Task AFailingTunnelThatSaidNothingNew_StillWarnsOnItsOwn()
+    {
+        // A connector stopped by the give-up counter reports nothing at all, and
+        // the sentence the route opens with is not a reason. It may not end up
+        // nested inside the warning as if it were one.
+        var routes = new Routes
+        {
+            InternetAddress = null,
+            InternetMessages = new[] { "Beveiligde verbinding via internet opzetten..." }
+        };
+
+        WebRunnerOrigin origin = await Resolve(routes, IphoneUdid);
+
+        Assert.Contains("de veilige verbinding via internet lukte niet", origin.Warning);
+        Assert.DoesNotContain("opzetten...", origin.Warning);
     }
 
     [Fact]

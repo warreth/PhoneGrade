@@ -35,6 +35,14 @@ public sealed partial class QuickTunnel : IDisposable
     /// <summary>How long a connection has to survive before it counts as healthy.</summary>
     private const int StableAfterMs = 60_000;
 
+    /// <summary>What the operator is told when there is no connector to run.</summary>
+    private const string NoConnector =
+        "De veilige verbinding via internet komt niet op: er is geen tunnelprogramma (cloudflared).";
+
+    /// <summary>What the operator is told once the connector has failed too often.</summary>
+    private const string GaveUpOnConnector =
+        "De veilige verbinding via internet wordt even niet geprobeerd: de connector is te vaak gestopt.";
+
     /// <summary>Failures allowed inside <see cref="DropWindow"/> before giving up.</summary>
     private const int MaxFailures = 4;
 
@@ -114,7 +122,12 @@ public sealed partial class QuickTunnel : IDisposable
         try
         {
             if (IsLive(port)) return _address;
-            if (IsGivingUp()) return null;
+
+            if (IsGivingUp())
+            {
+                onStatus?.Invoke(GaveUpOnConnector);
+                return null;
+            }
 
             string? tool = await _tool();
             if (string.IsNullOrWhiteSpace(tool))
@@ -122,6 +135,7 @@ public sealed partial class QuickTunnel : IDisposable
                 NoteFailure();
                 SystemEventLogger.Warning(LogSource.UsbDetector,
                     "No tunnel connector available, the phone gets the plain network address");
+                onStatus?.Invoke(NoConnector);
                 return null;
             }
 
@@ -172,6 +186,10 @@ public sealed partial class QuickTunnel : IDisposable
                 SystemEventLogger.Warning(LogSource.UsbDetector,
                     $"The internet tunnel did not come up, the phone gets the plain network address. " +
                     $"The connector said: {tail.Describe()}");
+
+                // The log is one menu away and the operator is looking at a QR code
+                // that is about to point at the plain network address instead.
+                onStatus?.Invoke($"De veilige verbinding via internet komt niet op. De connector zei: {tail.Describe()}");
                 return null;
             }
 

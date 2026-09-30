@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -251,6 +252,41 @@ public class QuickTunnelTests
         Assert.Contains(logged, entry => entry.Message.Contains(
             "Unable to reach the origin service", StringComparison.Ordinal));
         Assert.Contains(logged, entry => entry.Level == LogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task Start_PutsWhatTheConnectorComplainedAboutOnTheStatusLine()
+    {
+        // The log keeps the same sentence, but the operator is looking at the
+        // window while a phone waits on the QR code, and the log is a menu away.
+        // Without this the window could only ever say the tunnel had not opened.
+        var seen = new List<string>();
+        var harness = new Harness(ComplainAndExit(), startTimeoutMs: 15_000);
+
+        Assert.Null(await harness.Tunnel.StartAsync(5055, seen.Add));
+
+        Assert.Contains(seen, line => line.Contains(
+            "Unable to reach the origin service", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Start_SaysThereIsNoConnectorRatherThanSilentlyGivingUp()
+    {
+        // The connector is downloaded on demand, so the download failing is an
+        // everyday case. It used to end in one log line and a QR code pointing at
+        // the plain network address with no explanation of why.
+        var seen = new List<string>();
+        var tunnel = new QuickTunnel(
+            (_, _, _) => Task.FromResult<QuickTunnel.IConnection>(null!),
+            () => Task.FromResult<string?>(null));
+
+        Assert.Null(await tunnel.StartAsync(5055, seen.Add));
+
+        Assert.NotEmpty(seen);
+        Assert.Contains(seen, line => line.Contains(
+            "tunnelprogramma", StringComparison.Ordinal));
+        tunnel.Dispose();
+        await Task.CompletedTask;
     }
 
     [Fact]
