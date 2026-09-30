@@ -1,33 +1,32 @@
 import { DeviceTest } from './DeviceTest.js';
 import {
     INSPECTION_COLORS,
-    gridColorFor,
-    patchLabel,
-    patchRect,
-    nextPatch,
-    previousPatch,
+    VERDICT_OK,
+    VERDICT_DEFECTIVE,
     createInspection,
-    setVerdict,
-    getVerdict,
-    inspectedCount,
-    describeDefects,
-    isDisplayFaulty
+    recordVerdict,
+    verdictOf,
+    defectiveColorNames,
+    isDisplayFaulty,
+    describeDefects
 } from './DisplayInspection.js';
 
+/** What the bar answers when the operator wants the colour before this one. */
+const BACK = 'back';
+
 /**
- * DisplayTest: the panel inspected as a grid of magnified patches, under each
- * pure colour, with a verdict recorded per patch.
+ * DisplayTest: the panel looked at one pure colour at a time.
  *
- * The previous version showed one flat colour full screen and asked the operator
- * to tap through five of them and flag anything wrong. That is not a workable way
- * to find a dead pixel: a stuck subpixel is smaller than the finger resolution of
- * the eye at arm's length, so "does this screen look right" is a question with no
- * answer. It also recorded a single verdict for the whole display, so one stuck
- * pixel in a corner and a dead column across the middle produced the same note.
+ * The screen is filled with white, then red, green, blue and black, and the
+ * operator says whether that colour is right. "Slecht" records the colour as
+ * defective and moves on to the next one: a colour that is wrong is a reason to
+ * look at the other four, not a reason to stop, so all five are always checked.
  *
- * The inspection is now per patch, so the operator looks at a small region at a
- * time and says what they see, and the label ends up saying where the defects are
- * rather than only that the display is suspect.
+ * An earlier version framed the panel into a grid of patches and asked for a
+ * verdict per patch per colour. Sixty answers to a question the operator could
+ * not reliably answer is not more detail, it is noise, and the run took an age
+ * to get through. One question per colour is as far as a human looking at a
+ * screen can honestly go, and it is enough to say which colour the fault is on.
  */
 export class DisplayTest extends DeviceTest {
     constructor() {
@@ -49,7 +48,7 @@ export class DisplayTest extends DeviceTest {
      * Takes the whole overlay off the screen.
      *
      * The overlay is appended to document.body, not to the test container, because
-     * a magnified patch has to be able to sit above everything. That makes it the
+     * a full-screen fill has to be able to sit above everything. That makes it the
      * one thing on the page the runner cannot clear by emptying the container, so
      * a skip or the failsafe in the middle of a colour left a full-screen block of
      * red over the next step, with no way past it but reloading.
@@ -85,19 +84,40 @@ export class DisplayTest extends DeviceTest {
         await this.showBrightnessCheck(container);
         this.details.brightnessLevel = 'Bevestigd door de technicus';
 
-        for (let i = 0; i < this.colors.length; i++) {
-            this.currentIndex = i;
-            const color = this.colors[i];
-            this.reportProgress(wsClient, (i / this.colors.length) * 100, `Kleur: ${color.name}`);
+        let index = 0;
+        while (index < this.colors.length) {
+            const color = this.colors[index];
+            this.currentIndex = index;
+            this.reportProgress(wsClient, (index / this.colors.length) * 100, `Kleur: ${color.name}`);
 
-            await this.inspectColor(wsClient, color);
+            const answer = await this.showColor(color, index);
+
+            // Back changes no verdict, only where the operator is looking, so the
+            // colour they left is still there when they come back to it.
+            if (answer === BACK) {
+                index = Math.max(0, index - 1);
+                continue;
+            }
+
+            recordVerdict(this.inspection, color.id, answer);
+            this.haptic.tap();
+
+            // Counted after the verdict was stored, so the desktop is told the
+            // colour is done rather than one step behind it for the whole run.
+            this.reportProgress(
+                wsClient,
+                ((index + 1) / this.colors.length) * 100,
+                `${color.name}: ${answer === VERDICT_DEFECTIVE ? 'afwijking gemeld' : 'goed'}`,
+                this.id,
+                `${this.name} (${color.name})`);
+
+            index += 1;
         }
 
         const faulty = isDisplayFaulty(this.inspection);
 
         this.details.colorsChecked = this.colors.map(c => c.name);
-        this.details.patchesInspected = inspectedCount(this.inspection, this.colors[0].id);
-        this.details.defectNote = describeDefects(this.inspection);
+        this.details.defectiveColors = defectiveColorNames(this.inspection);
         this.details.suspectedFaulty = faulty;
 
         if (faulty) {
@@ -163,120 +183,65 @@ export class DisplayTest extends DeviceTest {
     }
 
     /**
-     * Walks the grid under one colour, one patch at a time.
+     * One colour, full screen, with one question over it.
      *
-     * The screen is one flat fill with a frame on the patch under attention, and
-     * a fine reference matrix inside that frame. The matrix is not a
-     * magnification: the page has no way to read the panel's own pixels, so it
-     * cannot enlarge what the screen is emitting. What it does is show the
-     * operator the size of the thing being looked for, which is exactly what a
-     * flat rectangle of colour with no frame fails to convey.
+     * Goed and Slecht both move on. A colour marked Slecht is recorded and the
+     * loop carries on to the next one, because the fault might be on every colour
+     * or only on this one and stopping would leave the rest unlooked at. Vorige is
+     * there for a button pressed by mistake: it changes nothing but where the
+     * operator is standing, and the colour before still holds its last verdict.
+     *
+     * Resolves with the verdict, or with BACK. The bar itself records nothing;
+     * run() does, so there is one place where a colour can end up marked.
+     *
+     * @returns {Promise<string>} VERDICT_OK, VERDICT_DEFECTIVE or BACK
      */
-    async inspectColor(wsClient, color) {
-        const { cols, rows, total } = this.inspection;
-        let patch = 0;
-
+    showColor(color, index) {
         return new Promise((resolve) => {
             const overlay = document.createElement('div');
             overlay.className = 'display-test-fullscreen';
             overlay.style.background = color.hex;
             document.body.appendChild(this.overlay = overlay);
 
-            const render = () => {
-                const verdict = getVerdict(this.inspection, color.id, patch);
-                const done = inspectedCount(this.inspection, color.id);
-                const gridColor = gridColorFor(color.hex);
-                const rect = patchRect(patch, cols, rows);
+            const verdict = verdictOf(this.inspection, color.id);
+            const active = (wanted) => verdict === wanted ? 'is-active' : '';
 
-                const cells = new Array(64).fill('<span></span>');
-
-                overlay.innerHTML = `
-                    <div class="display-patch"
-                         style="left:${rect.x0 * 100}%;
-                                top:${rect.y0 * 100}%;
-                                width:${rect.width * 100}%;
-                                height:${rect.height * 100}%;
-                                border-color:${gridColor};">
-                        <div class="display-loupe" style="color:${gridColor};">${cells.join('')}</div>
+            overlay.innerHTML = `
+                <div class="display-bar">
+                    <div class="display-bar-title">
+                        <span class="display-color-name">${color.name}</span>
+                        <span class="display-progress">Kleur ${index + 1} van ${this.colors.length}</span>
                     </div>
-                    <div class="display-bar">
-                        <div class="display-bar-title">
-                            <span class="display-color-name">${color.name}</span>
-                            <span class="display-progress">${done} van ${total} vakken</span>
-                        </div>
-                        <div class="display-patch-label">${patchLabel(patch, cols)}</div>
-                        <div class="display-bar-actions">
-                            <button id="patch-defect" class="btn btn-danger ${verdict === 'defect' ? 'is-active' : ''}">Vastzittend pixel</button>
-                            <button id="patch-ok" class="btn btn-success ${verdict === 'ok' ? 'is-active' : ''}">Geen afwijking</button>
-                        </div>
-                        <div class="display-bar-nav">
-                            <button id="patch-prev" class="btn btn-secondary">Vorige</button>
-                            <button id="patch-next" class="btn btn-secondary">Volgende vak</button>
-                            <button id="color-done" class="btn btn-secondary">Kleur klaar</button>
-                        </div>
+                    <p class="display-hint">Afwijking gezien? Kies Slecht, anders Goed.</p>
+                    <div class="display-bar-actions">
+                        ${index > 0 ? `<button id="color-prev" class="btn btn-secondary">Vorige</button>` : ''}
+                        <button id="color-ok" class="btn btn-success ${active(VERDICT_OK)}">Goed</button>
+                        <button id="color-defect" class="btn btn-danger ${active(VERDICT_DEFECTIVE)}">Slecht</button>
                     </div>
-                `;
+                </div>
+            `;
 
-                const defectBtn = overlay.querySelector('#patch-defect');
-                const okBtn = overlay.querySelector('#patch-ok');
-                const prevBtn = overlay.querySelector('#patch-prev');
-                const nextBtn = overlay.querySelector('#patch-next');
-                const doneBtn = overlay.querySelector('#color-done');
-
-                const mark = (verdict) => {
-                    setVerdict(this.inspection, color.id, patch, verdict);
-                    this.haptic.tap();
-
-                    // Counted after the verdict was stored, not before. The
-                    // `done` in this render's closure is one behind, and reporting
-                    // it would leave the desktop a patch behind for the whole
-                    // colour, so the operator watching the PC would see it stall at
-                    // 11 of 12 and never reach 12.
-                    const nowDone = inspectedCount(this.inspection, color.id);
-                    this.reportProgress(
-                        wsClient,
-                        (nowDone / total) * 100,
-                        `${color.name}: ${patchLabel(patch, cols)} ${verdict === 'defect' ? 'afwijkend' : 'goed'}`,
-                        this.id, `${this.name} (${color.name})`);
-                };
-
-                defectBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    mark('defect');
-                    // Advancing on a defect is the point: the operator flagged it
-                    // and wants to keep going, and a rerender is the cheapest way
-                    // to confirm the flag took.
-                    patch = nextPatch(patch, total);
-                    render();
-                });
-
-                okBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    mark('ok');
-                    patch = nextPatch(patch, total);
-                    render();
-                });
-
-                prevBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    patch = previousPatch(patch, total);
-                    render();
-                });
-
-                nextBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    patch = nextPatch(patch, total);
-                    render();
-                });
-
-                doneBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.removeOverlay();
-                    resolve();
-                });
+            // Off the screen before the promise settles, so the next colour starts
+            // on a clean panel rather than underneath this one.
+            const finish = (answer) => {
+                this.removeOverlay();
+                resolve(answer);
             };
 
-            render();
+            overlay.querySelector('#color-prev')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                finish(BACK);
+            });
+
+            overlay.querySelector('#color-ok').addEventListener('click', (e) => {
+                e.stopPropagation();
+                finish(VERDICT_OK);
+            });
+
+            overlay.querySelector('#color-defect').addEventListener('click', (e) => {
+                e.stopPropagation();
+                finish(VERDICT_DEFECTIVE);
+            });
         });
     }
 }
