@@ -107,6 +107,41 @@ test('an accepted request is written on the card and kept on the row', async () 
         'the browser answering is not the verdict; the operator still has not');
 });
 
+test('an accepted request is not written as a vibration that already happened', async () => {
+    // The boolean answers true for a well formed pattern even when the device
+    // has nothing to buzz with, and silent mode or do not disturb stops a real
+    // motor just the same. The card used to promise the vibration was already
+    // under way, which is the one thing the browser cannot know.
+    setNavigator({ vibrate: () => true });
+
+    const t = new VibrationTest();
+    const container = fakeContainer();
+    t.run(fakeClient(), container);
+
+    container.querySelector('#btn-vibe-pulse').onclick();
+
+    const echo = container.querySelector('#vibe-echo');
+    assert.match(echo.textContent, /geaccepteerd/);
+    assert.doesNotMatch(echo.textContent, /voelbaar moeten zijn/);
+    assert.match(echo.textContent, /stille modus/);
+    assert.match(echo.textContent, /Niet storen/);
+    assert.equal(t.details.browserAccepted, true,
+        'the answer the browser gave itself is still recorded unchanged');
+});
+
+test('the card says what to check before the operator answers no', () => {
+    // A phone on silent or on do not disturb does not buzz for a page either,
+    // and "no vibration" was being read as a dead motor while it was a setting.
+    setNavigator({ vibrate: () => true });
+
+    const t = new VibrationTest();
+    const container = fakeContainer();
+    t.run(fakeClient(), container);
+
+    assert.match(container.html, /stille modus of Niet storen uit/);
+    assert.match(container.html, /druk nog eens op de knop/);
+});
+
 test('a refused request is told apart from a dead motor', async () => {
     // The whole reason the boolean is read. Before this the call was fire and
     // forget: the operator pressed it, nothing happened, and "no response" was
