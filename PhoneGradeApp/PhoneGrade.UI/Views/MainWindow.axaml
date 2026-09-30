@@ -35,7 +35,7 @@
                                 Classes.success="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                 Classes.neutral="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNullOrEmpty}}">
                             <TextBlock Classes="pillText" 
-                                       Text="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNotNullOrEmpty}, ConverterParameter='Toestel Verbonden', FallbackValue='Geen Toestel'}"
+                                       Text="{Binding SelectedDevice.Key, Converter={StaticResource DeviceConnectionTextConverter}}"
                                        VerticalAlignment="Center"/>
                         </Border>
                     </StackPanel>
