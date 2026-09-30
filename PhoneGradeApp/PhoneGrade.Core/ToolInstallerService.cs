@@ -1,10 +1,12 @@
 using System;
 using System.Diagnostics;
+using System.Formats.Tar;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PhoneGrade.Core;
@@ -231,6 +233,158 @@ public static class ToolInstallerService
             SystemEventLogger.Error(LogSource.Desktop, $"Failed to install adb: {ex.Message}");
             progress?.Report((100, $"adb install failed: {ex.Message}"));
             return false;
+        }
+    }
+
+    /// <summary>Executable name of the tunnel connector on the running platform.</summary>
+    public static string CloudflaredExecutableName => OperatingSystem.IsWindows() ? "cloudflared.exe" : "cloudflared";
+
+    private static readonly object CloudflaredSync = new();
+    private static Task<string?>? CloudflaredPending;
+
+    /// <summary>
+    /// The cloudflared release asset for a platform, or null when Cloudflare ships
+    /// nothing that runs there. Windows on arm has no arm64 build of its own and
+    /// runs the amd64 one through emulation instead.
+    /// </summary>
+    public static string? CloudflaredAssetName(bool isWindows, bool isMac, Architecture architecture)
+    {
+        if (isWindows)
+        {
+            return architecture switch
+            {
+                Architecture.X64 or Architecture.Arm64 => "cloudflared-windows-amd64.exe",
+                Architecture.X86 => "cloudflared-windows-386.exe",
+                _ => null
+            };
+        }
+
+        if (isMac)
+        {
+            return architecture switch
+            {
+                Architecture.X64 => "cloudflared-darwin-amd64.tgz",
+                Architecture.Arm64 => "cloudflared-darwin-arm64.tgz",
+                _ => null
+            };
+        }
+
+        return architecture switch
+        {
+            Architecture.X64 => "cloudflared-linux-amd64",
+            Architecture.Arm64 => "cloudflared-linux-arm64",
+            Architecture.Arm => "cloudflared-linux-arm",
+            Architecture.X86 => "cloudflared-linux-386",
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// A usable tunnel connector: one already sitting in the tools directory, one
+    /// found on the system path, or one downloaded now. Null means the phone has to
+    /// do without a public https address, which is an ordinary fallback and not an
+    /// error worth reporting.
+    /// </summary>
+    public static async Task<string?> EnsureCloudflaredAsync()
+    {
+        string installed = Path.Combine(ToolRunner.ToolsDir, CloudflaredExecutableName);
+        if (File.Exists(installed)) return installed;
+
+        string resolved = ToolRunner.Resolve("cloudflared");
+        if (!string.IsNullOrWhiteSpace(resolved) && File.Exists(resolved)) return resolved;
+
+        // Two phones in a row must not start two downloads of the same binary.
+        Task<string?> download;
+        lock (CloudflaredSync)
+        {
+            download = CloudflaredPending ??= DownloadCloudflaredAsync();
+        }
+
+        try
+        {
+            return await download;
+        }
+        finally
+        {
+            lock (CloudflaredSync)
+            {
+                if (download.IsCompleted) CloudflaredPending = null;
+            }
+        }
+    }
+
+    private static async Task<string?> DownloadCloudflaredAsync(IProgress<(int Percent, string Message)>? progress = null)
+    {
+        string? asset = CloudflaredAssetName(
+            OperatingSystem.IsWindows(), OperatingSystem.IsMacOS(), RuntimeInformation.OSArchitecture);
+
+        if (asset == null)
+        {
+            SystemEventLogger.Warning(LogSource.Desktop,
+                $"No cloudflared build for {RuntimeInformation.OSArchitecture} on this platform.");
+            return null;
+        }
+
+        string target = Path.Combine(ToolRunner.ToolsDir, CloudflaredExecutableName);
+        if (File.Exists(target)) return target;
+
+        SystemEventLogger.Info(LogSource.Desktop, "Downloading the tunnel connector for the first time...");
+        string url = $"https://github.com/cloudflare/cloudflared/releases/latest/download/{asset}";
+        string temp = Path.Combine(Path.GetTempPath(), $"cloudflared-{Guid.NewGuid():N}");
+
+        try
+        {
+            await DownloadFileWithProgressAsync(url, temp, progress, 20, 100);
+            Directory.CreateDirectory(ToolRunner.ToolsDir);
+
+            if (asset.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase))
+            {
+                ExtractTarGz(temp, target);
+            }
+            else
+            {
+                File.Copy(temp, target, overwrite: true);
+            }
+
+            try { File.Delete(temp); } catch { }
+
+            ToolRunner.EnsureToolPermissions(ToolRunner.ToolsDir);
+            SystemEventLogger.Info(LogSource.Desktop, $"Tunnel connector installed in: {target}");
+            return target;
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Error(LogSource.Desktop, $"Failed to install the tunnel connector: {ex.Message}");
+            try { File.Delete(temp); } catch { }
+            return null;
+        }
+    }
+
+    /// <summary>Unpacks a gzipped tarball that holds a single executable.</summary>
+    private static void ExtractTarGz(string archivePath, string targetPath)
+    {
+        string unpack = Path.Combine(Path.GetTempPath(), $"cloudflared-unpack-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(unpack);
+
+        try
+        {
+            using (var compressed = File.OpenRead(archivePath))
+            using (var gzip = new GZipStream(compressed, CompressionMode.Decompress))
+            {
+                TarFile.ExtractToDirectory(gzip, unpack, overwriteFiles: true);
+            }
+
+            string[] binaries = Directory.GetFiles(unpack, CloudflaredExecutableName, SearchOption.AllDirectories);
+            if (binaries.Length == 0)
+            {
+                throw new InvalidDataException("The tunnel connector archive held no executable.");
+            }
+
+            File.Copy(binaries[0], targetPath, overwrite: true);
+        }
+        finally
+        {
+            try { Directory.Delete(unpack, recursive: true); } catch { }
         }
     }
 
