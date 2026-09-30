@@ -27,6 +27,15 @@ public class AppSettings
     public bool IsDebugMode { get; set; } = false; // Global debug toggle for mobile PWA overlay and verbose tracing
 
     /// <summary>
+    /// Encrypted trial payload (scan count plus license key) as Base64, written
+    /// by the licensing store. It lives here so that every ordinary settings
+    /// save carries the current token along instead of overwriting it with a
+    /// stale copy, and so a copied settings.json alone never reveals the count:
+    /// the token only decrypts on the machine and account it was written for.
+    /// </summary>
+    public string TrialToken { get; set; } = "";
+
+    /// <summary>
     /// Serves the PWA to the phone as http://localhost through an adb reverse
     /// tunnel instead of the LAN address. A browser only grants camera,
     /// microphone, motion and orientation access on a secure origin, and a plain
