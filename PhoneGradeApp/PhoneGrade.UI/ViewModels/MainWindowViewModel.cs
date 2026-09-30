@@ -893,9 +893,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private void StartWatcher()
     {
         StopWatcher();
-        _watcher = Observable.Interval(TimeSpan.FromSeconds(2.5)) // Throttled to prevent lockdownd crashes
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .SelectMany(_ => Observable.FromAsync(RefreshDeviceListSilentAsync))
+        // One refresh at a time. The interval does not care how long the last one took,
+        // and SelectMany would happily start the next one on top of it.
+        _watcher = SerialPoll.OneAtATime(
+                Observable.Interval(TimeSpan.FromSeconds(2.5)) // Throttled to prevent lockdownd crashes
+                    .ObserveOn(RxApp.TaskpoolScheduler),
+                RefreshDeviceListSilentAsync)
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(count =>
             {
