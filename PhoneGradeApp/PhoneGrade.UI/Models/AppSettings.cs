@@ -51,6 +51,14 @@ public class AppSettings
     /// </summary>
     public bool UsePublicTunnel { get; set; } = true;
 
+    /// <summary>
+    /// Whether the introduction screen has been dismissed. False on a fresh
+    /// install, which is the only place it belongs: an operator who has already
+    /// seen what the free tier is and where the paid plan lives should never be
+    /// stopped by it again.
+    /// </summary>
+    public bool IntroSeen { get; set; } = false;
+
     [JsonIgnore]
     private static string SettingsDir =>
         Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR") is { Length: > 0 } overrideDir

@@ -438,11 +438,17 @@
                                             <DataTemplate>
                                                 <Border Background="#fee2e2" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
                                                         BorderBrush="#fca5a5" BorderThickness="1">
-                                                    <Grid ColumnDefinitions="*,Auto">
-                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#991b1b" VerticalAlignment="Center"/>
-                                                        <Border Grid.Column="1" CornerRadius="3" Padding="6,2" Background="#dc2626">
+                                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#991b1b" VerticalAlignment="Center"/>
+                                                        <Border Grid.Row="0" Grid.Column="1" CornerRadius="3" Padding="6,2" Background="#dc2626">
                                                             <TextBlock Text="MISLUKT" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                                         </Border>
+                                                        <!-- Why, not just that. The phone sends the note with the row; showing
+                                                             only the name and the badge left the operator to guess. -->
+                                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                                   Text="{Binding Notes}" FontSize="10" Foreground="#7f1d1d"
+                                                                   TextWrapping="Wrap" Margin="0,2,0,0"
+                                                                   IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
@@ -454,11 +460,17 @@
                                             <DataTemplate>
                                                 <Border Background="#fef3c7" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
                                                         BorderBrush="#fcd34d" BorderThickness="1">
-                                                    <Grid ColumnDefinitions="*,Auto">
-                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#92400e" VerticalAlignment="Center"/>
-                                                        <Border Grid.Column="1" CornerRadius="3" Padding="6,2" Background="#d97706">
+                                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#92400e" VerticalAlignment="Center"/>
+                                                        <Border Grid.Row="0" Grid.Column="1" CornerRadius="3" Padding="6,2" Background="#d97706">
                                                             <TextBlock Text="OVERGESLAGEN" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                                         </Border>
+                                                        <!-- Why it did not run: the browser refused, the phone never sent a
+                                                             fix, or the browser has no location API at all. -->
+                                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                                   Text="{Binding Notes}" FontSize="10" Foreground="#78350f"
+                                                                   TextWrapping="Wrap" Margin="0,2,0,0"
+                                                                   IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
