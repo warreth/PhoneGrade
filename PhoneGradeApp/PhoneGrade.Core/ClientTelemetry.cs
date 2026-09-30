@@ -5,7 +5,7 @@ namespace PhoneGrade.Core;
 
 /// <summary>
 /// Client-side telemetry: browser capabilities, screen info, touch support.
-/// Sent by PWA immediately on WebSocket connect for correlation and debugging.
+/// Sent by the PWA right after it has shaken hands with the desktop.
 /// </summary>
 public class ClientTelemetry
 {
@@ -65,7 +65,8 @@ public class ClientTelemetry
 }
 
 /// <summary>
-/// Extended DeviceSessionMessage to include log_event type for streaming logs over WebSocket.
+/// Extended DeviceSessionMessage to carry the log and telemetry payloads the PWA
+/// posts to the API.
 /// </summary>
 public class LogEventMessage : DeviceSessionMessage
 {

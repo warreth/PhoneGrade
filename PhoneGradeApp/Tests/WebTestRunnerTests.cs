@@ -1,5 +1,4 @@
 using System;
-using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -15,7 +14,6 @@ namespace PhoneGrade.UI.Tests.Web;
 public class WebTestRunnerTests : IAsyncLifetime
 {
     private TestRunnerServer? _server;
-    private WebSocket? _clientWebSocket;
 
     public async Task InitializeAsync()
     {
@@ -26,24 +24,18 @@ public class WebTestRunnerTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (_clientWebSocket != null)
-        {
-            await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test cleanup", CancellationToken.None);
-            _clientWebSocket.Dispose();
-        }
-
         if (_server != null)
         {
             await _server.DisposeAsync();
         }
     }
 
-    private async Task<WebSocket> ConnectWebSocketAsync(string sessionId = "TEST_SESSION_123")
+    /// <summary>Asks the status endpoint the way the phone does, every two seconds.</summary>
+    private async Task<string> GetStatusAsync(string sessionId)
     {
-        var ws = new ClientWebSocket();
-        var uri = new Uri($"ws://localhost:{_server!.BoundPort}/ws/device-session?sessionId={sessionId}");
-        await ws.ConnectAsync(uri, CancellationToken.None);
-        return ws;
+        using var client = new HttpClient();
+        return await client.GetStringAsync(
+            $"http://127.0.0.1:{_server!.BoundPort}/api/pwa/status?sessionId={sessionId}");
     }
 
     [Fact]
@@ -55,24 +47,42 @@ public class WebTestRunnerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task WebSocketEndpoint_AcceptsValidWebSocketRequests()
+    public async Task StatusEndpoint_HandsOverAQueuedCommandOnce()
     {
-        // Arrange
-        var sessionId = "TEST_SESSION_ABC";
+        // The phone polls status every two seconds. That poll is the only channel it
+        // listens on, so a command left waiting for a client that never opened a
+        // socket would never be picked up at all.
+        string sessionId = "COMMAND_TEST_123";
+        _server!.QueueCommand(new { type = "auto_start_suite", sessionId }, sessionId);
 
-        // Act
-        _clientWebSocket = await ConnectWebSocketAsync(sessionId);
+        string first = await GetStatusAsync(sessionId);
+        string second = await GetStatusAsync(sessionId);
 
-        // Assert
-        Assert.Equal(WebSocketState.Open, _clientWebSocket.State);
+        Assert.Contains("\"auto_start_suite\"", first);
+        Assert.DoesNotContain("\"command\"", second);
     }
 
     [Fact]
-    public async Task WebSocketEndpoint_RejectsNonWebSocketRequests()
+    public async Task StatusEndpoint_LeavesACommandThatIsForAnotherDevice()
     {
-        // This would require an HTTP client test, skip for now
-        // WebSocket endpoint rejects non-WebSocket with 400 Bad Request
-        Assert.True(true); // Placeholder
+        string wanted = "DEVICE_THAT_WANTS_IT";
+        string other = "DEVICE_THAT_DOES_NOT";
+        _server!.QueueCommand(new { type = "auto_start_suite", sessionId = wanted }, wanted);
+
+        string elsewhere = await GetStatusAsync(other);
+        string home = await GetStatusAsync(wanted);
+
+        Assert.DoesNotContain("\"command\"", elsewhere);
+        Assert.Contains("\"auto_start_suite\"", home);
+    }
+
+    [Fact]
+    public async Task StatusEndpoint_StillAnswersWhenNothingIsQueued()
+    {
+        string status = await GetStatusAsync("NOTHING_QUEUED");
+
+        Assert.Contains("active", status);
+        Assert.DoesNotContain("\"command\"", status);
     }
 
     [Fact]
@@ -164,55 +174,6 @@ public class WebTestRunnerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task WebSocket_PingPongProtocol()
-    {
-        // Arrange
-        _clientWebSocket = await ConnectWebSocketAsync("PING_TEST");
-        var buffer = new byte[1024];
-
-        // Act: Send ping message
-        var pingMessage = new DeviceSessionMessage
-        {
-            Type = "ping",
-            SessionId = "PING_TEST"
-        };
-        var pingJson = JsonSerializer.Serialize(pingMessage);
-        var pingBytes = Encoding.UTF8.GetBytes(pingJson);
-        await _clientWebSocket.SendAsync(new ArraySegment<byte>(pingBytes), WebSocketMessageType.Text, true, CancellationToken.None);
-
-        // Assert: Receive pong response
-        var result = await _clientWebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-        var pongJson = Encoding.UTF8.GetString(buffer, 0, result.Count);
-        var pongMessage = JsonSerializer.Deserialize<DeviceSessionMessage>(pongJson);
-
-        Assert.NotNull(pongMessage);
-        Assert.Equal("pong", pongMessage!.Type);
-        Assert.Equal("PING_TEST", pongMessage.SessionId);
-    }
-
-    [Fact]
-    public async Task TestRunnerServer_EventsFiredOnConnection()
-    {
-        // Arrange
-        bool deviceConnectedFired = false;
-        string connectedSessionId = string.Empty;
-        
-        _server!.DeviceConnected += (s, e) =>
-        {
-            deviceConnectedFired = true;
-            connectedSessionId = e.SessionId;
-        };
-
-        // Act
-        _clientWebSocket = await ConnectWebSocketAsync("EVENT_TEST_SESSION");
-        await Task.Delay(100);
-
-        // Assert
-        Assert.True(deviceConnectedFired);
-        Assert.Equal("EVENT_TEST_SESSION", connectedSessionId);
-    }
-
-    [Fact]
     public async Task PostSubmitStepEndpoint_ParsesAndDispatchesStepPayload()
     {
         // Arrange
@@ -290,20 +251,20 @@ public class WebTestRunnerTests : IAsyncLifetime
     [Fact]
     public async Task MalformedJSON_DoesNotCrashServer()
     {
-        // Arrange
-        _clientWebSocket = await ConnectWebSocketAsync("MALFORMED_TEST");
+        // A step the server cannot read must not escape the middleware as a 500.
+        // The phone carries on regardless, so every later step still has to land.
+        using var client = new HttpClient();
+        var content = new StringContent("{ invalid json }", Encoding.UTF8, "application/json");
 
-        // Act: Send invalid JSON
-        var invalidJson = "{ invalid json }";
-        var bytes = Encoding.UTF8.GetBytes(invalidJson);
-        await _clientWebSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+        var response = await client.PostAsync(
+            $"http://127.0.0.1:{_server!.BoundPort}/api/pwa/submit-step", content);
+        string body = await response.Content.ReadAsStringAsync();
 
-        // Give server time to process
-        await Task.Delay(100);
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.Contains("\"ok\":false", body);
+        Assert.True(_server.IsRunning);
 
-        // Assert: Server is still running, connection is still open
-        Assert.True(_server!.IsRunning);
-        Assert.Equal(WebSocketState.Open, _clientWebSocket.State);
+        Assert.Contains("active", await GetStatusAsync("AFTER_BAD_JSON"));
     }
 
     [Fact]
@@ -342,18 +303,11 @@ public class WebTestRunnerTests : IAsyncLifetime
         // Arrange
         var sessionId = "TELEMETRY_TEST";
         ClientTelemetry? receivedTelemetry = null;
-        var tcs = new TaskCompletionSource<bool>();
 
         _server!.TelemetryReceived += (s, e) =>
         {
-            if (e.SessionId == sessionId)
-            {
-                receivedTelemetry = e.Telemetry;
-                tcs.TrySetResult(true);
-            }
+            if (e.SessionId == sessionId) receivedTelemetry = e.Telemetry;
         };
-
-        _clientWebSocket = await ConnectWebSocketAsync(sessionId);
 
         var telemetryMessage = new LogEventMessage
         {
@@ -373,12 +327,15 @@ public class WebTestRunnerTests : IAsyncLifetime
             }
         };
 
-        var json = JsonSerializer.Serialize(telemetryMessage);
-        var bytes = Encoding.UTF8.GetBytes(json);
-        await _clientWebSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+        using var client = new HttpClient();
+        var content = new StringContent(JsonSerializer.Serialize(telemetryMessage), Encoding.UTF8, "application/json");
 
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(3000));
-        Assert.Equal(tcs.Task, completed);
+        // Act
+        var response = await client.PostAsync(
+            $"http://127.0.0.1:{_server.BoundPort}/api/pwa/telemetry", content);
+
+        // Assert
+        response.EnsureSuccessStatusCode();
         Assert.NotNull(receivedTelemetry);
         Assert.Equal("Safari", receivedTelemetry!.Browser);
         Assert.Equal("iOS", receivedTelemetry.Os);
@@ -392,18 +349,11 @@ public class WebTestRunnerTests : IAsyncLifetime
         // Arrange
         var sessionId = "LOG_TEST";
         LogEvent? receivedLog = null;
-        var tcs = new TaskCompletionSource<bool>();
 
         _server!.LogEventReceived += (s, e) =>
         {
-            if (e.SessionId == sessionId)
-            {
-                receivedLog = e.LogEvent;
-                tcs.TrySetResult(true);
-            }
+            if (e.SessionId == sessionId) receivedLog = e.LogEvent;
         };
-
-        _clientWebSocket = await ConnectWebSocketAsync(sessionId);
 
         var logMessage = new LogEventMessage
         {
@@ -418,12 +368,15 @@ public class WebTestRunnerTests : IAsyncLifetime
             }
         };
 
-        var json = JsonSerializer.Serialize(logMessage);
-        var bytes = Encoding.UTF8.GetBytes(json);
-        await _clientWebSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+        using var client = new HttpClient();
+        var content = new StringContent(JsonSerializer.Serialize(logMessage), Encoding.UTF8, "application/json");
 
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(3000));
-        Assert.Equal(tcs.Task, completed);
+        // Act
+        var response = await client.PostAsync(
+            $"http://127.0.0.1:{_server.BoundPort}/api/pwa/log", content);
+
+        // Assert
+        response.EnsureSuccessStatusCode();
         Assert.NotNull(receivedLog);
         Assert.Equal(LogLevel.Warning, receivedLog!.Level);
         Assert.Equal("User touch delayed", receivedLog.Message);

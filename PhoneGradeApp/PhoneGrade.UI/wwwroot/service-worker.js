@@ -5,6 +5,7 @@ const ASSETS = [
     '/styles.css',
     '/app.js',
     '/modules/DeviceTest.js',
+    '/modules/CommandDispatch.js',
     '/modules/serverUrl.js',
     '/modules/TouchTest.js',
     '/modules/DisplayTest.js',

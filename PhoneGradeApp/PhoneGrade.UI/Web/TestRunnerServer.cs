@@ -1,7 +1,5 @@
 using System;
 using System.IO;
-using System.Collections.Concurrent;
-using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -80,14 +78,15 @@ public class PwaProgressEventArgs : EventArgs
 }
 
 /// <summary>
-/// Embedded Kestrel minimal web server serving the PWA test suite and WebSocket hub.
+/// Embedded Kestrel minimal web server serving the PWA test suite and its API.
 /// </summary>
 public class TestRunnerServer : IAsyncDisposable
 {
     private IHost? _host;
     private readonly int _preferredPort;
     private readonly string _contentRootPath;
-    private readonly ConcurrentDictionary<string, WebSocket> _sockets = new();
+    private readonly object _pendingCommandSync = new();
+    private (string SessionId, object Command)? _pendingCommand;
 
     public int BoundPort { get; private set; }
     public bool IsRunning => _host != null;
@@ -302,10 +301,6 @@ public class TestRunnerServer : IAsyncDisposable
                                 }
                             });
 
-                            app.UseWebSockets(new WebSocketOptions
-                            {
-                                KeepAliveInterval = TimeSpan.FromSeconds(5)
-                            });
                             app.Use(async (context, next) =>
                             {
                                 string path = context.Request.Path.Value ?? "";
@@ -337,7 +332,16 @@ public class TestRunnerServer : IAsyncDisposable
                                     if (context.Request.Method == "GET" && path.Equals("/api/pwa/status", StringComparison.OrdinalIgnoreCase))
                                     {
                                         string sid = context.Request.Query["sessionId"].ToString();
-                                        var resp = new { status = "active", sessionId = sid, timestamp = DateTime.UtcNow };
+                                        var resp = new Dictionary<string, object?>
+                                        {
+                                            ["status"] = "active",
+                                            ["sessionId"] = sid,
+                                            ["timestamp"] = DateTime.UtcNow
+                                        };
+
+                                        object? command = TakeCommandFor(sid);
+                                        if (command != null) resp["command"] = command;
+
                                         await context.Response.WriteAsync(JsonSerializer.Serialize(resp));
                                         return;
                                     }
@@ -601,29 +605,6 @@ public class TestRunnerServer : IAsyncDisposable
                                     }
                                 }
 
-                                // 2. WebSocket endpoint (for backward compatibility and test suite)
-                                if (path == "/ws/device-session")
-                                {
-                                    if (context.WebSockets.IsWebSocketRequest)
-                                    {
-                                        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                                        string sessionId = context.Request.Query["sessionId"].ToString();
-                                        if (string.IsNullOrWhiteSpace(sessionId))
-                                        {
-                                            sessionId = "UNKNOWN";
-                                        }
-
-                                        await HandleSessionWebSocketAsync(sessionId, webSocket);
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                                        await context.Response.WriteAsync("WebSocket connection required");
-                                        return;
-                                    }
-                                }
-
                                 if (context.Request.Path == "/health")
                                 {
                                     context.Response.ContentType = "text/plain";
@@ -653,144 +634,44 @@ public class TestRunnerServer : IAsyncDisposable
         throw new InvalidOperationException($"Could not bind TestRunnerServer on ports {_preferredPort}-{port - 1}", lastEx);
     }
 
-    private async Task HandleSessionWebSocketAsync(string sessionId, WebSocket webSocket)
+    /// <summary>
+    /// Hands a command to the phone, which picks it up on its next status poll.
+    ///
+    /// The phone asks for status every two seconds and that is the only channel it
+    /// listens on. The address is published before the phone has even opened the
+    /// page, so a push would reach nobody and the command has to wait here instead.
+    /// One command at a time: a newer address replaces the one before it.
+    /// </summary>
+    public void QueueCommand(object command, string sessionId = "")
     {
-        _sockets[sessionId] = webSocket;
-        
-        DeviceConnected?.Invoke(this, new DeviceSessionEventArgs
+        lock (_pendingCommandSync)
         {
-            SessionId = sessionId,
-            Message = new DeviceSessionMessage
-            {
-                Type = "init",
-                SessionId = sessionId,
-                Message = "Connected"
-            }
-        });
-
-        var buffer = new byte[1024 * 64];
-
-        try
-        {
-            while (webSocket.State == WebSocketState.Open)
-            {
-                using var ms = new MemoryStream();
-                WebSocketReceiveResult result;
-                do
-                {
-                    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                        return;
-                    }
-                    ms.Write(buffer, 0, result.Count);
-                } while (!result.EndOfMessage);
-
-                ms.Seek(0, SeekOrigin.Begin);
-                var json = Encoding.UTF8.GetString(ms.ToArray());
-                if (string.IsNullOrWhiteSpace(json)) continue;
-
-                DeviceSessionMessage? msg = null;
-                try
-                {
-                    msg = JsonSerializer.Deserialize<DeviceSessionMessage>(json);
-                }
-                catch
-                {
-                    // Ignore malformed payloads
-                }
-
-                if (msg != null)
-                {
-                    msg.SessionId ??= sessionId;
-
-                    if (msg.Type == "client_telemetry")
-                    {
-                        try
-                        {
-                            var telMsg = JsonSerializer.Deserialize<LogEventMessage>(json);
-                            if (telMsg?.ClientTelemetry != null)
-                            {
-                                TelemetryReceived?.Invoke(this, new TelemetryEventArgs
-                                {
-                                    SessionId = sessionId,
-                                    Telemetry = telMsg.ClientTelemetry
-                                });
-                            }
-                        }
-                        catch { }
-                        continue;
-                    }
-
-                    if (msg.Type == "log_event")
-                    {
-                        try
-                        {
-                            var logMsg = JsonSerializer.Deserialize<LogEventMessage>(json);
-                            if (logMsg?.LogEvent != null)
-                            {
-                                LogEventReceived?.Invoke(this, new LogMessageEventArgs
-                                {
-                                    SessionId = sessionId,
-                                    LogEvent = logMsg.LogEvent
-                                });
-                            }
-                        }
-                        catch { }
-                        continue;
-                    }
-
-                    if (msg.Type == "ping")
-                    {
-                        var pong = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new DeviceSessionMessage
-                        {
-                            Type = "pong",
-                            SessionId = sessionId
-                        }));
-                        await webSocket.SendAsync(new ArraySegment<byte>(pong), WebSocketMessageType.Text, true, CancellationToken.None);
-                    }
-
-                    MessageReceived?.Invoke(this, new DeviceSessionEventArgs
-                    {
-                        SessionId = sessionId,
-                        Message = msg
-                    });
-
-                    if (msg.Type == "suite_complete" && msg.Payload != null)
-                    {
-                        SuiteCompleted?.Invoke(this, new DeviceSessionEventArgs
-                        {
-                            SessionId = sessionId,
-                            Message = msg
-                        });
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"WebSocket error for session {sessionId}: {ex.Message}");
-        }
-        finally
-        {
-            _sockets.TryRemove(sessionId, out _);
+            _pendingCommand = (sessionId ?? "", command);
         }
     }
 
-    /// <summary>Broadcasts a JSON-serializable message to all connected WebSocket sessions.</summary>
-    public void BroadcastMessage(object message)
+    /// <summary>
+    /// Takes the command waiting for the given session and leaves it queued when it
+    /// is addressed to another device.
+    /// </summary>
+    private object? TakeCommandFor(string sessionId)
     {
-        var json = JsonSerializer.Serialize(message);
-        var bytes = Encoding.UTF8.GetBytes(json);
-        var buffer = new ArraySegment<byte>(bytes);
-
-        foreach (var (sessionId, socket) in _sockets)
+        lock (_pendingCommandSync)
         {
-            if (socket.State == WebSocketState.Open)
+            if (_pendingCommand is not { } pending) return null;
+
+            bool eitherEndIsUnsure = pending.SessionId.Length == 0
+                || string.IsNullOrWhiteSpace(sessionId)
+                || pending.SessionId == "UNKNOWN"
+                || sessionId == "UNKNOWN";
+
+            if (!eitherEndIsUnsure && !string.Equals(pending.SessionId, sessionId, StringComparison.Ordinal))
             {
-                _ = socket.SendAsync(buffer, WebSocketMessageType.Text, true, CancellationToken.None);
+                return null;
             }
+
+            _pendingCommand = null;
+            return pending.Command;
         }
     }
 
