@@ -243,6 +243,30 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         Assert.Contains("display: none !important", styles);
     }
 
+    // Task 3: The vibration step, and what the browser did with the request
+    [Fact]
+    public void Task3_Vibration_ReportsWhatTheBrowserDidWithTheRequest()
+    {
+        var step = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/VibrationTest.js");
+
+        // navigator.vibrate() answers with a boolean. Throwing the answer away
+        // made a browser that refuses indistinguishable from a motor that will
+        // not run, which is exactly the pair this step has to separate.
+        Assert.Contains("navigator.vibrate(PULSE)", step);
+        Assert.Contains("browserAccepted", step);
+
+        // Where the browser has no vibration API the card hands the step over as
+        // a manual check, instead of asking the operator to grade hardware the
+        // page never touched.
+        Assert.Contains("Handmatige controle", step);
+        Assert.Contains("'handmatig'", step);
+
+        // The two answers are tinted in the shared stylesheet, on both platforms.
+        var styles = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/styles.css");
+        Assert.Contains(".vibe-echo {", styles);
+        Assert.Contains(".vibe-echo.is-refused", styles);
+    }
+
     // Task 3: Display Brightness Integration
     [Fact]
     public async Task Task3_Display_MergesBrightnessCheck()

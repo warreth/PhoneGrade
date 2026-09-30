@@ -833,6 +833,22 @@ body.test-running .test-footer,
     gap: 4px;
 }
 
+/* What the browser said about the vibration request, right where it was asked */
+.vibe-echo {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+    text-align: left;
+}
+
+.vibe-echo.is-accepted {
+    color: var(--color-success-text);
+}
+
+.vibe-echo.is-refused {
+    color: var(--color-warning-text);
+}
+
 /* The recording the operator made with the phone's own recorder */
 .mic-preview {
     width: 100%;
