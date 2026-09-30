@@ -80,6 +80,7 @@
     <x:String x:Key="Settings_RunDiagnostics">Hardware diagnose draaien (panic-logs)</x:String>
     <x:String x:Key="Settings_Enable85Checker">85% Batterijcheck (100%-X label)</x:String>
     <x:String x:Key="Settings_OpenEditor">Label editor openen voor printen</x:String>
+    <x:String x:Key="Settings_Connection">VERBINDING MET DE TELEFOON</x:String>
     <x:String x:Key="Settings_SecureOrigin">Webtest via USB (localhost)</x:String>
     <x:String x:Key="Settings_SecureOriginDesc">Stuurt de webtest naar http://localhost in plaats van het IP-adres van de pc. Een browser geeft alleen op een beveiligde herkomst toegang tot de camera, microfoon en bewegingssensoren. Dit is de snelste van de twee opties en werkt zodra de kabel zit.</x:String>
     <x:String x:Key="Settings_PublicTunnel">Veilige verbinding via internet</x:String>
@@ -90,6 +91,7 @@
     <x:String x:Key="Settings_LicenseKey">Licentiesleutel</x:String>
     <x:String x:Key="Settings_LicenseKeyWatermark">Voer uw Lemon Squeezy licentiesleutel in</x:String>
     <x:String x:Key="Settings_ValidateActivate">Valideren en activeren</x:String>
+    <x:String x:Key="Settings_ManageLicense">Licentie beheren</x:String>
     <x:String x:Key="Settings_FreeTierStatus">Gratis versie ({0}/10 scans gebruikt)</x:String>
     <x:String x:Key="Settings_ProTierStatus">Pro versie (Actief)</x:String>
     <x:String x:Key="Settings_ActivationSuccess">Licentie geactiveerd. Onbeperkt scannen is nu beschikbaar.</x:String>
@@ -106,12 +108,17 @@
     <x:String x:Key="Intro_FreeTierBody">10 scans. De status bovenaan laat altijd zien hoeveel je nog hebt.</x:String>
     <x:String x:Key="Intro_ProTierTitle">Pro</x:String>
     <x:String x:Key="Intro_ProTierBody">Onbeperkt scannen op elk toestel dat je aansluit.</x:String>
+    <x:String x:Key="Intro_ProBadge">Onbeperkt</x:String>
     <x:String x:Key="Intro_StartFree">Gratis starten</x:String>
     <x:String x:Key="Intro_SeePricing">Bekijk prijzen</x:String>
     <x:String x:Key="Intro_HaveLicense">Ik heb al een licentie</x:String>
     <x:String x:Key="Intro_ActivationTitle">Activeer je licentie</x:String>
     <x:String x:Key="Licensing_TierFree">{0} scans over</x:String>
     <x:String x:Key="Licensing_TierPro">Pro - Actief</x:String>
+    <x:String x:Key="Licensing_PanelHint">Licentie en scans</x:String>
+    <x:String x:Key="Licensing_PanelTitle">Licentie</x:String>
+    <x:String x:Key="Licensing_PanelScansLeft">Scans resterend</x:String>
+    <x:String x:Key="Licensing_PanelClose">Sluiten</x:String>
 
     <x:String x:Key="Btn_Troubleshoot">USB en Driver Diagnose</x:String>
     <x:String x:Key="Btn_Logs">Systeemlogboeken Bekijken</x:String>
