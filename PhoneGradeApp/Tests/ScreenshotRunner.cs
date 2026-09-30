@@ -35,6 +35,17 @@ class ScreenshotRunner
                 Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-issues.png"));
                 Capture(new DataEditorWindow { DataContext = new DataEditorViewModel(vm.DeviceData) }, Path.Combine(outDir, "editor-dark.png"));
 
+                // The USB debugging guide, in both themes. This card used to be a
+                // light yellow block in an otherwise dark window, which no assertion
+                // about theme resources would have caught.
+                var idle = BuildDemoViewModel();
+                idle.WorkflowState = AppWorkflowState.Idle;
+                idle.ShowAdbWarning = true;
+                Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "usb-guide-dark.png"), 900, 900);
+
+                idle.Theme = "Light";
+                Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "usb-guide-light.png"), 900, 900);
+
                 Console.WriteLine("done");
                 if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
                     desktop.Shutdown();

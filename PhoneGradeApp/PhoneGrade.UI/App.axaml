@@ -331,6 +331,41 @@
             <Setter Property="Background" Value="{DynamicResource CardBorderColor}"/>
         </Style>
 
+        <!--
+            How-to steps: a numbered badge next to a line an operator can act on.
+
+            The badge is a round accent dot rather than a "1." in the text, so a
+            glance down the card gives the order without reading the sentences.
+        -->
+        <Style Selector="Border.stepBadge">
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="CornerRadius" Value="11"/>
+            <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Margin" Value="0,1,0,0"/>
+        </Style>
+        <Style Selector="Border.stepBadge > TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.stepBody">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="18"/>
+        </Style>
+        <!-- The one line of a how-to that people skip and then cannot work out -->
+        <Style Selector="TextBlock.stepCaveat">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="18"/>
+            <Setter Property="Foreground" Value="{DynamicResource WarnColor}"/>
+        </Style>
+
         <!-- Data validation errors must never disappear -->
         <Style Selector="DataValidationErrors &gt; TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource DangerColor}"/>

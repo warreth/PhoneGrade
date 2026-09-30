@@ -102,17 +102,61 @@
                         </Border>
 
 
-                        <!-- ADB Unauthorized Warning Card -->
-                        <Border Classes="card" IsVisible="{Binding ShowAdbWarning}" 
-                                Background="#FFF3CD" BorderBrush="#FFD700" BorderThickness="2" 
+                        <!--
+                            ADB unauthorized warning card.
+
+                            This appears only when the phone is connected but has not
+                            accepted this computer, so the phone itself is fine and
+                            nothing about it is broken. What is needed is a tap on the
+                            phone, which is why this is a numbered guide rather than a
+                            sentence: the previous text was English, told the operator
+                            to switch to MTP mode, which this tool never uses and which
+                            changes nothing about the adb state, and did not say the
+                            one thing that decides whether it works next time, which is
+                            ticking "Always allow from this computer".
+                        -->
+                        <Border Classes="card" IsVisible="{Binding ShowAdbWarning}"
+                                BorderBrush="{DynamicResource WarnColor}" BorderThickness="2"
                                 Padding="16" Margin="0,16,0,0">
                             <StackPanel Spacing="12">
-                                
-                                <TextBlock TextWrapping="Wrap" Foreground="#856404" LineHeight="20">
-                                    <Run>Android device connected. Ensure USB Debugging is turned ON and File Transfer (MTP) mode is active on the phone screen.</Run>
-                                </TextBlock>
-                                <Button Classes="cta" Command="{Binding RetryAdbDetectionCommand}" 
-                                        Content="Retry ADB Detection" HorizontalAlignment="Left"/>
+
+                                <TextBlock TextWrapping="Wrap" LineHeight="20"
+                                           Foreground="{DynamicResource WarnColor}" FontWeight="SemiBold"
+                                           Text="De telefoon is verbonden, maar vertrouwt deze computer nog niet. De telefoon zelf is prima; er moet een keer op de telefoon worden getikt."/>
+
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                                    <Border Grid.Column="0" Grid.Row="0" Classes="stepBadge" Margin="0,0,0,8">
+                                        <TextBlock Text="1"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Grid.Row="0" Classes="stepBody" Margin="10,0,0,8"
+                                               Text="Ontgrendel het scherm en laat het aan. Een vergrendeld scherm toont de vraag niet."/>
+
+                                    <Border Grid.Column="0" Grid.Row="1" Classes="stepBadge" Margin="0,0,0,8">
+                                        <TextBlock Text="2"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Grid.Row="1" Classes="stepBody" Margin="10,0,0,8"
+                                               Text="Open de melding &#8220;USB-debugging toestaan?&#8221; op de telefoon. Tik &#8220;Altijd toestaan vanaf deze computer&#8221; aan en daarna op OK."/>
+
+                                    <Border Grid.Column="0" Grid.Row="2" Classes="stepBadge" Margin="0,0,0,8">
+                                        <TextBlock Text="3"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Grid.Row="2" Classes="stepBody" Margin="10,0,0,8"
+                                               Text="Staat die melding er niet? Ga naar Instellingen, &#8220;Over de telefoon&#8221; en tik zeven keer op &#8220;Build-nummer&#8221;."/>
+
+                                    <Border Grid.Column="0" Grid.Row="3" Classes="stepBadge">
+                                        <TextBlock Text="4"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Grid.Row="3" Classes="stepBody" Margin="10,0,0,0"
+                                               Text="Kies daarna &#8220;Ontwikkelaarsopties&#8221; en zet &#8220;USB-debugging&#8221; aan. De melding verschijnt dan vanzelf opnieuw."/>
+                                </Grid>
+
+                                <Border Background="#20F5A623" CornerRadius="4" Padding="10,8">
+                                    <TextBlock Classes="stepCaveat"
+                                               Text="Zonder &#8220;Altijd toestaan&#8221; vraagt de telefoon het bij elke nieuwe kabel opnieuw en staat de pc steeds weer op &#8220;niet vertrouwd&#8221;."/>
+                                </Border>
+
+                                <Button Classes="cta" Command="{Binding RetryAdbDetectionCommand}"
+                                        Content="Opnieuw zoeken" HorizontalAlignment="Left"/>
                             </StackPanel>
                         </Border>
 

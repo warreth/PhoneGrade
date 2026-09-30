@@ -491,9 +491,24 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
 
         // Verify warning card exists
         Assert.Contains("ShowAdbWarning", content);
-        Assert.Contains("Android device connected", content);
-        Assert.Contains("USB Debugging", content);
         Assert.Contains("RetryAdbDetectionCommand", content);
+
+        // The card is bound to the unauthorized state and nothing else, so it is
+        // never on screen for a phone that has already been trusted.
+        var viewModel = RepoPath.Read("PhoneGradeApp", "PhoneGrade.UI", "ViewModels", "MainWindowViewModel.cs");
+        Assert.Contains("ShowAdbWarning = unauthorized", viewModel);
+
+        // The guide's own styles belong in the shared stylesheet with the rest of
+        // them. A card that carries its own inline styling is the thing that
+        // drifted a few pixels off the rest of the window last time.
+        var styles = RepoPath.Read("PhoneGradeApp", "PhoneGrade.UI", "App.axaml");
+        foreach (var selector in new[] { "Border.stepBadge", "TextBlock.stepBody", "TextBlock.stepCaveat" })
+        {
+            Assert.Contains(selector, styles);
+        }
+
+        // The card itself is measured against the rendered window in
+        // UsbDebuggingGuideTests, which is the only way to know the styles match.
     }
 
     // Task 1: Grading Penalty Integration
