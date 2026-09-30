@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -126,9 +127,19 @@ public sealed partial class QuickTunnel : IDisposable
 
             onStatus?.Invoke("Beveiligde verbinding via internet opzetten...");
 
+            // The path and the arguments are the first thing to check when a tunnel
+            // will not come up, and neither of them was written anywhere before.
+            string arguments = Arguments(port);
+            SystemEventLogger.Info(LogSource.UsbDetector,
+                $"Starting the internet tunnel with {tool} {arguments}");
+
+            var tail = new LineTail();
             var found = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var connection = await _launch(tool, Arguments(port), line =>
+            var connection = await _launch(tool, arguments, line =>
             {
+                tail.Add(line);
+                LogLevel? level = ConnectorLogLevel(line);
+                if (level != null) SystemEventLogger.Log(level.Value, LogSource.UsbDetector, line);
                 string? printed = ParseAddress(line);
                 if (printed != null) found.TrySetResult(printed);
             });
@@ -159,7 +170,8 @@ public sealed partial class QuickTunnel : IDisposable
                 Discard(connection);
                 NoteFailure();
                 SystemEventLogger.Warning(LogSource.UsbDetector,
-                    "The internet tunnel did not come up, the phone gets the plain network address");
+                    $"The internet tunnel did not come up, the phone gets the plain network address. " +
+                    $"The connector said: {tail.Describe()}");
                 return null;
             }
 
@@ -247,6 +259,27 @@ public sealed partial class QuickTunnel : IDisposable
 
         return match.Value.TrimEnd('/');
     }
+
+    /// <summary>
+    /// The level a connector line deserves, or null for the banner.
+    ///
+    /// cloudflared marks each line with a level tag of its own and prints the rest
+    /// as a drawn table. That table is the same on every start and would push the
+    /// lines that matter out of the log, so only what the connector complains
+    /// about is kept.
+    /// </summary>
+    public static LogLevel? ConnectorLogLevel(string? line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return null;
+
+        var match = FaultTag().Match(line);
+        if (!match.Success) return null;
+
+        return match.Value == "WRN" ? LogLevel.Warning : LogLevel.Error;
+    }
+
+    [GeneratedRegex(@"\b(ERR|WRN|FAT)\b")]
+    private static partial Regex FaultTag();
 
     private static string Arguments(int port) =>
         $"tunnel --url http://localhost:{port} --no-autoupdate";
@@ -362,6 +395,40 @@ public sealed partial class QuickTunnel : IDisposable
         });
 
         return Task.FromResult<IConnection>(new ProcessConnection(process, exited));
+    }
+
+    /// <summary>
+    /// Keeps the last few connector lines so a start that never got an address can
+    /// still say why. A connector that dies without printing a level tag would
+    /// otherwise leave behind nothing but a generic warning.
+    /// </summary>
+    private sealed class LineTail
+    {
+        private const int Keep = 4;
+
+        private readonly Queue<string> _lines = new();
+        private readonly object _sync = new();
+
+        public void Add(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return;
+
+            lock (_sync)
+            {
+                _lines.Enqueue(line);
+                while (_lines.Count > Keep) _lines.Dequeue();
+            }
+        }
+
+        public string Describe()
+        {
+            lock (_sync)
+            {
+                return _lines.Count == 0
+                    ? "it printed nothing at all"
+                    : string.Join(" | ", _lines);
+            }
+        }
     }
 
     private sealed class ProcessConnection : IConnection

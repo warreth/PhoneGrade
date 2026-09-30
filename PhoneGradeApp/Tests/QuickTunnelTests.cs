@@ -71,6 +71,38 @@ public class QuickTunnelTests
         Assert.Equal(OtherAddress, QuickTunnel.ParseAddress($"|  {OtherAddress}/   |"));
     }
 
+    // ---- what the connector is complaining about ----------------------------
+
+    private static string[] ErrorFixture() =>
+        File.ReadAllLines(RepoPath.Get("PhoneGradeApp", "Tests", "Fixtures", "cloudflared-connector-error.log"));
+
+    [Fact]
+    public void ConnectorLogLevel_LeavesTheHealthyBannerAlone()
+    {
+        // The banner is the same on every start. Logging it would fill the log and
+        // push out the line that says what actually went wrong.
+        Assert.All(CapturedBanner(), line => Assert.Null(QuickTunnel.ConnectorLogLevel(line)));
+        Assert.All(ErrorFixture().Where(line => !line.Contains(" ERR ", StringComparison.Ordinal)),
+            line => Assert.Null(QuickTunnel.ConnectorLogLevel(line)));
+    }
+
+    [Fact]
+    public void ConnectorLogLevel_FlagsWhatARealConnectorComplainedAbout()
+    {
+        // Captured by running a connector against a port nothing listened on, which
+        // is the failure a customer sees when the desktop server has gone away.
+        LogLevel[] faults = ErrorFixture()
+            .Select(QuickTunnel.ConnectorLogLevel)
+            .Where(level => level != null)
+            .Select(level => level!.Value)
+            .ToArray();
+
+        Assert.Equal(2, faults.Length);
+        Assert.All(faults, level => Assert.Equal(LogLevel.Error, level));
+        Assert.Contains(ErrorFixture(), line =>
+            line.Contains("Unable to reach the origin service", StringComparison.Ordinal));
+    }
+
     // ---- a real connector process --------------------------------------------
 
     private static string Shell => OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
@@ -193,6 +225,53 @@ public class QuickTunnelTests
         Assert.Null(await harness.Tunnel.StartAsync(5055));
         Assert.Null(harness.Tunnel.Address);
         Assert.True(await harness.IsGoneAsync());
+    }
+
+    /// <summary>Prints a real complaint from the captured error run and then dies.</summary>
+    private static string ComplainAndExit() => OperatingSystem.IsWindows()
+        ? "/c \"echo 2026-09-30T14:31:42Z ERR Unable to reach the origin service & exit 1\""
+        : "-c \"echo 2026-09-30T14:31:42Z ERR Unable to reach the origin service; exit 1\"";
+
+    [Fact]
+    public async Task Start_QuotesWhatTheConnectorSaidWhenItCannotComeUp()
+    {
+        // A connector that dies leaves the caller on the plain network address. The
+        // warning it leaves behind has to carry the reason, otherwise a tunnel that
+        // will never work looks exactly like one that is merely slow.
+        LogThrottler.Reset();
+        SystemEventLogger.ClearLogs();
+
+        var harness = new Harness(ComplainAndExit(), startTimeoutMs: 15_000);
+        Assert.Null(await harness.Tunnel.StartAsync(5055));
+
+        var logged = SystemEventLogger.GetRecentLogs()
+            .Where(entry => entry.Message.Contains("The internet tunnel did not come up", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.Contains(logged, entry => entry.Message.Contains(
+            "Unable to reach the origin service", StringComparison.Ordinal));
+        Assert.Contains(logged, entry => entry.Level == LogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task Start_WritesTheCommandItRan()
+    {
+        // Without the path and the arguments there is nothing to check when a tunnel
+        // refuses to come up: the log said only that it had not come up.
+        LogThrottler.Reset();
+        SystemEventLogger.ClearLogs();
+
+        var harness = new Harness(PrintAndWait(OtherAddress, toStderr: true));
+        Assert.Equal(OtherAddress, await harness.Tunnel.StartAsync(5056));
+
+        var logged = SystemEventLogger.GetRecentLogs().Select(entry => entry.Message).ToArray();
+
+        Assert.Contains(logged, message => message.Contains(
+            $"Starting the internet tunnel with {Shell} tunnel --url http://localhost:5056 --no-autoupdate",
+            StringComparison.Ordinal));
+        Assert.Contains(logged, message => message.Contains(OtherAddress, StringComparison.Ordinal));
+
+        await harness.Tunnel.StopAsync();
     }
 
     [Fact]
