@@ -18,6 +18,7 @@ import { applyStoredResults, firstPendingIndex, canResume, describeResume } from
 import { baseUrlFrom } from './modules/serverUrl.js';
 import { runCommand } from './modules/CommandDispatch.js';
 import { countResults } from './modules/SuiteCounts.js';
+import { buildResultRow } from './modules/ResultRows.js';
 
 class RestApiClient {
     constructor() {
@@ -696,38 +697,9 @@ class TestRunner {
         if (resultsDetails) {
             resultsDetails.innerHTML = '';
             suiteResult.tests.forEach((test) => {
-                const item = document.createElement('div');
-                item.className = 'result-item';
-
-                const canRetry = test.status === 'failed' || test.status === 'skipped';
-
-                // Built as elements rather than markup. An innerHTML with a test
-                // name in it puts a device-controlled string into the parser, and
-                // a name is not something the PWA gets to choose.
-                const name = document.createElement('span');
-                name.className = 'result-item-name';
-                name.textContent = test.name;
-
-                const badge = document.createElement('span');
-                badge.className = 'result-badge ' + test.status;
-                badge.textContent = test.status.toUpperCase();
-
-                item.appendChild(name);
-                item.appendChild(badge);
-
-                if (canRetry) {
-                    const retry = document.createElement('button');
-                    retry.className = 'btn btn-secondary retry-test-btn';
-                    // The row's own id, not its position. A step can produce more
-                    // than one row, so the row at index 2 is not step 2.
-                    retry.dataset.testId = test.id;
-                    retry.textContent = 'Opnieuw';
-                    item.appendChild(retry);
-                }
-
-                resultsDetails.appendChild(item);
+                resultsDetails.appendChild(buildResultRow(test));
             });
-            
+
             // Wire up retry buttons
             const retryButtons = resultsDetails.querySelectorAll('.retry-test-btn');
             retryButtons.forEach(btn => {
