@@ -116,7 +116,7 @@ public sealed class TrialGate
         try
         {
             LicenseValidationResponse response =
-                await _client.ValidateDetailedAsync(candidate, Environment.MachineName, cancellationToken).ConfigureAwait(false);
+                await _client.ValidateDetailedAsync(candidate, cancellationToken).ConfigureAwait(false);
 
             if (response.Result == LicenseValidationResult.Valid)
             {

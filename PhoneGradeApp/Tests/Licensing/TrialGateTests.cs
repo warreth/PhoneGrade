@@ -138,6 +138,21 @@ public class TrialGateTests : IDisposable
         Assert.Equal(4, underLimit.ScanCount); // but the trial keeps working
     }
 
+    [Fact]
+    public async Task EvaluateAsync_KeyForAnotherProductAtLimit_Blocks()
+    {
+        // A healthy, active key that belongs to a different product on the same
+        // endpoint must not open the Pro tier.
+        var server = new FakeLicenseServer { ResponseJson = FakeLicenseServer.OtherProductJson };
+        TrialGate gate = _context.CreateGate(server, new TrialState { ScanCount = 10, LicenseKey = "KEY-OTHER-PRODUCT" });
+
+        ScanAuthorization decision = await gate.EvaluateAsync();
+
+        Assert.Equal(ScanAuthorization.LimitReached, decision);
+        Assert.False(gate.IsPro);
+        Assert.Equal(10, gate.ScanCount);
+    }
+
     // ---- validation cache ------------------------------------------------------
 
     [Fact]

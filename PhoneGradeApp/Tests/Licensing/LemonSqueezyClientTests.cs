@@ -11,17 +11,19 @@ namespace Tests;
 
 /// <summary>
 /// Covers the Lemon Squeezy validate client end to end with a fake transport:
-/// response mapping for every status the API reports, graceful collapse of
-/// transport and payload failures into Invalid, and the exact shape of the POST
-/// (URL, method, license_key, instance_name = Environment.MachineName).
+/// response mapping for every status the API reports, product pinning so only
+/// keys sold for PhoneGrade count, graceful collapse of transport and payload
+/// failures into Invalid, and the exact shape of the POST (URL, method,
+/// license_key and nothing the API does not document).
 /// </summary>
 public class LemonSqueezyClientTests
 {
-    private const string ActiveJson = """{"valid":true,"license_key":{"id":1,"status":"active","activation_usage":1}}""";
-    private const string ExpiredJson = """{"valid":false,"license_key":{"id":1,"status":"expired"}}""";
-    private const string DeactivatedJson = """{"valid":false,"license_key":{"id":1,"status":"deactivated"}}""";
-    private const string DisabledJson = """{"valid":false,"license_key":{"id":1,"status":"disabled"}}""";
+    private const string ActiveJson = """{"valid":true,"license_key":{"id":1,"status":"active","activation_usage":1},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
+    private const string ExpiredJson = """{"valid":false,"license_key":{"id":1,"status":"expired"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
+    private const string DeactivatedJson = """{"valid":false,"license_key":{"id":1,"status":"deactivated"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
+    private const string DisabledJson = """{"valid":false,"license_key":{"id":1,"status":"disabled"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
     private const string UnknownKeyJson = """{"valid":false,"error":"This key is invalid."}""";
+    private const string OtherProductJson = """{"valid":true,"license_key":{"id":2,"status":"active"},"meta":{"store_id":1,"product_id":9999999,"product_name":"Some Other Product"}}""";
 
     [Fact]
     public async Task ValidateAsync_ActiveLicense_ReturnsValid()
@@ -60,7 +62,7 @@ public class LemonSqueezyClientTests
     {
         using var client = CreateClient(_ => Json(UnknownKeyJson));
 
-        LicenseValidationResponse response = await client.ValidateDetailedAsync("NOPE", "node-1");
+        LicenseValidationResponse response = await client.ValidateDetailedAsync("NOPE");
 
         Assert.Equal(LicenseValidationResult.Invalid, response.Result);
         Assert.False(response.Valid);
@@ -73,12 +75,62 @@ public class LemonSqueezyClientTests
     {
         using var client = CreateClient(_ => Json(ActiveJson));
 
-        LicenseValidationResponse response = await client.ValidateDetailedAsync("KEY-ACTIVE-1234", "node-1");
+        LicenseValidationResponse response = await client.ValidateDetailedAsync("KEY-ACTIVE-1234");
 
         Assert.True(response.Valid);
         Assert.Equal("active", response.Status);
         Assert.Equal("", response.Error);
         Assert.Equal(LicenseValidationResult.Valid, response.Result);
+        Assert.Equal(LemonSqueezyClient.PhoneGradeProductId, response.ProductId);
+    }
+
+    // ---- product pinning -------------------------------------------------------
+
+    [Fact]
+    public async Task ValidateAsync_KeyForAnotherProduct_IsRejectedDespiteBeingActive()
+    {
+        using var client = CreateClient(_ => Json(OtherProductJson));
+
+        LicenseValidationResponse response = await client.ValidateDetailedAsync("KEY-OTHER-PRODUCT");
+
+        Assert.Equal(LicenseValidationResult.Invalid, response.Result);
+        Assert.True(response.Valid); // the raw field is kept; only the decision changes
+        Assert.Equal(9999999, response.ProductId);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ActiveKeyWithoutMeta_IsRejected()
+    {
+        // A body that claims validity but never says which product it belongs to
+        // cannot be trusted: no meta, no Pro.
+        using var client = CreateClient(_ =>
+            Json("""{"valid":true,"license_key":{"id":3,"status":"active"}}"""));
+
+        LicenseValidationResult result = await client.ValidateAsync("KEY-NO-META");
+
+        Assert.Equal(LicenseValidationResult.Invalid, result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ExpiredKeyForAnotherProduct_IsInvalidNotExpired()
+    {
+        // The status describes somebody else's key; the app must not act on it.
+        using var client = CreateClient(_ =>
+            Json("""{"valid":false,"license_key":{"id":4,"status":"expired"},"meta":{"product_id":9999999}}"""));
+
+        LicenseValidationResult result = await client.ValidateAsync("KEY-OTHER-EXPIRED");
+
+        Assert.Equal(LicenseValidationResult.Invalid, result);
+    }
+
+    [Fact]
+    public void ParseValidationResponse_PinCanBeDisabledWithZero()
+    {
+        LicenseValidationResponse response = LemonSqueezyClient.ParseValidationResponse(
+            OtherProductJson, expectedProductId: 0);
+
+        Assert.Equal(LicenseValidationResult.Valid, response.Result);
+        Assert.Equal(9999999, response.ProductId);
     }
 
     [Theory]
@@ -130,7 +182,7 @@ public class LemonSqueezyClientTests
     }
 
     [Fact]
-    public async Task ValidateAsync_SendsPostWithLicenseKeyAndMachineName()
+    public async Task ValidateAsync_SendsPostWithOnlyTheDocumentedFields()
     {
         var handler = new RecordingHandler(_ => Json(ActiveJson));
         using var client = new LemonSqueezyClient(handler);
@@ -144,19 +196,11 @@ public class LemonSqueezyClientTests
 
         Dictionary<string, string> form = ParseForm(handler.LastRequestBody!);
         Assert.Equal("KEY-WITH-SPACE-1234", form["license_key"]); // trimmed before send
-        Assert.Equal(Environment.MachineName, form["instance_name"]);
-    }
 
-    [Fact]
-    public async Task ValidateAsync_UsesInjectedInstanceNameWhenProvided()
-    {
-        var handler = new RecordingHandler(_ => Json(ActiveJson));
-        using var client = new LemonSqueezyClient(handler);
-
-        await client.ValidateDetailedAsync("KEY-1", "custom-instance");
-
-        Dictionary<string, string> form = ParseForm(handler.LastRequestBody!);
-        Assert.Equal("custom-instance", form["instance_name"]);
+        // The validate endpoint documents license_key (plus an optional
+        // instance_id for instances created by activate). instance_name is not
+        // one of them, so nothing else may go on the wire.
+        Assert.Equal(new[] { "license_key" }, form.Keys);
     }
 
     [Fact]
@@ -176,8 +220,8 @@ public class LemonSqueezyClientTests
     [Fact]
     public void ParseValidationResponse_UppercaseStatus_IsNormalized()
     {
-        LicenseValidationResponse response =
-            LemonSqueezyClient.ParseValidationResponse("""{"valid":false,"license_key":{"status":"EXPIRED"}}""");
+        LicenseValidationResponse response = LemonSqueezyClient.ParseValidationResponse(
+            """{"valid":false,"license_key":{"status":"EXPIRED"},"meta":{"product_id":1400200}}""");
 
         Assert.Equal(LicenseValidationResult.Expired, response.Result);
         Assert.Equal("expired", response.Status);
