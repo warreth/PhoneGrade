@@ -40,7 +40,7 @@ PhoneGrade is a professional desktop application for comprehensive hardware diag
 ## PWA Test Suite
 
 The interactive test suite runs in the device browser and verifies:
-- Multi-touch digitizer response
+- Touchscreen coverage, including the dead zones along the screen edges
 - Display quality and dead pixels
 - Front and rear cameras with live WebRTC preview
 - Motion sensors (accelerometer, gyroscope)

@@ -358,8 +358,8 @@ class TestRunner {
     constructor(wsClient) {
         this.wsClient = wsClient;
         this.tests = [
-            // The digitizer edges live inside TouchTest, and report under their
-            // own id, so they cost one step instead of two without costing a row.
+            // The touchscreen step covers the grid and the outer edges of the
+            // screen and reports them as one row.
             new TouchTest(),
             new ForceTouchTest(),
             new DisplayTest(),
