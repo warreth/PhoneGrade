@@ -1,10 +1,11 @@
-const CACHE_NAME = 'phonegrade-v1';
+const CACHE_NAME = 'phonegrade-v2';
 const ASSETS = [
     '/',
     '/manifest.json',
     '/styles.css',
     '/app.js',
     '/modules/DeviceTest.js',
+    '/modules/serverUrl.js',
     '/modules/TouchTest.js',
     '/modules/DisplayTest.js',
     '/modules/MicrophoneTest.js',
