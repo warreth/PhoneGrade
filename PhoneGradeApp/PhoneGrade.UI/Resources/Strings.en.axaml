@@ -80,11 +80,11 @@
     <x:String x:Key="Settings_RunDiagnostics">Run hardware diagnostics (panic logs)</x:String>
     <x:String x:Key="Settings_Enable85Checker">85% Battery check (100%-X label)</x:String>
     <x:String x:Key="Settings_OpenEditor">Open label editor before printing</x:String>
-    <x:String x:Key="Settings_Connection">PHONE CONNECTION</x:String>
-    <x:String x:Key="Settings_SecureOrigin">Web test over USB (localhost)</x:String>
-    <x:String x:Key="Settings_SecureOriginDesc">Serves the web test at http://localhost instead of the pc's ip address. A browser only grants camera, microphone and motion sensor access on a secure origin. This is the faster of the two options and works as soon as the cable is in.</x:String>
-    <x:String x:Key="Settings_PublicTunnel">Secure connection over the internet</x:String>
-    <x:String x:Key="Settings_PublicTunnelDesc">Opens a secure https address for the phone when there is no usb tunnel, which is the case for an iPhone. Needs internet on the pc and on the phone, and the test results then pass through Cloudflare. Turning it off keeps everything on the local network, but camera, microphone and motion sensors stop working.</x:String>
+    <x:String x:Key="Settings_Connection">HOW THE PHONE OPENS THE PAGE</x:String>
+    <x:String x:Key="Settings_SecureOrigin">Over the USB cable (http://localhost)</x:String>
+    <x:String x:Key="Settings_SecureOriginDesc">The phone opens the test page on the pc itself. A browser trusts that address, so camera, microphone, motion sensors and location all work there. This is the faster of the two, needs no internet, and works as soon as the cable is in. It is the route that is tried first.</x:String>
+    <x:String x:Key="Settings_PublicTunnel">Over the internet (https, secure)</x:String>
+    <x:String x:Key="Settings_PublicTunnelDesc">The pc opens a secure https address that forwards to the test page, through Cloudflare. This is the fallback when there is no usb tunnel, which is always the case for an iPhone. Both may be on at once: usb is tried first and the internet connection is the fallback. Needs internet on the pc and on the phone; without it everything stays on the local network and camera, microphone, motion sensors and location stop working.</x:String>
 
     <!-- Licensing &amp; Subscription -->
     <x:String x:Key="Settings_LicensingCardTitle">Licensing &amp; Subscription</x:String>

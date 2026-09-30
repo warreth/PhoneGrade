@@ -71,4 +71,43 @@ public class ConnectionSettingsTests
                 $"{file} has to carry the heading, or the drawer shows the raw key");
         }
     }
+
+    /// <summary>The value between the opening tag and the closing tag of a key.</summary>
+    private static string ValueOf(string strings, string key)
+    {
+        int at = strings.IndexOf($"x:Key=\"{key}\"", StringComparison.Ordinal);
+        Assert.True(at > 0, $"{key} is missing");
+
+        int open = strings.IndexOf('>', at);
+        int close = strings.IndexOf("</x:String>", open, StringComparison.Ordinal);
+
+        Assert.True(open > 0 && close > open, $"{key} is not a plain string entry");
+        return strings.Substring(open + 1, close - open - 1);
+    }
+
+    [Fact]
+    public void TheExplanationAnswersWhetherBothMayBeOnAndWhatAGoodAddressGives()
+    {
+        // Two checkboxes next to each other read as a choice, and the operator
+        // has to guess whether turning both on is allowed. It is, and which one
+        // runs first is the other half of the answer. The list of what a secure
+        // address buys also has to carry location, because that is the step that
+        // skips without one.
+        (string file, string both, string triedFirst, string location)[] languages =
+        {
+            ("Strings.nl.axaml", "Beide mogen aan staan", "als eerste geprobeerd", "locatie"),
+            ("Strings.en.axaml", "Both may be on at once", "tried first", "location")
+        };
+
+        foreach (var language in languages)
+        {
+            string strings = RepoPath.Read("PhoneGradeApp", "PhoneGrade.UI", "Resources", language.file);
+            string together = ValueOf(strings, "Settings_SecureOriginDesc") + " "
+                            + ValueOf(strings, "Settings_PublicTunnelDesc");
+
+            Assert.Contains(language.both, together);
+            Assert.Contains(language.triedFirst, together);
+            Assert.Contains(language.location, together);
+        }
+    }
 }
