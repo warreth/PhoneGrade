@@ -76,10 +76,11 @@ public sealed class LicensingTestContext : IDisposable
     /// <summary>Stands in for api.lemonsqueezy.com. Records how many validations actually hit it.</summary>
     public sealed class FakeLicenseServer : HttpMessageHandler
     {
-        public const string ActiveJson = """{"valid":true,"license_key":{"id":1,"status":"active"}}""";
-        public const string ExpiredJson = """{"valid":false,"license_key":{"id":1,"status":"expired"}}""";
-        public const string DeactivatedJson = """{"valid":false,"license_key":{"id":1,"status":"deactivated"}}""";
+        public const string ActiveJson = """{"valid":true,"license_key":{"id":1,"status":"active"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
+        public const string ExpiredJson = """{"valid":false,"license_key":{"id":1,"status":"expired"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
+        public const string DeactivatedJson = """{"valid":false,"license_key":{"id":1,"status":"deactivated"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
         public const string InvalidKeyJson = """{"valid":false,"error":"This key is invalid."}""";
+        public const string OtherProductJson = """{"valid":true,"license_key":{"id":2,"status":"active"},"meta":{"store_id":1,"product_id":9999999,"product_name":"Some Other Product"}}""";
 
         public string ResponseJson { get; set; } = ActiveJson;
         public bool FailWithNetworkError { get; set; }
