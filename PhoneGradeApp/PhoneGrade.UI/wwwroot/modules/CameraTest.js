@@ -1,4 +1,5 @@
 import { DeviceTest } from './DeviceTest.js';
+import { t } from './i18n.js';
 import {
     CAPABILITY,
     classifyMediaError,
@@ -29,7 +30,7 @@ import {
  */
 export class CameraTest extends DeviceTest {
     constructor() {
-        super('camera', 'Camera & flits', 'Test voor- en achtercamera met live beeld en fotobeoordeling');
+        super('camera', t('camera.stepName'), t('camera.stepDescription'));
         this.frontWorking = false;
         this.backWorking = false;
         this.torchActive = false;
@@ -72,49 +73,48 @@ export class CameraTest extends DeviceTest {
         return `
             <div class="step-screen">
                 <div class="step-column">
-                    <h3 class="step-title" id="cam-step-title">Camera-inspectie</h3>
+                    <h3 class="step-title" id="cam-step-title">${t('camera.stepTitle')}</h3>
 
                     <div class="step-card">
-                        <p class="step-lead" id="cam-instructions">Live camera wordt gestart...</p>
+                        <p class="step-lead" id="cam-instructions">${t('camera.instructionsStart')}</p>
 
                         <div id="video-container" class="camera-view">
                             <video id="live-video" autoplay playsinline muted class="camera-video"></video>
                             <canvas id="photo-canvas" class="camera-video" hidden></canvas>
 
                             <div id="torch-overlay" class="camera-overlay" hidden>
-                                Deze camera heeft geen flits. Zorg zelf voor voldoende licht
-                                voordat je de foto beoordeelt.
+                                ${t('camera.noTorch')}
                             </div>
                         </div>
 
                         <div id="camera-error-area" class="step-stack" hidden>
                             <p class="step-note" id="camera-error-msg"></p>
                             <div class="step-actions">
-                                <button id="btn-camera-retry" class="btn btn-secondary">Opnieuw proberen</button>
-                                <button id="btn-camera-reject" class="btn btn-danger">Camera defect</button>
+                                <button id="btn-camera-retry" class="btn btn-secondary">${t('camera.retryButton')}</button>
+                                <button id="btn-camera-reject" class="btn btn-danger">${t('camera.defectButton')}</button>
                             </div>
                         </div>
 
                         <div id="review-instructions" class="step-hint" hidden>
-                            Bekijk de foto op scherpte, stof op de lens en ruis in het beeld.
+                            ${t('camera.reviewInstructions')}
                         </div>
 
                         <div id="live-controls" class="step-actions">
-                            <button id="btn-capture" class="btn btn-primary">Foto maken</button>
-                            <button id="btn-camera-defect" class="btn btn-danger">Camera defect</button>
+                            <button id="btn-capture" class="btn btn-primary">${t('camera.captureButton')}</button>
+                            <button id="btn-camera-defect" class="btn btn-danger">${t('camera.defectButton')}</button>
                         </div>
 
                         <div id="review-controls" class="step-actions" hidden>
-                            <button id="btn-retake" class="btn btn-secondary">Opnieuw maken</button>
-                            <button id="btn-use-photo" class="btn btn-success">Foto goedkeuren</button>
+                            <button id="btn-retake" class="btn btn-secondary">${t('camera.retakeButton')}</button>
+                            <button id="btn-use-photo" class="btn btn-success">${t('camera.approveButton')}</button>
                         </div>
 
-                        <p id="cam-reject-reason" class="step-question" hidden>Wat is er mis met deze camera?</p>
+                        <p id="cam-reject-reason" class="step-question" hidden>${t('camera.rejectQuestion')}</p>
                         <div id="reject-controls" class="step-stack" hidden>
                             <div class="step-actions">
-                                <button id="btn-reject-blurry" class="btn btn-secondary">Onscherp</button>
-                                <button id="btn-reject-dark" class="btn btn-secondary">Te donker</button>
-                                <button id="btn-reject-artifacts" class="btn btn-secondary">Ruis of stof</button>
+                                <button id="btn-reject-blurry" class="btn btn-secondary">${t('camera.rejectBlurry')}</button>
+                                <button id="btn-reject-dark" class="btn btn-secondary">${t('camera.rejectDark')}</button>
+                                <button id="btn-reject-artifacts" class="btn btn-secondary">${t('camera.rejectArtifacts')}</button>
                             </div>
                         </div>
                     </div>
@@ -125,7 +125,7 @@ export class CameraTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Camera-inspectie voorbereiden...');
+        this.reportProgress(wsClient, 0, t('camera.progressPreparing'));
 
         container.innerHTML = this.markup();
 
@@ -158,29 +158,31 @@ export class CameraTest extends DeviceTest {
         try {
             const rear = await this.inspectCamera(wsClient, refs, 'rear');
             this.backWorking = rear.working;
-            this.reportProgress(wsClient, 50, rear.working ? 'Achtercamera goedgekeurd' : 'Achtercamera afgekeurd');
+            this.reportProgress(wsClient, 50, rear.working ? t('camera.rearApproved') : t('camera.rearRejected'));
 
             const front = await this.inspectCamera(wsClient, refs, 'front');
             this.frontWorking = front.working;
-            this.reportProgress(wsClient, 100, front.working ? 'Voorcamera goedgekeurd' : 'Voorcamera afgekeurd');
+            this.reportProgress(wsClient, 100, front.working ? t('camera.frontApproved') : t('camera.frontRejected'));
         } finally {
             this.stopStream();
         }
 
         this.details.torchActivated = this.torchActive;
 
+        const rearDetailsKey = 'rearCamera';
+        const frontDetailsKey = 'frontCamera';
         const rejected = [];
-        if (!this.backWorking) rejected.push(['achter', 'rearCamera']);
-        if (!this.frontWorking) rejected.push(['voor', 'frontCamera']);
+        if (!this.backWorking) rejected.push([t('camera.rearLabel'), rearDetailsKey]);
+        if (!this.frontWorking) rejected.push([t('camera.frontLabel'), frontDetailsKey]);
 
         if (rejected.length === 0) {
-            this.pass('Voor- en achtercamera zijn live beoordeeld en goedgekeurd');
+            this.pass(t('camera.passBoth'));
         } else {
             const notes = rejected.map(([label, key]) => {
-                const note = this.details[key]?.note || 'niet beoordeeld';
+                const note = this.details[key]?.note || t('camera.notAssessed');
                 return `${label}: ${note}`;
-            }).join('; ');
-            this.fail(`Camera afgekeurd - ${notes}`);
+            }).join(t('camera.notesSeparator'));
+            this.fail(t('camera.failWithNotes', { notes }));
         }
     }
 
@@ -196,14 +198,14 @@ export class CameraTest extends DeviceTest {
     async inspectCamera(wsClient, refs, side) {
         const isRear = side === 'rear';
         const key = isRear ? 'rearCamera' : 'frontCamera';
-        const label = isRear ? 'achtercamera' : 'voorcamera';
+        const label = isRear ? t('camera.rearSubject') : t('camera.frontSubject');
         const facingMode = isRear ? 'environment' : 'user';
-        const volume = isRear ? 'Stap 1: achtercamera' : 'Stap 2: voorcamera';
+        const volume = isRear ? t('camera.stepOne') : t('camera.stepTwo');
 
         refs.stepTitle.textContent = volume;
         refs.instructions.textContent = isRear
-            ? 'Richt de achtercamera op een voorwerp en maak een foto.'
-            : 'Richt de voorcamera op je gezicht en maak een foto.';
+            ? t('camera.pointRear')
+            : t('camera.pointFront');
 
         // Every camera starts from a clean card, so a defect reported on the rear
         // camera does not leave its buttons sitting under the front one.
@@ -239,7 +241,7 @@ export class CameraTest extends DeviceTest {
                 this.details.torchAvailable = this.torchActive;
             }
 
-            this.reportProgress(wsClient, isRear ? 25 : 75, `${label} live, wacht op een foto`);
+            this.reportProgress(wsClient, isRear ? 25 : 75, t('camera.progressLive', { camera: label }));
 
             decision = await this.waitForPhotoVerdict(refs, key, label);
         }
@@ -308,7 +310,7 @@ export class CameraTest extends DeviceTest {
      * @returns {Promise<'retry'|'defect'>}
      */
     waitForCameraTrouble(refs, result, label) {
-        refs.instructions.textContent = `${capitalise(label)} kon niet worden geopend.`;
+        refs.instructions.textContent = t('camera.cannotOpen', { camera: capitalise(label) });
         refs.errorMsg.textContent = explainMediaError(result, label);
 
         refs.errorArea.hidden = false;
@@ -344,8 +346,7 @@ export class CameraTest extends DeviceTest {
             refs.btnCapture.onclick = () => {
                 const captured = takeSnapshot(refs);
                 if (!captured) {
-                    refs.instructions.textContent =
-                        'Nog geen beeld. Wacht tot het livebeeld loopt en maak dan de foto.';
+                    refs.instructions.textContent = t('camera.noImageYet');
                 }
             };
 
@@ -354,7 +355,7 @@ export class CameraTest extends DeviceTest {
             };
 
             refs.btnUsePhoto.onclick = () => {
-                decide(true, 'Foto goedgekeurd door de technicus');
+                decide(true, t('camera.noteApproved'));
             };
 
             refs.btnDefect.onclick = () => {
@@ -364,9 +365,9 @@ export class CameraTest extends DeviceTest {
             };
 
             const reject = (note) => decide(false, note);
-            refs.btnRejectBlurry.onclick = () => reject('Onscherpe foto');
-            refs.btnRejectDark.onclick = () => reject('Te donker om te beoordelen');
-            refs.btnRejectArtifacts.onclick = () => reject('Ruis of stof op de lens');
+            refs.btnRejectBlurry.onclick = () => reject(t('camera.noteBlurry'));
+            refs.btnRejectDark.onclick = () => reject(t('camera.noteTooDark'));
+            refs.btnRejectArtifacts.onclick = () => reject(t('camera.noteDust'));
         });
     }
 

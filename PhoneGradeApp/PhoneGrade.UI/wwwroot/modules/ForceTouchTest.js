@@ -1,31 +1,32 @@
+import { t } from './i18n.js';
 import { DeviceTest } from './DeviceTest.js';
 
 export class ForceTouchTest extends DeviceTest {
     constructor() {
-        super('forcetouch', 'Force Touch', 'Test PointerEvent pressure capability');
+        super('forcetouch', t('force.name'), t('force.description'));
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Ready for force touch');
+        this.reportProgress(wsClient, 0, t('force.progressReady'));
 
         container.innerHTML = `
-            <h3 style="color: var(--color-accent); margin-bottom: 16px;">Force Touch / 3D Touch</h3>
-            <p class="test-instructions">Press firmly on the target below. The circle will grow as pressure increases.</p>
-            
+            <h3 style="color: var(--color-accent); margin-bottom: 16px;">${t('force.title')}</h3>
+            <p class="test-instructions">${t('force.pressHint')}</p>
+             
             <div style="display: flex; justify-content: center; align-items: center; height: 250px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); margin-top: 24px; touch-action: none;" id="pressure-area">
                 <div id="pressure-target" style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-accent); display: flex; justify-content: center; align-items: center; color: #000; font-weight: bold; transition: transform 0.1s; box-shadow: 0 0 15px var(--color-accent);">
-                    Press
+                    ${t('force.pressButton')}
                 </div>
             </div>
-            
+             
             <div style="text-align: center; margin-top: 16px;">
                 <p id="pressure-value" style="font-size: 24px; font-weight: bold; font-family: monospace;">0.00</p>
-                <p style="font-size: 12px; color: var(--color-text-tertiary);">Pressure Level</p>
+                <p style="font-size: 12px; color: var(--color-text-tertiary);">${t('force.pressureLevel')}</p>
             </div>
-            
+             
             <div style="text-align: center; margin-top: 16px;">
-                <button id="skip-pressure" class="btn btn-secondary">Device doesn't support pressure</button>
+                <button id="skip-pressure" class="btn btn-secondary">${t('force.skipButton')}</button>
             </div>
         `;
 
@@ -57,7 +58,7 @@ export class ForceTouchTest extends DeviceTest {
                     target.style.background = 'var(--color-success)';
                     target.style.boxShadow = '0 0 25px var(--color-success)';
                     
-                    this.pass(`Force touch detected (Max pressure: ${maxPressure.toFixed(2)})`);
+                    this.pass(t('force.detected', { pressure: maxPressure.toFixed(2) }));
                     this.details.maxPressure = maxPressure;
                     this.details.supported = true;
                     
@@ -79,9 +80,9 @@ export class ForceTouchTest extends DeviceTest {
 
             skipBtn.addEventListener('click', () => {
                 if (maxPressure > 0 && maxPressure !== 0.5) {
-                    this.fail(`Skipped, but recorded pressure variance (${maxPressure.toFixed(2)})`);
+                    this.fail(t('force.skippedVariance', { pressure: maxPressure.toFixed(2) }));
                 } else {
-                    this.skip('Device does not support pressure sensitivity or Haptic Touch API is blocked');
+                    this.skip(t('force.noPressure'));
                 }
                 this.details.maxPressure = maxPressure;
                 this.details.supported = false;

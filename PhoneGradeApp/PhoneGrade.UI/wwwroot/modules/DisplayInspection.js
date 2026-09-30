@@ -21,6 +21,8 @@
  * shows them rather than in the order they were pressed.
  */
 
+import { t } from './i18n.js';
+
 export const VERDICT_OK = 'ok';
 export const VERDICT_DEFECTIVE = 'defective';
 
@@ -78,10 +80,10 @@ export function describeDefects(inspection) {
     const names = defectiveColorNames(inspection);
 
     if (names.length === 0) {
-        return 'Geen kleurafwijkingen gevonden';
+        return t('inspect.none');
     }
 
     return names.length === 1
-        ? `Afwijking gemeld bij: ${names[0]}`
-        : `Afwijkingen gemeld bij: ${names.join(', ')}`;
+        ? t('inspect.one', { name: names[0] })
+        : t('inspect.many', { names: names.join(', ') });
 }

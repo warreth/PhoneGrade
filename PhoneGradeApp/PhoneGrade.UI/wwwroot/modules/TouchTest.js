@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { DeviceTest } from './DeviceTest.js';
 
 /** How bad a verdict is: a failure beats a skip, a skip beats a pass. */
@@ -32,7 +33,7 @@ export class TouchTest extends DeviceTest {
     static EDGE_TIMEOUT_MS = 60000;
 
     constructor() {
-        super('touch', 'Touchscreen Test', 'Swipe across all cells to detect dead zones');
+        super('touch', t('touch.name'), t('touch.description'));
         this.gridCols = 8;
         this.gridRows = 14;
         this.totalCells = this.gridCols * this.gridRows;
@@ -87,7 +88,7 @@ export class TouchTest extends DeviceTest {
         row.status = worseOf(row.status, this.edge.status);
 
         if (this.edge.notes && this.edge.notes !== row.notes) {
-            row.notes = row.notes ? `${row.notes} | Randen: ${this.edge.notes}` : this.edge.notes;
+            row.notes = row.notes ? t('touch.mergedNotes', { grid: row.notes, edge: this.edge.notes }) : this.edge.notes;
         }
 
         // Both halves write to details, so the edge keeps its own names: the grid
@@ -121,7 +122,7 @@ export class TouchTest extends DeviceTest {
         // operator's own decision, and it would spend another minute of their
         // time on a test they just stopped.
         if (this.status === 'skipped') {
-            this.skipEdge('Overgeslagen samen met het scherm');
+            this.skipEdge(t('touch.edgeSkipped'));
             return;
         }
 
@@ -130,17 +131,17 @@ export class TouchTest extends DeviceTest {
 
     /** The grid: swipe every cell to show the surface responds everywhere. */
     async runGridPhase(wsClient, container) {
-        this.reportProgress(wsClient, 0, 'Starting touchscreen test...');
+        this.reportProgress(wsClient, 0, t('touch.progressStart'));
 
         container.innerHTML = `
             <div id="touch-wrap" style="position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: #0f172a; z-index: 10000; touch-action: none; user-select: none; overflow: hidden; display: flex; flex-direction: column;">
                 <div id="touch-instruction-card" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15,23,42,0.92); color: #ffffff; padding: 20px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; z-index: 10005; border: 2px solid #2563eb; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: opacity 0.3s ease;">
-                    <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #38bdf8;">Touchscreen Test</div>
-                    <div>Veeg met je vinger over het hele scherm om alle grijze vakjes groen te kleuren</div>
+                    <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #38bdf8;">${t('touch.name')}</div>
+                    <div>${t('touch.gridInstruction')}</div>
                 </div>
 
                 <div id="touch-info-bar" style="position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #ffffff; padding: 6px 18px; border-radius: 9999px; font-size: 14px; font-weight: 700; pointer-events: none; z-index: 10002; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-                    Dekking: <span id="touch-progress" style="color: #4ade80;">0%</span>
+                    ${t('touch.coverageLabel')} <span id="touch-progress" style="color: #4ade80;">0%</span>
                 </div>
 
                 <div id="touch-grid" style="display: grid; grid-template-columns: repeat(${this.gridCols}, 1fr); grid-template-rows: repeat(${this.gridRows}, 1fr); gap: 2px; width: 100%; height: 100%; padding: 4px; box-sizing: border-box; background: #1e293b;"></div>
@@ -228,7 +229,7 @@ export class TouchTest extends DeviceTest {
 
                         const progress = Math.round((this.touchedCells.size / this.totalCells) * 100);
                         progressDisplay.textContent = progress + '%';
-                        this.reportProgress(wsClient, progress, 'Aangeraakt: ' + this.touchedCells.size + '/' + this.totalCells);
+                        this.reportProgress(wsClient, progress, t('touch.touchCount', { touched: this.touchedCells.size, cells: this.totalCells }));
                     }
                 }
             }
@@ -286,11 +287,11 @@ export class TouchTest extends DeviceTest {
 
                 const coverage = Math.round((this.touchedCells.size / this.totalCells) * 100);
                 if (this.touchedCells.size >= this.totalCells) {
-                    this.pass('Alle vakjes succesvol aangeraakt (100% dekking)');
+                    this.pass(t('touch.gridComplete'));
                 } else if (coverage >= 90) {
-                    this.pass('Voldoende dekking (' + coverage + '%)');
+                    this.pass(t('touch.gridPass', { coverage }));
                 } else {
-                    this.fail('Slechts ' + coverage + '% van scherm responsief (dode zones)');
+                    this.fail(t('touch.gridFail', { coverage }));
                 }
 
                 this.details.coverage = coverage;
@@ -312,13 +313,13 @@ export class TouchTest extends DeviceTest {
     /** The outer edges: a dead strip along the bezel is the classic digitizer fault. */
     async runEdgePhase(wsClient, container) {
         this.edge.startedAt = Date.now();
-        this.reportProgress(wsClient, 0, 'Initializing canvas...');
+        this.reportProgress(wsClient, 0, t('touch.edgeInit'));
 
         container.innerHTML = `
             <div id="touch-edge-wrap" style="position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: #0f172a; z-index: 10000; touch-action: none; user-select: none; overflow: hidden;">
                 <canvas id="touch-edge-canvas" style="display: block; width: 100%; height: 100%; touch-action: none;"></canvas>
                 <div id="touch-edge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 80%;">
-                    <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: #ffffff;">Teken over de rode randen</div>
+                    <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: #ffffff;">${t('touch.edgeInstruction')}</div>
                     <div id="touch-edge-status" style="font-size: 28px; font-weight: bold; color: #38bdf8;">0%</div>
                 </div>
             </div>
@@ -384,7 +385,7 @@ export class TouchTest extends DeviceTest {
                 const hits = blocks.filter(b => b.hit).length;
                 const pct = Math.round((hits / totalBlocks) * 100);
                 statusDisplay.textContent = pct + '%';
-                this.reportProgress(wsClient, pct, 'Randdekking: ' + pct + '%');
+                this.reportProgress(wsClient, pct, t('touch.edgeCoverage', { pct }));
 
                 if (this.haptic) this.haptic.tap();
             }
@@ -469,12 +470,12 @@ export class TouchTest extends DeviceTest {
 
                 if (pct >= 95) {
                     this.edge.status = 'passed';
-                    this.edge.notes = '100% responsief';
+                    this.edge.notes = t('touch.edgePass');
                 } else if (Date.now() - start > TouchTest.EDGE_TIMEOUT_MS) {
                     this.edge.status = pct >= 85 ? 'passed' : 'failed';
                     this.edge.notes = pct >= 85
-                        ? 'voldoende responsief (' + pct + '%)'
-                        : 'niet responsief (' + pct + '%)';
+                        ? t('touch.edgeSufficient', { pct })
+                        : t('touch.edgeFail', { pct });
                 }
 
                 // Reported under the step's own id: the edges are the second half

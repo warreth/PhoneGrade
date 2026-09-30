@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 /**
  * Picking a phone run back up where it stopped.
  *
@@ -82,8 +84,8 @@ export function applyStoredResults(tests, progress) {
         const own = found[0];
         test.status = own.status || 'passed';
         test.notes = own.status === 'skipped' || own.status === 'failed'
-            ? `Onthouden van de vorige run: ${own.status}`
-            : 'Onthouden van de vorige run';
+            ? t('progress.rememberedStatus', { status: own.status })
+            : t('progress.remembered');
         test.details = test.details || {};
         test.storedRows = found;
 
@@ -106,6 +108,8 @@ export function describeResume(progress) {
 
     const done = (progress.steps || []).length;
     const total = progress.totalTests || done;
-    const where = progress.currentTestName ? ` Bezig met ${progress.currentTestName}.` : '';
-    return `Er staan al ${done} van de ${total} tests klaar.${where}`;
+    const where = progress.currentTestName
+        ? ' ' + t('progress.currentlyOn', { name: progress.currentTestName })
+        : '';
+    return t('progress.resumeLine', { done, total, where });
 }

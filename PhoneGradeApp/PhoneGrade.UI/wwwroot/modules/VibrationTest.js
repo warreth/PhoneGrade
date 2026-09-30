@@ -1,4 +1,5 @@
 import { DeviceTest } from './DeviceTest.js';
+import { t } from './i18n.js';
 
 /**
  * What the button asks the browser to run: three short pulses with gaps.
@@ -26,12 +27,12 @@ const PULSE = [250, 100, 250, 100, 250];
  */
 export class VibrationTest extends DeviceTest {
     constructor() {
-        super('vibration', 'Trilmotor & Haptics', 'Controleer de Taptic Engine / trilmotor');
+        super('vibration', t('vibration.stepName'), t('vibration.stepDescription'));
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Trilmotor testen...');
+        this.reportProgress(wsClient, 0, t('vibration.progressTesting'));
 
         const hasApi = typeof navigator.vibrate === 'function';
 
@@ -40,28 +41,28 @@ export class VibrationTest extends DeviceTest {
         container.innerHTML = `
             <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;">
                 <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md); width: 100%; max-width: 400px;">
-                    <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">Trilmotor &amp; Taptic Engine</h3>
+                    <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">${t('vibration.heading')}</h3>
 
                     ${hasApi ? `
-                        <p class="step-hint">Druk op de knop om de trilmotor te activeren.</p>
-                        <button id="btn-vibe-pulse" class="btn btn-primary" style="width: 100%; margin-bottom: 8px;">Activeer Trilmotor</button>
-                        <p id="vibe-echo" class="vibe-echo" role="status" aria-live="polite">Nog geen signaal verstuurd.</p>
+                        <p class="step-hint">${t('vibration.pulseHint')}</p>
+                        <button id="btn-vibe-pulse" class="btn btn-primary" style="width: 100%; margin-bottom: 8px;">${t('vibration.pulseButton')}</button>
+                        <p id="vibe-echo" class="vibe-echo" role="status" aria-live="polite">${t('vibration.echoIdle')}</p>
                     ` : `
                         <div class="step-note">
-                            <strong>Handmatige controle.</strong>
-                            Deze browser kan de trilmotor niet aansturen. Schakel de
-                            <strong>stille modus schakelaar</strong> aan de zijkant van de telefoon om
-                            (of druk op de Actieknop) en voel of het toestel klikt.
+                            <strong>${t('vibration.manualCheck')}</strong>
+                            ${t('vibration.manualIntro')}
+                            <strong>${t('vibration.manualSwitch')}</strong>
+                            ${t('vibration.manualSwitchTail')}
                         </div>
                     `}
 
                     <p class="step-question" style="margin: 16px 0 12px;">
-                        Voel je een duidelijke trilling of haptische klik van het toestel?
+                        ${t('vibration.question')}
                     </p>
 
                     <div class="step-actions">
-                        <button id="btn-vibe-yes" class="btn btn-success">Ja, trilt goed</button>
-                        <button id="btn-vibe-no" class="btn btn-danger">Nee, geen trilling</button>
+                        <button id="btn-vibe-yes" class="btn btn-success">${t('vibration.yesButton')}</button>
+                        <button id="btn-vibe-no" class="btn btn-danger">${t('vibration.noButton')}</button>
                     </div>
                 </div>
             </div>
@@ -90,26 +91,26 @@ export class VibrationTest extends DeviceTest {
                 if (echo) {
                     echo.className = accepted ? 'vibe-echo is-accepted' : 'vibe-echo is-refused';
                     echo.textContent = accepted
-                        ? 'De browser heeft het signaal geaccepteerd. De trilling zou nu voelbaar moeten zijn.'
-                        : 'De browser weigerde het signaal. Er komt vanuit deze pagina geen trilling, ongeacht of de motor het doet.';
+                        ? t('vibration.echoAccepted')
+                        : t('vibration.echoRefused');
                 }
 
                 this.reportProgress(wsClient, 50, accepted
-                    ? 'Trillsignaal geaccepteerd door de browser'
-                    : 'Trillsignaal geweigerd door de browser');
+                    ? t('vibration.progressAccepted')
+                    : t('vibration.progressRefused'));
             };
         }
 
         return new Promise((resolve) => {
             container.querySelector('#btn-vibe-yes').onclick = () => {
-                this.pass('Trilmotor / Taptic Engine werkt naar behoren');
-                this.reportProgress(wsClient, 100, 'Trilmotor geslaagd');
+                this.pass(t('vibration.passVerdict'));
+                this.reportProgress(wsClient, 100, t('vibration.progressPassed'));
                 resolve();
             };
 
             container.querySelector('#btn-vibe-no').onclick = () => {
-                this.fail('Trilmotor / Taptic Engine reageert niet of defect');
-                this.reportProgress(wsClient, 100, 'Trilmotor defect');
+                this.fail(t('vibration.failVerdict'));
+                this.reportProgress(wsClient, 100, t('vibration.progressFailed'));
                 resolve();
             };
         });

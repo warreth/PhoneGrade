@@ -20,6 +20,7 @@
  * buzz an operator reports as a defective speaker. It is planned here, ramped all
  * the way down and stopped after the ramp, so the sequence ends on silence.
  */
+import { t } from './i18n.js';
 
 /** C5, E5, G5, B5, C6. A major arpeggio, which is easy to recognise as music. */
 export const CHIME_NOTES = [523.25, 659.25, 783.99, 987.77, 1046.50];
@@ -140,36 +141,42 @@ export function describeOutcome(verdicts, plays = {}) {
     // step that was skipped halfway through would otherwise do.
     if (earpiece === null || loudspeaker === null) {
         const missing = [
-            earpiece === null ? 'oorluidspreker' : null,
-            loudspeaker === null ? 'hoofdluidspreker' : null
+            earpiece === null ? t('speaker.earpieceLabelLower') : null,
+            loudspeaker === null ? t('speaker.loudspeakerLabelLower') : null
         ].filter(Boolean);
 
         return {
             passed: false,
-            notes: `Niet beoordeeld: ${missing.join(' en ')}`,
+            notes: t('speaker.notJudged', { missing: missing.join(t('speaker.joinAnd')) }),
             incomplete: true
         };
     }
 
     const heard = [];
     const dead = [];
-    if (earpiece) heard.push('Oorluidspreker'); else dead.push('Oorluidspreker');
-    if (loudspeaker) heard.push('Hoofdluidspreker'); else dead.push('Hoofdluidspreker');
+    if (earpiece) heard.push(t('speaker.earpieceLabel')); else dead.push(t('speaker.earpieceLabel'));
+    if (loudspeaker) heard.push(t('speaker.loudspeakerLabel')); else dead.push(t('speaker.loudspeakerLabel'));
 
     let notes;
     if (dead.length === 0) {
-        notes = `${heard.join(' en ')} ${heard.length === 1 ? 'werkt' : 'werken'} goed`;
+        notes = t('speaker.allWorking', {
+            list: heard.join(t('speaker.joinAnd')),
+            verb: heard.length === 1 ? t('speaker.verbWorks') : t('speaker.verbWork')
+        });
     } else if (heard.length === 0) {
-        notes = 'Geen geluid uit de oorluidspreker of de hoofdluidspreker';
+        notes = t('speaker.noneWork');
     } else {
-        notes = `${heard.join(' en ')} werkt goed, maar ${dead.join(' en ')} geeft geen geluid`;
+        notes = t('speaker.someWorkSomeSilent', {
+            working: heard.join(t('speaker.joinAnd')),
+            dead: dead.join(t('speaker.joinAnd'))
+        });
     }
 
     // Named only when the operator needed more than one go at it. A pass recorded
     // on the second listen is not the same claim as one recorded on the first,
     // and it is the first that gets argued about later.
     const retried = (earpiecePlays > 1 || loudspeakerPlays > 1)
-        ? ` (toon ${earpiecePlays}x en ${loudspeakerPlays}x afgespeeld)`
+        ? t('speaker.replays', { earpiece: earpiecePlays, loudspeaker: loudspeakerPlays })
         : '';
 
     return {

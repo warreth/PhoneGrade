@@ -1,5 +1,6 @@
 import { DeviceTest } from './DeviceTest.js';
 import { CAPABILITY } from './MediaCapability.js';
+import { t } from './i18n.js';
 
 /**
  * How long the operator can go and change the location setting.
@@ -55,7 +56,7 @@ export class RetryDeadline {
 
 export class LocationTest extends DeviceTest {
     constructor() {
-        super('location', 'GPS / Locatie', 'Controleer de Geolocation API');
+        super('location', t('gps.stepName'), t('gps.stepDescription'));
     }
 
     /**
@@ -74,7 +75,7 @@ export class LocationTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Wachten op locatietoegang...');
+        this.reportProgress(wsClient, 0, t('gps.waitingForPermission'));
 
         if (!hasGeolocation()) {
             return this.reportNoApi(wsClient, container);
@@ -83,21 +84,19 @@ export class LocationTest extends DeviceTest {
         container.innerHTML = `
             <div class="step-screen">
                 <div class="step-column">
-                    <h3 class="step-title">GPS en locatie</h3>
+                    <h3 class="step-title">${t('gps.title')}</h3>
                     <div class="step-card">
                         <p class="step-lead">
-                            Sta locatietoegang toe wanneer de browser erom vraagt. Zet
-                            het toestel liefst buiten of bij een raam, dan doet de
-                            eerste fix er het langst over.
+                            ${t('gps.outdoorsHint')}
                         </p>
 
                         <button id="btn-request-location" class="btn btn-primary step-block">
-                            Locatietoegang aanvragen
+                            ${t('gps.requestButton')}
                         </button>
 
                         <div id="location-status-area" class="step-stack" hidden>
                             <div id="loc-spinner" class="loc-spinner"></div>
-                            <p id="loc-status">Wachten op coördinaten...</p>
+                            <p id="loc-status">${t('gps.waitingForCoordinates')}</p>
                             <p id="loc-data" class="loc-readout" hidden></p>
                         </div>
 
@@ -105,8 +104,8 @@ export class LocationTest extends DeviceTest {
                             <p class="step-note" id="loc-error-msg"></p>
                             <ol class="fix-steps" id="loc-fix-steps"></ol>
                             <div class="step-actions">
-                                <button id="btn-retry-location" class="btn btn-primary">Opnieuw proberen</button>
-                                <button id="btn-loc-give-up" class="btn btn-secondary">Locatietoegang lukt niet</button>
+                                <button id="btn-retry-location" class="btn btn-primary">${t('gps.retryButton')}</button>
+                                <button id="btn-loc-give-up" class="btn btn-secondary">${t('gps.giveUpButton')}</button>
                             </div>
                             <p class="step-hint" id="loc-grace-note" hidden></p>
                         </div>
@@ -151,7 +150,7 @@ export class LocationTest extends DeviceTest {
             const showRemaining = () => {
                 const left = grace.remainingSeconds();
                 graceNoteEl.hidden = left <= 0;
-                graceNoteEl.textContent = `Over ${left} seconden gaat deze stap verder.`;
+                graceNoteEl.textContent = t('gps.graceNote', { seconds: left });
             };
 
             const armGrace = () => {
@@ -166,14 +165,14 @@ export class LocationTest extends DeviceTest {
                     if (requestInFlight) {
                         graceTimer = setTimeout(() => {
                             if (!settled) {
-                                this.skip('Locatietoegang niet verleend binnen de ingestelde tijd');
+                                this.skip(t('gps.timedOut'));
                                 settle();
                             }
                         }, 20000);
                         return;
                     }
                     if (!settled) {
-                        this.skip('Locatietoegang niet verleend binnen de ingestelde tijd');
+                        this.skip(t('gps.timedOut'));
                         settle();
                     }
                 }, RETRY_GRACE_MS);
@@ -186,9 +185,9 @@ export class LocationTest extends DeviceTest {
                 statusArea.hidden = false;
                 spinnerEl.hidden = false;
                 dataEl.hidden = true;
-                statusEl.textContent = 'Wachten op coördinaten...';
+                statusEl.textContent = t('gps.waitingForCoordinates');
                 statusEl.style.color = '';
-                this.reportProgress(wsClient, 30, 'GPS-fix ophalen...');
+                this.reportProgress(wsClient, 30, t('gps.acquiringFix'));
 
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -204,17 +203,18 @@ export class LocationTest extends DeviceTest {
 
                         spinnerEl.hidden = true;
                         statusEl.textContent = accurate
-                            ? 'Nauwkeurige positie gevonden'
-                            : 'Positie gevonden, maar grof';
+                            ? t('gps.accuratePosition')
+                            : t('gps.coarsePosition');
                         statusEl.style.color = accurate
                             ? 'var(--color-success-text)'
                             : 'var(--color-warning-text)';
 
                         dataEl.hidden = false;
-                        dataEl.textContent =
-                            `Breedtegraad: ${latitude.toFixed(5)}\n` +
-                            `Lengtegraad: ${longitude.toFixed(5)}\n` +
-                            `Nauwkeurigheid: ${accuracy.toFixed(1)} m`;
+                        const readout =
+                            t('gps.latitude', { degrees: latitude.toFixed(5) }) + '\n' +
+                            t('gps.longitude', { degrees: longitude.toFixed(5) }) + '\n' +
+                            t('location.accuracy', { metres: accuracy.toFixed(1) });
+                        dataEl.textContent = readout;
 
                         this.details.latitude = latitude;
                         this.details.longitude = longitude;
@@ -222,10 +222,10 @@ export class LocationTest extends DeviceTest {
                         this.details.accuracyGrade = accurate ? 'high' : 'low';
 
                         this.pass(accurate
-                            ? `Nauwkeurige GPS-fix op ${accuracy.toFixed(1)} m`
-                            : `GPS-fix op ${accuracy.toFixed(1)} m, grover dan 100 m (binnen?)`);
+                            ? t('gps.passAccurate', { metres: accuracy.toFixed(1) })
+                            : t('gps.passCoarse', { metres: accuracy.toFixed(1) }));
 
-                        this.reportProgress(wsClient, 100, 'GPS-test afgerond');
+                        this.reportProgress(wsClient, 100, t('gps.fixComplete'));
                         setTimeout(settle, 1500);
                     },
                     (error) => {
@@ -235,7 +235,7 @@ export class LocationTest extends DeviceTest {
                         errorArea.hidden = false;
                         this.details.errorCode = error.code;
                         this.showLocationError(errorMsgEl, fixStepsEl, error, grantedOnce);
-                        this.reportProgress(wsClient, grantedOnce ? 60 : 30, 'GPS-fix niet verkregen');
+                        this.reportProgress(wsClient, grantedOnce ? 60 : 30, t('gps.fixFailed'));
 
                         // A refusal is a question to the operator, not an answer.
                         // A timeout or an unavailable position is a finding about the
@@ -264,8 +264,8 @@ export class LocationTest extends DeviceTest {
             btnRetry.onclick = requestLocation;
 
             btnGiveUp.onclick = () => {
-                this.details.failure = 'Locatietoegang niet verleend';
-                this.skip('Locatietoegang niet verleend; GPS is niet gecontroleerd');
+                this.details.failure = t('gps.giveUpFailure');
+                this.skip(t('gps.giveUpSkip'));
                 settle();
             };
         });
@@ -286,42 +286,42 @@ export class LocationTest extends DeviceTest {
 
         switch (error.code) {
             case error.PERMISSION_DENIED:
-                errorMsgEl.textContent = 'De browser gaf geen toestemming voor de locatie.';
+                errorMsgEl.textContent = t('gps.permissionDenied');
                 fixStepsEl.innerHTML = [
                     isAndroid
-                        ? 'Open de browserinstellingen en zet <b>Locatie</b> op <b>Toestaan</b> voor deze site.'
-                        : 'Open de website-instellingen van de browser en zet <b>Locatie</b> op <b>Toestaan</b>.',
+                        ? t('gps.fixPermissionAndroid')
+                        : t('gps.fixPermissionBrowser'),
                     isAndroid
-                        ? 'Zet de locatiedienst van het toestel aan.'
-                        : 'Zet de locatiedienst van het toestel aan.',
-                    'Druk op <b>Opnieuw proberen</b>.'
+                        ? t('gps.fixEnableLocationService')
+                        : t('gps.fixEnableLocationService'),
+                    t('gps.fixRetry')
                 ].map(s => `<li>${s}</li>`).join('');
                 break;
             case error.POSITION_UNAVAILABLE:
-                errorMsgEl.textContent = 'Het toestel gaf geen positie door.';
+                errorMsgEl.textContent = t('gps.positionUnavailable');
                 fixStepsEl.innerHTML = [
-                    'Ga naar buiten of zet het toestel bij een raam.',
-                    'Zet de gps aan in de instellingen van het toestel.',
-                    'Druk op <b>Opnieuw proberen</b>.'
+                    t('gps.fixGoOutside'),
+                    t('gps.fixEnableGps'),
+                    t('gps.fixRetry')
                 ].map(s => `<li>${s}</li>`).join('');
                 break;
             case error.TIMEOUT:
-                errorMsgEl.textContent = 'Binnen 15 seconden geen positie ontvangen.';
+                errorMsgEl.textContent = t('gps.timeoutMessage');
                 fixStepsEl.innerHTML = [
-                    'Ga naar buiten of zet het toestel bij een raam.',
-                    'Druk op <b>Opnieuw proberen</b>.'
+                    t('gps.fixGoOutside'),
+                    t('gps.fixRetry')
                 ].map(s => `<li>${s}</li>`).join('');
                 break;
             default:
-                errorMsgEl.textContent = 'Er ging iets anders mis bij het ophalen van de locatie.';
-                fixStepsEl.innerHTML = ['Druk op <b>Opnieuw proberen</b>.'].map(s => `<li>${s}</li>`).join('');
+                errorMsgEl.textContent = t('gps.unknownError');
+                fixStepsEl.innerHTML = [t('gps.fixRetry')].map(s => `<li>${s}</li>`).join('');
                 break;
         }
 
         // A refusal after a fix that worked once is worth saying out loud: the
         // hardware is fine, and the only thing left is the browser's answer.
         if (grantedOnce && error.code === error.PERMISSION_DENIED) {
-            errorMsgEl.textContent += ' De GPS werkte eerder in deze run, dus dit is een instelling van de browser.';
+            errorMsgEl.textContent += ' ' + t('gps.workedEarlier');
         }
     }
 
@@ -330,11 +330,10 @@ export class LocationTest extends DeviceTest {
         container.innerHTML = `
             <div class="step-screen">
                 <div class="step-column">
-                    <h3 class="step-title">GPS en locatie</h3>
+                    <h3 class="step-title">${t('gps.title')}</h3>
                     <div class="step-card">
                         <p class="step-note">
-                            Deze browser heeft geen Geolocation API. De GPS van het
-                            toestel is daarmee niet te controleren.
+                            ${t('gps.noApi')}
                         </p>
                     </div>
                 </div>
@@ -343,8 +342,8 @@ export class LocationTest extends DeviceTest {
 
         this.details.capabilityGap = CAPABILITY.MISSING;
         await this.reportCapabilityGap(wsClient, 'navigator.geolocation', 'missing');
-        this.skip('Geolocation API ontbreekt in deze browser');
-        this.reportProgress(wsClient, 100, 'Geolocation niet beschikbaar');
+        this.skip(t('gps.noApiSkip'));
+        this.reportProgress(wsClient, 100, t('gps.noApiProgress'));
     }
 
     async reportCapabilityGap(wsClient, missingApi, reason) {
@@ -381,10 +380,10 @@ function hasGeolocation() {
 function describeFailure(error) {
     switch (error.code) {
         case error.POSITION_UNAVAILABLE:
-            return 'GPS gaf geen positie door (position unavailable)';
+            return t('gps.failureUnavailable');
         case error.TIMEOUT:
-            return 'GPS gaf binnen 15 seconden geen fix (timeout)';
+            return t('gps.failureTimeout');
         default:
-            return 'Onbekende locatiefout: ' + (error.message || String(error.code));
+            return t('gps.failureUnknown', { detail: error.message || String(error.code) });
     }
 }

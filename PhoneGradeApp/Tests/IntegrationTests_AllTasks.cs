@@ -76,7 +76,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // and the verdict says in as many words that it was a hand-turned check.
         Assert.Contains("sensor-manual-yes", sensorTestContent);
         Assert.Contains("sensor-manual-no", sensorTestContent);
-        Assert.Contains("niet rechtstreeks uitgelezen", sensorTestContent);
+        DictionarySays.Says(sensorTestContent, "niet rechtstreeks uitgelezen");
         Assert.Contains("rotationConfirmed", sensorTestContent);
     }
 
@@ -92,7 +92,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // getting a chance to grant it.
         Assert.Contains("btn-retry-location", locationTestContent);
         Assert.Contains("btnRetry.onclick", locationTestContent);
-        Assert.Contains("geen toestemming", locationTestContent);
+        DictionarySays.Says(locationTestContent, "geen toestemming");
         Assert.DoesNotContain("'User denied location permission'", locationTestContent);
 
         // It does settle, though, and that is the half that was broken. The window
@@ -106,7 +106,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // The reason the retry looked dead is now on the card. On Android the
         // browser keeps its own refusal, so only its own site permission changes
         // it; the quick-settings toggle alone returns the same refusal for ever.
-        Assert.Contains("browserinstellingen", locationTestContent);
+        DictionarySays.Says(locationTestContent, "browserinstellingen");
 
         // The runner's 90 s failsafe ended the step while the operator was still in
         // the settings, so the step asks for its own.
@@ -209,7 +209,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // is judged in whatever light there is. The old text was the generic
         // "inspect the photo carefully", which read as if something had gone wrong.
         Assert.Contains("torch-overlay", cameraContent);
-        Assert.Contains("geen flits", cameraContent);
+        DictionarySays.Says(cameraContent, "geen flits");
     }
 
     // Task 3: The cards these steps write
@@ -258,7 +258,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // Where the browser has no vibration API the card hands the step over as
         // a manual check, instead of asking the operator to grade hardware the
         // page never touched.
-        Assert.Contains("Handmatige controle", step);
+        DictionarySays.Says(step, "Handmatige controle");
         Assert.Contains("'handmatig'", step);
 
         // The two answers are tinted in the shared stylesheet, on both platforms.
@@ -276,8 +276,8 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // The brightness gate is still there, and the operator is still told to
         // turn the brightness up first.
         Assert.Contains("showBrightnessCheck", displayTestContent);
-        Assert.Contains("helderheid", displayTestContent);
-        Assert.Contains("maximaal", displayTestContent);
+        DictionarySays.Says(displayTestContent, "helderheid");
+        DictionarySays.Says(displayTestContent, "maximaal");
 
         // What changed is that it can no longer condemn the display. A phone at a
         // third brightness is a brightness setting, not a broken panel, and
@@ -359,8 +359,8 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
 
         // And the two verdicts stay apart on the label, because "the earpiece works
         // and the loudspeaker does not" is a phone someone can still take calls on.
-        Assert.Contains("Hoofdluidspreker", toneContent);
-        Assert.Contains("Oorluidspreker", toneContent);
+        DictionarySays.Says(toneContent, "Hoofdluidspreker");
+        DictionarySays.Says(toneContent, "Oorluidspreker");
     }
 
     // Task 3: The audio context cannot hang the step
@@ -379,7 +379,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // And a context that is not running is reported as a tone that was not
         // produced, rather than judged as a dead speaker.
         Assert.Contains("audioProblem", speakerTestContent);
-        Assert.Contains("De browser gaf geen toon af", speakerTestContent);
+        DictionarySays.Says(speakerTestContent, "De browser gaf geen toon af");
     }
 
     // Task 3: iOS Fullscreen Banner
@@ -421,8 +421,8 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // judged, in the operator's own language.
         Assert.Contains("btn-retake", cameraTestContent);
         Assert.Contains("btn-use-photo", cameraTestContent);
-        Assert.Contains("Opnieuw maken", cameraTestContent);
-        Assert.Contains("Foto goedkeuren", cameraTestContent);
+        DictionarySays.Says(cameraTestContent, "Opnieuw maken");
+        DictionarySays.Says(cameraTestContent, "Foto goedkeuren");
 
         // The still is a real copy of a real frame, not a placeholder.
         Assert.Contains("canvas", cameraTestContent);
@@ -436,7 +436,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         var cameraTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
 
         Assert.Contains("torch-overlay", cameraTestContent);
-        Assert.Contains("geen flits", cameraTestContent);
+        DictionarySays.Says(cameraTestContent, "geen flits");
 
         // The torch is a bonus, not the test. A camera that cannot switch it on is
         // photographed in whatever light there is rather than failed for it.

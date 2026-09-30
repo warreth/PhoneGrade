@@ -1,4 +1,5 @@
 import { DeviceTest } from './DeviceTest.js';
+import { t } from './i18n.js';
 import {
     CAPABILITY,
     classifyMediaError,
@@ -30,7 +31,7 @@ export class SensorTest extends DeviceTest {
     static LISTEN_WINDOW_MS = 4000;
 
     constructor() {
-        super('sensor', 'Bewegingssensoren', 'Controleer gyroscoop en versnellingsmeter');
+        super('sensor', t('sensor.stepName'), t('sensor.stepDescription'));
         this.accelThreshold = 1.5;
         this.tiltThreshold = 15;
         this.accelWorking = false;
@@ -57,55 +58,47 @@ export class SensorTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Wachten op sensorgegevens...');
+        this.reportProgress(wsClient, 0, t('sensor.waitingForData'));
 
         container.innerHTML = `
             <div class="step-screen">
                 <div class="step-column">
-                    <h3 class="step-title">Bewegingssensoren</h3>
+                    <h3 class="step-title">${t('sensor.stepName')}</h3>
 
                     <div class="step-card">
-                        <p class="step-lead">
-                            Beweeg en kantel het toestel in je hand. De gyroscoop laat
-                            het bolletje bewegen en de versnellingsmeter vult de balk.
-                        </p>
+                        <p class="step-lead">${t('sensor.instructions')}</p>
 
                         <div id="sensor-permission-area">
-                            <button id="btn-request-sensors" class="btn btn-primary step-block">Meet de sensoren</button>
+                            <button id="btn-request-sensors" class="btn btn-primary step-block">${t('sensor.measureButton')}</button>
                         </div>
 
                         <div id="sensor-data-area" class="step-stack" hidden>
                             <div class="sensor-panel">
-                                <div class="sensor-panel-title">Gyroscoop (kantelen)</div>
+                                <div class="sensor-panel-title">${t('sensor.gyroTitle')}</div>
                                 <div class="sensor-bowl">
                                     <div id="spirit-bubble" class="sensor-bubble"></div>
                                 </div>
-                                <div id="gyro-status" class="sensor-status">Kantel het toestel...</div>
+                                <div id="gyro-status" class="sensor-status">${t('sensor.gyroPrompt')}</div>
                             </div>
 
                             <div class="sensor-panel">
-                                <div class="sensor-panel-title">Versnellingsmeter (schudden)</div>
+                                <div class="sensor-panel-title">${t('sensor.accelTitle')}</div>
                                 <div class="sensor-track">
                                     <div id="shake-bar" class="sensor-fill"></div>
                                 </div>
-                                <div id="accel-status" class="sensor-status">Schud het toestel...</div>
+                                <div id="accel-status" class="sensor-status">${t('sensor.accelPrompt')}</div>
                             </div>
                         </div>
 
                         <div id="sensor-fallback-area" class="step-stack" hidden>
                             <p class="step-note" id="sensor-fallback-reason"></p>
-                            <p class="step-question">
-                                Draai het toestel een kwartslag. Roteert het scherm mee?
-                            </p>
+                            <p class="step-question">${t('sensor.rotationQuestion')}</p>
                             <div class="step-actions">
-                                <button id="sensor-manual-yes" class="btn btn-success">Ja, het scherm roteert</button>
-                                <button id="sensor-manual-no" class="btn btn-danger">Nee, er gebeurt niets</button>
+                                <button id="sensor-manual-yes" class="btn btn-success">${t('sensor.rotationYes')}</button>
+                                <button id="sensor-manual-no" class="btn btn-danger">${t('sensor.rotationNo')}</button>
                             </div>
-                            <p class="step-hint">
-                                Deze controle is met de hand gedaan, niet door de sensor
-                                uitgelezen. Dat staat ook zo op het rapport.
-                            </p>
-                            <button id="btn-retry-sensors" class="btn btn-secondary">Toch de sensoren opnieuw proberen</button>
+                            <p class="step-hint">${t('sensor.manualNote')}</p>
+                            <button id="btn-retry-sensors" class="btn btn-secondary">${t('sensor.retryButton')}</button>
                         </div>
                     </div>
                 </div>
@@ -147,7 +140,7 @@ export class SensorTest extends DeviceTest {
                     shakeBar.style.width = Math.min(100, Math.round((mag / 10) * 100)) + '%';
                     if (mag > this.accelThreshold) {
                         this.accelWorking = true;
-                        accelStatus.textContent = 'Schudden gedetecteerd';
+                        accelStatus.textContent = t('sensor.shakeDetected');
                         accelStatus.style.color = 'var(--color-text-primary)';
                         shakeBar.classList.add('is-good');
                         checkDone();
@@ -166,7 +159,7 @@ export class SensorTest extends DeviceTest {
 
                 if (Math.abs(beta) > this.tiltThreshold || Math.abs(gamma) > this.tiltThreshold) {
                     this.gyroWorking = true;
-                    gyroStatus.textContent = 'Kanteling gedetecteerd';
+                    gyroStatus.textContent = t('sensor.tiltDetected');
                     gyroStatus.style.color = 'var(--color-text-primary)';
                     bubble.classList.add('is-good');
                     checkDone();
@@ -180,8 +173,8 @@ export class SensorTest extends DeviceTest {
                 this.details.gyroscope = true;
                 this.details.manualCheckUsed = false;
 
-                this.reportProgress(wsClient, 100, 'Sensortest geslaagd');
-                settle('pass', 'Versnellingsmeter en gyroscoop reageren op beweging');
+                this.reportProgress(wsClient, 100, t('sensor.progressPassed'));
+                settle('pass', t('sensor.passVerdict'));
             };
 
             const stopListening = () => {
@@ -206,8 +199,7 @@ export class SensorTest extends DeviceTest {
                 // real verdict.
                 setTimeout(() => {
                     if (!settled && !this.accelWorking && !this.gyroWorking) {
-                        showManualFallback(
-                            'De browser gaf geen sensorgegevens door. De sensoren kunnen alsnog reageren.');
+                        showManualFallback(t('sensor.noSensorData'));
                     }
                 }, SensorTest.LISTEN_WINDOW_MS);
             };
@@ -218,7 +210,7 @@ export class SensorTest extends DeviceTest {
                 dataArea.hidden = false;
                 fallbackArea.hidden = false;
                 fallbackReason.textContent = reason;
-                this.reportProgress(wsClient, 60, 'Handmatige controle in plaats van sensorgegevens');
+                this.reportProgress(wsClient, 60, t('sensor.progressManual'));
             };
 
             const logMissingApi = async (missingApi, reason) => {
@@ -278,7 +270,7 @@ export class SensorTest extends DeviceTest {
                                     granted: false,
                                     missing: name,
                                     kind: CAPABILITY.DENIED,
-                                    reason: explainMediaError({ kind: CAPABILITY.DENIED }, 'bewegingssensor')
+                                    reason: explainMediaError({ kind: CAPABILITY.DENIED }, t('sensor.motionSensor'))
                                 };
                             }
                         } catch (e) {
@@ -288,7 +280,7 @@ export class SensorTest extends DeviceTest {
                                 granted: false,
                                 missing: name,
                                 kind: classified.kind,
-                                reason: explainMediaError(classified, 'bewegingssensor')
+                                reason: explainMediaError(classified, t('sensor.motionSensor'))
                             };
                         }
                     }
@@ -300,7 +292,7 @@ export class SensorTest extends DeviceTest {
                         granted: false,
                         missing: missing[0],
                         kind: CAPABILITY.MISSING,
-                        reason: `Deze browser ondersteunt ${missing.join(' en ')} niet.`
+                        reason: t('sensor.unsupportedBrowser', { apis: missing.join(t('sensor.apiSeparator')) })
                     };
                 }
 
@@ -327,15 +319,15 @@ export class SensorTest extends DeviceTest {
             btnManualYes.onclick = () => {
                 this.details.manualCheckUsed = true;
                 this.details.rotationConfirmed = true;
-                this.reportProgress(wsClient, 100, 'Rotatie bevestigd');
-                settle('pass', 'Schermrotatie werkt; sensoren niet rechtstreeks uitgelezen');
+                this.reportProgress(wsClient, 100, t('sensor.progressRotationConfirmed'));
+                settle('pass', t('sensor.manualPassVerdict'));
             };
 
             btnManualNo.onclick = () => {
                 this.details.manualCheckUsed = true;
                 this.details.rotationConfirmed = false;
-                this.reportProgress(wsClient, 100, 'Rotatie reageert niet');
-                settle('fail', 'Scherm roteert niet en de sensoren gaven geen gegevens door');
+                this.reportProgress(wsClient, 100, t('sensor.progressRotationFailed'));
+                settle('fail', t('sensor.manualFailVerdict'));
             };
         });
     }

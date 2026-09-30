@@ -1,30 +1,31 @@
+import { t } from './i18n.js';
 import { DeviceTest } from './DeviceTest.js';
 
 export class ScreenRotationTest extends DeviceTest {
     constructor() {
-        super('rotation', 'Screen Rotation', 'Rotate device to test orientation detection');
+        super('rotation', t('rotation.name'), t('rotation.description'));
         this.orientationHistory = [];
         this.transitionCount = 0;
     }
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Starting rotation test...');
+        this.reportProgress(wsClient, 0, t('rotation.starting'));
 
         let isModernApi = !!(window.screen && window.screen.orientation);
         
         container.innerHTML = `
             <div style="text-align: center; padding: 20px;">
-                <p style="margin-bottom: 20px; color: #64748b;">Current orientation:</p>
+                <p style="margin-bottom: 20px; color: #64748b;">${t('rotation.currentOrientation')}</p>
                 <div id="orientation-display" style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 20px; font-family: monospace;">
                     ${this.getOrientationType(isModernApi)}
                 </div>
-                <p style="color: #64748b; margin-bottom: 10px;">Rotate your device to test</p>
+                <p style="color: #64748b; margin-bottom: 10px;">${t('rotation.rotatePrompt')}</p>
                 <p id="rotation-count" style="font-size: 14px; color: #94a3b8; font-family: monospace;">
-                    Rotations detected: 0
+                    ${t('rotation.detected', { count: 0 })}
                 </p>
                 <p id="safe-area-info" style="font-size: 12px; color: #64748b; margin-top: 20px; font-family: monospace;">
-                    Safe area top: ${this.getSafeAreaInset('top')}
+                    ${t('rotation.safeAreaTop', { top: this.getSafeAreaInset('top') })}
                 </p>
             </div>
         `;
@@ -59,7 +60,7 @@ export class ScreenRotationTest extends DeviceTest {
                 orientationDisplay.textContent = current.type;
             }
             if (rotationCountEl) {
-                rotationCountEl.textContent = 'Rotations detected: ' + this.transitionCount;
+                rotationCountEl.textContent = t('rotation.detected', { count: this.transitionCount });
             }
 
             // Update safe area info
@@ -69,11 +70,16 @@ export class ScreenRotationTest extends DeviceTest {
             const leftInset = this.getSafeAreaInset('left');
             
             if (safeAreaEl) {
-                safeAreaEl.textContent = 'Safe area - T:' + topInset + ' R:' + rightInset + ' B:' + bottomInset + ' L:' + leftInset;
+                safeAreaEl.textContent = t('rotation.safeArea', {
+                    top: topInset,
+                    right: rightInset,
+                    bottom: bottomInset,
+                    left: leftInset
+                });
             }
 
             const progress = Math.min(50 + (this.transitionCount * 10), 90);
-            this.reportProgress(wsClient, progress, 'Detected ' + current.type);
+            this.reportProgress(wsClient, progress, t('rotation.detectedType', { type: current.type }));
         };
 
         if (isModernApi) {
@@ -90,7 +96,7 @@ export class ScreenRotationTest extends DeviceTest {
             const checkComplete = () => {
                 const elapsed = Date.now() - startTime;
                 const progress = 10 + (elapsed / testDuration) * 80;
-                this.reportProgress(wsClient, Math.min(progress, 90), 'Waiting for rotation...');
+                this.reportProgress(wsClient, Math.min(progress, 90), t('rotation.waiting'));
 
                 if (elapsed >= testDuration || this.transitionCount >= 2) {
                     if (isModernApi) {
@@ -100,11 +106,11 @@ export class ScreenRotationTest extends DeviceTest {
                     }
 
                     if (this.transitionCount >= 1) {
-                        this.pass('Device orientation working - ' + this.transitionCount + ' transitions detected');
+                        this.pass(t('rotation.passed', { count: this.transitionCount }));
                         this.details.transitionCount = this.transitionCount;
                         this.details.orientationTypes = [...new Set(this.orientationHistory.map(o => o.type))];
                     } else {
-                        this.fail('No orientation changes detected - try rotating device');
+                        this.fail(t('rotation.failed'));
                     }
 
                     resolve();
