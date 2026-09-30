@@ -1,14 +1,59 @@
 import { DeviceTest } from './DeviceTest.js';
+import {
+    CAPABILITY,
+    classifyMediaError,
+    explainMediaError,
+    hasMediaDevices
+} from './MediaCapability.js';
 
+/**
+ * The front and rear cameras, checked by taking a photo with each and looking at
+ * it.
+ *
+ * The old step tried to open the rear camera and, if anything at all went wrong,
+ * threw the error out to a single catch that failed the whole step with the raw
+ * browser message. A refused permission prompt, a camera another app was holding
+ * for a second, and a phone with no rear camera all produced the same dead end,
+ * and the operator had no way to do anything about any of them. The step also
+ * failed both cameras when only the first had been reached.
+ *
+ * Every camera is now reached and judged on its own. A camera that will not open
+ * shows the operator what the browser said in plain Dutch, and offers two things
+ * they can actually do: try again, or record the camera as defective. The step
+ * never decides either of those for them, and a failure to open the front camera
+ * no longer throws away whatever was decided about the rear one.
+ *
+ * The torch is treated the same way. Plenty of cameras have none, and a camera
+ * without a torch is not a camera with a fault, so the missing torch is noted and
+ * the photo is judged without it.
+ */
 export class CameraTest extends DeviceTest {
     constructor() {
-        super('camera', 'Camera & Torch', 'Test front and rear cameras with live video and photo review');
+        super('camera', 'Camera & flits', 'Test voor- en achtercamera met live beeld en fotobeoordeling');
         this.frontWorking = false;
         this.backWorking = false;
         this.torchActive = false;
         // Held on the instance so dispose() can reach the stream even when the
         // step is abandoned before its own cleanup runs.
         this._stream = null;
+    }
+
+    /**
+     * Two cameras, each with its own prompt, framing, capture and review.
+     *
+     * 90 s is not enough for one camera on a real phone, let alone two. A timeout
+     * in the middle of the second one failed a camera that had not been looked at
+     * yet.
+     */
+    getFailsafeMs() {
+        return 180000;
+    }
+
+    reset() {
+        super.reset();
+        this.frontWorking = false;
+        this.backWorking = false;
+        this.torchActive = false;
     }
 
     /** Releases the camera. Also called by the runner when the step is abandoned. */
@@ -23,240 +68,375 @@ export class CameraTest extends DeviceTest {
         }
     }
 
-    async run(wsClient, container) {
-        this.start();
-        this.reportProgress(wsClient, 0, 'Starting camera tests...');
+    markup() {
+        return `
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title" id="cam-step-title">Camera-inspectie</h3>
 
-        container.innerHTML = `
-            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md); width: 100%; max-width: 450px;">
-                    <h3 id="cam-step-title" style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">Camera Inspection</h3>
-                    <p id="cam-instructions" style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 16px;">
-                        Initializing live camera feed...
-                    </p>
+                    <div class="step-card">
+                        <p class="step-lead" id="cam-instructions">Live camera wordt gestart...</p>
 
-                    <div id="video-container" style="position: relative; width: 100%; height: 260px; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
-                        <video id="live-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-                        <canvas id="photo-canvas" style="display: none; width: 100%; height: 100%; object-fit: cover;"></canvas>
-                        
-                        <div id="torch-overlay" style="display: none; position: absolute; top: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 11px;">
-                            Inspect the photo carefully. Ensure the lighting is adequate before confirming.
+                        <div id="video-container" class="camera-view">
+                            <video id="live-video" autoplay playsinline muted class="camera-video"></video>
+                            <canvas id="photo-canvas" class="camera-video" hidden></canvas>
+
+                            <div id="torch-overlay" class="camera-overlay" hidden>
+                                Deze camera heeft geen flits. Zorg zelf voor voldoende licht
+                                voordat je de foto beoordeelt.
+                            </div>
                         </div>
-                    </div>
 
-                    <div id="review-instructions" style="display: none; margin-bottom: 12px; font-size: 12px; color: var(--color-text-secondary);">
-                        Inspect the captured photo for blurriness, lens dust, or sensor artifacts before confirming.
-                    </div>
+                        <div id="camera-error-area" class="step-stack" hidden>
+                            <p class="step-note" id="camera-error-msg"></p>
+                            <div class="step-actions">
+                                <button id="btn-camera-retry" class="btn btn-secondary">Opnieuw proberen</button>
+                                <button id="btn-camera-reject" class="btn btn-danger">Camera defect</button>
+                            </div>
+                        </div>
 
-                    <div id="live-controls" style="display: flex; gap: 10px;">
-                        <button id="btn-capture" class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: bold;">Capture Photo</button>
-                        <button id="btn-camera-defect" class="btn btn-danger" style="flex: 1; padding: 12px; font-weight: bold;">Camera Defect</button>
-                    </div>
+                        <div id="review-instructions" class="step-hint" hidden>
+                            Bekijk de foto op scherpte, stof op de lens en ruis in het beeld.
+                        </div>
 
-                    <div id="review-controls" style="display: none; gap: 10px;">
-                        <button id="btn-retake" class="btn btn-secondary" style="flex: 1; padding: 12px;">Retake Photo</button>
-                        <button id="btn-use-photo" class="btn btn-success" style="flex: 1; padding: 12px; font-weight: bold;">Use Photo</button>
-                    </div>
+                        <div id="live-controls" class="step-actions">
+                            <button id="btn-capture" class="btn btn-primary">Foto maken</button>
+                            <button id="btn-camera-defect" class="btn btn-danger">Camera defect</button>
+                        </div>
 
-                    <p id="cam-reject-reason" style="display: none; margin-top: 12px; font-size: 13px; color: var(--color-text-secondary);">
-                        What is wrong with this camera?
-                    </p>
-                    <div id="reject-controls" style="display: none; gap: 10px; margin-top: 8px;">
-                        <button id="btn-reject-blurry" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 13px;">Blurry</button>
-                        <button id="btn-reject-dark" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 13px;">Too Dark</button>
-                        <button id="btn-reject-artifacts" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 13px;">Artifacts</button>
+                        <div id="review-controls" class="step-actions" hidden>
+                            <button id="btn-retake" class="btn btn-secondary">Opnieuw maken</button>
+                            <button id="btn-use-photo" class="btn btn-success">Foto goedkeuren</button>
+                        </div>
+
+                        <p id="cam-reject-reason" class="step-question" hidden>Wat is er mis met deze camera?</p>
+                        <div id="reject-controls" class="step-stack" hidden>
+                            <div class="step-actions">
+                                <button id="btn-reject-blurry" class="btn btn-secondary">Onscherp</button>
+                                <button id="btn-reject-dark" class="btn btn-secondary">Te donker</button>
+                                <button id="btn-reject-artifacts" class="btn btn-secondary">Ruis of stof</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
+    }
 
-        const stepTitle = container.querySelector('#cam-step-title');
-        const instructions = container.querySelector('#cam-instructions');
-        const video = container.querySelector('#live-video');
-        const canvas = container.querySelector('#photo-canvas');
-        const torchOverlay = container.querySelector('#torch-overlay');
-        const reviewInstructions = container.querySelector('#review-instructions');
-        const liveControls = container.querySelector('#live-controls');
-        const reviewControls = container.querySelector('#review-controls');
-        const btnCapture = container.querySelector('#btn-capture');
-        const btnRetake = container.querySelector('#btn-retake');
-        const btnUsePhoto = container.querySelector('#btn-use-photo');
-        const btnDefect = container.querySelector('#btn-camera-defect');
-        const rejectReason = container.querySelector('#cam-reject-reason');
-        const rejectControls = container.querySelector('#reject-controls');
-        const btnRejectBlurry = container.querySelector('#btn-reject-blurry');
-        const btnRejectDark = container.querySelector('#btn-reject-dark');
-        const btnRejectArtifacts = container.querySelector('#btn-reject-artifacts');
+    async run(wsClient, container) {
+        this.start();
+        this.reportProgress(wsClient, 0, 'Camera-inspectie voorbereiden...');
 
-        // stopStream() lives on the instance so dispose() can stop the camera
-        // when this step is abandoned by a skip or by the failsafe.
-        const stopStream = () => {
+        container.innerHTML = this.markup();
+
+        const refs = {
+            stepTitle: container.querySelector('#cam-step-title'),
+            instructions: container.querySelector('#cam-instructions'),
+            video: container.querySelector('#live-video'),
+            canvas: container.querySelector('#photo-canvas'),
+            torchOverlay: container.querySelector('#torch-overlay'),
+            errorArea: container.querySelector('#camera-error-area'),
+            errorMsg: container.querySelector('#camera-error-msg'),
+            btnCameraRetry: container.querySelector('#btn-camera-retry'),
+            btnCameraReject: container.querySelector('#btn-camera-reject'),
+            reviewInstructions: container.querySelector('#review-instructions'),
+            liveControls: container.querySelector('#live-controls'),
+            reviewControls: container.querySelector('#review-controls'),
+            btnCapture: container.querySelector('#btn-capture'),
+            btnRetake: container.querySelector('#btn-retake'),
+            btnUsePhoto: container.querySelector('#btn-use-photo'),
+            btnDefect: container.querySelector('#btn-camera-defect'),
+            rejectReason: container.querySelector('#cam-reject-reason'),
+            rejectControls: container.querySelector('#reject-controls'),
+            btnRejectBlurry: container.querySelector('#btn-reject-blurry'),
+            btnRejectDark: container.querySelector('#btn-reject-dark'),
+            btnRejectArtifacts: container.querySelector('#btn-reject-artifacts')
+        };
+
+        this.details = {};
+
+        try {
+            const rear = await this.inspectCamera(wsClient, refs, 'rear');
+            this.backWorking = rear.working;
+            this.reportProgress(wsClient, 50, rear.working ? 'Achtercamera goedgekeurd' : 'Achtercamera afgekeurd');
+
+            const front = await this.inspectCamera(wsClient, refs, 'front');
+            this.frontWorking = front.working;
+            this.reportProgress(wsClient, 100, front.working ? 'Voorcamera goedgekeurd' : 'Voorcamera afgekeurd');
+        } finally {
             this.stopStream();
-            video.srcObject = null;
-        };
+        }
 
-        const startCamera = async (facingMode) => {
-            stopStream();
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: facingMode }
-                });
-                this._stream = stream;
-                video.srcObject = stream;
-                video.style.display = 'block';
-                canvas.style.display = 'none';
-                
+        this.details.torchActivated = this.torchActive;
+
+        const rejected = [];
+        if (!this.backWorking) rejected.push(['achter', 'rearCamera']);
+        if (!this.frontWorking) rejected.push(['voor', 'frontCamera']);
+
+        if (rejected.length === 0) {
+            this.pass('Voor- en achtercamera zijn live beoordeeld en goedgekeurd');
+        } else {
+            const notes = rejected.map(([label, key]) => {
+                const note = this.details[key]?.note || 'niet beoordeeld';
+                return `${label}: ${note}`;
+            }).join('; ');
+            this.fail(`Camera afgekeurd - ${notes}`);
+        }
+    }
+
+    /**
+     * Takes one camera through frame, capture, review and verdict.
+     *
+     * The two ways this can end - a photo accepted, or the camera declared
+     * defective - are both the operator's call. A camera that will not open is
+     * offered back to them with the browser's reason and a retry, because the
+     * reason is very often something they can fix (a refused prompt, an app
+     * holding the camera) and it is not the same as a broken camera.
+     */
+    async inspectCamera(wsClient, refs, side) {
+        const isRear = side === 'rear';
+        const key = isRear ? 'rearCamera' : 'frontCamera';
+        const label = isRear ? 'achtercamera' : 'voorcamera';
+        const facingMode = isRear ? 'environment' : 'user';
+        const volume = isRear ? 'Stap 1: achtercamera' : 'Stap 2: voorcamera';
+
+        refs.stepTitle.textContent = volume;
+        refs.instructions.textContent = isRear
+            ? 'Richt de achtercamera op een voorwerp en maak een foto.'
+            : 'Richt de voorcamera op je gezicht en maak een foto.';
+
+        // Every camera starts from a clean card, so a defect reported on the rear
+        // camera does not leave its buttons sitting under the front one.
+        let decision = null;
+
+        while (decision === null) {
+            // Also on a retry. The trouble card hides the capture controls, and
+            // coming back from a retry into a card that still has them hidden left
+            // the operator with a live view and nothing to press.
+            doResetCard(refs);
+            refs.torchOverlay.hidden = true;
+
+            const started = await this.startCamera(wsClient, refs, facingMode);
+
+            if (!started.ok) {
+                this.details[key] = {
+                    working: false,
+                    note: `${started.result.kind}: ${started.result.message || started.result.name}`
+                };
+
+                decision = await this.waitForCameraTrouble(refs, started.result, label);
+
+                if (decision === 'retry') {
+                    decision = null;
+                    this.details[key] = null;
+                    continue;
+                }
+
+                return { working: false };
+            }
+
+            if (isRear) {
+                this.details.torchAvailable = this.torchActive;
+            }
+
+            this.reportProgress(wsClient, isRear ? 25 : 75, `${label} live, wacht op een foto`);
+
+            decision = await this.waitForPhotoVerdict(refs, key, label);
+        }
+
+        return { working: decision === 'accepted' };
+    }
+
+    /**
+     * Opens one camera and reports what the browser said if it will not.
+     *
+     * @returns {Promise<{ok: boolean, result: object}>}
+     */
+    async startCamera(wsClient, refs, facingMode) {
+        this.stopStream();
+
+        if (!hasMediaDevices()) {
+            await this.reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', 'missing');
+            return {
+                ok: false,
+                result: {
+                    kind: CAPABILITY.MISSING,
+                    name: 'MediaDevicesUnavailable',
+                    message: 'navigator.mediaDevices is niet beschikbaar',
+                    fixable: false
+                }
+            };
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode }
+            });
+
+            this._stream = stream;
+            refs.video.srcObject = stream;
+            refs.video.hidden = false;
+            refs.canvas.hidden = true;
+
+            // The torch is a bonus, not the test. Plenty of cameras have none, and
+            // a camera without a torch is not a faulty camera, so the failure is
+            // noted and the photo is judged in whatever light there is.
+            if (facingMode === 'environment') {
                 const track = stream.getVideoTracks()[0];
-
-                // Try to toggle torch for back camera
-                if (facingMode === 'environment') {
-                    try {
-                        await track.applyConstraints({
-                            advanced: [{ torch: true }]
-                        });
-                        this.torchActive = true;
-                    } catch (e) {
-                        this.torchActive = false;
-                        torchOverlay.style.display = 'block';
-                    }
+                try {
+                    await track.applyConstraints({ advanced: [{ torch: true }] });
+                    this.torchActive = true;
+                } catch (e) {
+                    this.torchActive = false;
+                    refs.torchOverlay.hidden = false;
                 }
-            } catch (err) {
-                console.error('Camera stream error:', err);
-                throw err;
-            }
-        };
-
-        // Returns false when the video has not produced a frame yet, so a black
-        // image cannot be accepted as a good photo.
-        const takeSnapshot = () => {
-            if (!video.videoWidth || !video.videoHeight) {
-                instructions.textContent = 'No image yet - wait for the live feed, then capture.';
-                return false;
             }
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            video.style.display = 'none';
-            canvas.style.display = 'block';
-            
-            liveControls.style.display = 'none';
-            reviewControls.style.display = 'flex';
-            reviewInstructions.style.display = 'block';
-            return true;
-        };
-
-        const retakePhoto = () => {
-            canvas.style.display = 'none';
-            video.style.display = 'block';
-            
-            liveControls.style.display = 'flex';
-            reviewControls.style.display = 'none';
-            reviewInstructions.style.display = 'none';
-            rejectReason.style.display = 'none';
-            rejectControls.style.display = 'none';
-        };
-
-        const showRejectOptions = () => {
-            rejectReason.style.display = 'block';
-            rejectControls.style.display = 'flex';
-        };
-
-        /**
-         * Wires the buttons for one camera step. The operator either accepts the
-         * photo, or names a defect - which is what makes the fail path reachable
-         * instead of every camera silently passing.
-         */
-        const runStep = (label) => new Promise((settleStep) => {
-            let decided = false;
-
-            const decide = (working, note) => {
-                if (decided) return;
-                decided = true;
-                this.details[label] = { working, note };
-                settleStep();
-            };
-
-            btnCapture.onclick = () => {
-                takeSnapshot();
-            };
-
-            btnRetake.onclick = () => {
-                retakePhoto();
-            };
-
-            btnUsePhoto.onclick = () => {
-                retakePhoto();
-                decide(true, 'Photo accepted by operator');
-            };
-
-            btnDefect.onclick = () => {
-                showRejectOptions();
-            };
-
-            const rejectWith = (note) => decide(false, note);
-            btnRejectBlurry.onclick = () => rejectWith('Blurry photo');
-            btnRejectDark.onclick = () => rejectWith('Too dark to inspect');
-            btnRejectArtifacts.onclick = () => rejectWith('Sensor artifacts or lens dust');
-        });
-
-        return new Promise(async (resolve) => {
-            // Retries reuse the same instance, so a previous run's verdict must
-            // not leak into this one.
-            this.frontWorking = false;
-            this.backWorking = false;
-            this.torchActive = false;
-            this.details = {};
-
-            try {
-                // Step 1: Rear Camera Test
-                stepTitle.textContent = 'Step 1: Rear Camera & Torch';
-                instructions.textContent = 'Frame an object and capture a photo using the rear camera.';
-                await startCamera('environment');
-
-                await runStep('rearCamera');
-                this.backWorking = this.details.rearCamera?.working === true;
-                this.reportProgress(wsClient, 50,
-                    this.backWorking ? 'Rear camera verified' : 'Rear camera rejected');
-
-                // Reset UI for Step 2
-                retakePhoto();
-                torchOverlay.style.display = 'none';
-
-                // Step 2: Front Camera Test
-                stepTitle.textContent = 'Step 2: Front Camera (Selfie)';
-                instructions.textContent = 'Frame your face and capture a photo using the front camera.';
-                await startCamera('user');
-
-                await runStep('frontCamera');
-                this.frontWorking = this.details.frontCamera?.working === true;
-                this.reportProgress(wsClient, 100,
-                    this.frontWorking ? 'Front camera verified' : 'Front camera rejected');
-
-                stopStream();
-                this.details.torchActivated = this.torchActive;
-
-                const rejected = [];
-                if (!this.backWorking) rejected.push('rear');
-                if (!this.frontWorking) rejected.push('front');
-                if (rejected.length === 0) {
-                    this.pass('Both front and rear cameras passed live inspection');
-                } else {
-                    const notes = rejected.map(side => {
-                        const key = side === 'rear' ? 'rearCamera' : 'frontCamera';
-                        return `${side}: ${this.details[key]?.note || 'not verified'}`;
-                    }).join('; ');
-                    this.fail(`Camera rejected - ${notes}`);
-                }
-
-                resolve();
-            } catch (err) {
-                stopStream();
-                this.fail('Failed to access camera media stream: ' + err.message);
-                resolve();
+            return { ok: true, result: null };
+        } catch (err) {
+            const result = classifyMediaError(err);
+            if (result.kind === CAPABILITY.DENIED || result.kind === CAPABILITY.MISSING) {
+                await this.reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', result.kind);
             }
+            return { ok: false, result };
+        }
+    }
+
+    /**
+     * Shows why a camera would not open and waits for the operator to choose.
+     *
+     * @returns {Promise<'retry'|'defect'>}
+     */
+    waitForCameraTrouble(refs, result, label) {
+        refs.instructions.textContent = `${capitalise(label)} kon niet worden geopend.`;
+        refs.errorMsg.textContent = explainMediaError(result, label);
+
+        refs.errorArea.hidden = false;
+        refs.liveControls.hidden = true;
+        refs.reviewControls.hidden = true;
+
+        return new Promise((resolve) => {
+            refs.btnCameraRetry.onclick = () => {
+                refs.errorArea.hidden = true;
+                resolve('retry');
+            };
+
+            refs.btnCameraReject.onclick = () => {
+                refs.errorArea.hidden = true;
+                resolve('defect');
+            };
         });
     }
+
+    /**
+     * Runs the capture and review controls until the operator accepts the photo
+     * or names a defect.
+     *
+     * @returns {Promise<'accepted'|'defect'>}
+     */
+    waitForPhotoVerdict(refs, key, label) {
+        return new Promise((resolve) => {
+            const decide = (accepted, note) => {
+                this.details[key] = { working: accepted, note };
+                resolve(accepted ? 'accepted' : 'defect');
+            };
+
+            refs.btnCapture.onclick = () => {
+                const captured = takeSnapshot(refs);
+                if (!captured) {
+                    refs.instructions.textContent =
+                        'Nog geen beeld. Wacht tot het livebeeld loopt en maak dan de foto.';
+                }
+            };
+
+            refs.btnRetake.onclick = () => {
+                showLive(refs);
+            };
+
+            refs.btnUsePhoto.onclick = () => {
+                decide(true, 'Foto goedgekeurd door de technicus');
+            };
+
+            refs.btnDefect.onclick = () => {
+                showLive(refs);
+                refs.rejectReason.hidden = false;
+                refs.rejectControls.hidden = false;
+            };
+
+            const reject = (note) => decide(false, note);
+            refs.btnRejectBlurry.onclick = () => reject('Onscherpe foto');
+            refs.btnRejectDark.onclick = () => reject('Te donker om te beoordelen');
+            refs.btnRejectArtifacts.onclick = () => reject('Ruis of stof op de lens');
+        });
+    }
+
+    async reportCapabilityGap(wsClient, missingApi, reason) {
+        if (!wsClient || !wsClient.sessionId) return;
+        try {
+            const ua = navigator.userAgent;
+            let osVersion = 'Unknown';
+            if (/Android/.test(ua)) osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
+            else if (/iPhone|iPad|iPod/.test(ua)) osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
+
+            await fetch(`${wsClient.baseUrl}/api/pwa/log-warning`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: wsClient.sessionId,
+                    missingApi,
+                    userAgent: ua,
+                    osVersion,
+                    reason
+                })
+            });
+        } catch (e) {
+            console.warn('Could not report the unusable camera API:', e);
+        }
+    }
+}
+
+/** Puts the card back to the state it starts a camera in. */
+function doResetCard(refs) {
+    showLive(refs);
+    refs.errorArea.hidden = true;
+    refs.rejectReason.hidden = true;
+    refs.rejectControls.hidden = true;
+}
+
+function showLive(refs) {
+    refs.reviewInstructions.hidden = true;
+    refs.liveControls.hidden = false;
+    refs.reviewControls.hidden = true;
+    refs.rejectReason.hidden = true;
+    refs.rejectControls.hidden = true;
+    refs.canvas.hidden = true;
+    refs.video.hidden = false;
+}
+
+/**
+ * Copies the current video frame into the canvas for review.
+ *
+ * Returns false when the video has not produced a frame yet, so a black image
+ * cannot be accepted as a good photo.
+ */
+function takeSnapshot(refs) {
+    const { video, canvas } = refs;
+
+    if (!video.videoWidth || !video.videoHeight) return false;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    video.hidden = true;
+    canvas.hidden = false;
+    refs.liveControls.hidden = true;
+    refs.reviewControls.hidden = false;
+    refs.reviewInstructions.hidden = false;
+    return true;
+}
+
+function capitalise(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
 }
