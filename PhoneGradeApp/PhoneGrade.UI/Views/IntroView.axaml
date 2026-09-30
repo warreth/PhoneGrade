@@ -1,0 +1,98 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhoneGrade.UI.ViewModels"
+             x:Class="PhoneGrade.UI.Views.IntroView"
+             x:DataType="vm:MainWindowViewModel">
+
+    <!--
+        First run only. Says what the free plan is, what Pro costs in scans, and
+        where the paid plan lives, then gets out of the way. The operator never
+        sees this again after the first start, and the license key box only
+        appears once somebody asks for it.
+    -->
+    <Panel Background="{DynamicResource OverlayColor}">
+        <Border Classes="card" Width="560" Padding="32"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel Spacing="20">
+
+                <StackPanel Spacing="8">
+                    <Viewbox Width="44" Height="44" Stretch="Uniform" HorizontalAlignment="Left">
+                        <Canvas Width="100" Height="100">
+                            <Rectangle Fill="#2563eb" Width="100" Height="100" RadiusX="16" RadiusY="16"/>
+                            <TextBlock Text="PG" FontSize="54" Foreground="#ffffff"
+                                       FontFamily="system-ui, -apple-system" FontWeight="Bold"
+                                       Canvas.Left="19" Canvas.Top="14"/>
+                        </Canvas>
+                    </Viewbox>
+                    <TextBlock Text="{DynamicResource Intro_Title}" FontSize="24" FontWeight="Bold"/>
+                    <TextBlock Text="{DynamicResource Intro_Subtitle}" Classes="dim"
+                               FontSize="14" TextWrapping="Wrap" LineHeight="20"/>
+                </StackPanel>
+
+                <!-- Free and Pro side by side, so the difference reads at a glance. -->
+                <Grid ColumnDefinitions="*,*">
+                    <Border Classes="card" Padding="16" Margin="0,0,6,0">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{DynamicResource Intro_FreeTierTitle}"
+                                       FontWeight="Bold" FontSize="15"
+                                       Foreground="{DynamicResource AccentColor}"/>
+                            <TextBlock Text="{DynamicResource Intro_FreeTierBody}"
+                                       Classes="dim" FontSize="12" TextWrapping="Wrap" LineHeight="17"/>
+                            <Border Classes="pill" Classes.neutral="true" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                <TextBlock Classes="pillText" Text="{Binding Licensing.TierSummary}"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Classes="card" Padding="16" Margin="6,0,0,0">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{DynamicResource Intro_ProTierTitle}"
+                                       FontWeight="Bold" FontSize="15"
+                                       Foreground="{DynamicResource SuccessColor}"/>
+                            <TextBlock Text="{DynamicResource Intro_ProTierBody}"
+                                       Classes="dim" FontSize="12" TextWrapping="Wrap" LineHeight="17"/>
+                            <Border Classes="pill" Classes.success="true" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                <TextBlock Classes="pillText" Text="{DynamicResource Settings_ProTierStatus}"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <StackPanel Spacing="10">
+                    <Button Classes="cta" Content="{DynamicResource Intro_StartFree}"
+                            Command="{Binding DismissIntroCommand}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+
+                    <Grid ColumnDefinitions="*,*">
+                        <Button Classes="kioskSecondary" Content="{DynamicResource Intro_SeePricing}"
+                                Command="{Binding Licensing.OpenPricingCommand}"
+                                Margin="0,0,5,0"
+                                HorizontalContentAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="kioskSecondary"
+                                Content="{DynamicResource Intro_HaveLicense}"
+                                Command="{Binding ShowIntroActivationCommand}"
+                                Margin="5,0,0,0"
+                                HorizontalContentAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Key box, hidden until it is asked for. -->
+                <StackPanel Spacing="8" IsVisible="{Binding IsIntroActivationVisible}">
+                    <TextBlock Text="{DynamicResource Intro_ActivationTitle}"
+                               FontWeight="SemiBold" FontSize="13"/>
+                    <TextBox Text="{Binding Licensing.LicenseKeyInput}"
+                             Watermark="{DynamicResource Settings_LicenseKeyWatermark}"
+                             PasswordChar="*"/>
+                    <Button Classes="cta" Command="{Binding Licensing.ValidateCommand}"
+                            Content="{DynamicResource Settings_ValidateActivate}"
+                            IsEnabled="{Binding !Licensing.IsActivating}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                    <TextBlock Text="{Binding Licensing.StatusMessage}" FontSize="12"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource WarnColor}"/>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
+    </Panel>
+</UserControl>

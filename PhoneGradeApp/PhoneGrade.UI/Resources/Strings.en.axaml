@@ -99,6 +99,20 @@
     <x:String x:Key="Settings_ActivationDeactivated">This license has been deactivated.</x:String>
     <x:String x:Key="Settings_ActivationError">Network error. Please try again later.</x:String>
 
+    <!-- Licensing: introduction screen and the status pill in the title bar -->
+    <x:String x:Key="Intro_Title">Welcome to PhoneGrade</x:String>
+    <x:String x:Key="Intro_Subtitle">Start on the free plan: 10 scans, no account needed. Pro removes the limit whenever you need more.</x:String>
+    <x:String x:Key="Intro_FreeTierTitle">Free</x:String>
+    <x:String x:Key="Intro_FreeTierBody">10 scans. The status in the title bar always shows how many you have left.</x:String>
+    <x:String x:Key="Intro_ProTierTitle">Pro</x:String>
+    <x:String x:Key="Intro_ProTierBody">Unlimited scans on every device you connect.</x:String>
+    <x:String x:Key="Intro_StartFree">Start free</x:String>
+    <x:String x:Key="Intro_SeePricing">See pricing</x:String>
+    <x:String x:Key="Intro_HaveLicense">I already have a license</x:String>
+    <x:String x:Key="Intro_ActivationTitle">Activate your license</x:String>
+    <x:String x:Key="Licensing_TierFree">{0} scans left</x:String>
+    <x:String x:Key="Licensing_TierPro">Pro - Active</x:String>
+
     <x:String x:Key="Btn_Troubleshoot">USB and Driver Diagnostics</x:String>
     <x:String x:Key="Btn_Logs">View System Logs</x:String>
     

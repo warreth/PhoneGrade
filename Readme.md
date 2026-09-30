@@ -50,6 +50,14 @@ The interactive test suite runs in the device browser and verifies:
 
 Results sync automatically to the desktop application with offline fallback.
 
+## Free Tier and Pro
+
+The desktop application includes ten free scans. The counter is kept encrypted in
+the local settings directory, and a scan is refused once the ten are spent until a
+Pro license is activated. Activation validates the key against Lemon Squeezy and
+only accepts keys sold for this product; the pricing page behind the application
+links is the single source for what the paid plan costs.
+
 ## License
 
 AGPLv3

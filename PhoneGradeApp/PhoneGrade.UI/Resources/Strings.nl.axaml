@@ -99,6 +99,20 @@
     <x:String x:Key="Settings_ActivationDeactivated">Deze licentie is gedeactiveerd.</x:String>
     <x:String x:Key="Settings_ActivationError">Netwerkfout. Probeer het later opnieuw.</x:String>
 
+    <!-- Introductiescherm en de statusmelding bovenaan -->
+    <x:String x:Key="Intro_Title">Welkom bij PhoneGrade</x:String>
+    <x:String x:Key="Intro_Subtitle">Begin op de gratis versie: 10 scans, geen account nodig. Pro haalt de limiet weg zodra je meer nodig hebt.</x:String>
+    <x:String x:Key="Intro_FreeTierTitle">Gratis</x:String>
+    <x:String x:Key="Intro_FreeTierBody">10 scans. De status bovenaan laat altijd zien hoeveel je nog hebt.</x:String>
+    <x:String x:Key="Intro_ProTierTitle">Pro</x:String>
+    <x:String x:Key="Intro_ProTierBody">Onbeperkt scannen op elk toestel dat je aansluit.</x:String>
+    <x:String x:Key="Intro_StartFree">Gratis starten</x:String>
+    <x:String x:Key="Intro_SeePricing">Bekijk prijzen</x:String>
+    <x:String x:Key="Intro_HaveLicense">Ik heb al een licentie</x:String>
+    <x:String x:Key="Intro_ActivationTitle">Activeer je licentie</x:String>
+    <x:String x:Key="Licensing_TierFree">{0} scans over</x:String>
+    <x:String x:Key="Licensing_TierPro">Pro - Actief</x:String>
+
     <x:String x:Key="Btn_Troubleshoot">USB en Driver Diagnose</x:String>
     <x:String x:Key="Btn_Logs">Systeemlogboeken Bekijken</x:String>
 

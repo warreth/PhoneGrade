@@ -30,9 +30,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private IDisposable? _watcher;
 
     // Licensing
-    private readonly LemonSqueezyClient _licenseClient = new();
+    private readonly LemonSqueezyClient _licenseClient;
     private readonly TrialGate _trialGate;
-    private SettingsViewModel? _settingsViewModel;
+    private LicensingViewModel? _licensingViewModel;
 
     public ObservableCollection<DiagnosticIssue> Issues { get; } = [];
     public ObservableCollection<ComponentStatus> ComponentChecks { get; } = [];
@@ -338,14 +338,41 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// <summary>True when the free tier limit is reached and no Pro license is active.</summary>
     public bool IsTrialLimitReached => !IsProLicenseActive && TrialScanCount >= TrialGate.FreeScanLimit;
 
-    /// <summary>Human-readable licensing status for the settings card.</summary>
-    public string LicensingStatusText =>
-        IsProLicenseActive
-            ? LocalizationManager.GetString("Settings_ProTierStatus")
-            : string.Format(LocalizationManager.GetString("Settings_FreeTierStatus"), TrialScanCount);
+    /// <summary>Human-readable licensing status, kept in one place with the pill and the introduction screen.</summary>
+    public string LicensingStatusText => _licensingViewModel?.LicensingStatusText ?? "";
 
-    /// <summary>View model for the licensing settings card.</summary>
-    public SettingsViewModel? SettingsViewModel => _settingsViewModel;
+    /// <summary>Shared licensing view model: drives the introduction screen, the status pill and the settings row.</summary>
+    public LicensingViewModel? Licensing => _licensingViewModel;
+
+    private bool _isIntroVisible;
+    /// <summary>True until the operator dismisses the first-run introduction screen.</summary>
+    public bool IsIntroVisible
+    {
+        get => _isIntroVisible;
+        private set => this.RaiseAndSetIfChanged(ref _isIntroVisible, value);
+    }
+
+    private bool _isIntroActivationVisible;
+    /// <summary>True once "I already have a license" was pressed on the introduction screen.</summary>
+    public bool IsIntroActivationVisible
+    {
+        get => _isIntroActivationVisible;
+        set => this.RaiseAndSetIfChanged(ref _isIntroActivationVisible, value);
+    }
+
+    /// <summary>Closes the introduction screen for good.</summary>
+    public ReactiveCommand<Unit, Unit> DismissIntroCommand { get; }
+
+    /// <summary>Reveals the license key box on the introduction screen.</summary>
+    public ReactiveCommand<Unit, Unit> ShowIntroActivationCommand { get; }
+
+    private void DismissIntro()
+    {
+        _settings.IntroSeen = true;
+        _settings.Save();
+        IsIntroVisible = false;
+        IsIntroActivationVisible = false;
+    }
 
     private DeviceData _deviceData = new();
     public DeviceData DeviceData
@@ -489,8 +516,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
     public event Action<DeviceData>? DataEditorRequested;
 
-    public MainWindowViewModel()
+    public MainWindowViewModel(LemonSqueezyClient? licenseClient = null)
     {
+        // The parameter only exists so tests can hand over a client with a fake
+        // transport; production passes nothing and gets the real endpoint.
+        _licenseClient = licenseClient ?? new LemonSqueezyClient();
         _settings = AppSettings.Load();
         _theme = _settings.Theme;
         _language = _settings.Language == "en" ? "English" : "Nederlands";
@@ -539,7 +569,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         DeviceService.ScanGate = () => _trialGate.EvaluateAsync();
 
         // Settings view model for the licensing card.
-        _settingsViewModel = new SettingsViewModel(_trialGate, _licenseClient, RequestLicenseRefresh);
+        _licensingViewModel = new LicensingViewModel(_trialGate, _licenseClient, RequestLicenseRefresh);
 
         var canStart = this.WhenAnyValue(x => x.Busy, x => x.IsTrialLimitReached)
             .Select(t => !t.Item1 && !t.Item2);
@@ -555,6 +585,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
         OpenEditorCommand = ReactiveCommand.Create(() => DataEditorRequested?.Invoke(DeviceData));
         FinishInspectionCommand = ReactiveCommand.CreateFromTask(FinishInspectionAsync);
+
+        // Introduction screen: shown until dismissed, and never again after that.
+        IsIntroVisible = !_settings.IntroSeen;
+        DismissIntroCommand = ReactiveCommand.Create(DismissIntro);
+        ShowIntroActivationCommand = ReactiveCommand.Create(() => { IsIntroActivationVisible = true; });
 
         ToggleSettingsCommand = ReactiveCommand.Create(() => { IsSettingsDrawerOpen = !IsSettingsDrawerOpen; });
         OpenLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = true; IsSettingsDrawerOpen = false; });
@@ -891,18 +926,21 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         this.RaisePropertyChanged(nameof(TrialScanCount));
         this.RaisePropertyChanged(nameof(IsTrialLimitReached));
         this.RaisePropertyChanged(nameof(LicensingStatusText));
-        _settingsViewModel?.UpdateStatusText();
+        _licensingViewModel?.Refresh();
+
+        // A key that went valid on the introduction screen makes it pointless:
+        // its whole job is explaining what the free tier is.
+        if (_isIntroVisible && IsProLicenseActive) DismissIntro();
     }
 
-    /// <summary>Called when a key was activated; re-validates in the background and refreshes the UI.</summary>
-    private void RequestLicenseRefresh()
-    {
-        _ = Task.Run(async () =>
-        {
-            await _trialGate.RefreshLicenseStatusAsync().ConfigureAwait(false);
-            await Dispatcher.UIThread.InvokeAsync(RefreshLicensingState);
-        });
-    }
+    /// <summary>
+    /// Called after an activation. The gate already answered while the key was
+    /// being checked, so the screen is updated right here instead of after a
+    /// round trip through the dispatcher: an operator who just pasted a key sees
+    /// the tier change, and the introduction screen folds itself away, the
+    /// moment the answer arrives.
+    /// </summary>
+    private void RequestLicenseRefresh() => RefreshLicensingState();
 
     /// <summary>
     /// <see cref="Shutdown"/> as a contract, so a caller that only has the interface
