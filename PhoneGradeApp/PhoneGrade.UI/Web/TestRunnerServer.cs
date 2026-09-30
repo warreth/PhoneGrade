@@ -813,46 +813,104 @@ public class TestRunnerServer : IAsyncDisposable
     public static Task EnsureWindowsFirewallRuleAsync(int port = 5055) =>
         Task.Run(() => EnsureWindowsFirewallRule(port));
 
+    /// <summary>The name the inbound rule is written under.</summary>
+    private const string FirewallRuleName = "PhoneGrade_PWA";
+
     /// <summary>Configures Windows Firewall rule for the PWA server port if running on Windows.</summary>
     private static void EnsureWindowsFirewallRule(int port)
     {
         if (!OperatingSystem.IsWindows()) return;
 
+        var (applied, answer) = ApplyWindowsFirewallRule(FirewallRuleName, port);
+
+        if (applied)
+        {
+            SystemEventLogger.Info(LogSource.Desktop,
+                $"Windows Firewall regel '{FirewallRuleName}' ingesteld voor actieve poort {port}.");
+            return;
+        }
+
+        // netsh refuses without administrator rights and says so in its own words.
+        // Windows then asks for permission instead, which is the popup the operator
+        // sees for the network address.
+        SystemEventLogger.Warning(LogSource.Desktop,
+            $"Windows Firewall regel '{FirewallRuleName}' is niet ingesteld voor poort {port}: {answer}. " +
+            "Windows kan zelf om toegang vragen voor deze poort; die melding gaat hierover.");
+    }
+
+    /// <summary>
+    /// Writes the inbound rule and reports whether it is really in place.
+    ///
+    /// netsh returns quietly whether it accepted the rule or refused it, so the exit
+    /// code is the only thing that knows. Its own output is handed back as well,
+    /// because that is the one explanation here that was not written by us.
+    /// </summary>
+    public static (bool Applied, string Answer) ApplyWindowsFirewallRule(string ruleName, int port)
+    {
+        if (!OperatingSystem.IsWindows()) return (false, "Geen Windows");
+
         try
         {
-            // First remove any existing rule with same name to avoid duplicates
-            var delInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "netsh",
-                Arguments = "advfirewall firewall delete rule name=\"PhoneGrade_PWA\"",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            using (var delProc = System.Diagnostics.Process.Start(delInfo))
-            {
-                delProc?.WaitForExit(2000);
-            }
+            // Deleting a rule that is not there is not a failure, so nothing it says
+            // is of interest. It only has to not hang.
+            RunNetsh($"advfirewall firewall delete rule name=\"{ruleName}\"", 2000);
 
-            // Add the firewall rule matching the exact active port
-            var addInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "netsh",
-                Arguments = $"advfirewall firewall add rule name=\"PhoneGrade_PWA\" dir=in action=allow protocol=TCP localport={port}",
-                CreateNoWindow = true,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-            using var addProc = System.Diagnostics.Process.Start(addInfo);
-            addProc?.WaitForExit(3000);
-            SystemEventLogger.Info(LogSource.Desktop, $"Windows Firewall regel 'PhoneGrade_PWA' ingesteld voor actieve poort {port}.");
+            var (exitCode, output) = RunNetsh(
+                $"advfirewall firewall add rule name=\"{ruleName}\" dir=in action=allow protocol=TCP localport={port}",
+                3000);
+
+            string answer = string.IsNullOrWhiteSpace(output)
+                ? (exitCode == 0 ? "ok" : $"netsh gaf code {exitCode}")
+                : output.Trim();
+
+            return (exitCode == 0, answer);
         }
         catch (Exception ex)
         {
-            SystemEventLogger.Warning(LogSource.Desktop, $"Kon Windows Firewall regel niet automatisch instellen: {ex.Message}");
+            return (false, ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Runs one netsh call and hands back its exit code and what it printed. Both
+    /// streams are drained while the process runs: netsh prints a long usage text
+    /// when it dislikes an argument, and a pipe left full stops it dead.
+    /// </summary>
+    private static (int ExitCode, string Output) RunNetsh(string arguments, int timeoutMs)
+    {
+        var startInfo = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "netsh",
+            Arguments = arguments,
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+
+        using var process = System.Diagnostics.Process.Start(startInfo)
+            ?? throw new InvalidOperationException("netsh kon niet gestart worden");
+
+        Task<string> stdout = process.StandardOutput.ReadToEndAsync();
+        Task<string> stderr = process.StandardError.ReadToEndAsync();
+
+        bool finished = process.WaitForExit(timeoutMs);
+        if (!finished)
+        {
+            try { process.Kill(entireProcessTree: true); }
+            catch { /* already gone */ }
+        }
+
+        try { Task.WaitAll(new Task[] { stdout, stderr }, 2000); }
+        catch { /* the pipes went with the process */ }
+
+        if (!finished) return (-1, "netsh reageerde niet binnen de tijd");
+
+        string output = "";
+        try { output = $"{stdout.Result} {stderr.Result}"; }
+        catch { /* nothing left to read */ }
+
+        return (process.ExitCode, output);
     }
 
     private static System.Diagnostics.Process? _iproxyProcess;
