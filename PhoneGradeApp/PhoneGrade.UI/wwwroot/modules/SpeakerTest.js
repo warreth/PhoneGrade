@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { DeviceTest } from './DeviceTest.js';
 import {
     planChime,
@@ -33,7 +34,7 @@ export class SpeakerTest extends DeviceTest {
     static RESUME_TIMEOUT_MS = 1000;
 
     constructor() {
-        super('speaker', 'Luidspreker & Oorstuk', 'Controleer de oorluidspreker en hoofdluidspreker');
+        super('speaker', t('speaker.stepName'), t('speaker.stepDescription'));
         this.audioContext = null;
 
         // Null until judged, not false. A section nobody has answered is not a
@@ -83,33 +84,32 @@ export class SpeakerTest extends DeviceTest {
         return `
             <div class="step-screen">
                 <div class="step-column">
-                    <h3 class="step-title">Audio en luidsprekers</h3>
+                    <h3 class="step-title">${t('speaker.audioHeading')}</h3>
 
                     <div class="step-warning">
-                        Zet de stille-modusschakelaar uit en zet het mediavolume op
-                        maximaal voordat je begint.
+                        ${t('speaker.volumeWarning')}
                     </div>
 
                     <div id="earpiece-section" class="audio-section">
-                        <p class="audio-section-title">1. Oorluidspreker (bovenin)</p>
-                        <p class="audio-section-hint">Houd het toestel tegen je oor zodra de toon klinkt.</p>
-                        <button id="play-earpiece-btn" class="btn btn-primary">Speel de toon</button>
+                        <p class="audio-section-title">${t('speaker.earpieceCardTitle')}</p>
+                        <p class="audio-section-hint">${t('speaker.earpieceCardHint')}</p>
+                        <button id="play-earpiece-btn" class="btn btn-primary">${t('speaker.playToneButton')}</button>
                         <div id="earpiece-feedback" class="audio-verdicts" hidden>
-                            <button id="earpiece-yes" class="btn btn-success">Duidelijk gehoord</button>
-                            <button id="earpiece-no" class="btn btn-danger">Niets of vervormd</button>
+                            <button id="earpiece-yes" class="btn btn-success">${t('speaker.clearlyHeardButton')}</button>
+                            <button id="earpiece-no" class="btn btn-danger">${t('speaker.nothingOrDistortedButton')}</button>
                         </div>
-                        <p id="earpiece-status" class="audio-status">Nog niet afgespeeld</p>
+                        <p id="earpiece-status" class="audio-status">${t('speaker.notPlayedYetStatus')}</p>
                     </div>
 
                     <div id="loudspeaker-section" class="audio-section is-locked">
-                        <p class="audio-section-title">2. Hoofdluidspreker (onderin)</p>
-                        <p class="audio-section-hint">Leg het toestel op een tafel, de speaker naar boven.</p>
-                        <button id="play-loud-btn" class="btn btn-primary">Speel de toon</button>
+                        <p class="audio-section-title">${t('speaker.loudspeakerCardTitle')}</p>
+                        <p class="audio-section-hint">${t('speaker.loudspeakerCardHint')}</p>
+                        <button id="play-loud-btn" class="btn btn-primary">${t('speaker.playToneButton')}</button>
                         <div id="loud-feedback" class="audio-verdicts" hidden>
-                            <button id="loud-yes" class="btn btn-success">Duidelijk gehoord</button>
-                            <button id="loud-no" class="btn btn-danger">Niets of vervormd</button>
+                            <button id="loud-yes" class="btn btn-success">${t('speaker.clearlyHeardButton')}</button>
+                            <button id="loud-no" class="btn btn-danger">${t('speaker.nothingOrDistortedButton')}</button>
                         </div>
-                        <p id="loud-status" class="audio-status">Nog niet afgespeeld</p>
+                        <p id="loud-status" class="audio-status">${t('speaker.notPlayedYetStatus')}</p>
                     </div>
                 </div>
             </div>
@@ -118,13 +118,13 @@ export class SpeakerTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Audiotest voorbereiden...');
+        this.reportProgress(wsClient, 0, t('speaker.preparingProgress'));
 
         container.innerHTML = this.markup();
 
         await this.walk(wsClient, container);
 
-        this.reportProgress(wsClient, 100, 'Audiotests voltooid');
+        this.reportProgress(wsClient, 100, t('speaker.finishedProgress'));
 
         const outcome = describeOutcome(
             { earpiece: this.earpieceWorking, loudspeaker: this.loudspeakerWorking },
@@ -208,8 +208,8 @@ export class SpeakerTest extends DeviceTest {
                     // Not a verdict on the speaker. The browser would not give us
                     // a tone, so nothing has been tested yet, and the label has to
                     // say that rather than blame the hardware.
-                    this.audioProblem = 'De browser gaf geen toon af';
-                    setStatus('Geen toon: controleer het volume en probeer opnieuw', 'error');
+                    this.audioProblem = t('speaker.noToneFromBrowser');
+                    setStatus(t('speaker.noToneStatus'), 'error');
                     return;
                 }
 
@@ -222,8 +222,8 @@ export class SpeakerTest extends DeviceTest {
 
                 const plays = this.plays[section];
                 setStatus(plays === 1
-                    ? 'Toon afgespeeld. Heb je hem duidelijk gehoord?'
-                    : `Toon ${plays} keer afgespeeld. Wat heb je gehoord?`);
+                    ? t('speaker.tonePlayedOnce')
+                    : t('speaker.tonePlayedTimes', { plays }));
             };
 
             playBtn.addEventListener('click', play);
@@ -242,7 +242,7 @@ export class SpeakerTest extends DeviceTest {
                 else this.loudspeakerWorking = value;
 
                 renderVerdict();
-                setStatus(value ? 'Goed gehoord' : 'Geen of vervormd geluid', value ? 'success' : 'error');
+                setStatus(value ? t('speaker.verdictHeardWell') : t('speaker.verdictNoSound'), value ? 'success' : 'error');
 
                 this.haptic.tap();
 

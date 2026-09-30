@@ -356,7 +356,7 @@ test('the bar reports each colour to the desktop as it is judged', async () => {
     await running;
 
     const reported = client.sent.filter(m => m.type === 'test_progress');
-    assert.ok(reported.some(m => m.testName === 'Display & Dead Pixels (Rood)'));
+    assert.ok(reported.some(m => m.testName === 'Scherm & dode pixels (Rood)'));
     assert.ok(reported.some(m => m.message === 'Rood: afwijking gemeld'));
     assert.ok(reported.some(m => m.message === 'Wit: goed'),
         'a colour judged Goed is reported the same way, or the bar would stall');

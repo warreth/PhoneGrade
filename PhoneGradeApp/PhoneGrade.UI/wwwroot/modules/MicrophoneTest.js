@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { DeviceTest } from './DeviceTest.js';
 import {
     CAPABILITY,
@@ -28,7 +29,7 @@ import {
  */
 export class MicrophoneTest extends DeviceTest {
     constructor() {
-        super('microphone', 'Microfoon', 'Controleer audio-opname en microfoonfunctionaliteit');
+        super('microphone', t('microphone.title'), t('microphone.stepDescription'));
         this._stream = null;
         this._audioCtx = null;
     }
@@ -48,7 +49,7 @@ export class MicrophoneTest extends DeviceTest {
 
     stopCapture() {
         if (this._stream) {
-            this._stream.getTracks().forEach(t => t.stop());
+            this._stream.getTracks().forEach(track => track.stop());
             this._stream = null;
         }
         if (this._audioCtx) {
@@ -59,7 +60,7 @@ export class MicrophoneTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Microfoon testen...');
+        this.reportProgress(wsClient, 0, t('microphone.progressTesting'));
 
         if (!hasMediaDevices()) {
             await this.reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', 'missing');
@@ -94,7 +95,7 @@ export class MicrophoneTest extends DeviceTest {
                     return await this.runLiveMeterTest(wsClient, container, stream);
                 } catch (err) {
                     this.stopCapture();
-                    const text = `De niveaumeter kon niet worden gestart: ${err && err.message ? err.message : String(err)}`;
+                    const text = t('microphone.levelMeterFailed', { error: err && err.message ? err.message : String(err) });
                     return this.fail(text);
                 }
             }
@@ -107,7 +108,7 @@ export class MicrophoneTest extends DeviceTest {
                 return this.runRecorderFallback(wsClient, container, lastResult.kind);
             }
 
-            return this.fail(explainMediaError(lastResult, 'microfoon'));
+            return this.fail(explainMediaError(lastResult, t('microphone.noun')));
         }
     }
 
@@ -119,20 +120,20 @@ export class MicrophoneTest extends DeviceTest {
         container.innerHTML = `
             <div class="step-screen">
                 <div class="step-column">
-                    <h3 class="step-title">Microfoon</h3>
+                    <h3 class="step-title">${t('microphone.title')}</h3>
                     <div class="step-card">
-                        <p class="step-note">${explainMediaError(result, 'microfoon')}</p>
+                        <p class="step-note">${explainMediaError(result, t('microphone.noun'))}</p>
                         <div class="step-stack">
-                            ${fixable ? '<button id="mic-retry" class="btn btn-primary step-block">Opnieuw proberen</button>' : ''}
-                            ${canFallBack ? '<button id="mic-recorder" class="btn btn-secondary step-block">Neem op met de voicerecorder</button>' : ''}
-                            <button id="mic-reject" class="btn btn-danger step-block">Microfoon defect</button>
+                            ${fixable ? `<button id="mic-retry" class="btn btn-primary step-block">${t('microphone.retryButton')}</button>` : ''}
+                            ${canFallBack ? `<button id="mic-recorder" class="btn btn-secondary step-block">${t('microphone.recorderButton')}</button>` : ''}
+                            <button id="mic-reject" class="btn btn-danger step-block">${t('microphone.defectiveButton')}</button>
                         </div>
                     </div>
                 </div>
             </div>
         `;
 
-        this.reportProgress(wsClient, 0, 'Microfoontoegang nodig');
+        this.reportProgress(wsClient, 0, t('microphone.accessNeededProgress'));
 
         return new Promise((resolve) => {
             const retry = container.querySelector('#mic-retry');
@@ -156,24 +157,22 @@ export class MicrophoneTest extends DeviceTest {
         container.innerHTML = `
             <div class="step-screen">
                 <div class="step-column">
-                    <h3 class="step-title">Microfoon</h3>
+                    <h3 class="step-title">${t('microphone.title')}</h3>
                     <div class="step-card">
                         <p class="step-lead">
-                            Deze browser kan de microfoon niet rechtstreeks uitlezen.
-                            Neem een kort woord op met de voicerecorder van het toestel en
-                            luister het terug.
+                            ${t('microphone.recorderLead')}
                         </p>
                         <label class="btn btn-primary step-block" for="audio-file-input">
-                            Spreek geluid in
+                            ${t('microphone.speakIntoLabel')}
                             <input type="file" id="audio-file-input" accept="audio/*" capture hidden>
                         </label>
-                        <p id="audio-status" class="step-hint">Wacht op een opname...</p>
+                        <p id="audio-status" class="step-hint">${t('microphone.waitingForRecording')}</p>
                         <div id="audio-feedback" class="step-stack" hidden>
                             <audio id="audio-preview" controls class="mic-preview"></audio>
-                            <p class="step-question">Hoor je je eigen stem duidelijk terug?</p>
+                            <p class="step-question">${t('microphone.hearYourselfQuestion')}</p>
                             <div class="step-actions">
-                                <button id="mic-yes" class="btn btn-success">Ja, helder geluid</button>
-                                <button id="mic-no" class="btn btn-danger">Nee, geen geluid of ruis</button>
+                                <button id="mic-yes" class="btn btn-success">${t('microphone.yesClear')}</button>
+                                <button id="mic-no" class="btn btn-danger">${t('microphone.noNoise')}</button>
                             </div>
                         </div>
                     </div>
@@ -201,14 +200,14 @@ export class MicrophoneTest extends DeviceTest {
                 this.details.checkMethod = 'recorder';
                 this.details.capabilityGap = kind || null;
                 this.details.passed = passed;
-                this.reportProgress(wsClient, 100, passed ? 'Opname teruggehoord' : 'Opname niet hoorbaar');
+                this.reportProgress(wsClient, 100, passed ? t('microphone.progressListenedBack') : t('microphone.progressNotAudible'));
                 if (passed) this.pass(notes);
                 else this.fail(notes);
                 resolve();
             };
 
-            btnYes.onclick = () => settle(true, 'Opname gemaakt met de voicerecorder en teruggehoord');
-            btnNo.onclick = () => settle(false, 'Opname was niet hoorbaar of te ruisend');
+            btnYes.onclick = () => settle(true, t('microphone.recorderPassNotes'));
+            btnNo.onclick = () => settle(false, t('microphone.recorderFailNotes'));
         });
     }
 
@@ -216,13 +215,13 @@ export class MicrophoneTest extends DeviceTest {
         container.innerHTML = `
             <div class="step-screen">
                 <div class="step-column">
-                    <h3 class="step-title">Microfoon</h3>
+                    <h3 class="step-title">${t('microphone.title')}</h3>
                     <div class="step-card">
-                        <p class="step-lead">Praat of maak geluid om de niveaumeter te laten uitslaan.</p>
+                        <p class="step-lead">${t('microphone.meterLead')}</p>
                         <div class="mic-meter">
                             <div id="mic-vu-bar" class="mic-meter-fill"></div>
                         </div>
-                        <p id="live-mic-status" class="sensor-status">Luisteren...</p>
+                        <p id="live-mic-status" class="sensor-status">${t('microphone.listeningStatus')}</p>
                     </div>
                 </div>
             </div>
@@ -234,7 +233,7 @@ export class MicrophoneTest extends DeviceTest {
         const AudioCtor = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtor) {
             this.stopCapture();
-            return this.fail('Deze browser kan het microfoonsignaal niet meten');
+            return this.fail(t('microphone.cannotMeasureSignal'));
         }
 
         this._audioCtx = new AudioCtor();
@@ -273,12 +272,12 @@ export class MicrophoneTest extends DeviceTest {
 
                 if (peakLevel > 20) {
                     if (statusText) {
-                        statusText.textContent = 'Geluid gedetecteerd (' + peakLevel + '%)';
+                        statusText.textContent = t('microphone.soundDetected', { peak: peakLevel });
                         statusText.style.color = 'var(--color-success-text)';
                     }
                     setTimeout(() => {
-                        this.reportProgress(wsClient, 100, 'Microfoon werkt');
-                        finish(true, 'Microfoon registreert geluid (piek ' + peakLevel + '%)');
+                        this.reportProgress(wsClient, 100, t('microphone.progressWorking'));
+                        finish(true, t('microphone.registersSound', { peak: peakLevel }));
                     }, 1000);
                     return;
                 }
@@ -290,8 +289,8 @@ export class MicrophoneTest extends DeviceTest {
 
             setTimeout(() => {
                 if (peakLevel <= 20) {
-                    this.reportProgress(wsClient, 100, 'Microfoon gaf geen signaal');
-                    finish(false, 'Geen audiosignaal gemeten op de microfoon');
+                    this.reportProgress(wsClient, 100, t('microphone.progressNoSignal'));
+                    finish(false, t('microphone.noSignalMeasured'));
                 }
             }, 10000);
         });

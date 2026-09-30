@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 import { DeviceTest } from './DeviceTest.js';
 import {
     INSPECTION_COLORS,
@@ -30,7 +31,7 @@ const BACK = 'back';
  */
 export class DisplayTest extends DeviceTest {
     constructor() {
-        super('display', 'Display & Dead Pixels', 'Inspect each patch of the screen for dead and stuck pixels');
+        super('display', t('display.name'), t('display.description'));
         this.colors = INSPECTION_COLORS;
         this.inspection = createInspection();
         this.currentIndex = 0;
@@ -66,7 +67,7 @@ export class DisplayTest extends DeviceTest {
 
     async run(wsClient, container) {
         this.start();
-        this.reportProgress(wsClient, 0, 'Starting display inspection...');
+        this.reportProgress(wsClient, 0, t('display.starting'));
 
         // Asked until it is confirmed, never failed on.
         //
@@ -82,13 +83,13 @@ export class DisplayTest extends DeviceTest {
         // skipped and moves on, and the promise below is simply left pending. That
         // is the point: a pending promise cannot be mistaken for a verdict.
         await this.showBrightnessCheck(container);
-        this.details.brightnessLevel = 'Bevestigd door de technicus';
+        this.details.brightnessLevel = t('display.brightnessConfirmed');
 
         let index = 0;
         while (index < this.colors.length) {
             const color = this.colors[index];
             this.currentIndex = index;
-            this.reportProgress(wsClient, (index / this.colors.length) * 100, `Kleur: ${color.name}`);
+            this.reportProgress(wsClient, (index / this.colors.length) * 100, t('display.currentColor', { name: color.name }));
 
             const answer = await this.showColor(color, index);
 
@@ -107,7 +108,10 @@ export class DisplayTest extends DeviceTest {
             this.reportProgress(
                 wsClient,
                 ((index + 1) / this.colors.length) * 100,
-                `${color.name}: ${answer === VERDICT_DEFECTIVE ? 'afwijking gemeld' : 'goed'}`,
+                t('display.colorVerdict', {
+                    name: color.name,
+                    verdict: answer === VERDICT_DEFECTIVE ? t('display.verdictDefective') : t('display.verdictOk')
+                }),
                 this.id,
                 `${this.name} (${color.name})`);
 
@@ -143,22 +147,16 @@ export class DisplayTest extends DeviceTest {
                 container.innerHTML = `
                     <div class="check-overlay">
                         <div class="check-card">
-                            <h3 class="check-title">Eerst de helderheid</h3>
+                            <h3 class="check-title">${t('display.brightnessTitle')}</h3>
                             <p class="check-text">
-                                Zet de schermhelderheid op maximaal. Trek de snelle
-                                instellingen omlaag en zet de zonnewijzer op het
-                                maximum. Bij een te donker scherm is een
-                                vastzittend pixel niet te onderscheiden van een
-                                schaduw, en dan valt niets te beoordelen.
+                                ${t('display.brightnessText')}
                             </p>
                             <p class="check-question">
-                                Staat de helderheid op maximaal, en is de
-                                scherminhoud niet te donker om de kleuren hieronder te
-                                herkennen?
+                                ${t('display.brightnessQuestion')}
                             </p>
                             <div class="check-actions">
-                                <button id="brightness-ok" class="btn btn-success">Ja, klaar</button>
-                                <button id="brightness-retry" class="btn btn-secondary">Ik controleer het nogmaals</button>
+                                <button id="brightness-ok" class="btn btn-success">${t('display.brightnessOk')}</button>
+                                <button id="brightness-retry" class="btn btn-secondary">${t('display.brightnessRetry')}</button>
                             </div>
                         </div>
                     </div>
@@ -210,13 +208,13 @@ export class DisplayTest extends DeviceTest {
                 <div class="display-bar">
                     <div class="display-bar-title">
                         <span class="display-color-name">${color.name}</span>
-                        <span class="display-progress">Kleur ${index + 1} van ${this.colors.length}</span>
+                        <span class="display-progress">${t('display.colorCounter', { current: index + 1, total: this.colors.length })}</span>
                     </div>
-                    <p class="display-hint">Afwijking gezien? Kies Slecht, anders Goed.</p>
+                    <p class="display-hint">${t('display.hint')}</p>
                     <div class="display-bar-actions">
-                        ${index > 0 ? `<button id="color-prev" class="btn btn-secondary">Vorige</button>` : ''}
-                        <button id="color-ok" class="btn btn-success ${active(VERDICT_OK)}">Goed</button>
-                        <button id="color-defect" class="btn btn-danger ${active(VERDICT_DEFECTIVE)}">Slecht</button>
+                        ${index > 0 ? `<button id="color-prev" class="btn btn-secondary">${t('display.buttonBack')}</button>` : ''}
+                        <button id="color-ok" class="btn btn-success ${active(VERDICT_OK)}">${t('display.buttonGood')}</button>
+                        <button id="color-defect" class="btn btn-danger ${active(VERDICT_DEFECTIVE)}">${t('display.buttonBad')}</button>
                     </div>
                 </div>
             `;

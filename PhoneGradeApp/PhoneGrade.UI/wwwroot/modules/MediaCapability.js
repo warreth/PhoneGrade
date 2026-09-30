@@ -15,6 +15,8 @@
  * operator and retry, not a verdict.
  */
 
+import { t } from './i18n.js';
+
 /** The kinds of "not working" a media call can come back with. */
 export const CAPABILITY = {
     /** The browser has no such API at all. A real gap in the device or browser. */
@@ -109,18 +111,18 @@ export function isSecureOrigin() {
 export function explainMediaError(result, subject = 'camera') {
     switch (result.kind) {
         case CAPABILITY.DENIED:
-            return `Toegang tot de ${subject} is geweigerd. Sta het toe in de browser en probeer opnieuw.`;
+            return t('media.refused', { subject });
         case CAPABILITY.MISSING:
-            return `Dit toestel of deze browser heeft geen ${subject}.`;
+            return t('media.missing', { subject });
         case CAPABILITY.INSECURE:
-            return `De pagina is niet beveiligd, daarom blokkeert de browser de ${subject}.`;
+            return t('media.insecure', { subject });
         case CAPABILITY.BUSY:
-            return `De ${subject} is in gebruik door een andere app. Sluit die app en probeer opnieuw.`;
+            return t('media.busy', { subject });
         case CAPABILITY.UNSUPPORTED:
-            return `De ${subject} ondersteunt deze instelling niet.`;
+            return t('media.unsupported', { subject });
         default:
             return result.message
-                ? `Onbekende fout bij de ${subject}: ${result.message}`
-                : `Onbekende fout bij de ${subject}.`;
+                ? t('media.unknownWithMessage', { subject, message: result.message })
+                : t('media.unknown', { subject });
     }
 }
