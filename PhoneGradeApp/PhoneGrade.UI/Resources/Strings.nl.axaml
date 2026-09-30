@@ -81,7 +81,9 @@
     <x:String x:Key="Settings_Enable85Checker">85% Batterijcheck (100%-X label)</x:String>
     <x:String x:Key="Settings_OpenEditor">Label editor openen voor printen</x:String>
     <x:String x:Key="Settings_SecureOrigin">Webtest via USB (localhost)</x:String>
-    <x:String x:Key="Settings_SecureOriginDesc">Stuurt de webtest naar http://localhost in plaats van het IP-adres van de pc. Een browser geeft alleen op een beveiligde herkomst toegang tot de camera, microfoon en bewegingssensoren. Aanzetten voor Android, uitzetten voor iPhone, want die heeft geen adb.</x:String>
+    <x:String x:Key="Settings_SecureOriginDesc">Stuurt de webtest naar http://localhost in plaats van het IP-adres van de pc. Een browser geeft alleen op een beveiligde herkomst toegang tot de camera, microfoon en bewegingssensoren. Dit is de snelste van de twee opties en werkt zodra de kabel zit.</x:String>
+    <x:String x:Key="Settings_PublicTunnel">Veilige verbinding via internet</x:String>
+    <x:String x:Key="Settings_PublicTunnelDesc">Opent een beveiligd https-adres voor de telefoon wanneer er geen usb-tunnel is, zoals bij een iPhone. Heeft internet nodig op de pc en op het toestel; de testresultaten lopen dan via Cloudflare. Uitzetten houdt alles op het lokale netwerk, maar dan werken camera, microfoon en bewegingssensoren niet.</x:String>
     <x:String x:Key="Btn_Troubleshoot">USB en Driver Diagnose</x:String>
     <x:String x:Key="Btn_Logs">Systeemlogboeken Bekijken</x:String>
 

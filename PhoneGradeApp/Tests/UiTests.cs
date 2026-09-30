@@ -33,7 +33,7 @@ public class UiTests : IDisposable
     [AvaloniaFact]
     public void MainWindow_Constructs_WithNativeChrome()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
 
         // The Wayland bug: ExtendClientAreaToDecorationsHint=true removes resize/close buttons.
         Assert.False(window.ExtendClientAreaToDecorationsHint);
@@ -45,7 +45,7 @@ public class UiTests : IDisposable
     [AvaloniaFact]
     public async Task QualityAndPaymentSelection_AdvancesStateMachineAndUpdatesStatus()
     {
-        var vm = new MainWindowViewModel();
+        using var vm = new MainWindowViewModel();
         vm.SelectedDevice = new System.Collections.Generic.KeyValuePair<string, string>("MOCK_UDID", "iPhone 13");
         vm.DefaultQuality = "";
         vm.DefaultPaymentMethod = "";
@@ -79,7 +79,7 @@ public class UiTests : IDisposable
     [AvaloniaFact]
     public void MainWindow_ThemeSwitch_TakesEffectImmediatelyAndPersists()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
 
         Assert.Equal("Dark", vm.Theme);
@@ -96,7 +96,7 @@ public class UiTests : IDisposable
     [AvaloniaFact]
     public void MainWindow_PopupsStartHidden_WithAskingDefaults()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
 
         Assert.False(vm.IsQualityPopupVisible);
@@ -108,7 +108,7 @@ public class UiTests : IDisposable
     [AvaloniaFact]
     public void MainWindow_OfferedOptions_AreComplete()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
 
         Assert.Equal(new[] { "Dark", "Light", "System" }, vm.ThemeOptions);
@@ -119,7 +119,7 @@ public class UiTests : IDisposable
     [AvaloniaFact]
     public void MainWindow_HasDevice_FalseUntilRealData()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
 
         Assert.False(vm.HasDevice); // fresh VM holds placeholder data

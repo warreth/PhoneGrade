@@ -39,7 +39,9 @@ public partial class App : Application
             // in its constructor. Assigning a second one here would orphan that
             // instance, so the editor button would never fire, and would start a
             // second watcher and web server alongside the first.
-            desktop.MainWindow = new MainWindow();
+            var window = new MainWindow();
+            window.Closed += (_, _) => (window.DataContext as ViewModels.MainWindowViewModel)?.Shutdown();
+            desktop.MainWindow = window;
         }
         base.OnFrameworkInitializationCompleted();
     }

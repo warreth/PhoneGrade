@@ -542,6 +542,14 @@
                                            FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
                             </StackPanel>
                         </CheckBox>
+
+                        <CheckBox IsChecked="{Binding UsePublicTunnel}" Margin="0,8,0,0">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{DynamicResource Settings_PublicTunnel}" FontWeight="SemiBold"/>
+                                <TextBlock Text="{DynamicResource Settings_PublicTunnelDesc}" Classes="dim"
+                                           FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
+                            </StackPanel>
+                        </CheckBox>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

@@ -12,7 +12,7 @@ public class AppWorkflowStateTests
     [Fact]
     public void AppWorkflowState_DefaultIsIdle()
     {
-        var vm = new MainWindowViewModel();
+        using var vm = new MainWindowViewModel();
         Assert.Equal(AppWorkflowState.Idle, vm.WorkflowState);
         Assert.True(vm.IsIdleState);
         Assert.False(vm.IsActiveState);
@@ -22,7 +22,7 @@ public class AppWorkflowStateTests
     [Fact]
     public void AppWorkflowState_TransitionsCorrectly()
     {
-        var vm = new MainWindowViewModel();
+        using var vm = new MainWindowViewModel();
         
         vm.WorkflowState = AppWorkflowState.Active;
         Assert.True(vm.IsActiveState);
@@ -41,7 +41,7 @@ public class AppWorkflowStateTests
     [Fact]
     public void SettingsDrawerAndModals_ToggleCorrectly()
     {
-        var vm = new MainWindowViewModel();
+        using var vm = new MainWindowViewModel();
         Assert.False(vm.IsSettingsDrawerOpen);
         Assert.False(vm.IsLogsModalOpen);
         Assert.False(vm.IsTroubleshootModalOpen);

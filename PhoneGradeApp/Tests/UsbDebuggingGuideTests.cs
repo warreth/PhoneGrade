@@ -48,7 +48,7 @@ public class UsbDebuggingGuideTests : IDisposable
     [AvaloniaFact]
     public void TheGuide_IsHidden_WhenThePhoneIsTrusted()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
         vm.Theme = "Dark";
         vm.ShowAdbWarning = false;
@@ -260,7 +260,7 @@ public class UsbDebuggingGuideTests : IDisposable
         // #FFF3CD would still be light here, and a card that hardcoded the dark
         // card colour would be a black block on a white page. Neither shows up in
         // the dark case, so both are measured.
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
         vm.Theme = "Light";
         vm.ShowAdbWarning = true;
@@ -317,7 +317,7 @@ public class UsbDebuggingGuideTests : IDisposable
 
     private static MainWindow ShowGuideCard()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
         vm.Theme = "Dark";
         vm.ShowAdbWarning = true;
