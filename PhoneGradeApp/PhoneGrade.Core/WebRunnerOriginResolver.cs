@@ -39,6 +39,9 @@ public sealed class WebRunnerOriginResolver
     private readonly UsbRoute _usb;
     private readonly InternetRoute _internet;
 
+    /// <summary>The sentence this resolver opens the internet route with.</summary>
+    private const string OpeningInternet = "Beveiligde verbinding via internet opzetten...";
+
     public WebRunnerOriginResolver(UsbRoute usb, InternetRoute internet)
     {
         _usb = usb;
@@ -100,16 +103,28 @@ public sealed class WebRunnerOriginResolver
         // to look around, and a tunnel for it would publish the app for nothing.
         if (publicTunnelEnabled && !IsPlaceholderSession(sessionUdid))
         {
-            onStatus?.Invoke("Beveiligde verbinding via internet opzetten...");
+            onStatus?.Invoke(OpeningInternet);
+
+            // The route narrates what it is doing and, when it cannot, why. Only the
+            // second is worth carrying into the warning: the first is the sentence
+            // this method has just said, and nesting it inside the reason reads as
+            // if opening the connection were what went wrong.
+            string? reported = null;
 
             string? internet = null;
             try
             {
-                internet = await _internet(port, onStatus);
+                internet = await _internet(port, message =>
+                {
+                    if (!string.Equals(message, OpeningInternet, StringComparison.Ordinal))
+                        reported = message;
+                    onStatus?.Invoke(message);
+                });
             }
             catch (Exception ex)
             {
                 SystemEventLogger.Warning(LogSource.UsbDetector, $"The internet tunnel could not be opened: {ex.Message}");
+                reported = $"De veilige verbinding via internet kon niet worden gestart: {ex.Message}";
             }
 
             if (!string.IsNullOrWhiteSpace(internet))
@@ -118,6 +133,9 @@ public sealed class WebRunnerOriginResolver
             }
 
             failed.Add("de veilige verbinding via internet");
+
+            if (!string.IsNullOrWhiteSpace(reported))
+                return Insecure(lanAddress, failed, reported);
         }
 
         if (IsPlaceholderSession(sessionUdid))
@@ -125,11 +143,25 @@ public sealed class WebRunnerOriginResolver
             return new WebRunnerOrigin(lanAddress, false, null);
         }
 
+        return Insecure(lanAddress, failed, null);
+    }
+
+    /// <summary>
+    /// The plain network address, with what stopped it from being a secure one.
+    /// <paramref name="detail"/> is whatever the failing route said about itself,
+    /// which is the only part an operator cannot work out from the sentence.
+    /// </summary>
+    private static WebRunnerOrigin Insecure(string lanAddress, List<string> failed, string? detail)
+    {
         string reason = failed.Count == 0
             ? "De veilige verbinding staat uit"
             : $"Geen veilige verbinding: {string.Join(" en ", failed)} luk{(failed.Count > 1 ? "ten" : "te")} niet";
 
+        string sentence = string.IsNullOrWhiteSpace(detail)
+            ? ""
+            : $" {detail.TrimEnd('.')}.";
+
         return new WebRunnerOrigin(lanAddress, false,
-            $"{reason}. Camera, microfoon en bewegingssensoren werken daardoor niet.");
+            $"{reason}.{sentence} Camera, microfoon, bewegingssensoren en locatie werken daardoor niet.");
     }
 }
