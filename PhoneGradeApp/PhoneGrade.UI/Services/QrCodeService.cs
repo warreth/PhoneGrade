@@ -55,19 +55,55 @@ public static class QrCodeService
         return "127.0.0.1";
     }
 
+    /// <summary>The address the phone reaches on the local network.</summary>
+    public static string NetworkAddress(int port) => $"http://{GetLocalIpAddress()}:{port}";
+
+    /// <summary>The address adb reverse maps onto the phone. Browsers trust it on http.</summary>
+    public static string LoopbackAddress(int port) => $"http://localhost:{port}";
+
     /// <summary>
-    /// Builds the address the phone should open. The host is passed in rather than
-    /// discovered here, because there are two of them: the LAN address, and the
-    /// localhost the adb reverse tunnel makes a secure origin.
+    /// Builds the address the phone should open from a plain network host and port.
+    /// Kept separate from the overload below because it is the only one that hard
+    /// codes the http scheme, which is exactly what a LAN address is.
     /// </summary>
     public static string GenerateSessionUrl(string host, int port, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null)
     {
-        var cleanUdid = Uri.EscapeDataString(deviceUdid ?? "UNKNOWN");
         string cleanHost = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host.Trim();
-        string url = $"http://{cleanHost}:{port}/?sessionId={cleanUdid}";
+        return GenerateSessionUrl($"http://{cleanHost}:{port}", deviceUdid, isDebug, testPhoneNumber);
+    }
+
+    /// <summary>
+    /// Appends the session to any base address, whether it is a loopback http one or
+    /// a public https one handed out by the tunnel connector. The scheme is never
+    /// invented here: it is the whole reason the address was chosen.
+    /// </summary>
+    public static string GenerateSessionUrl(string baseUrl, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null)
+    {
+        var cleanUdid = Uri.EscapeDataString(deviceUdid ?? "UNKNOWN");
+        string cleanBase = (baseUrl ?? "").Trim().TrimEnd('/');
+        if (cleanBase.Length == 0) cleanBase = "http://127.0.0.1:5055";
+
+        string url = $"{cleanBase}/?sessionId={cleanUdid}";
         if (isDebug) url += "&debug=true";
         if (!string.IsNullOrWhiteSpace(testPhoneNumber)) url += $"&testPhoneNumber={Uri.EscapeDataString(testPhoneNumber)}";
         return url;
+    }
+
+    /// <summary>True for an address a browser treats as trustworthy without https.</summary>
+    public static bool IsLoopbackAddress(string? baseUrl)
+    {
+        return Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) && uri.IsLoopback;
+    }
+
+    /// <summary>
+    /// True for an address that carries camera, microphone, motion and wake lock.
+    /// That is https, plus plain http on a loopback host, which browsers decided to
+    /// trust a long time ago and never moved on.
+    /// </summary>
+    public static bool IsSecureAddress(string? baseUrl)
+    {
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)) return false;
+        return uri.Scheme == Uri.UriSchemeHttps || uri.IsLoopback;
     }
 
     public static Bitmap GenerateQrCodeBitmap(string text, int scale = 6, int border = 2)

@@ -40,6 +40,9 @@ public class UiThreadDoesNotWaitTests
     private static string ViewModel() => RepoPath.Read(
         "PhoneGradeApp", "PhoneGrade.UI", "ViewModels", "MainWindowViewModel.cs");
 
+    private static string Resolver() => RepoPath.Read(
+        "PhoneGradeApp", "PhoneGrade.Core", "WebRunnerOriginResolver.cs");
+
     /// <summary>Fails with the file name in the message, which the plain asserts do not carry.</summary>
     private static void Contains(string needle, string source, string where)
     {
@@ -70,16 +73,25 @@ public class UiThreadDoesNotWaitTests
         // a helper coming back with the same body is the same bug.
         Assert.DoesNotContain("ResolveWebRunnerHost", source);
 
-        // The replacement has to actually await the tunnel. Firing it off and
-        // printing the code straight away would show a QR code pointing at the
-        // plain LAN address while the tunnel is still being built, and that
-        // address has no camera and no motion sensors on the phone, which was the
-        // whole reason for building the tunnel.
-        Contains("await _adbTunnel.OpenAsync", source, "the view model");
+        // The replacement has to actually work the answer out in the background.
+        // Firing it off and printing the code straight away would show a QR code
+        // pointing at the plain LAN address while the tunnel is still being built,
+        // and that address has no camera and no motion sensors on the phone, which
+        // was the whole reason for building the tunnel.
+        Contains("await _originResolver.ResolveAsync", source, "the view model");
 
         // And the answer has to reach the UI on the UI thread, because it touches
         // the properties the bindings are watching.
         Contains("Dispatcher.UIThread.InvokeAsync", source, "the view model");
+
+        // The waiting itself moved into the resolver, where the two routes are
+        // awaited one after the other instead of anyone blocking on them.
+        var resolver = Resolver();
+        Contains("await _usb(", resolver, "the origin resolver");
+        Contains("await _internet(", resolver, "the origin resolver");
+        Assert.DoesNotContain(".GetAwaiter().GetResult()", resolver);
+        Assert.DoesNotContain(".Result", resolver);
+        Assert.DoesNotContain(".Wait()", resolver);
     }
 
     [Fact]

@@ -1,10 +1,11 @@
+using System;
 using Avalonia.Controls;
 using PhoneGrade.Core;
 using PhoneGrade.UI.ViewModels;
 
 namespace PhoneGrade.UI.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IDisposable
 {
     public MainWindow()
     {
@@ -20,4 +21,12 @@ public partial class MainWindow : Window
             editor.Show();
         };
     }
+
+    /// <summary>
+    /// Releases the view model behind the window, which closes the public address
+    /// its tunnel opened. Closing the window already does this through the Closed
+    /// event in App; this is for a window that is only built, because one of those
+    /// is never closed and would otherwise leave the connector running.
+    /// </summary>
+    void IDisposable.Dispose() => (DataContext as MainWindowViewModel)?.Shutdown();
 }

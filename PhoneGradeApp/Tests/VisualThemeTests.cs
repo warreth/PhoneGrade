@@ -29,7 +29,7 @@ public class VisualThemeTests : IDisposable
     [AvaloniaFact]
     public void DarkTheme_RendersDarkBackground()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         // Guarantee dark even if construction raced with settings
         ((MainWindowViewModel)window.DataContext!).Theme = "Dark";
         double lum = RenderAverageLuminance(window);
@@ -39,7 +39,7 @@ public class VisualThemeTests : IDisposable
     [AvaloniaFact]
     public void LightTheme_RendersLightBackground()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         ((MainWindowViewModel)window.DataContext!).Theme = "Light";
         double lum = RenderAverageLuminance(window);
         Assert.True(lum > 150, $"light theme too dark: {lum:F0}");

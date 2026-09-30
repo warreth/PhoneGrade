@@ -21,7 +21,7 @@ namespace PhoneGrade.UI.ViewModels;
 /// read → diagnose → label, and asks only the questions settings can't answer
 /// (quality, payment) unless defaults are configured.
 /// </summary>
-public class MainWindowViewModel : ReactiveObject
+public class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly AppSettings _settings;
     private readonly DevicePresenceTracker _presence = new();
@@ -66,6 +66,8 @@ public class MainWindowViewModel : ReactiveObject
     // Web Test Runner (PWA) Properties
     private TestRunnerServer? _webServer;
     private readonly AdbReverseTunnel _adbTunnel = AdbReverseTunnel.CreateDefault();
+    private readonly QuickTunnel _quickTunnel = QuickTunnel.CreateDefault();
+    private readonly WebRunnerOriginResolver _originResolver;
 
     /// <summary>
     /// Counts the session requests, so an answer that arrives after the next one
@@ -212,9 +214,9 @@ public class MainWindowViewModel : ReactiveObject
     private bool _useSecureOrigin = true;
 
     /// <summary>
-    /// Serves the PWA over the adb reverse tunnel so the browser treats it as a
-    /// secure origin. Turning it off falls back to the LAN address, which is what
-    /// iOS needs because it has no adb to build a tunnel with.
+    /// Whether a secure origin is wanted at all. It comes from the adb reverse
+    /// tunnel for Android and from the public tunnel address for everything else,
+    /// and turning it off falls straight back to the LAN address.
     /// </summary>
     public bool UseSecureOrigin
     {
@@ -224,6 +226,25 @@ public class MainWindowViewModel : ReactiveObject
             if (!this.RaiseAndSetIfChanged(ref _useSecureOrigin, value)) return;
             _settings.UseSecureOrigin = value;
             _settings.Save();
+            RefreshWebRunnerAddress();
+        }
+    }
+
+    private bool _usePublicTunnel = true;
+
+    /// <summary>
+    /// Whether a public https address may be opened for a phone that has no other
+    /// way to reach a secure origin. Android does not need it, an iPhone does.
+    /// </summary>
+    public bool UsePublicTunnel
+    {
+        get => _usePublicTunnel;
+        set
+        {
+            if (!this.RaiseAndSetIfChanged(ref _usePublicTunnel, value)) return;
+            _settings.UsePublicTunnel = value;
+            _settings.Save();
+            if (!value) _ = _quickTunnel.StopAsync();
             RefreshWebRunnerAddress();
         }
     }
@@ -444,6 +465,7 @@ public class MainWindowViewModel : ReactiveObject
         _enable85PercentChecker = _settings.Enable85PercentChecker;
         _isDebugMode = _settings.IsDebugMode;
         _useSecureOrigin = _settings.UseSecureOrigin;
+        _usePublicTunnel = _settings.UsePublicTunnel;
         _openEditorBeforePrint = _settings.OpenEditorBeforePrint;
         _autoStartWebTest = _settings.AutoStartWebTest;
         _showSummaryScreenAfterTesting = _settings.ShowSummaryScreenAfterTesting;
@@ -457,6 +479,18 @@ public class MainWindowViewModel : ReactiveObject
         // Wire verbose logging flag from settings
         ToolRunner.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
         TestRunnerServer.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
+
+        _originResolver = new WebRunnerOriginResolver(
+            (sessionUdid, port) => _adbTunnel.OpenAsync(sessionUdid, port),
+            (port, onStatus) => _quickTunnel.StartAsync(port, onStatus));
+
+        // A connector that dies takes the address behind an already printed QR code
+        // with it, so the session is worked out again instead of leaving it pointing
+        // at nothing.
+        _quickTunnel.AddressLost += () => Dispatcher.UIThread.Post(() =>
+        {
+            if (UseSecureOrigin && UsePublicTunnel) RefreshWebRunnerAddress();
+        });
 
         var canStart = this.WhenAnyValue(x => x.Busy).Select(b => !b);
         RefreshDevicesCommand = ReactiveCommand.CreateFromTask(RefreshDeviceListAsync);
@@ -671,16 +705,7 @@ public class MainWindowViewModel : ReactiveObject
 
             _webServer?.SetActiveSession(sessionUdid);
 
-            if (!UseSecureOrigin || !AdbReverseTunnel.SupportsReverse(sessionUdid))
-            {
-                // iOS, or the operator having turned the tunnel off: no adb is
-                // involved, so the address is known already.
-                PublishWebRunner(sessionUdid, port, QrCodeService.GetLocalIpAddress(), null, generation);
-                return;
-            }
-
-            InteractiveSessionStatus = "Beveiligde verbinding via USB opzetten...";
-            _ = OpenWebRunnerSessionAsync(sessionUdid, port, generation);
+            _ = ResolveWebRunnerAddressAsync(sessionUdid, port, generation);
         }
         catch (Exception ex)
         {
@@ -689,61 +714,89 @@ public class MainWindowViewModel : ReactiveObject
     }
 
     /// <summary>
-    /// Opens the tunnel and then publishes the address it opened.
+    /// Works out where the phone should open the test page and publishes it.
     ///
-    /// The await resumes on whatever context called this, and the publish is pushed
-    /// to the UI thread explicitly so the property changes land where the bindings
-    /// are no matter which of the call sites ended up here.
+    /// Nothing here waits for an answer on the thread it was called from. This runs
+    /// on the UI thread, because it is called from the SelectedDevice setter, and
+    /// waiting there for adb or the tunnel would hand the awaited continuation back
+    /// to the very thread that is blocked, which never finishes. That is what froze
+    /// the window the moment an Android device was picked. The session goes up
+    /// straight away, the address follows whenever each route answers, and the
+    /// publish is pushed onto the UI thread explicitly.
     /// </summary>
-    private async Task OpenWebRunnerSessionAsync(string sessionUdid, int port, int generation)
+    private async Task ResolveWebRunnerAddressAsync(string sessionUdid, int port, int generation)
     {
-        bool opened;
-        string? statusNote;
+        WebRunnerOrigin origin;
 
         try
         {
-            opened = await _adbTunnel.OpenAsync(sessionUdid, port);
+            origin = await _originResolver.ResolveAsync(
+                sessionUdid,
+                port,
+                QrCodeService.NetworkAddress(port),
+                QrCodeService.LoopbackAddress(port),
+                UseSecureOrigin,
+                UsePublicTunnel,
+                status => ReportWebRunnerStatus(status, generation));
         }
         catch (Exception ex)
         {
-            // adb missing, the device not authorised, the build without reverse.
-            // Falling back silently would hand the operator a QR code whose camera
-            // and motion steps cannot run, so the reason is stated in the status.
-            SystemEventLogger.Warning(LogSource.UsbDetector, $"adb reverse could not be opened: {ex.Message}");
-            opened = false;
+            // Last resort: the chain catches its own failures, so getting here means
+            // something broke outside of both routes. A QR code that silently cannot
+            // run the camera and motion steps is worse than one that says so.
+            SystemEventLogger.Warning(LogSource.UsbDetector, $"No route for the phone: {ex.Message}");
+            origin = new WebRunnerOrigin(QrCodeService.NetworkAddress(port), false, null);
         }
 
         if (!IsCurrentWebRunnerSession(generation)) return;
 
-        statusNote = opened
-            ? null
-            : "adb reverse lukte niet, uitwijken naar het netwerk. Camera en bewegingssensoren blijven dan onbeschikbaar.";
-
         await Dispatcher.UIThread.InvokeAsync(() =>
-            PublishWebRunner(sessionUdid, port,
-                opened ? AdbReverseTunnel.LoopbackHost : QrCodeService.GetLocalIpAddress(),
-                statusNote, generation));
+            PublishWebRunner(sessionUdid, origin, generation));
+    }
+
+    /// <summary>Shows what the address is being worked out with, while it is.</summary>
+    private void ReportWebRunnerStatus(string status, int generation)
+    {
+        if (!IsCurrentWebRunnerSession(generation)) return;
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (IsCurrentWebRunnerSession(generation)) InteractiveSessionStatus = status;
+        });
     }
 
     /// <summary>True while the given request is still the newest one.</summary>
     private bool IsCurrentWebRunnerSession(int generation) =>
         generation == Volatile.Read(ref _webRunnerGeneration);
 
-    private void PublishWebRunner(string sessionUdid, int port, string host, string? statusNote, int generation)
+    private void PublishWebRunner(string sessionUdid, WebRunnerOrigin origin, int generation)
     {
         if (!IsCurrentWebRunnerSession(generation)) return;
 
-        WebRunnerUrl = QrCodeService.GenerateSessionUrl(host, port, sessionUdid, IsDebugMode);
+        WebRunnerUrl = QrCodeService.GenerateSessionUrl(origin.Address, sessionUdid, IsDebugMode);
         QrCodeBitmap = QrCodeService.GenerateQrCodeBitmap(WebRunnerUrl);
-        InteractiveSessionStatus = statusNote ?? (host == AdbReverseTunnel.LoopbackHost
-            ? $"Scan QR om te openen via USB: {WebRunnerUrl}"
-            : $"Scan QR of open: {WebRunnerUrl}");
+
+        // The warning replaces the polite opening line, but never the address: it is
+        // already shown on its own in the window, so nothing is hidden by this.
+        InteractiveSessionStatus = origin.Warning ?? DescribeWebRunnerRoute(origin);
 
         // If AutoStartWebTest is enabled, send a signal to connected PWA clients to auto-start the test suite
         if (AutoStartWebTest && _webServer != null)
         {
             _webServer.BroadcastMessage(new { type = "auto_start_suite", sessionId = sessionUdid });
         }
+    }
+
+    /// <summary>Names the route the address went over, so the operator can tell.</summary>
+    private string DescribeWebRunnerRoute(WebRunnerOrigin origin)
+    {
+        if (QrCodeService.IsLoopbackAddress(origin.Address))
+            return $"Scan QR om te openen via USB: {WebRunnerUrl}";
+
+        if (QrCodeService.IsSecureAddress(origin.Address))
+            return $"Scan QR of open via internet: {WebRunnerUrl}";
+
+        return $"Scan QR of open: {WebRunnerUrl}";
     }
 
     /// <summary>Rebuilds the QR code after the origin setting changed.</summary>
@@ -757,6 +810,30 @@ public class MainWindowViewModel : ReactiveObject
 
         UpdateWebRunnerSession(serial);
     }
+
+    /// <summary>
+    /// Closes the public address the tunnel opened. A connector left running would
+    /// keep forwarding a URL to a server that is no longer there.
+    /// </summary>
+    public void Shutdown()
+    {
+        try
+        {
+            _quickTunnel.Dispose();
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Warning(LogSource.UsbDetector, $"Could not close the tunnel: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// <see cref="Shutdown"/> as a contract, so a caller that only has the interface
+    /// can release the connector too. Closing the window already does it; a window
+    /// that is built but never shown is never closed either, and there the connector
+    /// would otherwise outlive the reason it was opened for.
+    /// </summary>
+    void IDisposable.Dispose() => Shutdown();
 
     /// <summary>
     /// Shows where the phone is, so the operator can walk away from it.

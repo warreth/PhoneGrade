@@ -32,9 +32,15 @@ public class AppSettings
     /// microphone, motion and orientation access on a secure origin, and a plain
     /// http:// LAN address is not one, so over the network those four steps have
     /// nothing to run on. The tunnel needs the cable that is required anyway, so
-    /// this is the default. Turn it off for iOS, which has no adb.
+    /// this is the default. Turn it off to drop straight back to the LAN address.
     /// </summary>
     public bool UseSecureOrigin { get; set; } = true;
+
+    /// <summary>
+    /// Opens a public https address for a phone that cannot use the adb tunnel,
+    /// which is every iPhone. Off keeps every address on the local network.
+    /// </summary>
+    public bool UsePublicTunnel { get; set; } = true;
 
     [JsonIgnore]
     private static string SettingsDir =>
