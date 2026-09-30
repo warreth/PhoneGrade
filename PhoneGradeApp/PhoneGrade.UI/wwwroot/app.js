@@ -16,7 +16,7 @@ import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 import { CapabilityScanner } from './modules/CapabilityScanner.js';
 import { applyStoredResults, firstPendingIndex, canResume, describeResume } from './modules/SuiteProgress.js';
 import { baseUrlFrom } from './modules/serverUrl.js';
-import { initLocale, locale, applyStaticText } from './modules/i18n.js';
+import { initLocale, locale, applyStaticText, t } from './modules/i18n.js';
 import { runCommand } from './modules/CommandDispatch.js';
 import { countResults } from './modules/SuiteCounts.js';
 import { buildResultRow } from './modules/ResultRows.js';
@@ -118,7 +118,7 @@ class RestApiClient {
             
             if (resp.ok) {
                 this.connected = true;
-                this.updateConnectionStatus('connected', 'Connected');
+                this.updateConnectionStatus('connected', t('runner.connected'));
                 
                 // 2. Send telemetry
                 await this.sendClientTelemetry();
@@ -137,7 +137,7 @@ class RestApiClient {
             }
         } catch (e) {
             this.connected = false;
-            this.updateConnectionStatus('error', `Connection Error: ${e.message}`);
+            this.updateConnectionStatus('error', t('runner.connectionError', { message: e.message }));
             setTimeout(() => this.connect(), 2000);
         }
     }
@@ -265,13 +265,13 @@ class RestApiClient {
                 throw new Error(`HTTP ${response.status}`);
             }
 
-            this.updateConnectionStatus('connected', 'Connected');
+            this.updateConnectionStatus('connected', t('runner.connected'));
             return true;
         } catch (e) {
             console.warn('Failed to send message, saving to offline queue:', e);
             if (enqueueOnFailure) {
                 this.saveToOfflineQueue(message);
-                this.updateConnectionStatus('offline', 'Offline - Changes saved locally');
+                this.updateConnectionStatus('offline', t('runner.offlineSavedLocally'));
             }
             return false;
         }
@@ -320,11 +320,11 @@ class RestApiClient {
 
             if (failed.length === 0) {
                 localStorage.removeItem('pwa_offline_queue');
-                this.updateConnectionStatus('connected', 'Connected');
+                this.updateConnectionStatus('connected', t('runner.connected'));
                 console.log('All offline messages synced successfully');
             } else {
                 localStorage.setItem('pwa_offline_queue', JSON.stringify(failed));
-                this.updateConnectionStatus('offline', `${failed.length} results still waiting to sync`);
+                this.updateConnectionStatus('offline', t('runner.resultsWaitingToSync', { count: failed.length }));
                 console.log(`${failed.length} messages still pending`);
             }
         } catch (e) {
@@ -465,7 +465,7 @@ class TestRunner {
             new Promise((resolve) => {
                 this._runFailsafe = setTimeout(() => {
                     if (test.status === 'running') {
-                        test.fail(`Test timed out (${budgetSeconds}s limit reached)`);
+                        test.fail(t('runner.testTimedOut', { seconds: budgetSeconds }));
                         console.warn(`Test ${test.id} timed out.`);
                     }
                     resolve();
@@ -481,7 +481,7 @@ class TestRunner {
             this._runFailsafe = null;
             this._skipSettler = null;
             if (test.status === 'running') {
-                test.fail('Test ended without a result');
+                test.fail(t('runner.testEndedWithoutResult'));
             }
 
             // A step that reports several rows has to settle all of them when the
@@ -492,8 +492,8 @@ class TestRunner {
                 test.settleEdgeFromRunner(
                     test.status === 'skipped' ? 'skipped' : 'failed',
                     test.status === 'skipped'
-                        ? 'Overgeslagen samen met de stap'
-                        : 'Afgebroken voordat de randen klaar waren');
+                        ? t('runner.edgesSkippedWithStep')
+                        : t('runner.edgesInterruptedBeforeDone'));
             }
 
             try {
@@ -540,7 +540,7 @@ class TestRunner {
 
             await this.runTestSafely(test, container);
         } catch (error) {
-            test.fail('Exception: ' + error.message);
+            test.fail(t('runner.exception', { message: error.message }));
             console.error('Test error:', error);
         } finally {
             document.body.classList.remove('test-running');
@@ -822,7 +822,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     window.addEventListener('offline', () => {
         console.log('Network lost, messages will be queued locally');
-        wsClient.updateConnectionStatus('offline', 'Offline - Changes saved locally');
+        wsClient.updateConnectionStatus('offline', t('runner.offlineSavedLocally'));
     });
 
     // Flush anything queued while the kiosk was offline. The 'online' listener
@@ -841,7 +841,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
         const startHold = () => {
             holdProgress = 0;
-            skipBtn.textContent = 'Houd vast om over te slaan (0%)';
+            skipBtn.textContent = t('runner.holdToSkip', { pct: 0 });
             skipBtn.style.background = '#94a3b8';
             
             holdTimer = setTimeout(() => {
@@ -854,7 +854,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                         if (window.testRunner._skipSettler) window.testRunner._skipSettler();
                     }
                 }
-                skipBtn.textContent = 'Overgeslagen';
+                skipBtn.textContent = t('runner.skipped');
                 skipBtn.style.background = '#64748b';
                 setTimeout(() => {
                     skipBtn.textContent = originalText;
@@ -865,7 +865,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             holdInterval = setInterval(() => {
                 holdProgress += 50;
                 const pct = Math.round((holdProgress / holdDuration) * 100);
-                skipBtn.textContent = 'Houd vast om over te slaan (' + pct + '%)';
+                skipBtn.textContent = t('runner.holdToSkip', { pct });
             }, 50);
         };
 
