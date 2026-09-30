@@ -170,13 +170,34 @@ public static class ToolRunner
             }
             catch (OperationCanceledException)
             {
-                try { process.Kill(entireProcessTree: true); } catch { }
+                KillTreeQuietly(process);
+                Abandon(stdoutTask);
+                Abandon(stderrTask);
                 Log(resolvedPath, arguments, -1, "", "Command timed out");
                 return ("", "ERROR: command timed out", -1);
             }
 
-            string stdout = (await stdoutTask).Trim();
-            string stderr = (await stderrTask).Trim();
+            // WaitForExit covers the process, not the pipe: a read only ends when the last
+            // handle to the write end is gone, and a tool that leaves a grandchild behind
+            // keeps that handle alive with no timeout left to call on. This waits on the
+            // same clock as above, so the whole call is bounded by timeoutMs whatever the
+            // child decided to leave running.
+            string[] output;
+            try
+            {
+                output = await Task.WhenAll(stdoutTask, stderrTask).WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                KillTreeQuietly(process);
+                Abandon(stdoutTask);
+                Abandon(stderrTask);
+                Log(resolvedPath, arguments, -1, "", "Command output did not finish in time");
+                return ("", "ERROR: command timed out", -1);
+            }
+
+            string stdout = output[0].Trim();
+            string stderr = output[1].Trim();
             int exitCode = process.ExitCode;
 
             Log(resolvedPath, arguments, exitCode, stdout, stderr);
@@ -268,4 +289,18 @@ public static class ToolRunner
             // Logging must never crash the application
         }
     }
+
+    /// <summary>Takes a process and whatever it started down, whether or not it is still there.</summary>
+    private static void KillTreeQuietly(Process process)
+    {
+        try { process.Kill(entireProcessTree: true); } catch { }
+    }
+
+    /// <summary>
+    /// Forgets a pipe read that nobody waits for any more. The read is already running and
+    /// finishes on its own once the write end closes; this only makes sure a late fault is
+    /// not left behind unobserved.
+    /// </summary>
+    private static void Abandon(Task<string> read) =>
+        read.ContinueWith(task => { _ = task.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
 }
