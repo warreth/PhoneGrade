@@ -23,6 +23,26 @@ public partial class MainWindow : Window, IDisposable
     }
 
     /// <summary>
+    /// Takes the picked device from the dropdown. The binding only ever runs from
+    /// the view model into the control, because every refresh rebuilds the item list
+    /// and the dropdown answers that by handing over null, and null does not fit in
+    /// the struct the view model stores. A write that does not fit is not dropped
+    /// quietly: Avalonia records it on the control and prints it underneath, which is
+    /// how the text of the conversion failure ended up permanently below the list of
+    /// detected devices. Nothing here reacts to an empty choice, and the refresh is
+    /// what puts the selection back once it knows which devices are there.
+    /// </summary>
+    private void DeviceSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel
+            && e.AddedItems.Count > 0
+            && e.AddedItems[0] is KeyValuePair<string, string> device)
+        {
+            viewModel.SelectedDevice = device;
+        }
+    }
+
+    /// <summary>
     /// Releases the view model behind the window, which closes the public address
     /// its tunnel opened. Closing the window already does this through the Closed
     /// event in App; this is for a window that is only built, because one of those
