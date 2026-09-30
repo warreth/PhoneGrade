@@ -8,6 +8,7 @@ function makeBody() {
     const children = [];
     return {
         children,
+        style: {},
         contains: (el) => children.includes(el),
         appendChild: (el) => { children.push(el); return el; },
         removeChild: (el) => {
@@ -70,6 +71,50 @@ function fakeContainer() {
     return container;
 }
 
+/** The same contract as fakeContainer, for the overlay the step makes itself. */
+function fakeElement(tag) {
+    const el = fakeContainer();
+    el.tag = tag;
+    el.className = '';
+    el.style = {};
+    el.children = [];
+    el.appendChild = (child) => { el.children.push(child); return child; };
+    return el;
+}
+
+function fakeClient() {
+    const sent = [];
+    return {
+        sent,
+        isConnected: () => true,
+        send: (message) => sent.push(message)
+    };
+}
+
+/** The colour on screen right now, or null when the step has cleared it. */
+function currentOverlay() {
+    return document.body.children[document.body.children.length - 1] || null;
+}
+
+function colorOn(overlay) {
+    const match = /<span class="display-color-name">([^<]+)<\/span>/.exec(overlay.innerHTML);
+    return match ? match[1] : null;
+}
+
+const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+
+/** Runs the step as far as the colour bar and leaves it waiting there. */
+async function start(d) {
+    const container = fakeContainer();
+    const client = fakeClient();
+    const running = d.run(client, container);
+
+    container.querySelector('#brightness-ok').fire('click');
+    await tick();
+
+    return { container, client, running };
+}
+
 global.window = {
     devicePixelRatio: 2,
     location: { search: '?sessionId=TEST_SUITE_123', protocol: 'http:', host: 'localhost:5055' }
@@ -77,16 +122,7 @@ global.window = {
 
 global.document = {
     body: makeBody(),
-    createElement: (tag) => ({
-        tag,
-        className: '',
-        style: { background: '' },
-        children: [],
-        set innerHTML(v) { this._html = v; },
-        get innerHTML() { return this._html || ''; },
-        appendChild(child) { this.children.push(child); return child; },
-        querySelector: () => null
-    }),
+    createElement: (tag) => fakeElement(tag),
     addEventListener: () => {},
     removeEventListener: () => {},
     head: { appendChild: () => {} },
@@ -102,23 +138,23 @@ Object.defineProperty(global, 'navigator', {
 import { DisplayTest } from '../modules/DisplayTest.js';
 import { INSPECTION_COLORS } from '../modules/DisplayInspection.js';
 
-test('a fresh display step has inspected nothing', () => {
+test('a fresh display step has judged nothing', () => {
     const d = new DisplayTest();
 
     assert.equal(d.status, 'pending');
-    assert.equal(d.inspection.total, 12);
-    assert.equal(d.details.patchesInspected, undefined);
+    assert.equal(d.inspection.verdicts.size, 0);
+    assert.equal(d.details.defectiveColors, undefined);
     assert.equal(d.overlay, null);
 });
 
 test('a new step each time, so one inspection cannot leak into the next', () => {
     // The inspection is state on the test object. If it were shared, a second
-    // device in the same session would inherit the first one's defects and be
-    // graded faulty for pixels it does not have.
+    // device in the same session would inherit the first one's fault and be
+    // graded faulty for a panel it does not have.
     const a = new DisplayTest();
     const b = new DisplayTest();
 
-    a.inspection.verdicts.set('white:0', 'defect');
+    a.inspection.verdicts.set('white', 'defective');
 
     assert.equal(b.inspection.verdicts.size, 0);
 });
@@ -148,20 +184,20 @@ test('dispose is safe with no overlay and when called twice', () => {
 
 test('reset clears the inspection as well as the verdict', () => {
     const d = new DisplayTest();
-    d.inspection.verdicts.set('white:4', 'defect');
-    d.inspection.verdicts.set('red:4', 'defect');
+    d.inspection.verdicts.set('white', 'defective');
+    d.inspection.verdicts.set('red', 'defective');
     d.status = 'failed';
 
     d.reset();
 
-    // A rerun has to start from an empty inspection. A leftover defect would have
+    // A rerun has to start from an empty inspection. A leftover fault would have
     // the second attempt fail on the first colour before the operator looked at
     // anything.
     assert.equal(d.inspection.verdicts.size, 0);
     assert.equal(d.status, 'pending');
 });
 
-test('the colours are the five a stuck subpixel shows on', () => {
+test('the colours are the five a panel fault shows up under', () => {
     const d = new DisplayTest();
 
     assert.deepEqual(d.colors.map(c => c.id), INSPECTION_COLORS.map(c => c.id));
@@ -217,4 +253,112 @@ test('the brightness card names what is about to be checked', () => {
 
     assert.match(container.html, /helderheid/i);
     assert.match(container.html, /maximaal/);
+});
+
+test('every colour fills the screen and offers Goed and Slecht', async () => {
+    const d = new DisplayTest();
+    const { running } = await start(d);
+
+    for (const color of INSPECTION_COLORS) {
+        const overlay = currentOverlay();
+        assert.ok(overlay, `${color.name} must be on screen`);
+        assert.equal(overlay.style.background, color.hex, 'the whole screen is the colour being judged');
+        assert.equal(colorOn(overlay), color.name);
+        assert.match(overlay.innerHTML, /id="color-ok"[^>]*>Goed</);
+        assert.match(overlay.innerHTML, /id="color-defect"[^>]*>Slecht</);
+        assert.equal(document.body.children.length, 1, 'the previous colour must be off the screen');
+
+        overlay.querySelector('#color-ok').fire('click');
+        await tick();
+    }
+
+    await running;
+
+    assert.equal(d.status, 'passed');
+    assert.equal(document.body.children.length, 0, 'no colour may be left on the screen');
+});
+
+test('Slecht records the colour and every colour is still shown', async () => {
+    const d = new DisplayTest();
+    const { running } = await start(d);
+
+    const answers = ['#color-ok', '#color-defect', '#color-ok', '#color-ok', '#color-ok'];
+    const seen = [];
+
+    for (const id of answers) {
+        const overlay = currentOverlay();
+        assert.ok(overlay, 'a colour must be on screen');
+        seen.push(colorOn(overlay));
+        overlay.querySelector(id).fire('click');
+        await tick();
+    }
+
+    await running;
+
+    assert.deepEqual(seen, ['Wit', 'Rood', 'Groen', 'Blauw', 'Zwart']);
+    assert.equal(d.status, 'failed');
+    assert.deepEqual(d.details.defectiveColors, ['Rood']);
+    assert.equal(d.notes, 'Afwijking gemeld bij: Rood');
+    assert.match(JSON.stringify(d.details), /Rood/);
+});
+
+test('Vorige goes back without losing the verdict already given', async () => {
+    const d = new DisplayTest();
+    const { running } = await start(d);
+
+    let overlay = currentOverlay();
+    assert.equal(colorOn(overlay), 'Wit');
+    assert.equal(overlay.querySelector('#color-prev'), null,
+        'the first colour is the start of the run, there is nothing before it');
+
+    overlay.querySelector('#color-defect').fire('click');
+    await tick();
+
+    overlay = currentOverlay();
+    assert.equal(colorOn(overlay), 'Rood');
+    assert.ok(overlay.querySelector('#color-prev'), 'from the second colour on there is a way back');
+
+    overlay.querySelector('#color-prev').fire('click');
+    await tick();
+
+    overlay = currentOverlay();
+    assert.equal(colorOn(overlay), 'Wit');
+    assert.match(overlay.innerHTML, /id="color-defect" class="[^"]*is-active/,
+        'the verdict they gave before is still the verdict on screen');
+
+    // Changed their mind while standing in front of it again.
+    overlay.querySelector('#color-ok').fire('click');
+    await tick();
+
+    // Whatever is left, taken until the screen goes clean.
+    while (currentOverlay()) {
+        currentOverlay().querySelector('#color-ok').fire('click');
+        await tick();
+    }
+
+    await running;
+
+    assert.equal(d.status, 'passed');
+    assert.deepEqual(d.details.defectiveColors, [],
+        'the colour ruled out on the second look must not still be on the report');
+});
+
+test('the bar reports each colour to the desktop as it is judged', async () => {
+    const d = new DisplayTest();
+    const { client, running } = await start(d);
+
+    for (let i = 0; i < INSPECTION_COLORS.length; i++) {
+        const id = i === 1 ? '#color-defect' : '#color-ok';
+        currentOverlay().querySelector(id).fire('click');
+        await tick();
+    }
+
+    await running;
+
+    const reported = client.sent.filter(m => m.type === 'test_progress');
+    assert.ok(reported.some(m => m.testName === 'Display & Dead Pixels (Rood)'));
+    assert.ok(reported.some(m => m.message === 'Rood: afwijking gemeld'));
+    assert.ok(reported.some(m => m.message === 'Wit: goed'),
+        'a colour judged Goed is reported the same way, or the bar would stall');
+    assert.equal(reported[reported.length - 1].progress, 100);
 });

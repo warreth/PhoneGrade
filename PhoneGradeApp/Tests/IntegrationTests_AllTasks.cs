@@ -263,25 +263,26 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         Assert.DoesNotContain("Scherm niet helder genoeg om dode pixels te beoordelen", displayTestContent);
     }
 
-    // Task 3: Display inspection is per patch, not one verdict for the whole panel
+    // Task 3: The display is judged one colour at a time
     [Fact]
-    public async Task Task3_Display_RecordsAVerdictPerPatch()
+    public async Task Task3_Display_RecordsAVerdictPerColour()
     {
         var displayTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/DisplayTest.js");
         var inspectionContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/DisplayInspection.js");
 
-        // A stuck subpixel is smaller than the eye resolves at arm's length, so a
-        // single pass/fail over the whole panel cannot find one. The step walks a
-        // grid and records a verdict per patch per colour.
-        Assert.Contains("patchRect", displayTestContent);
-        Assert.Contains("setVerdict", displayTestContent);
+        // One full-screen colour, one answer from the operator. Framing the panel
+        // into patches asked for sixty answers to a question the operator could
+        // not reliably answer, so the answers were noise and the run took an age.
+        Assert.Contains("showColor", displayTestContent);
         Assert.Contains("INSPECTION_COLORS", displayTestContent);
+        Assert.Contains("recordVerdict", displayTestContent);
+        Assert.DoesNotContain("patchRect", displayTestContent);
 
-        // The counting has to exist and be the shared version, or the label would
-        // still say nothing about where a defect is.
+        // A colour marked Slecht is a reason to look at the other four, not a
+        // reason to stop, and the label has to be able to say which colours.
         Assert.Contains("describeDefects", inspectionContent);
         Assert.Contains("isDisplayFaulty", inspectionContent);
-        Assert.Contains("inspectedCount", inspectionContent);
+        Assert.Contains("defectiveColorNames", inspectionContent);
     }
 
     // Task 3: The display step is the only one that escapes the test container

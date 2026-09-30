@@ -446,44 +446,13 @@ body.test-running .test-footer,
     margin-bottom: var(--spacing-md);
 }
 
-/* Display inspection: a flat colour with one patch framed on it */
+/* Display inspection: one pure colour full screen, with the answer bar over it */
 .display-test-fullscreen {
     position: fixed;
     inset: 0;
     z-index: 99999;
     touch-action: none;
     user-select: none;
-}
-
-.display-patch {
-    position: absolute;
-    border: 2px dashed currentColor;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    pointer-events: none;
-}
-
-/*
- * The loupe: a fine matrix inside the framed patch.
- *
- * It is a reference grid, not a magnification. The page has no way to read the
- * panel's own pixels, so it cannot enlarge what the screen is emitting. What it
- * can do is show the operator the size of the thing being looked for, which is
- * what a flat rectangle of colour fails to do.
- */
-.display-loupe {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(8, 1fr);
-    width: 100%;
-    height: 100%;
-    opacity: 0.5;
-}
-
-.display-loupe span {
-    border: 0.5px solid currentColor;
 }
 
 .display-bar {
@@ -515,23 +484,23 @@ body.test-running .test-footer,
     opacity: 0.8;
 }
 
-.display-patch-label {
-    font-size: 12px;
-    opacity: 0.75;
+/* Kept to one line: every pixel the bar covers is a pixel not on show */
+.display-hint {
+    font-size: 13px;
+    opacity: 0.85;
+    margin: 0;
 }
 
-.display-bar-actions,
-.display-bar-nav {
+.display-bar-actions {
     display: flex;
     gap: var(--spacing-sm);
 }
 
-.display-bar-actions .btn,
-.display-bar-nav .btn {
+.display-bar-actions .btn {
     flex: 1;
 }
 
-/* Set once a patch has been judged, so the operator can see it stuck */
+/* Set once a colour has been judged, so coming back shows the last verdict */
 .display-bar-actions .btn.is-active {
     outline: 3px solid #ffffff;
     outline-offset: -3px;
