@@ -58,29 +58,151 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
 
     // Task 2: Motion Sensor Permissions
     [Fact]
-    public async Task Task2_MotionSensor_HandlesPermissionDenial()
+    public void Task2_MotionSensor_AsksTheOperatorInsteadOfSkipping()
     {
-        // Arrange: Verify that SensorTest.js exists and has requestPermission logic
         var sensorTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/SensorTest.js");
-        
-        // Assert: Verify the permission handling code is present
+
+        // The iOS prompt is still asked for, from a click, because that is the
+        // only way it can be asked.
         Assert.Contains("requestPermission", sensorTestContent);
-        Assert.Contains("Permission denied", sensorTestContent);
-        Assert.Contains("handleFallbackAndSkip", sensorTestContent);
+
+        // What it must not do is end the step by itself. A phone with a working
+        // orientation sensor was recorded as untestable because the browser would
+        // not hand over the numbers, and the operator never got to look at it.
+        Assert.DoesNotContain("handleFallbackAndSkip", sensorTestContent);
+        Assert.DoesNotContain("this.skip(", sensorTestContent);
+
+        // So the sensors that cannot be read are offered as a hand-turned check,
+        // and the verdict says in as many words that it was a hand-turned check.
+        Assert.Contains("sensor-manual-yes", sensorTestContent);
+        Assert.Contains("sensor-manual-no", sensorTestContent);
+        Assert.Contains("niet rechtstreeks uitgelezen", sensorTestContent);
+        Assert.Contains("rotationConfirmed", sensorTestContent);
     }
 
-    // Task 3: GPS Error Recovery
+    // Task 3: The steps that used to end themselves
     [Fact]
-    public async Task Task3_GPS_ShowsRetryButtonOnPermissionDenied()
+    public void Task3_PermissionSteps_DoNotReachAVerdictWithoutTheOperator()
     {
-        var locationTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/LocationTest.js");
+        // The rule behind the camera, motion and microphone fixes, in one place. A
+        // refusal is a question, and only a genuinely absent API is a gap the step
+        // may record on its own. The location step is held to the same rule and is
+        // checked with its own tests.
+        foreach (var module in new[]
+                 {
+                     "CameraTest", "SensorTest", "MicrophoneTest"
+                 })
+        {
+            var content = RepoPath.Read($"PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/{module}.js");
 
-        // The retry button must exist and must be wired up, and a denial must
-        // settle the step instead of leaving the suite waiting forever.
-        Assert.Contains("btn-retry-location", locationTestContent);
-        Assert.Contains("btnRetry.onclick", locationTestContent);
-        Assert.Contains("permission denied", locationTestContent);
-        Assert.Contains("finish(DENIAL_RETRY_GRACE_MS)", locationTestContent);
+            // Whatever the reason, the browser's own words are not the report. A
+            // label reading "NotAllowedError: Permission denied" tells a technician
+            // nothing they can act on.
+            Assert.DoesNotContain("this.fail('Failed to access camera", content);
+
+            // And a step that measures more than one thing, or needs a person to
+            // read a card and answer it, cannot have the single-measurement budget.
+            Assert.Contains("getFailsafeMs", content);
+        }
+    }
+
+    // Task 3: Why a media call failed, in one place
+    [Fact]
+    public void Task3_MediaFailures_AreClassifiedAndExplained()
+    {
+        var capability = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/MediaCapability.js");
+
+        // Every step used to answer "something went wrong" the same way, which was
+        // to give up. Sorting the answer into refused, absent, busy, unsupported
+        // and unknown is what lets a step tell the operator which one it hit.
+        Assert.Contains("CAPABILITY", capability);
+        Assert.Contains("classifyMediaError", capability);
+        Assert.Contains("explainMediaError", capability);
+        Assert.Contains("NotAllowedError", capability);
+        Assert.Contains("NotReadableError", capability);
+        Assert.Contains("hasMediaDevices", capability);
+
+        // A refusal and a camera another app was holding are both worth another
+        // try, and only a refusal is reported as a reason not to retry.
+        Assert.Contains("isFixable", capability);
+    }
+
+    // Task 3: The microphone
+    [Fact]
+    public void Task3_Microphone_DoesNotSwapInTheRecorderAndReleasesTheInput()
+    {
+        var micContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/MicrophoneTest.js");
+
+        // The old step ran getUserMedia in a try and fell out of it into the
+        // phone's own voice recorder. That replaced a measurement with a different
+        // test, and a phone with a dead microphone could be passed by pressing
+        // "yes, clear" on a recording that never had any sound in it. A refusal now
+        // says so and offers a retry; the recorder is reached from the card, on
+        // purpose, and only when there is no microphone API to measure with.
+        Assert.Contains("mic-retry", micContent);
+        Assert.Contains("showMicTrouble", micContent);
+        Assert.Contains("mic-recorder", micContent);
+        Assert.Contains("runRecorderFallback", micContent);
+        Assert.Contains("checkMethod", micContent);
+
+        // A skipped step used to leave the input open, so the phone went on showing
+        // its microphone indicator for the rest of the run. dispose is what the
+        // runner calls on every exit, so it is what has to let go.
+        Assert.Contains("dispose()", micContent);
+        Assert.Contains("stopCapture", micContent);
+        Assert.Contains("close()", micContent);
+    }
+
+    // Task 3: The camera
+    [Fact]
+    public void Task3_Camera_JudgesEachCameraOnItsOwn()
+    {
+        var cameraContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
+
+        // A camera that will not open is offered back with the browser's reason and
+        // a retry, and a failure to open the second camera must not throw away the
+        // verdict on the first.
+        Assert.Contains("waitForCameraTrouble", cameraContent);
+        Assert.Contains("btn-camera-retry", cameraContent);
+        Assert.Contains("btn-camera-reject", cameraContent);
+        Assert.Contains("rearCamera", cameraContent);
+        Assert.Contains("frontCamera", cameraContent);
+
+        // A photo cannot be captured before the video has a frame, or a black
+        // rectangle goes on the report as a photo a technician approved.
+        Assert.Contains("videoWidth", cameraContent);
+
+        // A camera with no torch is normal, so it is stated as a fact and the photo
+        // is judged in whatever light there is. The old text was the generic
+        // "inspect the photo carefully", which read as if something had gone wrong.
+        Assert.Contains("torch-overlay", cameraContent);
+        Assert.Contains("geen flits", cameraContent);
+    }
+
+    // Task 3: The cards these steps write
+    [Fact]
+    public void Task3_StepCards_LiveInTheSharedStylesheet()
+    {
+        var styles = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/styles.css");
+
+        // Every step that shows a card shares these, instead of each one writing
+        // its own inline styles and drifting a few pixels apart.
+        foreach (var className in new[]
+                 {
+                     ".step-card", ".step-lead", ".step-stack", ".step-block", ".step-hint",
+                     ".step-question", ".step-note", ".step-actions", ".sensor-bowl",
+                     ".sensor-track", ".mic-meter", ".camera-view"
+                 })
+        {
+            Assert.Contains(className, styles);
+        }
+
+        // The hidden attribute has to beat a class that sets a display, or the
+        // parts of a card that are not reachable yet are on screen anyway. That is
+        // a rule about the browser's own styling winning, so it has to be here
+        // rather than in each step.
+        Assert.Contains("[hidden]", styles);
+        Assert.Contains("display: none !important", styles);
     }
 
     // Task 3: Display Brightness Integration
@@ -228,26 +350,34 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
 
     // Task 4: Photo Review Step
     [Fact]
-    public async Task Task4_Camera_HasPhotoReviewWorkflow()
+    public void Task4_Camera_HasPhotoReviewWorkflow()
     {
         var cameraTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
-        
-        // Verify review buttons
-        Assert.Contains("Retake Photo", cameraTestContent);
-        Assert.Contains("Use Photo", cameraTestContent);
-        // Verify canvas snapshot
+
+        // The review is a still the operator has to look at before the camera is
+        // judged, in the operator's own language.
+        Assert.Contains("btn-retake", cameraTestContent);
+        Assert.Contains("btn-use-photo", cameraTestContent);
+        Assert.Contains("Opnieuw maken", cameraTestContent);
+        Assert.Contains("Foto goedkeuren", cameraTestContent);
+
+        // The still is a real copy of a real frame, not a placeholder.
         Assert.Contains("canvas", cameraTestContent);
         Assert.Contains("drawImage", cameraTestContent);
     }
 
     // Task 4: Torch Fallback UI
     [Fact]
-    public async Task Task4_Camera_HasTorchFallbackUI()
+    public void Task4_Camera_HasTorchFallbackUI()
     {
         var cameraTestContent = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/CameraTest.js");
-        
-        Assert.Contains("Ensure the lighting is adequate before confirming", cameraTestContent);
+
         Assert.Contains("torch-overlay", cameraTestContent);
+        Assert.Contains("geen flits", cameraTestContent);
+
+        // The torch is a bonus, not the test. A camera that cannot switch it on is
+        // photographed in whatever light there is rather than failed for it.
+        Assert.Contains("torchActive", cameraTestContent);
     }
 
     // Task 5: Automatic Results Sync

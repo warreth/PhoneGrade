@@ -45,6 +45,19 @@
     box-sizing: border-box;
 }
 
+/*
+ * The hidden attribute has to win over a class that sets a display.
+ *
+ * Several steps write their controls as markup with hidden on the parts that are
+ * not reachable yet, and then show them by clearing it. .step-actions and
+ * .step-stack set display: flex, and a class beats the browser's own rule for
+ * [hidden], so without this the "review" buttons sat next to the "capture" ones
+ * from the moment the step opened.
+ */
+[hidden] {
+    display: none !important;
+}
+
 html, body {
     width: 100%;
     height: 100%;
@@ -621,6 +634,200 @@ body.test-running .test-footer,
     font-weight: 600;
     text-align: center;
     font-size: 13px;
+}
+
+/* The card a step does its work in, below the step title */
+.step-card {
+    padding: var(--spacing-lg);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+
+.step-lead {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* A column of related blocks, with the gaps stated once */
+.step-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+/* A button that owns the whole width of the card */
+.step-block {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* Small print under the controls, for the part the operator should know but
+   does not act on */
+.step-hint {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    margin-top: var(--spacing-sm);
+}
+
+/* The sentence a step asks before it takes an answer */
+.step-question {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+/* Something the step had to work around, stated plainly rather than as an alarm */
+.step-note {
+    font-size: 13px;
+    color: var(--color-warning-text);
+    background: var(--color-warning-bg);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* Two or more equal choices side by side */
+.step-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.step-actions .btn {
+    flex: 1;
+}
+
+/* One sensor readout */
+.sensor-panel {
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+}
+
+.sensor-panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-primary);
+}
+
+/* The spirit level the gyroscope drives */
+.sensor-bowl {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 2px solid var(--color-border);
+    background: #0f172a;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.sensor-bubble {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #38bdf8;
+    transform: translate(-50%, -50%);
+    transition: transform 0.08s ease-out;
+}
+
+.sensor-bubble.is-good {
+    background: var(--color-success);
+}
+
+/* The shake meter the accelerometer drives */
+.sensor-track {
+    height: 16px;
+    border-radius: 8px;
+    background: var(--color-border);
+    overflow: hidden;
+    position: relative;
+}
+
+.sensor-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0%;
+    background: #38bdf8;
+    transition: width 0.08s linear;
+}
+
+.sensor-fill.is-good {
+    background: var(--color-success);
+}
+
+.sensor-status {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    margin-top: var(--spacing-sm);
+}
+
+/* The live view and the captured still share one framed area */
+.camera-view {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    background: #000;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: var(--spacing-lg);
+}
+
+.camera-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Says the camera has no torch, which is normal and not a fault */
+.camera-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    text-align: left;
+}
+
+/* The microphone level, as a bar that fills while the operator talks */
+.mic-meter {
+    height: 28px;
+    border-radius: 14px;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    margin-bottom: var(--spacing-md);
+}
+
+.mic-meter-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--color-success);
+    transition: width 0.06s linear;
+}
+
+/* The recording the operator made with the phone's own recorder */
+.mic-preview {
+    width: 100%;
+    margin-bottom: var(--spacing-md);
 }
 
 /* One speaker under test */
