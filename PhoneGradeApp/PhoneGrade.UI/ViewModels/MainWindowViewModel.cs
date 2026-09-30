@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PhoneGrade.Core;
 using PhoneGrade.Core.Diagnostics;
+using PhoneGrade.Core.Licensing;
 using PhoneGrade.UI.Models;
 using PhoneGrade.UI.Services;
 using PhoneGrade.UI.Web;
@@ -27,6 +28,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private readonly DevicePresenceTracker _presence = new();
     private CancellationTokenSource? _flowCts;
     private IDisposable? _watcher;
+
+    // Licensing
+    private readonly LemonSqueezyClient _licenseClient = new();
+    private readonly TrialGate _trialGate;
+    private SettingsViewModel? _settingsViewModel;
 
     public ObservableCollection<DiagnosticIssue> Issues { get; } = [];
     public ObservableCollection<ComponentStatus> ComponentChecks { get; } = [];
@@ -312,6 +318,24 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set => this.RaiseAndSetIfChanged(ref _busy, value);
     }
 
+    /// <summary>True when a valid Pro license is active.</summary>
+    public bool IsProLicenseActive => _trialGate.IsPro;
+
+    /// <summary>Number of scans consumed on the free tier.</summary>
+    public int TrialScanCount => _trialGate.ScanCount;
+
+    /// <summary>True when the free tier limit is reached and no Pro license is active.</summary>
+    public bool IsTrialLimitReached => !IsProLicenseActive && TrialScanCount >= TrialGate.FreeScanLimit;
+
+    /// <summary>Human-readable licensing status for the settings card.</summary>
+    public string LicensingStatusText =>
+        IsProLicenseActive
+            ? LocalizationManager.GetString("Settings_ProTierStatus")
+            : string.Format(LocalizationManager.GetString("Settings_FreeTierStatus"), TrialScanCount);
+
+    /// <summary>View model for the licensing settings card.</summary>
+    public SettingsViewModel? SettingsViewModel => _settingsViewModel;
+
     private DeviceData _deviceData = new();
     public DeviceData DeviceData
     {
@@ -492,7 +516,22 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             if (UseSecureOrigin && UsePublicTunnel) RefreshWebRunnerAddress();
         });
 
-        var canStart = this.WhenAnyValue(x => x.Busy).Select(b => !b);
+        // Licensing gate wired to the live settings instance so every Save() carries the token.
+        _trialGate = new TrialGate(
+            new TrialStateStore(
+                () => _settings.TrialToken,
+                token => { _settings.TrialToken = token; _settings.Save(); },
+                TrialStateStore.DefaultBackupFilePath),
+            _licenseClient);
+
+        // Point DeviceService at this gate so every scan path is gated.
+        DeviceService.ScanGate = () => _trialGate.EvaluateAsync();
+
+        // Settings view model for the licensing card.
+        _settingsViewModel = new SettingsViewModel(_trialGate, _licenseClient, RequestLicenseRefresh);
+
+        var canStart = this.WhenAnyValue(x => x.Busy, x => x.IsTrialLimitReached)
+            .Select(t => !t.Item1 && !t.Item2);
         RefreshDevicesCommand = ReactiveCommand.CreateFromTask(RefreshDeviceListAsync);
         StartCommand = ReactiveCommand.CreateFromTask(() => RunFlowAsync(), canStart);
         RetestCommand = ReactiveCommand.CreateFromTask(RetestCurrentDeviceAsync, canStart);
@@ -827,6 +866,23 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
+    /// <summary>Called when the licensing card activates a key; re-evaluates the gate and refreshes UI.</summary>
+    private void RequestLicenseRefresh()
+    {
+        _ = Task.Run(async () =>
+        {
+            await _trialGate.RefreshLicenseStatusAsync().ConfigureAwait(false);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                this.RaisePropertyChanged(nameof(IsProLicenseActive));
+                this.RaisePropertyChanged(nameof(TrialScanCount));
+                this.RaisePropertyChanged(nameof(IsTrialLimitReached));
+                this.RaisePropertyChanged(nameof(LicensingStatusText));
+                _settingsViewModel?.UpdateStatusText();
+            });
+        });
+    }
+
     /// <summary>
     /// <see cref="Shutdown"/> as a contract, so a caller that only has the interface
     /// can release the connector too. Closing the window already does it; a window
@@ -917,8 +973,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
                     return;
                 }
 
-                // Only auto-start if AutoDetectOnPlug is explicitly enabled AND device hasn't started yet
-                if (!AutoDetectOnPlug || Busy) { return; }
+                // Only auto-start if AutoDetectOnPlug is explicitly enabled AND device hasn't started yet AND trial limit not reached
+                if (!AutoDetectOnPlug || Busy || IsTrialLimitReached) { return; }
 
                 string? udid = SelectedDevice.Key;
                 if (udid is { Length: > 0 })
@@ -1092,6 +1148,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         if (udid is not { Length: > 0 })
         {
             Status = "Geen toestel geselecteerd.";
+            return;
+        }
+
+        // Licensing gate: block at the limit before any device work starts.
+        DeviceService.ScanInitResult gate = await DeviceService.InitializeScanAsync().ConfigureAwait(false);
+        if (gate == DeviceService.ScanInitResult.TrialLimitReached)
+        {
+            Status = "Gratis proefversie limiet bereikt (10/10). Koop een licentie om door te gaan met scannen.";
             return;
         }
 

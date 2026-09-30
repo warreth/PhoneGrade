@@ -218,6 +218,24 @@ public class TrialStateStoreTests : IDisposable
     // ---- Integration with the real settings.json --------------------------------
 
     [Fact]
+    public void DefaultBackupPath_FollowsTheSettingsDirectoryOverride()
+    {
+        // Without this, a test run (or a redirected profile) would write
+        // sys_cache.dat into the real LocalApplicationData instead.
+        string previousOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR") ?? "";
+        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _dir);
+        try
+        {
+            Assert.Equal(Path.Combine(_dir, TrialStateStore.BackupFileName), TrialStateStore.DefaultBackupFilePath);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR",
+                previousOverride.Length > 0 ? previousOverride : null);
+        }
+    }
+
+    [Fact]
     public void TokenSurvivesOrdinaryAppSettingsSaves()
     {
         // Production wiring: location 1 is the live AppSettings instance, so a

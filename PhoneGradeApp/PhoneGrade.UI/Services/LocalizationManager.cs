@@ -68,4 +68,19 @@ public static class LocalizationManager
     {
         SetLanguage(languageCode);
     }
+
+    /// <summary>
+    /// Reads a localized string from the current language dictionary. Returns the
+    /// key itself when the dictionary is not yet loaded or the key is missing, so
+    /// the UI never shows empty text by mistake.
+    /// </summary>
+    public static string GetString(string key)
+    {
+        if (Application.Current?.Resources == null)
+            return key;
+        if (Application.Current.Resources.TryGetResource(key, null, out object? value) &&
+            value is string str && str.Length > 0)
+            return str;
+        return key;
+    }
 }

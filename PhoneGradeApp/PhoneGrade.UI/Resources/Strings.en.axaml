@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     
     <!-- Window Title -->
@@ -84,9 +84,24 @@
     <x:String x:Key="Settings_SecureOriginDesc">Serves the web test at http://localhost instead of the pc's ip address. A browser only grants camera, microphone and motion sensor access on a secure origin. This is the faster of the two options and works as soon as the cable is in.</x:String>
     <x:String x:Key="Settings_PublicTunnel">Secure connection over the internet</x:String>
     <x:String x:Key="Settings_PublicTunnelDesc">Opens a secure https address for the phone when there is no usb tunnel, which is the case for an iPhone. Needs internet on the pc and on the phone, and the test results then pass through Cloudflare. Turning it off keeps everything on the local network, but camera, microphone and motion sensors stop working.</x:String>
+
+    <!-- Licensing &amp; Subscription -->
+    <x:String x:Key="Settings_LicensingCardTitle">Licensing &amp; Subscription</x:String>
+    <x:String x:Key="Settings_LicenseKey">License Key</x:String>
+    <x:String x:Key="Settings_LicenseKeyWatermark">Enter your Lemon Squeezy license key</x:String>
+    <x:String x:Key="Settings_ValidateActivate">Validate &amp; Activate</x:String>
+    <x:String x:Key="Settings_FreeTierStatus">Free Tier ({0}/10 Scans Used)</x:String>
+    <x:String x:Key="Settings_ProTierStatus">Pro Tier (Active)</x:String>
+    <x:String x:Key="Settings_ActivationSuccess">License activated. Unlimited scanning is now available.</x:String>
+    <x:String x:Key="Settings_ActivationFailed">Activation failed: {0}</x:String>
+    <x:String x:Key="Settings_ActivationInvalid">Invalid license key.</x:String>
+    <x:String x:Key="Settings_ActivationExpired">This license has expired.</x:String>
+    <x:String x:Key="Settings_ActivationDeactivated">This license has been deactivated.</x:String>
+    <x:String x:Key="Settings_ActivationError">Network error. Please try again later.</x:String>
+
     <x:String x:Key="Btn_Troubleshoot">USB and Driver Diagnostics</x:String>
     <x:String x:Key="Btn_Logs">View System Logs</x:String>
-
+    
     <!-- Summary / Inspection Report -->
     <x:String x:Key="Summary_Title">INSPECTION REPORT</x:String>
     <x:String x:Key="Summary_AuditTitle">3UTOOLS HARDWARE COMPONENT AUDIT</x:String>
@@ -102,3 +117,4 @@
     <x:String x:Key="Summary_SimLocked">SIM Locked</x:String>
 
 </ResourceDictionary>
+

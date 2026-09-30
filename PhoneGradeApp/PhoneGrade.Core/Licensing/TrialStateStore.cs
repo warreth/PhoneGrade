@@ -59,9 +59,15 @@ public sealed class TrialStateStore
             ? overrideDirectory
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhoneGrade");
 
-    /// <summary>The backup location, always directly in LocalApplicationData\PhoneGrade.</summary>
+    /// <summary>
+    /// The backup location: sys_cache.dat next to settings.json, which in
+    /// production is directly in LocalApplicationData\PhoneGrade. Following the
+    /// settings directory (including its AUTODYMO_SETTINGS_DIR override) keeps
+    /// both locations together wherever the settings file is pointed, so tests
+    /// that redirect settings never read or overwrite a real profile.
+    /// </summary>
     public static string DefaultBackupFilePath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhoneGrade", BackupFileName);
+        Path.Combine(DefaultSettingsDirectory, BackupFileName);
 
     /// <summary>
     /// Store wired to the real files: TrialToken inside settings.json (read as

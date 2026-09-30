@@ -69,6 +69,17 @@
             <!-- ==================== MAIN DYNAMIC CONTENT AREA ==================== -->
             <Panel Grid.Row="1" Background="{DynamicResource AppBgColor}">
 
+                <!-- Trial limit warning banner (appears above idle/active states) -->
+                <Border Classes="card" IsVisible="{Binding IsTrialLimitReached}"
+                        BorderBrush="{DynamicResource WarnColor}" BorderThickness="2"
+                        Padding="16" Margin="32,0,32,16">
+                    <StackPanel Spacing="12">
+                        <TextBlock TextWrapping="Wrap" LineHeight="20"
+                                   Foreground="{DynamicResource WarnColor}" FontWeight="SemiBold"
+                                   Text="Gratis proefversie limiet bereikt (10/10). Koop een licentie om door te gaan met scannen."/>
+                    </StackPanel>
+                </Border>
+
                 <!-- ==================== STATE 1: IDLE ==================== -->
                 <Grid IsVisible="{Binding IsIdleState}" RowDefinitions="*,Auto,*" Margin="32">
                     <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24" MaxWidth="500">
@@ -517,6 +528,29 @@
                                 <TextBox Text="{Binding ImeiApiKey}" Watermark="SickW / IMEIPro API Key..." PasswordChar="*"/>
                             </StackPanel>
                         </StackPanel>
+
+                        <Separator Margin="0,8,0,8"/>
+
+                        <!-- Licensing & Subscription Card -->
+                        <Border Classes="card" Padding="16" Margin="0,8,0,0">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="{DynamicResource Settings_LicensingCardTitle}" Classes="cardTitle"/>
+
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{Binding LicensingStatusText, Mode=OneWay}" FontWeight="SemiBold" FontSize="14"/>
+                                    <TextBlock Text="{Binding SettingsViewModel.StatusMessage, Mode=OneWay}"
+                                               Foreground="{DynamicResource WarnColor}" FontSize="12" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <StackPanel Spacing="8" IsVisible="{Binding !IsProLicenseActive}">
+                                    <TextBlock Text="{DynamicResource Settings_LicenseKey}" FontSize="12" Foreground="{DynamicResource TextDimColor}"/>
+                                    <TextBox Text="{Binding SettingsViewModel.LicenseKeyInput}"
+                                             Watermark="{DynamicResource Settings_LicenseKeyWatermark}" PasswordChar="*"/>
+                                    <Button Classes="cta" Command="{Binding SettingsViewModel.ValidateCommand}"
+                                            Content="{DynamicResource Settings_ValidateActivate}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
 
                         <Separator Margin="0,8,0,8"/>
 
