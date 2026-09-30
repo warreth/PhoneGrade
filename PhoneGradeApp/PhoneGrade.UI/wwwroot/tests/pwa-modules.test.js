@@ -142,6 +142,26 @@ test('DeviceTest lifecycle records start, duration, pass, and fail notes', () =>
     assert.equal(json.notes, 'All checks passed');
 });
 
+test('DeviceTest skip sends a row the desktop must show instead of counting as a pass', () => {
+    class SkippedTest extends DeviceTest {
+        constructor() {
+            super('gps', 'GPS Location', 'Location API test');
+        }
+    }
+
+    const testInst = new SkippedTest();
+    testInst.start();
+    testInst.skip('De browser heeft geen locatie-API');
+
+    const json = testInst.toJSON();
+
+    assert.equal(json.status, 'skipped');
+    assert.equal(json.notes, 'De browser heeft geen locatie-API');
+    assert.deepEqual(Object.keys(json),
+        ['id', 'name', 'status', 'notes', 'durationMs', 'details'],
+        'this is the row the desktop deserializes, so its shape is part of the contract');
+});
+
 test('DeviceTest fail marks status and stores failure reason', () => {
     class FailingTest extends DeviceTest {
         constructor() {

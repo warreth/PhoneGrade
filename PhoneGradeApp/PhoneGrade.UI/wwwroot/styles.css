@@ -946,8 +946,8 @@ body.test-running .test-footer,
 /* Results & Badges */
 .summary-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-sm);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--spacing-xs);
     margin-bottom: var(--spacing-md);
 }
 
@@ -955,12 +955,12 @@ body.test-running .test-footer,
     background: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
     text-align: center;
 }
 
 .stat-label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     color: var(--color-text-secondary);
@@ -975,6 +975,7 @@ body.test-running .test-footer,
 
 .stat-value.passed { color: var(--color-success); }
 .stat-value.failed { color: var(--color-error); }
+.stat-value.skipped { color: var(--color-warning); }
 
 .results-details {
     display: flex;
@@ -1021,4 +1022,9 @@ body.test-running .test-footer,
 .result-badge.failed {
     background: var(--color-error-bg);
     color: var(--color-error-text);
+}
+
+.result-badge.skipped {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
 }

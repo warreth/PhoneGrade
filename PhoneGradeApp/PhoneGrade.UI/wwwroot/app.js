@@ -17,6 +17,7 @@ import { CapabilityScanner } from './modules/CapabilityScanner.js';
 import { applyStoredResults, firstPendingIndex, canResume, describeResume } from './modules/SuiteProgress.js';
 import { baseUrlFrom } from './modules/serverUrl.js';
 import { runCommand } from './modules/CommandDispatch.js';
+import { countResults } from './modules/SuiteCounts.js';
 
 class RestApiClient {
     constructor() {
@@ -679,16 +680,17 @@ class TestRunner {
 
     showResultsScreen(suiteResult) {
         this.showScreen('results-screen');
-        const passedCount = suiteResult.tests.filter(t => t.status === 'passed').length;
-        const failedCount = suiteResult.tests.filter(t => t.status === 'failed').length;
-        const totalCount = suiteResult.tests.length;
+        const counts = countResults(suiteResult.tests);
+        const total = counts.total;
 
         const elTotal = document.getElementById('total-count');
         const elPassed = document.getElementById('passed-count');
         const elFailed = document.getElementById('failed-count');
-        if (elTotal) elTotal.textContent = totalCount;
-        if (elPassed) elPassed.textContent = passedCount;
-        if (elFailed) elFailed.textContent = failedCount;
+        const elSkipped = document.getElementById('skipped-count');
+        if (elTotal) elTotal.textContent = total;
+        if (elPassed) elPassed.textContent = counts.passed;
+        if (elFailed) elFailed.textContent = counts.failed;
+        if (elSkipped) elSkipped.textContent = counts.skipped;
 
         const resultsDetails = document.getElementById('results-details');
         if (resultsDetails) {

@@ -38,6 +38,17 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public ObservableCollection<ComponentStatus> ComponentChecks { get; } = [];
     public ObservableCollection<ComponentStatus> DefectiveComponents { get; } = [];
     public ObservableCollection<InteractiveTestResult> FailedInteractiveTests { get; } = [];
+
+    /// <summary>
+    /// The tests the phone did not run. Not a failure, but not a pass either, and
+    /// leaving them out of the report is what makes a run look complete when part
+    /// of it never happened.
+    /// </summary>
+    public ObservableCollection<InteractiveTestResult> SkippedInteractiveTests { get; } = [];
+
+    /// <summary>True when the inspection report has nothing to show about the phone's own tests.</summary>
+    public bool NoInteractiveTestProblems =>
+        FailedInteractiveTests.Count == 0 && SkippedInteractiveTests.Count == 0;
     public UnifiedLogsViewModel LogsViewModel { get; } = new();
     public TroubleshootViewModel TroubleshootViewModel { get; } = new();
 
@@ -941,10 +952,57 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
         int passed = suite.Tests.Count(t => t.Status == TestStatus.Passed);
         int failed = suite.Tests.Count(t => t.Status == TestStatus.Failed);
-        InteractiveTestSummary = $"Interactieve tests: {passed} geslaagd, {failed} gefaald ({suite.Platform})";
-        InteractiveSessionStatus = suite.AllPassed
-            ? "Interactieve hardwaretest: Alles geslaagd!"
-            : $"Interactieve hardwaretest voltooid: {failed} fout(en)";
+        int skipped = suite.Tests.Count(t => t.Status == TestStatus.Skipped);
+
+        InteractiveTestSummary = skipped == 0
+            ? $"Interactieve tests: {passed} geslaagd, {failed} gefaald ({suite.Platform})"
+            : $"Interactieve tests: {passed} geslaagd, {failed} gefaald, {skipped} overgeslagen ({suite.Platform})";
+
+        if (failed > 0)
+        {
+            InteractiveSessionStatus = skipped > 0
+                ? $"Interactieve hardwaretest voltooid: {failed} fout(en), {skipped} overgeslagen"
+                : $"Interactieve hardwaretest voltooid: {failed} fout(en)";
+        }
+        else if (skipped > 0)
+        {
+            InteractiveSessionStatus = $"Interactieve hardwaretest voltooid: {skipped} test(en) overgeslagen";
+        }
+        else
+        {
+            InteractiveSessionStatus = suite.AllPassed
+                ? "Interactieve hardwaretest: Alles geslaagd!"
+                : "Interactieve hardwaretest voltooid";
+        }
+
+        RefreshInteractiveTestLists();
+    }
+
+    /// <summary>
+    /// Fills the two lists in the inspection report.
+    ///
+    /// They are refilled here and at the end of the flow, because the run can
+    /// finish either way round: results that arrive after the report was built
+    /// would otherwise sit unseen until the operator paid for nothing.
+    /// </summary>
+    private void RefreshInteractiveTestLists()
+    {
+        FailedInteractiveTests.Clear();
+        SkippedInteractiveTests.Clear();
+
+        foreach (var test in DeviceData.InteractiveTests?.Tests ?? Enumerable.Empty<InteractiveTestResult>())
+        {
+            if (test.Status == TestStatus.Failed)
+            {
+                FailedInteractiveTests.Add(test);
+            }
+            else if (test.Status == TestStatus.Skipped)
+            {
+                SkippedInteractiveTests.Add(test);
+            }
+        }
+
+        this.RaisePropertyChanged(nameof(NoInteractiveTestProblems));
     }
 
     /// <summary>Polls for device changes every 2s; starts the auto flow on first sight of a device.</summary>
@@ -1308,17 +1366,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             }
         }
 
-        FailedInteractiveTests.Clear();
-        if (DeviceData.InteractiveTests?.Tests != null)
-        {
-            foreach (var t in DeviceData.InteractiveTests.Tests)
-            {
-                if (t.Status == TestStatus.Failed)
-                {
-                    FailedInteractiveTests.Add(t);
-                }
-            }
-        }
+        RefreshInteractiveTestLists();
 
         WorkflowState = AppWorkflowState.Summary;
 
