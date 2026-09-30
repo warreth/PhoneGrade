@@ -143,4 +143,27 @@ public class SkippedTestReportTests
         Assert.Contains(".result-badge.skipped", styles);
         Assert.Contains(".stat-value.skipped", styles);
     }
+
+    /// <summary>
+    /// The reason for a skip is only useful if it reaches the screen it is read
+    /// on. The row already carries the note; the results screen used to show the
+    /// name and the badge and leave it there, so GPS read as a bare SKIPPED.
+    /// </summary>
+    [Fact]
+    public void TheResultsScreenShowsTheReasonUnderTheRow()
+    {
+        string app = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/app.js");
+        Assert.Contains("buildResultRow", app);
+
+        string row = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/modules/ResultRows.js");
+        Assert.Contains("result-item-note", row);
+        Assert.Contains("test.notes", row);
+
+        string styles = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/styles.css");
+        Assert.Contains(".result-item-note", styles);
+
+        // A note on its own line needs the row to be allowed to have a second
+        // line. Without the wrap the reason is squeezed in beside the badge.
+        Assert.Contains("flex-wrap: wrap", styles);
+    }
 }

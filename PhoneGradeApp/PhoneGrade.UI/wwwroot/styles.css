@@ -953,8 +953,15 @@ body.test-running .test-footer,
     margin-bottom: var(--spacing-md);
 }
 
+/*
+ * The results screen is a list of rows: what ran, how it came out, and why.
+ * `flex-wrap` is what lets the note take its own line under the row rather than
+ * being squeezed in beside the badge; `justify-content` only looks right while
+ * everything is on one line, and the note is the reason the second line exists.
+ */
 .result-item {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
@@ -967,6 +974,13 @@ body.test-running .test-footer,
 .result-item-name {
     flex: 1;
     font-weight: 600;
+}
+
+/* Why the step came out the way it did: the reason for a skip, or the finding. */
+.result-item-note {
+    flex-basis: 100%;
+    font-size: 12px;
+    color: var(--color-text-secondary);
 }
 
 .result-item .retry-test-btn {
