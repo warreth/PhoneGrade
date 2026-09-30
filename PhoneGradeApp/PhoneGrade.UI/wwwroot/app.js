@@ -15,14 +15,13 @@ import { VibrationTest } from './modules/VibrationTest.js';
 import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 import { CapabilityScanner } from './modules/CapabilityScanner.js';
 import { applyStoredResults, firstPendingIndex, canResume, describeResume } from './modules/SuiteProgress.js';
+import { baseUrlFrom } from './modules/serverUrl.js';
 
 class RestApiClient {
     constructor() {
         this.sessionId = this.getUrlParam('sessionId') || 'UNKNOWN';
         this.connected = false;
-        const host = window.location.hostname || '127.0.0.1';
-        const port = window.location.port ? window.location.port : '5056';
-        this.baseUrl = `${window.location.protocol}//${host}:${port}`;
+        this.baseUrl = baseUrlFrom(window.location);
         this.pollInterval = null;
         this.consoleLogger = null;
         this.queueSeq = 0;
