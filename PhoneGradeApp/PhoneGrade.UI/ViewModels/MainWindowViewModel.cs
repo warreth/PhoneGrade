@@ -66,6 +66,12 @@ public class MainWindowViewModel : ReactiveObject
     // Web Test Runner (PWA) Properties
     private TestRunnerServer? _webServer;
     private readonly AdbReverseTunnel _adbTunnel = AdbReverseTunnel.CreateDefault();
+
+    /// <summary>
+    /// Counts the session requests, so an answer that arrives after the next one
+    /// is dropped instead of overwriting it.
+    /// </summary>
+    private int _webRunnerGeneration;
     private string _webRunnerUrl = "";
     public string WebRunnerUrl
     {
@@ -640,6 +646,18 @@ public class MainWindowViewModel : ReactiveObject
         }
     }
 
+    /// <summary>
+    /// Binds a session to the phone and publishes where to open it.
+    ///
+    /// Where to open it cannot be answered synchronously: it depends on whether adb
+    /// will build a tunnel, and building one is two adb calls with their own
+    /// timeouts. Answering it by waiting here hung the whole application. This runs
+    /// on the UI thread, because it is called from the SelectedDevice setter, and
+    /// the awaited work posts its continuation back to the thread that is waiting
+    /// for it. That thread can then never run it, so the wait never ended and the
+    /// window stopped responding the moment an Android device was picked. The
+    /// session now goes up straight away and the URL follows the tunnel's answer.
+    /// </summary>
     public void UpdateWebRunnerSession(string? udid)
     {
         try
@@ -647,19 +665,22 @@ public class MainWindowViewModel : ReactiveObject
             int port = _webServer?.BoundPort > 0 ? _webServer.BoundPort : 5055;
             var sessionUdid = !string.IsNullOrWhiteSpace(udid) ? udid : (DeviceData.Identifier != "NOID" ? DeviceData.Identifier : "DEMO");
 
-            string host = ResolveWebRunnerHost(sessionUdid, port);
-            _webServer?.SetActiveSession(sessionUdid);
-            WebRunnerUrl = QrCodeService.GenerateSessionUrl(host, port, sessionUdid, IsDebugMode);
-            QrCodeBitmap = QrCodeService.GenerateQrCodeBitmap(WebRunnerUrl);
-            InteractiveSessionStatus = host == AdbReverseTunnel.LoopbackHost
-                ? $"Scan QR om te openen via USB: {WebRunnerUrl}"
-                : $"Scan QR of open: {WebRunnerUrl}";
+            // Each newer request supersedes whatever is in flight, so a slow adb
+            // answer cannot replace the URL of a device that has since been swapped.
+            int generation = Interlocked.Increment(ref _webRunnerGeneration);
 
-            // If AutoStartWebTest is enabled, send a signal to connected PWA clients to auto-start the test suite
-            if (AutoStartWebTest && _webServer != null)
+            _webServer?.SetActiveSession(sessionUdid);
+
+            if (!UseSecureOrigin || !AdbReverseTunnel.SupportsReverse(sessionUdid))
             {
-                _webServer.BroadcastMessage(new { type = "auto_start_suite", sessionId = sessionUdid });
+                // iOS, or the operator having turned the tunnel off: no adb is
+                // involved, so the address is known already.
+                PublishWebRunner(sessionUdid, port, QrCodeService.GetLocalIpAddress(), null, generation);
+                return;
             }
+
+            InteractiveSessionStatus = "Beveiligde verbinding via USB opzetten...";
+            _ = OpenWebRunnerSessionAsync(sessionUdid, port, generation);
         }
         catch (Exception ex)
         {
@@ -668,28 +689,61 @@ public class MainWindowViewModel : ReactiveObject
     }
 
     /// <summary>
-    /// Picks the address the phone should open. The tunnel is preferred because a
-    /// browser only grants camera, microphone, motion and orientation access on a
-    /// secure origin, and localhost is the one plain address it accepts. iOS has
-    /// no adb to build a tunnel with, so it stays on the LAN address.
+    /// Opens the tunnel and then publishes the address it opened.
+    ///
+    /// The await resumes on whatever context called this, and the publish is pushed
+    /// to the UI thread explicitly so the property changes land where the bindings
+    /// are no matter which of the call sites ended up here.
     /// </summary>
-    private string ResolveWebRunnerHost(string sessionUdid, int port)
+    private async Task OpenWebRunnerSessionAsync(string sessionUdid, int port, int generation)
     {
-        var ip = QrCodeService.GetLocalIpAddress();
+        bool opened;
+        string? statusNote;
 
-        if (!UseSecureOrigin || !AdbReverseTunnel.SupportsReverse(sessionUdid))
-            return ip;
-
-        bool opened = _adbTunnel.OpenAsync(sessionUdid, port).GetAwaiter().GetResult();
-        if (!opened)
+        try
         {
+            opened = await _adbTunnel.OpenAsync(sessionUdid, port);
+        }
+        catch (Exception ex)
+        {
+            // adb missing, the device not authorised, the build without reverse.
             // Falling back silently would hand the operator a QR code whose camera
             // and motion steps cannot run, so the reason is stated in the status.
-            InteractiveSessionStatus =
-                "adb reverse lukte niet, uitwijken naar het netwerk. Camera en bewegingssensoren blijven dan onbeschikbaar.";
+            SystemEventLogger.Warning(LogSource.UsbDetector, $"adb reverse could not be opened: {ex.Message}");
+            opened = false;
         }
 
-        return opened ? AdbReverseTunnel.LoopbackHost : ip;
+        if (!IsCurrentWebRunnerSession(generation)) return;
+
+        statusNote = opened
+            ? null
+            : "adb reverse lukte niet, uitwijken naar het netwerk. Camera en bewegingssensoren blijven dan onbeschikbaar.";
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+            PublishWebRunner(sessionUdid, port,
+                opened ? AdbReverseTunnel.LoopbackHost : QrCodeService.GetLocalIpAddress(),
+                statusNote, generation));
+    }
+
+    /// <summary>True while the given request is still the newest one.</summary>
+    private bool IsCurrentWebRunnerSession(int generation) =>
+        generation == Volatile.Read(ref _webRunnerGeneration);
+
+    private void PublishWebRunner(string sessionUdid, int port, string host, string? statusNote, int generation)
+    {
+        if (!IsCurrentWebRunnerSession(generation)) return;
+
+        WebRunnerUrl = QrCodeService.GenerateSessionUrl(host, port, sessionUdid, IsDebugMode);
+        QrCodeBitmap = QrCodeService.GenerateQrCodeBitmap(WebRunnerUrl);
+        InteractiveSessionStatus = statusNote ?? (host == AdbReverseTunnel.LoopbackHost
+            ? $"Scan QR om te openen via USB: {WebRunnerUrl}"
+            : $"Scan QR of open: {WebRunnerUrl}");
+
+        // If AutoStartWebTest is enabled, send a signal to connected PWA clients to auto-start the test suite
+        if (AutoStartWebTest && _webServer != null)
+        {
+            _webServer.BroadcastMessage(new { type = "auto_start_suite", sessionId = sessionUdid });
+        }
     }
 
     /// <summary>Rebuilds the QR code after the origin setting changed.</summary>
