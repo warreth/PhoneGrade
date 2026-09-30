@@ -19,6 +19,12 @@ const PULSE = [250, 100, 250, 100, 250];
  * will not run. The refusal is now written on the card next to the question the
  * operator is answering.
  *
+ * The boolean only says the pattern was well formed. The specification lets it
+ * return true for a device with nothing to buzz with, and a phone on silent
+ * mode or do not disturb stays still for a valid pattern just the same, so an
+ * accepted request is written as what it is and the card says which setting to
+ * rule out before the operator answers no.
+ *
  * Where the browser has no vibration API at all, the card says so and hands the
  * step over as a manual check. That is the phone position, but it is a browser
  * position too: Firefox on Android ships without it, and a desktop browser has
@@ -47,6 +53,7 @@ export class VibrationTest extends DeviceTest {
                         <p class="step-hint">${t('vibration.pulseHint')}</p>
                         <button id="btn-vibe-pulse" class="btn btn-primary" style="width: 100%; margin-bottom: 8px;">${t('vibration.pulseButton')}</button>
                         <p id="vibe-echo" class="vibe-echo" role="status" aria-live="polite">${t('vibration.echoIdle')}</p>
+                        <p class="step-hint">${t('vibration.checkSilentFirst')}</p>
                     ` : `
                         <div class="step-note">
                             <strong>${t('vibration.manualCheck')}</strong>
