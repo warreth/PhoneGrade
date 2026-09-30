@@ -77,6 +77,15 @@ export class LocationTest extends DeviceTest {
         this.start();
         this.reportProgress(wsClient, 0, t('gps.waitingForPermission'));
 
+        // The API is only handed out on an address the browser trusts, and the
+        // plain network address is not one of them. Reporting that as "this
+        // browser has no location API" sent the operator to the phone to allow
+        // something the browser was never going to ask for, and the step skipped
+        // on every run no matter what was allowed where.
+        if (typeof window !== 'undefined' && window.isSecureContext === false) {
+            return this.reportInsecureOrigin(wsClient, container);
+        }
+
         if (!hasGeolocation()) {
             return this.reportNoApi(wsClient, container);
         }
@@ -341,9 +350,44 @@ export class LocationTest extends DeviceTest {
         `;
 
         this.details.capabilityGap = CAPABILITY.MISSING;
+        this.details.secureContext = true;
         await this.reportCapabilityGap(wsClient, 'navigator.geolocation', 'missing');
         this.skip(t('gps.noApiSkip'));
         this.reportProgress(wsClient, 100, t('gps.noApiProgress'));
+    }
+
+    /**
+     * The page is on an address the browser does not trust, so it withholds the
+     * location API before anything on the phone is asked.
+     *
+     * The two sentences that follow are the two routes the settings offer, and
+     * both live on the pc. Without them the operator reads a skip about the
+     * browser, opens the phone, allows location, comes back, and gets the same
+     * skip, which is what made the step look permanently broken.
+     */
+    async reportInsecureOrigin(wsClient, container) {
+        container.innerHTML = `
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title">${t('gps.title')}</h3>
+                    <div class="step-card">
+                        <p class="step-note">
+                            ${t('gps.insecure')}
+                        </p>
+                        <ol class="fix-steps">
+                            <li>${t('gps.insecureFixUsb')}</li>
+                            <li>${t('gps.insecureFixSecure')}</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.details.insecureOrigin = true;
+        this.details.secureContext = false;
+        await this.reportCapabilityGap(wsClient, 'navigator.geolocation', 'insecure-origin');
+        this.skip(t('gps.insecureSkip'));
+        this.reportProgress(wsClient, 100, t('gps.insecureProgress'));
     }
 
     async reportCapabilityGap(wsClient, missingApi, reason) {
