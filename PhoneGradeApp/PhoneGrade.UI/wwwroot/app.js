@@ -16,6 +16,7 @@ import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 import { CapabilityScanner } from './modules/CapabilityScanner.js';
 import { applyStoredResults, firstPendingIndex, canResume, describeResume } from './modules/SuiteProgress.js';
 import { baseUrlFrom } from './modules/serverUrl.js';
+import { runCommand } from './modules/CommandDispatch.js';
 
 class RestApiClient {
     constructor() {
@@ -340,17 +341,7 @@ class RestApiClient {
     }
 
     handleMessage(data) {
-        switch (data.type) {
-            case 'auto_start_suite':
-                if (window.testRunner) window.testRunner.startSuite();
-                break;
-            case 'test_start':
-                if (window.testRunner) window.testRunner.startTest(data.testId);
-                break;
-            case 'stop_suite':
-                if (window.testRunner) window.testRunner.stopSuite();
-                break;
-        }
+        runCommand(data, window.testRunner);
     }
 
     disconnect() {

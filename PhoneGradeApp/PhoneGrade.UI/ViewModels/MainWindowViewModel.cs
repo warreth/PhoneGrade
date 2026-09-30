@@ -819,10 +819,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         // already shown on its own in the window, so nothing is hidden by this.
         InteractiveSessionStatus = origin.Warning ?? DescribeWebRunnerRoute(origin);
 
-        // If AutoStartWebTest is enabled, send a signal to connected PWA clients to auto-start the test suite
+        // If AutoStartWebTest is enabled, hand the signal to the phone on its next
+        // status poll. The address is published before the phone has opened the
+        // page, so the command waits here until it asks.
         if (AutoStartWebTest && _webServer != null)
         {
-            _webServer.BroadcastMessage(new { type = "auto_start_suite", sessionId = sessionUdid });
+            _webServer.QueueCommand(new { type = "auto_start_suite", sessionId = sessionUdid }, sessionUdid);
         }
     }
 

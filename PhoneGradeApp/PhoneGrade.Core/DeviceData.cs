@@ -276,7 +276,7 @@ public class InteractiveTestSuiteResult
     public List<InteractiveTestResult> Tests { get; set; } = new();
 }
 
-/// <summary>Live message streamed over WebSocket during testing.</summary>
+/// <summary>Message the phone posts over the API while it is testing.</summary>
 public class DeviceSessionMessage
 {
     [System.Text.Json.Serialization.JsonPropertyName("type")]
