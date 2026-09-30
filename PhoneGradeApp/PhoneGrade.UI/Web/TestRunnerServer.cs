@@ -640,7 +640,7 @@ public class TestRunnerServer : IAsyncDisposable
                 await host.StartAsync(cancellationToken);
                 _host = host;
                 BoundPort = port;
-                EnsureWindowsFirewallRule(BoundPort);
+                await EnsureWindowsFirewallRuleAsync(BoundPort);
                 return;
             }
             catch (Exception ex)
@@ -804,8 +804,17 @@ public class TestRunnerServer : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Applies the Windows firewall rule for <paramref name="port"/> and returns once it is
+    /// in place. The rule is two netsh calls that take about a second together, and
+    /// StartAsync is called from the window's own thread, so the work goes to the pool
+    /// instead of running on whoever asked for it.
+    /// </summary>
+    public static Task EnsureWindowsFirewallRuleAsync(int port = 5055) =>
+        Task.Run(() => EnsureWindowsFirewallRule(port));
+
     /// <summary>Configures Windows Firewall rule for the PWA server port if running on Windows.</summary>
-    public static void EnsureWindowsFirewallRule(int port = 5055)
+    private static void EnsureWindowsFirewallRule(int port)
     {
         if (!OperatingSystem.IsWindows()) return;
 
