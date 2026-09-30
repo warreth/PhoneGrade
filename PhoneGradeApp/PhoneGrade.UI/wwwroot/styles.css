@@ -824,6 +824,46 @@ body.test-running .test-footer,
     transition: width 0.06s linear;
 }
 
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/*
+ * Waiting for a satellite fix.
+ *
+ * The keyframes were missing entirely, so the old spinner never turned: it was a
+ * static ring that looked like a picture rather than a wait, on the one step
+ * where waiting is the most likely outcome.
+ */
+.loc-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(37, 99, 235, 0.25);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+.loc-readout {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--color-success-text);
+    font-size: 14px;
+    white-space: pre-line;
+    text-align: left;
+}
+
+/* What to change, in the order it has to be changed */
+.fix-steps {
+    text-align: left;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 /* The recording the operator made with the phone's own recorder */
 .mic-preview {
     width: 100%;
