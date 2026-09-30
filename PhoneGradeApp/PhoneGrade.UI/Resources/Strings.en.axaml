@@ -80,6 +80,7 @@
     <x:String x:Key="Settings_RunDiagnostics">Run hardware diagnostics (panic logs)</x:String>
     <x:String x:Key="Settings_Enable85Checker">85% Battery check (100%-X label)</x:String>
     <x:String x:Key="Settings_OpenEditor">Open label editor before printing</x:String>
+    <x:String x:Key="Settings_Connection">PHONE CONNECTION</x:String>
     <x:String x:Key="Settings_SecureOrigin">Web test over USB (localhost)</x:String>
     <x:String x:Key="Settings_SecureOriginDesc">Serves the web test at http://localhost instead of the pc's ip address. A browser only grants camera, microphone and motion sensor access on a secure origin. This is the faster of the two options and works as soon as the cable is in.</x:String>
     <x:String x:Key="Settings_PublicTunnel">Secure connection over the internet</x:String>
@@ -90,6 +91,7 @@
     <x:String x:Key="Settings_LicenseKey">License Key</x:String>
     <x:String x:Key="Settings_LicenseKeyWatermark">Enter your Lemon Squeezy license key</x:String>
     <x:String x:Key="Settings_ValidateActivate">Validate &amp; Activate</x:String>
+    <x:String x:Key="Settings_ManageLicense">Manage license</x:String>
     <x:String x:Key="Settings_FreeTierStatus">Free Tier ({0}/10 Scans Used)</x:String>
     <x:String x:Key="Settings_ProTierStatus">Pro Tier (Active)</x:String>
     <x:String x:Key="Settings_ActivationSuccess">License activated. Unlimited scanning is now available.</x:String>
@@ -106,12 +108,17 @@
     <x:String x:Key="Intro_FreeTierBody">10 scans. The status in the title bar always shows how many you have left.</x:String>
     <x:String x:Key="Intro_ProTierTitle">Pro</x:String>
     <x:String x:Key="Intro_ProTierBody">Unlimited scans on every device you connect.</x:String>
+    <x:String x:Key="Intro_ProBadge">Unlimited</x:String>
     <x:String x:Key="Intro_StartFree">Start free</x:String>
     <x:String x:Key="Intro_SeePricing">See pricing</x:String>
     <x:String x:Key="Intro_HaveLicense">I already have a license</x:String>
     <x:String x:Key="Intro_ActivationTitle">Activate your license</x:String>
     <x:String x:Key="Licensing_TierFree">{0} scans left</x:String>
     <x:String x:Key="Licensing_TierPro">Pro - Active</x:String>
+    <x:String x:Key="Licensing_PanelHint">License and scans</x:String>
+    <x:String x:Key="Licensing_PanelTitle">License</x:String>
+    <x:String x:Key="Licensing_PanelScansLeft">Scans remaining</x:String>
+    <x:String x:Key="Licensing_PanelClose">Close</x:String>
 
     <x:String x:Key="Btn_Troubleshoot">USB and Driver Diagnostics</x:String>
     <x:String x:Key="Btn_Logs">View System Logs</x:String>

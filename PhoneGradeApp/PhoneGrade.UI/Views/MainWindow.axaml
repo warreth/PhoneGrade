@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:PhoneGrade.UI.ViewModels"
+        xmlns:views="using:PhoneGrade.UI.Views"
         x:Class="PhoneGrade.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="PhoneGrade Kiosk"
@@ -51,8 +52,25 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Right: Quick Actions & Settings Gear -->
+                    <!-- Right: License status, Quick Actions & Settings Gear -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" VerticalAlignment="Center">
+                        <!--
+                            The whole licensing story in one place: tier, scans left
+                            on it, and a click into the panel that activates a key
+                            or opens the pricing page. Amber once the run is close
+                            to ending, red when it has ended.
+                        -->
+                        <Button Classes="statusPill"
+                                Classes.success="{Binding Licensing.IsPro}"
+                                Classes.warn="{Binding Licensing.IsAlmostOut}"
+                                Classes.danger="{Binding Licensing.IsLimitReached}"
+                                Classes.neutral="{Binding Licensing.IsFreeSteady}"
+                                Command="{Binding ToggleLicensePanelCommand}"
+                                IsVisible="{Binding Licensing, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                ToolTip.Tip="{DynamicResource Licensing_PanelHint}">
+                            <TextBlock Classes="pillText" Text="{Binding Licensing.TierSummary}"/>
+                        </Button>
+
                         <Button Classes="iconBtn" Command="{Binding RefreshDevicesCommand}"
                                 ToolTip.Tip="Zoek opnieuw naar verbonden apparaten">
                             <TextBlock Text="Verversen" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}"/>
@@ -560,24 +578,48 @@
 
                         <Separator Margin="0,8,0,8"/>
 
-                        <!-- Licensing & Subscription Card -->
+                        <!-- How the phone reaches this pc: two options that decide the address it
+                             is given. They get a heading of their own because they decide whether
+                             the camera, the microphone and the motion sensors can be reached at
+                             all, and loose at the end of the advanced list they read as debug
+                             toggles instead of as the choice between a cable and the internet. -->
+                        <TextBlock Text="{DynamicResource Settings_Connection}" Classes="cardTitle" Margin="0,4,0,0"/>
+
+                        <StackPanel Spacing="10">
+                            <CheckBox IsChecked="{Binding UseSecureOrigin}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{DynamicResource Settings_SecureOrigin}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource Settings_SecureOriginDesc}" Classes="dim"
+                                               FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
+                                </StackPanel>
+                            </CheckBox>
+
+                            <CheckBox IsChecked="{Binding UsePublicTunnel}">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{DynamicResource Settings_PublicTunnel}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource Settings_PublicTunnelDesc}" Classes="dim"
+                                               FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
+                                </StackPanel>
+                            </CheckBox>
+                        </StackPanel>
+
+                        <!--
+                            Licensing lives in the panel the title bar pill opens,
+                            so this is only a pointer: the tier as it stands, and
+                            one button over to where a key gets typed in. Keeping
+                            the key box here as well meant two copies of the same
+                            form that could disagree after an activation.
+                        -->
                         <Border Classes="card" Padding="16" Margin="0,8,0,0">
-                            <StackPanel Spacing="12">
+                            <StackPanel Spacing="10">
                                 <TextBlock Text="{DynamicResource Settings_LicensingCardTitle}" Classes="cardTitle"/>
 
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="{Binding LicensingStatusText, Mode=OneWay}" FontWeight="SemiBold" FontSize="14"/>
-                                    <TextBlock Text="{Binding SettingsViewModel.StatusMessage, Mode=OneWay}"
-                                               Foreground="{DynamicResource WarnColor}" FontSize="12" TextWrapping="Wrap"/>
-                                </StackPanel>
+                                <TextBlock Text="{Binding Licensing.LicensingStatusText, Mode=OneWay}"
+                                           FontWeight="SemiBold" FontSize="14"/>
 
-                                <StackPanel Spacing="8" IsVisible="{Binding !IsProLicenseActive}">
-                                    <TextBlock Text="{DynamicResource Settings_LicenseKey}" FontSize="12" Foreground="{DynamicResource TextDimColor}"/>
-                                    <TextBox Text="{Binding SettingsViewModel.LicenseKeyInput}"
-                                             Watermark="{DynamicResource Settings_LicenseKeyWatermark}" PasswordChar="*"/>
-                                    <Button Classes="cta" Command="{Binding SettingsViewModel.ValidateCommand}"
-                                            Content="{DynamicResource Settings_ValidateActivate}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-                                </StackPanel>
+                                <Button Classes="cta" Command="{Binding ManageLicenseCommand}"
+                                        Content="{DynamicResource Settings_ManageLicense}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                             </StackPanel>
                         </Border>
 
@@ -602,22 +644,6 @@
                             <CheckBox Content="{DynamicResource Settings_OpenEditor}" IsChecked="{Binding OpenEditorBeforePrint}"/>
                             <CheckBox Content="Debug Modus &amp; Netwerk Tracing" IsChecked="{Binding IsDebugMode}"/>
                         </StackPanel>
-
-                        <CheckBox IsChecked="{Binding UseSecureOrigin}" Margin="0,8,0,0">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="{DynamicResource Settings_SecureOrigin}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{DynamicResource Settings_SecureOriginDesc}" Classes="dim"
-                                           FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
-                            </StackPanel>
-                        </CheckBox>
-
-                        <CheckBox IsChecked="{Binding UsePublicTunnel}" Margin="0,8,0,0">
-                            <StackPanel Spacing="2">
-                                <TextBlock Text="{DynamicResource Settings_PublicTunnel}" FontWeight="SemiBold"/>
-                                <TextBlock Text="{DynamicResource Settings_PublicTunnelDesc}" Classes="dim"
-                                           FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
-                            </StackPanel>
-                        </CheckBox>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
@@ -746,6 +772,84 @@
                     <TextBlock Text="Factuurmethode" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
                     <Button Classes="cta" Height="48" Content="Marge (0% BTW)" Command="{Binding SetPaymentMethodCommand}" CommandParameter="Marge" Background="{DynamicResource AccentColor}"/>
                     <Button Classes="cta" Height="48" Content="BTW (21%)" Command="{Binding SetPaymentMethodCommand}" CommandParameter="BTW" Background="{DynamicResource TrackColor}"/>
+                </StackPanel>
+            </Border>
+        </Panel>
+
+        <!-- ==================== First-run introduction (top of everything) ==================== -->
+        <views:IntroView IsVisible="{Binding IsIntroVisible}" ZIndex="100"/>
+
+        <!--
+            License panel, opened from the status pill in the title bar or from
+            settings. It is the one place that answers "what am I on and how do I
+            change that": the tier in words, the scans left on the free tier, the
+            key box when there is no key yet, and the pricing page one click away.
+            Sits below the settings drawer so the two cannot pile up, and below
+            the introduction screen, which covers the whole window anyway.
+        -->
+        <Panel IsVisible="{Binding IsLicensePanelOpen}" ZIndex="45">
+            <Button Background="Transparent" BorderThickness="0"
+                    Command="{Binding ToggleLicensePanelCommand}"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    Content=""/>
+
+            <Border Classes="card" Width="340" Padding="20"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,70,24,0"
+                    BoxShadow="0 12 32 0 #66000000">
+                <StackPanel Spacing="14">
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{DynamicResource Licensing_PanelTitle}"
+                                   Classes="cardTitle" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="iconBtn"
+                                Command="{Binding ToggleLicensePanelCommand}"
+                                ToolTip.Tip="{DynamicResource Licensing_PanelClose}"
+                                Content="&#x2715;" FontSize="12"
+                                Foreground="{DynamicResource TextDimColor}"
+                                Padding="6"/>
+                    </Grid>
+
+                    <!-- The tier, said in full. -->
+                    <TextBlock Text="{Binding Licensing.LicensingStatusText}"
+                               FontWeight="SemiBold" FontSize="15"/>
+
+                    <!-- Scans left, as words and as a bar, only while on the free tier. -->
+                    <StackPanel Spacing="6" IsVisible="{Binding Licensing.IsFreeTier}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="{DynamicResource Licensing_PanelScansLeft}"
+                                       Classes="dim" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Licensing.TierSummary}"
+                                       FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </Grid>
+                        <ProgressBar Minimum="0" Maximum="10"
+                                     Value="{Binding Licensing.UsedScans, Mode=OneWay}"
+                                     Height="6"/>
+                    </StackPanel>
+
+                    <Separator/>
+
+                    <!-- Key box: only there is something to type into. -->
+                    <StackPanel Spacing="8" IsVisible="{Binding Licensing.IsFreeTier}">
+                        <TextBox Text="{Binding Licensing.LicenseKeyInput}"
+                                 Watermark="{DynamicResource Settings_LicenseKeyWatermark}"
+                                 PasswordChar="*"/>
+                        <Button Classes="cta"
+                                Command="{Binding Licensing.ValidateCommand}"
+                                IsEnabled="{Binding !Licensing.IsActivating}"
+                                Content="{DynamicResource Settings_ValidateActivate}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"/>
+                        <TextBlock Text="{Binding Licensing.StatusMessage}"
+                                   FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource WarnColor}"/>
+                    </StackPanel>
+
+                    <Button Classes="kioskSecondary"
+                            Command="{Binding Licensing.OpenPricingCommand}"
+                            Content="{DynamicResource Intro_SeePricing}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"/>
                 </StackPanel>
             </Border>
         </Panel>

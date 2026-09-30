@@ -74,6 +74,14 @@ public class LicensingViewModel : ReactiveObject, IDisposable
     /// <summary>True when the tier, not the key box, is the thing to show. Pro users have no key box to fill.</summary>
     public bool IsFreeTier => !_gate.IsPro;
 
+    /// <summary>
+    /// True only while the free tier still has scans to spare, which is the one
+    /// state where the status pill should stay quiet. Kept separate from
+    /// <see cref="IsFreeTier"/> because that one is also true when the run is
+    /// close to ending or already blocked, and the pill colours are exclusive.
+    /// </summary>
+    public bool IsFreeSteady => IsFreeTier && !IsAlmostOut && !IsLimitReached;
+
     /// <summary>Full tier line: "Free Tier (3/10 Scans Used)" or "Pro Tier (Active)".</summary>
     public string LicensingStatusText =>
         IsPro
@@ -96,6 +104,7 @@ public class LicensingViewModel : ReactiveObject, IDisposable
     {
         this.RaisePropertyChanged(nameof(IsPro));
         this.RaisePropertyChanged(nameof(IsFreeTier));
+        this.RaisePropertyChanged(nameof(IsFreeSteady));
         this.RaisePropertyChanged(nameof(IsLimitReached));
         this.RaisePropertyChanged(nameof(IsAlmostOut));
         this.RaisePropertyChanged(nameof(UsedScans));

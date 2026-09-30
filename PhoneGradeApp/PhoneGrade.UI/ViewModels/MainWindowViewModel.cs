@@ -366,6 +366,20 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// <summary>Reveals the license key box on the introduction screen.</summary>
     public ReactiveCommand<Unit, Unit> ShowIntroActivationCommand { get; }
 
+    private bool _isLicensePanelOpen;
+    /// <summary>True while the license panel under the title bar status pill is open.</summary>
+    public bool IsLicensePanelOpen
+    {
+        get => _isLicensePanelOpen;
+        set => this.RaiseAndSetIfChanged(ref _isLicensePanelOpen, value);
+    }
+
+    /// <summary>Shows or hides the license panel. The pill in the title bar is bound to it.</summary>
+    public ReactiveCommand<Unit, Unit> ToggleLicensePanelCommand { get; }
+
+    /// <summary>Opens the license panel and closes the settings drawer, so the two never overlap.</summary>
+    public ReactiveCommand<Unit, Unit> ManageLicenseCommand { get; }
+
     private void DismissIntro()
     {
         _settings.IntroSeen = true;
@@ -590,6 +604,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         IsIntroVisible = !_settings.IntroSeen;
         DismissIntroCommand = ReactiveCommand.Create(DismissIntro);
         ShowIntroActivationCommand = ReactiveCommand.Create(() => { IsIntroActivationVisible = true; });
+
+        // License panel: opened from the status pill, or from settings.
+        ToggleLicensePanelCommand = ReactiveCommand.Create(() => { IsLicensePanelOpen = !IsLicensePanelOpen; });
+        ManageLicenseCommand = ReactiveCommand.Create(() =>
+        {
+            IsLicensePanelOpen = true;
+            IsSettingsDrawerOpen = false;
+        });
 
         ToggleSettingsCommand = ReactiveCommand.Create(() => { IsSettingsDrawerOpen = !IsSettingsDrawerOpen; });
         OpenLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = true; IsSettingsDrawerOpen = false; });

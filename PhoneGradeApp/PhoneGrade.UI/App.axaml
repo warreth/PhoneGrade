@@ -156,7 +156,15 @@
             <Setter Property="Foreground" Value="White"/>
         </Style>
 
-        <!-- Primary / secondary buttons -->
+        <!--
+            Primary / secondary buttons.
+
+            The Fluent theme ships its Button ControlTheme with
+            HorizontalAlignment=Left and VerticalAlignment=Center, so a button
+            only fills the cell it sits in when a style or the element itself
+            asks for it. That is why Button.cta stretches here and why every
+            button that should fill its column says so.
+        -->
         <Style Selector="Button">
             <Setter Property="Background" Value="{DynamicResource InputBgColor}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
@@ -245,6 +253,42 @@
         </Style>
         <Style Selector="Border.pill.neutral &gt; TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+
+        <!--
+            The same pill as a button, for the license status in the title bar:
+            it reads as a pill and answers a click. Button wins its own padding
+            and corner radius from here rather than from the plain Button rule
+            above, so the shape stays identical to Border.pill.
+        -->
+        <Style Selector="Button.statusPill">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+        <Style Selector="Button.statusPill.success">
+            <Setter Property="Background" Value="#202FBF71"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SuccessColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource SuccessColor}"/>
+        </Style>
+        <Style Selector="Button.statusPill.danger">
+            <Setter Property="Background" Value="#20F0564A"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource DangerColor}"/>
+        </Style>
+        <Style Selector="Button.statusPill.warn">
+            <Setter Property="Background" Value="#20F5A623"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource WarnColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource WarnColor}"/>
+        </Style>
+        <Style Selector="Button.statusPill:pointerover">
+            <Setter Property="Opacity" Value="0.8"/>
         </Style>
 
         <!-- Kiosk Massive Buttons -->
