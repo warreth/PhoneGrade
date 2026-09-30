@@ -90,7 +90,12 @@
                         <Border Classes="card" IsVisible="{Binding Devices.Count}" Padding="16" Margin="0,8,0,0">
                             <StackPanel Spacing="10">
                                 <TextBlock Text="Gedetecteerde apparaten:" FontWeight="SemiBold" FontSize="12"/>
-                                <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" HorizontalAlignment="Stretch">
+                                <!-- The selection is only ever written into the view model, never read out of a
+                                     cleared control: see DeviceSelectionChanged. -->
+                                <ComboBox ItemsSource="{Binding Devices}"
+                                          SelectedItem="{Binding SelectedDevice, Mode=OneWay}"
+                                          SelectionChanged="DeviceSelectionChanged"
+                                          HorizontalAlignment="Stretch">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Value}"/>
