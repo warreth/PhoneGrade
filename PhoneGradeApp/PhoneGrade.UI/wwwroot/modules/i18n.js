@@ -84,14 +84,27 @@ export function initLocale(search = '', navLanguage = '') {
  * both dictionaries is what turns that into a failure rather than a sentence an
  * operator cannot read.
  *
+ * A sentence carrying a value has the value written into the sentence rather
+ * than hung off the end of it, because the two languages do not put it in the
+ * same place: "Nauwkeurigheid: 8 m" and "Accuracy: 8 m" agree, but a fragment
+ * with a number appended does not let either language say it that way.
+ *
+ * A placeholder nothing arrived for is left as it is. Blanking it would turn a
+ * missing value into a sentence that reads as finished.
+ *
  * @param {string} key
+ * @param {Object<string, number|string>} [vars] - values for `{name}` placeholders
  * @returns {string}
  */
-export function t(key) {
+export function t(key, vars) {
     const dict = DICTIONARIES[active] || DICTIONARIES[DEFAULT_LOCALE];
     const text = dict[key];
 
-    return text === undefined ? key : text;
+    if (text === undefined) return key;
+    if (!vars) return text;
+
+    return text.replace(/\{(\w+)\}/g, (whole, name) =>
+        Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : whole);
 }
 
 /**

@@ -202,6 +202,39 @@ test('switching to English rewrites the shell', () => {
     setLocale('nl');
 });
 
+test('a sentence with a number in it keeps the number where it was', () => {
+    // The steps that used to be built by joining a string to a value now have
+    // the whole sentence in one place, so both languages can be read as one
+    // sentence instead of as a fragment and a number.
+    setLocale('nl');
+    assert.equal(
+        t('touch.touchCount', { touched: 5, cells: 112 }),
+        'Aangeraakt: 5/112');
+    assert.equal(
+        t('location.accuracy', { metres: 8 }),
+        'Nauwkeurigheid: 8 m');
+
+    setLocale('en');
+    assert.equal(
+        t('touch.touchCount', { touched: 5, cells: 112 }),
+        'Touched: 5/112');
+});
+
+test('a placeholder with nothing behind it stays visible rather than emptied', () => {
+    // A value that never arrived is a bug worth seeing on screen, the same way
+    // a key no dictionary carries shows itself. Blanking it would turn the
+    // mistake into a sentence that reads as finished.
+    setLocale('nl');
+    assert.equal(t('touch.touchCount', { cells: 112 }), 'Aangeraakt: {touched}/112');
+    assert.equal(t('nowhere.at.all', { x: 1 }), 'nowhere.at.all');
+});
+
+test('a value of any kind goes in as written', () => {
+    setLocale('nl');
+    assert.equal(t('location.accuracy', { metres: 0 }), 'Nauwkeurigheid: 0 m');
+    assert.equal(t('location.accuracy', { metres: 12.5 }), 'Nauwkeurigheid: 12.5 m');
+});
+
 test('a key with nothing written for it shows the key rather than a blank', () => {
     setLocale('nl');
 
