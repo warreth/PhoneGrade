@@ -16,6 +16,7 @@ import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 import { CapabilityScanner } from './modules/CapabilityScanner.js';
 import { applyStoredResults, firstPendingIndex, canResume, describeResume } from './modules/SuiteProgress.js';
 import { baseUrlFrom } from './modules/serverUrl.js';
+import { initLocale, locale, applyStaticText } from './modules/i18n.js';
 import { runCommand } from './modules/CommandDispatch.js';
 import { countResults } from './modules/SuiteCounts.js';
 import { buildResultRow } from './modules/ResultRows.js';
@@ -737,6 +738,15 @@ class TestRunner {
 
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', async () => {
+    // 0. Pick the language and fill the shell with it. The desktop passes its
+    //    own on the query string; failing that the browser's is used, and
+    //    failing that Dutch. This runs before anything is shown so the English
+    //    written into index.html never gets a turn.
+    const nav = window.navigator;
+    initLocale(window.location.search, (nav && nav.language) || '');
+    applyStaticText(document);
+    console.log('[i18n] language:', locale());
+
     // 1. Check iOS standalone mode
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
