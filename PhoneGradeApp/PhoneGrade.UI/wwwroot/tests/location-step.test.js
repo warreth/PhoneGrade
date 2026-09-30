@@ -5,6 +5,7 @@ import {
     abandon,
     fakeClient,
     fakeContainer,
+    reportedGaps,
     tick
 } from './helpers/fake-dom.js';
 
@@ -28,7 +29,10 @@ import {
 beforeEach(() => {
     // Nothing global to reset for this step, but the shared page has to look
     // freshly loaded so a stray geolocation from another test cannot answer here.
+    // The secure-context flag is what decides between the two automatic skips,
+    // so it is put back the same way.
     global.navigator.geolocation = undefined;
+    global.window.isSecureContext = true;
 });
 
 const { LocationTest, RetryDeadline } = await import('../modules/LocationTest.js');
@@ -262,6 +266,50 @@ test('location: a geolocation object with no method counts as absent', async () 
 
     assert.equal(loc.status, 'skipped');
     assert.match(loc.notes, /ontbreekt/);
+});
+
+test('location: an insecure address names the setting to change, not a missing browser', async () => {
+    // The case an operator runs into with a phone on the plain network address.
+    // The browser withholds the whole API there, so allowing location on the
+    // phone changes nothing and the step skipped forever. The sentence has to
+    // point at the pc, because that is where the fix is.
+    global.window.isSecureContext = false;
+    delete global.navigator.geolocation;
+
+    const loc = new LocationTest();
+    const container = fakeContainer();
+
+    await loc.run(fakeClient(), container);
+
+    assert.equal(loc.status, 'skipped');
+    assert.equal(loc.details.insecureOrigin, true);
+    assert.equal(loc.details.secureContext, false);
+    assert.match(loc.notes, /beveiligde herkomst/);
+    assert.doesNotMatch(loc.notes, /ontbreekt/,
+        'a browser that was never asked is not a browser without the API');
+
+    // Both routes out, by the name each one has in the settings.
+    assert.match(container.innerHTML, /Webtest via USB \(localhost\)/);
+    assert.match(container.innerHTML, /Veilige verbinding via internet/);
+    assert.ok(reportedGaps().includes('insecure-origin'),
+        'the desktop is told which of the two gaps it is');
+});
+
+test('location: a secure address with no API is still the browser having none', async () => {
+    // The other automatic skip, kept apart from the one above. Both are skips,
+    // and only one of them is answered by changing something on the pc.
+    global.window.isSecureContext = true;
+    delete global.navigator.geolocation;
+
+    const loc = new LocationTest();
+    const container = fakeContainer();
+
+    await loc.run(fakeClient(), container);
+
+    assert.equal(loc.status, 'skipped');
+    assert.equal(loc.details.insecureOrigin, undefined);
+    assert.match(loc.notes, /ontbreekt/);
+    assert.doesNotMatch(container.innerHTML, /Webtest via USB/);
 });
 
 test('location: the grace plus a second request is more than the single-measurement failsafe', () => {
