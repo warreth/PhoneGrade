@@ -6,6 +6,7 @@ const ASSETS = [
     '/app.js',
     '/modules/DeviceTest.js',
     '/modules/CommandDispatch.js',
+    '/modules/SuiteCounts.js',
     '/modules/serverUrl.js',
     '/modules/TouchTest.js',
     '/modules/DisplayTest.js',

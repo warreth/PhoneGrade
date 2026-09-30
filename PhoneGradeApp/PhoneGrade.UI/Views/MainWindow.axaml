@@ -397,7 +397,7 @@
                             <!-- Table Title Bar -->
                             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
                                 <TextBlock Classes="cardTitle" Text="INSPECTIERAPPORT (AFWIJKINGEN &amp; DEFECTEN)" FontSize="12" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="1" Text="Enkel niet-originele onderdelen en mislukte tests" Classes="dim" FontSize="10" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="Enkel niet-originele onderdelen en mislukte of overgeslagen tests" Classes="dim" FontSize="10" VerticalAlignment="Center"/>
                             </Grid>
 
                             <!-- Component Defects Section -->
@@ -428,8 +428,8 @@
                                 </StackPanel>
                             </ScrollViewer>
 
-                            <!-- Failed Interactive Tests Section -->
-                            <TextBlock Grid.Row="3" Text="INTERACTIEVE HARDWARETESTS (MISLUKT)" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}" Margin="0,8,0,4"/>
+                            <!-- Interactive Tests Section -->
+                            <TextBlock Grid.Row="3" Text="INTERACTIEVE HARDWARETESTS" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}" Margin="0,8,0,4"/>
                             
                             <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="130">
                                 <StackPanel>
@@ -448,7 +448,24 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <Border IsVisible="{Binding !FailedInteractiveTests.Count}" Background="#dcfce7" CornerRadius="4" Padding="8,6" BorderBrush="#86efac" BorderThickness="1">
+
+                                    <ItemsControl ItemsSource="{Binding SkippedInteractiveTests}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#fef3c7" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
+                                                        BorderBrush="#fcd34d" BorderThickness="1">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#92400e" VerticalAlignment="Center"/>
+                                                        <Border Grid.Column="1" CornerRadius="3" Padding="6,2" Background="#d97706">
+                                                            <TextBlock Text="OVERGESLAGEN" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <Border IsVisible="{Binding NoInteractiveTestProblems}" Background="#dcfce7" CornerRadius="4" Padding="8,6" BorderBrush="#86efac" BorderThickness="1">
                                         <TextBlock Text="[OK] Alle interactieve tests zijn geslaagd" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/>
                                     </Border>
                                 </StackPanel>
