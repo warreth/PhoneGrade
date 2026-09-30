@@ -279,7 +279,7 @@ public class WebTestRunnerTests : IAsyncLifetime
         var url = QrCodeService.GenerateSessionUrl(localIp, port, udid);
 
         // Assert
-        Assert.Equal("http://192.168.1.100:5055/?sessionId=DEVICE_UDID_123", url);
+        Assert.Equal($"http://192.168.1.100:5055/?sessionId=DEVICE_UDID_123&lang={LocalizationManager.CurrentLanguage}", url);
     }
 
     [Fact]

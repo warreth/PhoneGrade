@@ -66,18 +66,23 @@ public static class QrCodeService
     /// Kept separate from the overload below because it is the only one that hard
     /// codes the http scheme, which is exactly what a LAN address is.
     /// </summary>
-    public static string GenerateSessionUrl(string host, int port, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null)
+    public static string GenerateSessionUrl(string host, int port, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null, string? language = null)
     {
         string cleanHost = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host.Trim();
-        return GenerateSessionUrl($"http://{cleanHost}:{port}", deviceUdid, isDebug, testPhoneNumber);
+        return GenerateSessionUrl($"http://{cleanHost}:{port}", deviceUdid, isDebug, testPhoneNumber, language);
     }
 
     /// <summary>
     /// Appends the session to any base address, whether it is a loopback http one or
     /// a public https one handed out by the tunnel connector. The scheme is never
     /// invented here: it is the whole reason the address was chosen.
+    ///
+    /// The language the desk is showing goes out on the URL as well. The operator and
+    /// the phone they are holding should be reading the same words, and the phone only
+    /// knows the desk's language if it is told. A page opened by hand gets no such
+    /// parameter and falls back to the phone's own language setting.
     /// </summary>
-    public static string GenerateSessionUrl(string baseUrl, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null)
+    public static string GenerateSessionUrl(string baseUrl, string deviceUdid, bool isDebug = false, string? testPhoneNumber = null, string? language = null)
     {
         var cleanUdid = Uri.EscapeDataString(deviceUdid ?? "UNKNOWN");
         string cleanBase = (baseUrl ?? "").Trim().TrimEnd('/');
@@ -86,6 +91,10 @@ public static class QrCodeService
         string url = $"{cleanBase}/?sessionId={cleanUdid}";
         if (isDebug) url += "&debug=true";
         if (!string.IsNullOrWhiteSpace(testPhoneNumber)) url += $"&testPhoneNumber={Uri.EscapeDataString(testPhoneNumber)}";
+
+        var lang = string.IsNullOrWhiteSpace(language) ? LocalizationManager.CurrentLanguage : language;
+        if (!string.IsNullOrWhiteSpace(lang)) url += $"&lang={Uri.EscapeDataString(lang)}";
+
         return url;
     }
 

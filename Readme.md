@@ -50,6 +50,11 @@ The interactive test suite runs in the device browser and verifies:
 
 Results sync automatically to the desktop application with offline fallback.
 
+The suite speaks Dutch and English. The desktop passes its own language on the
+address the QR code opens, so the phone and the desk it is being graded on read
+the same words; opened by hand the phone follows its own language settings, and
+falls back to Dutch when neither carries a language this app has.
+
 ## Free Tier and Pro
 
 The desktop application includes ten free scans. The counter is kept encrypted in
