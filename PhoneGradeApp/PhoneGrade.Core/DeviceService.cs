@@ -1,11 +1,65 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using PhoneGrade.Core.Licensing;
 
 namespace PhoneGrade.Core;
 
 /// <summary>High-level device operations via the bundled libimobiledevice tools.</summary>
 public static class DeviceService
 {
+    /// <summary>
+    /// The scan initializer's verdict: whether a scan may touch the device.
+    /// </summary>
+    public enum ScanInitResult
+    {
+        /// <summary>Licensing allows this scan (free scan counted, or Pro tier).</summary>
+        Proceed,
+
+        /// <summary>The free tier is exhausted and no valid license is active: the scan must not run.</summary>
+        TrialLimitReached
+    }
+
+    /// <summary>
+    /// The licensing gate the scan initializer consults. The desktop app points
+    /// this at its own gate (bound to the live settings instance) during startup.
+    /// Null means the default gate over the on-disk state. Replacing it is also
+    /// the test seam, so tests never touch the real profile.
+    /// </summary>
+    public static Func<Task<ScanAuthorization>>? ScanGate { get; set; }
+
+    private static TrialGate? _defaultGate;
+
+    private static Task<ScanAuthorization> DefaultGateEvaluate() =>
+        (_defaultGate ??= new TrialGate(TrialStateStore.CreateDefault())).EvaluateAsync();
+
+    /// <summary>
+    /// The scan initializer. Every scan path funnels through here before any
+    /// device data is read:
+    ///
+    /// - Pro tier: allowed, the free counter is not touched.
+    /// - Free tier under the limit: allowed, the counter is incremented and
+    ///   written to both storage locations before the scan starts.
+    /// - Free tier at the limit: returns <see cref="ScanInitResult.TrialLimitReached"/>
+    ///   and the scan never begins.
+    ///
+    /// Fails closed on purpose: if the gate cannot be consulted at all (tampered
+    /// or broken licensing state), no scan runs, rather than every scan running.
+    /// </summary>
+    public static async Task<ScanInitResult> InitializeScanAsync()
+    {
+        try
+        {
+            ScanAuthorization decision = await (ScanGate ?? DefaultGateEvaluate)();
+            return decision == ScanAuthorization.LimitReached
+                ? ScanInitResult.TrialLimitReached
+                : ScanInitResult.Proceed;
+        }
+        catch (Exception)
+        {
+            return ScanInitResult.TrialLimitReached;
+        }
+    }
+
     /// <summary>All connected devices: UDID → "Name: Model" for display (iOS and Android).</summary>
     public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync() =>
         (await GetConnectedDevicesWithStateAsync()).Devices;
