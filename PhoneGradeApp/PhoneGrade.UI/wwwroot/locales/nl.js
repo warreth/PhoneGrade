@@ -42,5 +42,8 @@ export default {
     'results.failed': 'Mislukt',
     'results.skipped': 'Overgeslagen',
     'results.runAgain': 'Opnieuw draaien',
-    'results.retry': 'Opnieuw'
+    'results.retry': 'Opnieuw',
+
+    'touch.touchCount': 'Aangeraakt: {touched}/{cells}',
+    'location.accuracy': 'Nauwkeurigheid: {metres} m'
 };

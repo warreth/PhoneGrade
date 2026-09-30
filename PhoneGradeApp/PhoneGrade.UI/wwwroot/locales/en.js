@@ -41,5 +41,8 @@ export default {
     'results.failed': 'Failed',
     'results.skipped': 'Skipped',
     'results.runAgain': 'Run Again',
-    'results.retry': 'Retry'
+    'results.retry': 'Retry',
+
+    'touch.touchCount': 'Touched: {touched}/{cells}',
+    'location.accuracy': 'Accuracy: {metres} m'
 };
