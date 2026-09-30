@@ -32,12 +32,11 @@ export class DeviceTest {
     }
 
     /**
-     * Report progress to the desktop app via WebSocket.
+     * Report progress to the desktop.
      *
-     * The id and name are overridable because a step may report progress for one
-     * row while it is working on another. The touchscreen step measures the grid
-     * and then the outer edges, and the operator watching the PC should be told
-     * which of the two is moving.
+     * The id and name can be overridden so a step that reports several rows can
+     * say which of them is moving. The defaults are the step's own, which is
+     * what every step in the suite uses.
      * @param {WebSocketClient} wsClient
      * @param {number} progress - 0-100 percentage
      * @param {string} message - Optional status message

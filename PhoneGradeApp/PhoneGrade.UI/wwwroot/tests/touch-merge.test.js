@@ -22,10 +22,12 @@ Object.defineProperty(global, 'navigator', {
 
 import { DeviceTest } from '../modules/DeviceTest.js';
 import { TouchTest } from '../modules/TouchTest.js';
+import { applyStoredResults } from '../modules/SuiteProgress.js';
 
 test('a plain step still reports exactly one row', () => {
-    // The multi-row shape has to be an addition, not a replacement: eleven of the
-    // twelve steps are ordinary and a regression here would drop eleven verdicts.
+    // The touchscreen step is the only one that measures two things, and it has
+    // to stay an addition rather than a replacement: the other eleven steps are
+    // ordinary and a regression here would drop every verdict but one.
     const t = new DeviceTest('camera', 'Camera', 'd');
     t.start();
     t.pass('ok');
@@ -37,59 +39,90 @@ test('a plain step still reports exactly one row', () => {
     assert.deepEqual(t.resultIds(), ['camera']);
 });
 
-test('the touchscreen step reports the grid and the edges as two rows', () => {
+test('the touchscreen step reports one row, not one per half', () => {
     const t = new TouchTest();
 
-    // Both verdicts have to survive the merge, or a grading label would say the
-    // edges of the screen were checked when nothing ever traced them.
     const rows = t.toResults();
 
-    assert.equal(rows.length, 2);
-    assert.deepEqual(rows.map(r => r.id), ['touch', 'digitizer']);
-    assert.deepEqual(t.resultIds(), ['touch', 'digitizer']);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].id, 'touch');
+    assert.equal(rows[0].name, 'Touchscreen Test');
+    assert.deepEqual(t.resultIds(), ['touch']);
 });
 
-test('the two rows are independent verdicts', () => {
+test('nothing of the touch step is reported under a digitizer id', () => {
+    const t = new TouchTest();
+    t.start();
+    t.pass('100% dekking');
+    t.settleEdgeFromRunner('passed', '100% responsief');
+
+    const [row] = t.toResults();
+
+    assert.equal(row.id, 'touch');
+    assert.ok(!JSON.stringify(t.toResults()).includes('digitizer'),
+        'the operator never sees an id, only the row and its notes');
+});
+
+test('a failing edge fails the row the whole step reports', () => {
+    // Both halves have to survive the merge, or a grading label would say the
+    // edges of the screen were checked when nothing ever traced them.
     const t = new TouchTest();
     t.start();
     t.pass('Alle vakjes aangeraakt');
     t.settleEdgeFromRunner('failed', 'Rand onderaan reageert niet');
 
-    const [grid, edge] = t.toResults();
+    const [row] = t.toResults();
 
-    assert.equal(grid.status, 'passed');
-    assert.equal(edge.status, 'failed');
-    assert.match(edge.notes, /Rand onderaan/);
+    assert.equal(row.status, 'failed');
+    assert.match(row.notes, /Alle vakjes aangeraakt/);
+    assert.match(row.notes, /Rand onderaan/);
 });
 
-test('a good grid is not turned into a fail by a skip during the edges', () => {
-    // The operator skips while tracing the edges. The screen coverage they had
-    // already established is still true, and a label claiming the display failed
-    // would cost the operator the price of the phone.
+test('a skip during the edges is a skipped row, not a pass and not a fail', () => {
+    // The operator skips while tracing the edges. The coverage they had already
+    // established is still true, so a fail would cost them the price of the
+    // phone, but the edges were never traced and a pass would say they were.
     const t = new TouchTest();
     t.start();
     t.pass('100% dekking');
     t.settleEdgeFromRunner('skipped', 'Overgeslagen samen met de stap');
 
-    const [grid, edge] = t.toResults();
+    const [row] = t.toResults();
 
-    assert.equal(grid.status, 'passed');
-    assert.equal(edge.status, 'skipped');
+    assert.equal(row.status, 'skipped');
+    assert.match(row.notes, /100% dekking/);
+    assert.match(row.notes, /Overgeslagen samen met de stap/);
 });
 
-test('the edge row is settled at most once', () => {
+test('a skip on the grid settles the edges with it', () => {
     const t = new TouchTest();
     t.start();
-    t.edge.status = 'passed';
-    t.edge.notes = 'Digitizer randen 100% responsief';
+    t.skip('Overgeslagen door de operator');
+    t.skipEdge('Overgeslagen samen met het scherm');
 
-    // The runner calls this in its finally block, after the step's own run()
-    // already reported the edges. A second call must not overwrite that verdict
-    // with a generic "afgebroken".
+    const [row] = t.toResults();
+
+    assert.equal(row.status, 'skipped');
+    assert.match(row.notes, /Overgeslagen door de operator/);
+    assert.match(row.notes, /Overgeslagen samen met het scherm/);
+});
+
+test('the edge half is settled at most once', () => {
+    const t = new TouchTest();
+    t.start();
+    t.pass('100% dekking');
+    t.edge.status = 'passed';
+    t.edge.notes = '100% responsief';
+
+    // The runner calls this in its finally block, after run() already settled
+    // the edges. A second call must not overwrite that verdict with a generic
+    // "afgebroken".
     t.settleEdgeFromRunner('failed', 'Afgebroken voordat de randen klaar waren');
 
-    assert.equal(t.toResults()[1].status, 'passed');
-    assert.match(t.toResults()[1].notes, /100% responsief/);
+    const [row] = t.toResults();
+
+    assert.equal(row.status, 'passed');
+    assert.match(row.notes, /100% responsief/);
 });
 
 test('the touchscreen step gets a failsafe budget for both halves', () => {
@@ -125,40 +158,49 @@ test('reset clears both halves of the merged step', () => {
     t.reset();
 
     assert.equal(t.status, 'pending');
-    assert.equal(t.toResults()[1].status, 'pending');
+    assert.equal(t.edge.status, 'pending');
+    assert.equal(t.toResults()[0].status, 'pending');
     assert.equal(t.touchedCells.size, 0);
     assert.equal(t.storedRows, null);
 });
 
-test('a resumed step reports the stored edge verdict, not a pending one', () => {
+test('a resumed step reports the stored verdict instead of a pending one', () => {
     const t = new TouchTest();
 
-    // A resume fills storedRows from the desktop. If toResults ignored them the
-    // edge row would go out as pending and the desktop would keep counting the
-    // step as unfinished, so the next reload would offer to resume it again.
-    t.storedRows = [
-        { testId: 'touch', status: 'passed', notes: 'Onthouden van de vorige run' },
-        { testId: 'digitizer', status: 'failed', notes: 'Rand onderaan dood' }
-    ];
+    // What a reload does: the desktop hands back the rows it kept. The step must
+    // not go out as pending again, or the desktop would offer to resume it and
+    // the operator would trace the same edges a second time.
+    applyStoredResults([t], {
+        started: true,
+        finished: false,
+        steps: [{
+            testId: 'touch',
+            status: 'failed',
+            notes: 'Slechts 30% van scherm responsief (dode zones)',
+            reportedAt: '2026-09-30T10:01:00.000Z'
+        }]
+    });
 
-    const [, edge] = t.toResults();
+    const [row] = t.toResults();
 
-    assert.equal(edge.status, 'failed');
-    assert.equal(edge.notes, 'Rand onderaan dood');
+    assert.equal(row.id, 'touch');
+    assert.equal(row.status, 'failed');
+    assert.match(row.notes, /Onthouden van de vorige run/);
 });
 
-test('progress from the edge half is reported under the edge id', () => {
+test('the edges report their progress under the step they belong to', async () => {
     const t = new TouchTest();
     const sent = [];
     const ws = { isConnected: () => true, send: (m) => sent.push(m) };
 
-    // The operator is watching the PC. Progress for the edges has to arrive under
-    // the edges, or the desktop shows the grid moving while the phone is on the
-    // outer rim.
-    t.reportProgress(ws, 40, 'Randdekking: 40%', 'digitizer', 'Digitizer Edge Test');
+    t.start();
+    t.pass('100% dekking');
+    await t.settleEdge(() => {}, () => 10, 10, ws);
 
-    assert.equal(sent[0].testId, 'digitizer');
-    assert.equal(sent[0].testName, 'Digitizer Edge Test');
+    assert.ok(sent.length > 0, 'the edge half has to tell the desktop it moved');
+    assert.equal(sent[0].testId, 'touch');
+    assert.equal(sent[0].testName, 'Touchscreen Test');
+    assert.match(t.toResults()[0].notes, /100% responsief/);
 });
 
 test('progress defaults to the step own id', () => {

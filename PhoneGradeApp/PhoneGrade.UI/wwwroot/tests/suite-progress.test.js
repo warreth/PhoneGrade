@@ -33,22 +33,22 @@ function snapshot(steps, extra = {}) {
 }
 
 test('firstPendingIndex continues at the first test with no stored verdict', () => {
-    const tests = makeTests('touch', 'digitizer', 'force', 'display');
+    const tests = makeTests('touch', 'force', 'display', 'rotation');
 
     // The run got through the first two, so the third is where it picks up.
-    const progress = snapshot([['touch'], ['digitizer', 'failed']]);
+    const progress = snapshot([['touch'], ['force', 'failed']]);
     assert.equal(firstPendingIndex(tests, progress), 2);
 });
 
 test('firstPendingIndex starts at the top when nothing is stored', () => {
-    const tests = makeTests('touch', 'digitizer');
+    const tests = makeTests('touch', 'force');
     assert.equal(firstPendingIndex(tests, { started: false, steps: [] }), 0);
     assert.equal(firstPendingIndex(tests, null), 0);
 });
 
 test('firstPendingIndex is past the end when everything is done', () => {
-    const tests = makeTests('touch', 'digitizer');
-    const progress = snapshot([['touch'], ['digitizer']]);
+    const tests = makeTests('touch', 'force');
+    const progress = snapshot([['touch'], ['force']]);
     assert.equal(firstPendingIndex(tests, progress), 2);
 });
 

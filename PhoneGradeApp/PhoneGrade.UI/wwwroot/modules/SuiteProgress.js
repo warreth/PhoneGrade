@@ -29,10 +29,10 @@ export function indexSteps(progress) {
 /**
  * The rows a step reports under.
  *
- * Read from the step rather than assumed to be one, because a step may produce
- * more than one row: the touchscreen step measures the grid and the outer edges
- * and reports each separately. A step that has not been asked yet falls back to
- * its own id, so an older module still resumes.
+ * Read from the step rather than assumed to be one, because a step is free to
+ * report more than one verdict when it measures more than one thing. A step
+ * that has not been asked yet falls back to its own id, so an older module
+ * still resumes.
  */
 export function resultIdsOf(test) {
     const ids = typeof test.resultIds === 'function' ? test.resultIds() : null;
@@ -65,10 +65,10 @@ export function firstPendingIndex(tests, progress) {
  * and re-running them would mean putting the operator through the same steps a
  * second time, which is the whole thing this is meant to avoid.
  *
- * Where a step reports more than one row, the step's own status is taken from its
- * first row and the other rows are left on the step for toResults() to read back.
- * Overwriting the step with whichever row happened to be stored last would let a
- * passing grid hide a failing edge.
+ * Where a step reports more than one row, the step's own status is taken from
+ * its first row and the others are left on the step for toResults() to read
+ * back. Overwriting the step with whichever row happened to be stored last
+ * would let a passing half of a step hide a failing one.
  */
 export function applyStoredResults(tests, progress) {
     const stored = indexSteps(progress);

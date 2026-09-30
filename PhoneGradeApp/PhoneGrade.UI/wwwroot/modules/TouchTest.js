@@ -1,26 +1,35 @@
 import { DeviceTest } from './DeviceTest.js';
 
+/** How bad a verdict is: a failure beats a skip, a skip beats a pass. */
+const RANK = { passed: 1, skipped: 2, failed: 3 };
+
 /**
- * The touchscreen and the outer edges of the screen, in one step.
+ * The worse of two verdicts.
  *
- * These were two separate steps. Both are the same physical thing, the digitizer,
- * and the operator had to swipe the whole screen, wait for a verdict, then be
- * asked to trace the edges of the very screen they had just been through. It also
- * cost a full step of the counter and a second verdict to read.
+ * A half that never settled (pending, running) has nothing to say, so the
+ * other one decides on its own.
+ */
+function worseOf(a, b) {
+    if (!(a in RANK)) return b;
+    if (!(b in RANK)) return a;
+    return RANK[a] >= RANK[b] ? a : b;
+}
+
+/**
+ * The touchscreen: the whole surface and its outer edges, in one step.
  *
- * Folding them together is only honest if both verdicts still reach the desktop,
- * so this step reports two rows: the grid coverage under `touch`, and the outer
- * edges under `digitizer`. A grading label then says both, and the progress store
- * keeps them apart, so a retry of the edge half is still a retry of the edge half.
+ * These were two separate steps, and then one step reporting two rows. Both
+ * halves are the same physical thing, the digitizer, and the operator had to
+ * swipe the whole screen, wait for a verdict, then trace the edges of the very
+ * screen they had just been through, in front of a second row that named the
+ * hardware rather than the screen they were holding.
+ *
+ * One step, one row: the grid coverage and the edge tracing are both reported
+ * under `touch`, and the row carries whichever of the two came out worse.
  */
 export class TouchTest extends DeviceTest {
     /** How long the edge half gets on its own. Same as the grid half. */
     static EDGE_TIMEOUT_MS = 60000;
-
-    /** The id the edge half reports under, kept so the label does not change. */
-    static EDGE_ID = 'digitizer';
-
-    static EDGE_NAME = 'Digitizer Edge Test';
 
     constructor() {
         super('touch', 'Touchscreen Test', 'Swipe across all cells to detect dead zones');
@@ -32,8 +41,9 @@ export class TouchTest extends DeviceTest {
 
         this.touchedCells = new Set();
 
-        // The edge half keeps its own verdict rather than overwriting this one.
-        // Two results, two outcomes, and the second must not cost the first.
+        // The edge half keeps its own verdict while it runs, so the two halves
+        // can settle independently. The row is built from both when it is
+        // reported, and never before.
         this.edge = this.freshEdgeOutcome();
     }
 
@@ -50,40 +60,48 @@ export class TouchTest extends DeviceTest {
     }
 
     toResults() {
-        const grid = this.toJSON();
-        const edge = this.edgeRow();
+        return [this.mergedRow()];
+    }
 
-        // A resumed run has both verdicts stored on the desktop rather than on
-        // this object. Reading them back from here is what keeps a resumed row
-        // from being reported as still pending, which would have the phone run the
-        // edges again the moment the desktop asked for the current state.
-        if (Array.isArray(this.storedRows)) {
-            const storedEdge = this.storedRows.find(r =>
-                String(r.testId).toLowerCase() === TouchTest.EDGE_ID);
-            if (storedEdge) {
-                edge.status = storedEdge.status || edge.status;
-                edge.notes = storedEdge.status === 'pending' ? edge.notes : storedEdge.notes || edge.notes;
-            }
+    /**
+     * The one row this step reports.
+     *
+     * Both halves are the same surface, so the row is the worse of their two
+     * verdicts: a failure beats a skip and a skip beats a pass, because a label
+     * that says the screen was checked while the edges never traced it is
+     * exactly the claim this row exists to prevent. The notes say what each
+     * half found, rather than only the one that lost.
+     *
+     * The edges are left out when they have not run in this session. A resumed
+     * step already carries the verdict of the run the desktop kept, on this step
+     * itself, and merging that back in would print the previous run's note onto
+     * the row a second time.
+     */
+    mergedRow() {
+        const row = this.toJSON();
+
+        if (this.edge.status === 'pending' || this.edge.status === 'running') {
+            return row;
         }
 
-        return [grid, edge];
-    }
+        row.status = worseOf(row.status, this.edge.status);
 
-    edgeRow() {
-        return {
-            id: TouchTest.EDGE_ID,
-            name: TouchTest.EDGE_NAME,
-            status: this.edge.status,
-            notes: this.edge.notes,
-            durationMs: this.edge.startedAt && this.edge.endedAt
-                ? this.edge.endedAt - this.edge.startedAt
-                : 0,
-            details: this.edge.details
-        };
-    }
+        if (this.edge.notes && this.edge.notes !== row.notes) {
+            row.notes = row.notes ? `${row.notes} | Randen: ${this.edge.notes}` : this.edge.notes;
+        }
 
-    resultIds() {
-        return [this.id, TouchTest.EDGE_ID];
+        // Both halves write to details, so the edge keeps its own names: the grid
+        // measures cells and the edges measure blocks.
+        row.details = { ...row.details, ...this.edge.details };
+
+        // The step's own end time is written when the grid settles, so the edges
+        // would otherwise cost the row everything they took.
+        const last = Math.max(this.edge.endedAt || 0, this.endTime || 0);
+        if (this.startTime && last > this.startTime) {
+            row.durationMs = last - this.startTime;
+        }
+
+        return row;
     }
 
     reset() {
@@ -101,8 +119,7 @@ export class TouchTest extends DeviceTest {
 
         // A skip settles the step. Carrying on to the edges would ignore the
         // operator's own decision, and it would spend another minute of their
-        // time on a test they just stopped. The edges are reported as skipped so
-        // the two rows still agree about what happened.
+        // time on a test they just stopped.
         if (this.status === 'skipped') {
             this.skipEdge('Overgeslagen samen met het scherm');
             return;
@@ -295,21 +312,21 @@ export class TouchTest extends DeviceTest {
     /** The outer edges: a dead strip along the bezel is the classic digitizer fault. */
     async runEdgePhase(wsClient, container) {
         this.edge.startedAt = Date.now();
-        this.reportProgress(wsClient, 0, 'Initializing canvas...', TouchTest.EDGE_ID, TouchTest.EDGE_NAME);
+        this.reportProgress(wsClient, 0, 'Initializing canvas...');
 
         container.innerHTML = `
-            <div id="digitizer-wrap" style="position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: #0f172a; z-index: 10000; touch-action: none; user-select: none; overflow: hidden;">
-                <canvas id="digitizer-canvas" style="display: block; width: 100%; height: 100%; touch-action: none;"></canvas>
-                <div id="digitizer-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 80%;">
+            <div id="touch-edge-wrap" style="position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: #0f172a; z-index: 10000; touch-action: none; user-select: none; overflow: hidden;">
+                <canvas id="touch-edge-canvas" style="display: block; width: 100%; height: 100%; touch-action: none;"></canvas>
+                <div id="touch-edge-center-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; width: 80%;">
                     <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px; color: #ffffff;">Teken over de rode randen</div>
-                    <div id="digitizer-status" style="font-size: 28px; font-weight: bold; color: #38bdf8;">0%</div>
+                    <div id="touch-edge-status" style="font-size: 28px; font-weight: bold; color: #38bdf8;">0%</div>
                 </div>
             </div>
         `;
 
-        const wrap = container.querySelector('#digitizer-wrap');
-        const canvas = container.querySelector('#digitizer-canvas');
-        const statusDisplay = container.querySelector('#digitizer-status');
+        const wrap = container.querySelector('#touch-edge-wrap');
+        const canvas = container.querySelector('#touch-edge-canvas');
+        const statusDisplay = container.querySelector('#touch-edge-status');
 
         const dpr = window.devicePixelRatio || 1;
         await new Promise(r => requestAnimationFrame(r));
@@ -367,7 +384,7 @@ export class TouchTest extends DeviceTest {
                 const hits = blocks.filter(b => b.hit).length;
                 const pct = Math.round((hits / totalBlocks) * 100);
                 statusDisplay.textContent = pct + '%';
-                this.reportProgress(wsClient, pct, 'Randdekking: ' + pct + '%', TouchTest.EDGE_ID, TouchTest.EDGE_NAME);
+                this.reportProgress(wsClient, pct, 'Randdekking: ' + pct + '%');
 
                 if (this.haptic) this.haptic.tap();
             }
@@ -444,23 +461,26 @@ export class TouchTest extends DeviceTest {
 
                 const pct = Math.round((hitCount() / totalBlocks) * 100);
                 this.edge.endedAt = Date.now();
-                this.edge.details.coverage = pct;
-                this.edge.details.hitCount = hitCount();
-                this.edge.details.totalBlocks = totalBlocks;
+                // The edge's own names: the grid measures cells and the edges
+                // measure blocks, and one merged row has room for neither twice.
+                this.edge.details.edgeCoverage = pct;
+                this.edge.details.edgeHitCount = hitCount();
+                this.edge.details.edgeTotalBlocks = totalBlocks;
 
                 if (pct >= 95) {
                     this.edge.status = 'passed';
-                    this.edge.notes = 'Digitizer randen 100% responsief';
+                    this.edge.notes = '100% responsief';
                 } else if (Date.now() - start > TouchTest.EDGE_TIMEOUT_MS) {
                     this.edge.status = pct >= 85 ? 'passed' : 'failed';
                     this.edge.notes = pct >= 85
-                        ? 'Digitizer randen voldoende responsief (' + pct + '%)'
-                        : 'Digitizer randen niet responsief (' + pct + '%)';
+                        ? 'voldoende responsief (' + pct + '%)'
+                        : 'niet responsief (' + pct + '%)';
                 }
 
-                // Reported under the edge's own id so the desktop shows the edge
-                // as settled, not the step it now shares an execution with.
-                this.reportProgress(wsClient, 100, this.edge.notes, TouchTest.EDGE_ID, TouchTest.EDGE_NAME);
+                // Reported under the step's own id: the edges are the second half
+                // of the same row, so the desktop's bar keeps moving instead of
+                // sitting on a number from the grid.
+                this.reportProgress(wsClient, 100, this.edge.notes);
                 resolve();
             };
 
@@ -485,9 +505,9 @@ export class TouchTest extends DeviceTest {
      * Settles the edge half when the runner cuts the step short.
      *
      * The runner's failsafe and its skip button act on the step, not on the two
-     * halves of it, so without this the edge row would stay pending on a run that
-     * has moved on: the desktop would keep counting it as unfinished, and the next
-     * reload would offer to resume a step that was never completed. The grid keeps
+     * halves of it, so without this the edges would stay pending on a run that
+     * has moved on: the merged row would go out as still running, and the next
+     * reload would offer to resume a step that was never finished. The grid keeps
      * whatever the runner set, so a good screen coverage is not turned into a fail
      * by a skip that happened during the edges.
      */
