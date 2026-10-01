@@ -6,7 +6,7 @@ using PhoneGrade.Core.Diagnostics;
 namespace PhoneGrade.Core;
 
 /// <summary>The address the phone is told to open, and whether it counts as secure.</summary>
-public sealed record WebRunnerOrigin(string Address, bool IsSecure, string? Warning);
+public sealed record WebRunnerOrigin(string Address, bool IsSecure, ConnectionWarning? Warning);
 
 /// <summary>
 /// Decides which address goes into the QR code.
@@ -27,6 +27,10 @@ public sealed record WebRunnerOrigin(string Address, bool IsSecure, string? Warn
 ///
 /// Each route is asked on its own and its failure is recorded rather than thrown,
 /// so one broken route cannot hide the answer from the routes behind it.
+///
+/// What comes back is fact rather than wording: which routes failed and what a
+/// failing one said about itself. The window turns that into a sentence in its
+/// own language, which is what keeps an English window from reading Dutch.
 /// </summary>
 public sealed class WebRunnerOriginResolver
 {
@@ -34,7 +38,7 @@ public sealed class WebRunnerOriginResolver
     public delegate Task<bool> UsbRoute(string sessionUdid, int port);
 
     /// <summary>Opens a public https address in front of the local server.</summary>
-    public delegate Task<string?> InternetRoute(int port, Action<string>? onStatus);
+    public delegate Task<string?> InternetRoute(int port, Action<ConnectionNotice>? onStatus);
 
     private readonly UsbRoute _usb;
     private readonly InternetRoute _internet;
@@ -52,8 +56,9 @@ public sealed class WebRunnerOriginResolver
 
     /// <summary>
     /// The address for this session. <paramref name="onStatus"/> is called with
-    /// whatever the operator should be reading while the answer is still being
-    /// worked out, which can take a while on a first run.
+    /// whatever step the routes are on while the answer is still being worked out,
+    /// which can take a while on a first run. The step reaches the caller as it is,
+    /// because turning it into a sentence is the caller's language and not ours.
     /// </summary>
     public async Task<WebRunnerOrigin> ResolveAsync(
         string sessionUdid,
@@ -62,7 +67,7 @@ public sealed class WebRunnerOriginResolver
         string loopbackAddress,
         bool secureOriginEnabled,
         bool publicTunnelEnabled,
-        Action<string>? onStatus = null)
+        Action<ConnectionNotice>? onStatus = null)
     {
         if (string.IsNullOrWhiteSpace(lanAddress)) lanAddress = loopbackAddress;
 
@@ -71,11 +76,11 @@ public sealed class WebRunnerOriginResolver
             return new WebRunnerOrigin(lanAddress, false, null);
         }
 
-        var failed = new List<string>(2);
+        var failed = new List<ConnectionRoute>(2);
 
         if (AdbReverseTunnel.SupportsReverse(sessionUdid))
         {
-            onStatus?.Invoke(ConnectionText.Get("openingUsb"));
+            onStatus?.Invoke(new ConnectionNotice(ConnectionStep.OpeningUsb));
 
             bool opened = false;
             try
@@ -93,38 +98,36 @@ public sealed class WebRunnerOriginResolver
                 return new WebRunnerOrigin(loopbackAddress, true, null);
             }
 
-            failed.Add(ConnectionText.Get("routeUsb"));
+            failed.Add(ConnectionRoute.Usb);
         }
 
         // A placeholder session is only ever opened by the technician's own browser
         // to look around, and a tunnel for it would publish the app for nothing.
         if (publicTunnelEnabled && !IsPlaceholderSession(sessionUdid))
         {
-            // Taken once, because the route narrates in the same language and the
-            // comparison below has to recognise its own opening sentence.
-            string opening = ConnectionText.Get("openingInternet");
-            onStatus?.Invoke(opening);
+            onStatus?.Invoke(new ConnectionNotice(ConnectionStep.OpeningInternet));
 
             // The route narrates what it is doing and, when it cannot, why. Only the
-            // second is worth carrying into the warning: the first is the sentence
-            // this method has just said, and nesting it inside the reason reads as
-            // if opening the connection were what went wrong.
-            string? reported = null;
+            // second is worth carrying into the warning: the first is the step this
+            // method has just reported, and nesting it inside the reason reads as if
+            // opening the connection were what went wrong. The step is compared
+            // rather than the sentence, so rewriting either one cannot break this.
+            ConnectionNotice? reported = null;
 
             string? internet = null;
             try
             {
-                internet = await _internet(port, message =>
+                internet = await _internet(port, notice =>
                 {
-                    if (!string.Equals(message, opening, StringComparison.Ordinal))
-                        reported = message;
-                    onStatus?.Invoke(message);
+                    if (notice.Step != ConnectionStep.OpeningInternet)
+                        reported = notice;
+                    onStatus?.Invoke(notice);
                 });
             }
             catch (Exception ex)
             {
                 SystemEventLogger.Warning(LogSource.UsbDetector, $"The internet tunnel could not be opened: {ex.Message}");
-                reported = ConnectionText.Format("internetStartFailed", ex.Message);
+                reported = new ConnectionNotice(ConnectionStep.InternetStartFailed, ex.Message);
             }
 
             if (!string.IsNullOrWhiteSpace(internet))
@@ -132,9 +135,9 @@ public sealed class WebRunnerOriginResolver
                 return new WebRunnerOrigin(internet.TrimEnd('/'), true, null);
             }
 
-            failed.Add(ConnectionText.Get("routeInternet"));
+            failed.Add(ConnectionRoute.Internet);
 
-            if (!string.IsNullOrWhiteSpace(reported))
+            if (reported != null)
                 return Insecure(lanAddress, failed, reported);
         }
 
@@ -148,22 +151,13 @@ public sealed class WebRunnerOriginResolver
 
     /// <summary>
     /// The plain network address, with what stopped it from being a secure one.
-    /// <paramref name="detail"/> is whatever the failing route said about itself,
-    /// which is the only part an operator cannot work out from the sentence.
+    ///
+    /// <paramref name="reason"/> is whatever the failing route said about itself,
+    /// which is the only part an operator cannot work out from the list of routes
+    /// that failed. It stays a step here: the window words it, because the window
+    /// is the only thing that shows it.
     /// </summary>
-    private static WebRunnerOrigin Insecure(string lanAddress, List<string> failed, string? detail)
-    {
-        string reason = failed.Count == 0
-            ? ConnectionText.Get("secureOff")
-            : ConnectionText.Format(
-                failed.Count > 1 ? "routeFailedMany" : "routeFailedOne",
-                string.Join(ConnectionText.Get("routeSeparator"), failed));
-
-        string sentence = string.IsNullOrWhiteSpace(detail)
-            ? ""
-            : $" {detail.TrimEnd('.')}.";
-
-        return new WebRunnerOrigin(lanAddress, false,
-            $"{reason}.{sentence} {ConnectionText.Get("restrictedApis")}");
-    }
+    private static WebRunnerOrigin Insecure(
+        string lanAddress, List<ConnectionRoute> failed, ConnectionNotice? reason)
+        => new(lanAddress, false, new ConnectionWarning(failed.ToArray(), reason));
 }

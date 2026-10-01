@@ -340,6 +340,21 @@
     <x:String x:Key="Route_Internet">Scan the QR or open over the internet: {0}</x:String>
     <x:String x:Key="Route_Local">Scan the QR or open: {0}</x:String>
 
+    <!-- Why the web test address is not a secure connection -->
+    <x:String x:Key="Connect_OpeningUsb">Setting up the secure connection over USB...</x:String>
+    <x:String x:Key="Connect_OpeningInternet">Setting up the secure connection over the internet...</x:String>
+    <x:String x:Key="Connect_StartFailed">The secure connection over the internet could not be started: {0}</x:String>
+    <x:String x:Key="Connect_NoConnector">The secure connection over the internet does not come up: there is no tunnel program (cloudflared).</x:String>
+    <x:String x:Key="Connect_GaveUp">The secure connection over the internet is not attempted for now: the connector stopped too often.</x:String>
+    <x:String x:Key="Connect_NoAddress">The secure connection over the internet does not come up. The connector said: {0}</x:String>
+    <x:String x:Key="Connect_SecureOff">The secure connection is switched off</x:String>
+    <x:String x:Key="Connect_FailedOne">No secure connection: {0} could not be opened</x:String>
+    <x:String x:Key="Connect_FailedMany">No secure connection: {0} could not be opened</x:String>
+    <x:String x:Key="Connect_RestrictedApis">Camera, microphone, motion sensors and location do not work because of it.</x:String>
+    <x:String x:Key="Connect_RouteUsb">the usb tunnel</x:String>
+    <x:String x:Key="Connect_RouteInternet">the secure connection over the internet</x:String>
+    <x:String x:Key="Connect_Joiner">and</x:String>
+
     <!-- What the phone could not find -->
     <x:String x:Key="Api_MissingDetails">The mandatory browser API '{0}' is missing on this device.</x:String>
     <x:String x:Key="Api_MissingNotes">The PWA could not find this required hardware API.</x:String>

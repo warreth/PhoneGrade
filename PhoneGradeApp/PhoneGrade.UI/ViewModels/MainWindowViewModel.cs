@@ -899,14 +899,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             PublishWebRunner(sessionUdid, origin, generation));
     }
 
-    /// <summary>Shows what the address is being worked out with, while it is.</summary>
-    private void ReportWebRunnerStatus(string status, int generation)
+    /// <summary>Shows what the routes are working on, while they are.</summary>
+    private void ReportWebRunnerStatus(ConnectionNotice status, int generation)
     {
         if (!IsCurrentWebRunnerSession(generation)) return;
 
         Dispatcher.UIThread.Post(() =>
         {
-            if (IsCurrentWebRunnerSession(generation)) InteractiveSessionStatus = status;
+            if (IsCurrentWebRunnerSession(generation))
+                InteractiveSessionStatus = ConnectionWording.Say(status);
         });
     }
 
@@ -923,7 +924,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
         // The warning replaces the polite opening line, but never the address: it is
         // already shown on its own in the window, so nothing is hidden by this.
-        InteractiveSessionStatus = origin.Warning ?? DescribeWebRunnerRoute(origin);
+        // Core hands over which routes failed and what a failing one said; the words
+        // around those facts are picked here, from the dictionary in use.
+        InteractiveSessionStatus = origin.Warning is null
+            ? DescribeWebRunnerRoute(origin)
+            : ConnectionWording.Warn(origin.Warning);
 
         // If AutoStartWebTest is enabled, hand the signal to the phone on its next
         // status poll. The address is published before the phone has opened the

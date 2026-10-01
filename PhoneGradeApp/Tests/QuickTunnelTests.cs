@@ -260,13 +260,17 @@ public class QuickTunnelTests
         // The log keeps the same sentence, but the operator is looking at the
         // window while a phone waits on the QR code, and the log is a menu away.
         // Without this the window could only ever say the tunnel had not opened.
-        var seen = new List<string>();
+        // The route hands over the step and the connector's own words, and the
+        // window frames them; what is pinned here is that the words arrive.
+        var seen = new List<ConnectionNotice>();
         var harness = new Harness(ComplainAndExit(), startTimeoutMs: 15_000);
 
         Assert.Null(await harness.Tunnel.StartAsync(5055, seen.Add));
 
-        Assert.Contains(seen, line => line.Contains(
-            "Unable to reach the origin service", StringComparison.Ordinal));
+        Assert.Contains(seen, notice =>
+            notice.Step == ConnectionStep.NoAddress &&
+            notice.Detail is not null &&
+            notice.Detail.Contains("Unable to reach the origin service", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -275,7 +279,7 @@ public class QuickTunnelTests
         // The connector is downloaded on demand, so the download failing is an
         // everyday case. It used to end in one log line and a QR code pointing at
         // the plain network address with no explanation of why.
-        var seen = new List<string>();
+        var seen = new List<ConnectionNotice>();
         var tunnel = new QuickTunnel(
             (_, _, _) => Task.FromResult<QuickTunnel.IConnection>(null!),
             () => Task.FromResult<string?>(null));
@@ -283,8 +287,7 @@ public class QuickTunnelTests
         Assert.Null(await tunnel.StartAsync(5055, seen.Add));
 
         Assert.NotEmpty(seen);
-        Assert.Contains(seen, line => line.Contains(
-            "tunnelprogramma", StringComparison.Ordinal));
+        Assert.Contains(seen, notice => notice.Step == ConnectionStep.NoConnector);
         tunnel.Dispose();
         await Task.CompletedTask;
     }

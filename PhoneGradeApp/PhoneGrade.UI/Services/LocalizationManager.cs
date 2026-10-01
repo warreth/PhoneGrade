@@ -2,7 +2,6 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using PhoneGrade.Core;
 
 namespace PhoneGrade.UI.Services;
 
@@ -29,12 +28,6 @@ public static class LocalizationManager
         languageCode = languageCode.ToLowerInvariant();
         if (languageCode != "en" && languageCode != "nl")
             languageCode = "nl";
-
-        // Core prints the connection routes' own sentences and cannot see this
-        // dictionary, so it is told the language here rather than at the two
-        // places this method is called from. It is done before the return below,
-        // because Core starts out on Dutch whatever the setting says.
-        ConnectionText.Language = languageCode;
 
         if (_currentLanguage == languageCode && _currentLanguageDictionary != null)
         {
