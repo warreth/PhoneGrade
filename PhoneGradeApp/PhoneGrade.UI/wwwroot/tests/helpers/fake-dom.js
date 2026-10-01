@@ -164,6 +164,13 @@ export function fakeContainer() {
                     node.className = [...node.classes].join(' ');
                 }
 
+                // The file an image points at. A step that photographs several
+                // lenses puts a different photo in each row, and a test that
+                // cannot read which photo is where cannot tell the second lens
+                // from the first, or a retake from the shot it replaced.
+                const srcMatch = attrs.match(/\bsrc="([^"]*)"/);
+                if (srcMatch) node.src = srcMatch[1];
+
                 // The attributes the element was actually written with, not
                 // sensible defaults. Which parts of a card start hidden is part of
                 // what the operator sees before touching anything, and on the real
@@ -217,6 +224,12 @@ function innerTextOf(html, from, tag) {
         .trim();
 }
 
+/**
+ * Every snapshot the fake canvas hands back, counted so that two lenses do not
+ * come back as the same photo.
+ */
+let snapshotCount = 0;
+
 export function makeNode(tag, id) {
     const node = {
         tag,
@@ -234,6 +247,16 @@ export function makeNode(tag, id) {
         videoHeight: 480,
 
         getContext: () => ({ drawImage: () => {} }),
+
+        /**
+         * The photo a snapshot becomes.
+         *
+         * The frame itself is blank in here, but each capture has to come back as
+         * its own image: a step that photographs several lenses has to be able to
+         * tell the second photo from the first, and a test that cannot tell them
+         * apart cannot tell whether the second lens was photographed at all.
+         */
+        toDataURL: () => `data:image/jpeg;base64,shot-${++snapshotCount}`,
 
         addEventListener(type, handler) {
             if (!this.listeners[type]) this.listeners[type] = [];

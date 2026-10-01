@@ -744,11 +744,20 @@ body.test-running .test-footer,
     margin-top: var(--spacing-sm);
 }
 
-/* The live view and the captured still share one framed area */
+/*
+ * The live view and the captured still share one framed area.
+ *
+ * A phone is held at arm's length for this, and 260px of preview was smaller
+ * than the frame the sensor was sending, so the operator was judging focus on a
+ * thumbnail. It takes the height it is given here, bounded so a landscape tablet
+ * does not turn the step into a wall of video, with the dvh line after the vh
+ * one for the browsers that reserve space for a collapsing toolbar.
+ */
 .camera-view {
     position: relative;
     width: 100%;
-    height: 260px;
+    height: clamp(300px, 52vh, 520px);
+    height: clamp(300px, 52dvh, 520px);
     background: #000;
     border-radius: var(--radius-md);
     overflow: hidden;
@@ -760,6 +769,136 @@ body.test-running .test-footer,
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+/*
+ * The round timer that takes the photo when it runs out.
+ *
+ * A ring that empties over the three seconds says how much longer to hold the
+ * phone still, with a number in the middle for reading it at a glance. The ring
+ * is filled by the script rather than by an animation, so it cannot get ahead of
+ * or behind the photo it is counting down to.
+ */
+.cam-timer {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    width: 62px;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.cam-timer-dial {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+}
+
+.cam-timer-track {
+    stroke: rgba(0, 0, 0, 0.5);
+}
+
+.cam-timer-ring {
+    stroke: #fff;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+}
+
+.cam-timer-num {
+    position: relative;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/*
+ * Every photo in the list the verdicts are made from.
+ *
+ * They are stacked rather than tiled because a phone in portrait only has room
+ * for one photo at a proper size, and a photo too small to see is not a photo
+ * the operator can judge. The list is what the step scrolls, which the card
+ * above it already does.
+ */
+.photo-review {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.photo-row {
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    background: var(--color-bg-secondary);
+}
+
+.photo-row-name {
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+}
+
+.photo-row-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    background: #000;
+    margin-bottom: var(--spacing-sm);
+}
+
+/* A lens with no photo, with the browser's reason instead of a black frame */
+.photo-row-missing {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-warning-text);
+    background: var(--color-warning-bg);
+    border: 1px solid var(--color-warning);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.photo-row-verdict {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-top: var(--spacing-sm);
+}
+
+/*
+ * Once a photo has an answer, the row it belongs to says so, in the colour of
+ * that answer. A green bar on a photo the technician turned down reads as
+ * "good" from across the desk, which is the opposite of what it means, so the
+ * bar and the line under the photo both follow the verdict rather than the
+ * fact that one was given.
+ */
+.photo-row-judged {
+    border-left-color: var(--color-text-secondary);
+}
+
+.photo-row-approved {
+    border-left-color: var(--color-success);
+}
+
+.photo-row-approved .photo-row-verdict {
+    color: var(--color-success-text);
+}
+
+.photo-row-rejected {
+    border-left-color: var(--color-error);
+}
+
+.photo-row-rejected .photo-row-verdict {
+    color: var(--color-error-text);
 }
 
 /* Says the camera has no torch, which is normal and not a fault */

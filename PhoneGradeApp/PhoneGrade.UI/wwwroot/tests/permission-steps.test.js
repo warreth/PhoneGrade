@@ -197,94 +197,179 @@ test('motion: the step asks for more than the single-measurement default', () =>
 
 const { CameraTest } = await import('../modules/CameraTest.js');
 
-/** A camera stream the fake video element can be pointed at. */
-function fakeStream({ torch = false } = {}) {
+/**
+ * A camera stream the fake video element can be pointed at.
+ *
+ * Every one of them carries the settings a browser reads back off a track,
+ * because that is where a step finds out which camera it is holding and which
+ * device to ask for next. A stream without them could only ever be one of the
+ * two cameras that can be asked for by facing.
+ */
+function fakeStream({ torch = false, id = 'back-camera', facing = 'environment' } = {}) {
     const track = {
         stopped: false,
         stop() { this.stopped = true; },
-        applyConstraints: async () => { if (!torch) throw { name: 'NotSupportedError' }; }
+        applyConstraints: async () => { if (!torch) throw { name: 'NotSupportedError' }; },
+        getSettings: () => ({ deviceId: id, facingMode: facing })
     };
     return { getTracks: () => [track], getVideoTracks: () => [track], track };
 }
 
-test('camera: a refused prompt shows the reason and keeps the step open', async () => {
-    useGetUserMedia([DENIED, DENIED]);
+/**
+ * The lens list a browser hands out, which is only complete once the camera has
+ * been granted once. Has to be called after useGetUserMedia, which replaces the
+ * whole of mediaDevices the way a page load would.
+ */
+function useLensList(devices) {
+    global.navigator.mediaDevices.enumerateDevices = async () => devices;
+}
+
+/**
+ * A step on a short timer, so a test does not sit out three seconds a lens.
+ *
+ * The value actually shipped has a test of its own; what matters in the tests
+ * below is that a photo is taken because the time ran out and not because
+ * somebody pressed something, and forty milliseconds proves that as well as
+ * three seconds does.
+ */
+function fastCamera() {
     const camera = new CameraTest();
+    camera.photoDelayMs = 40;
+    camera.shotHoldMs = 0;
+    return camera;
+}
+
+test('camera: a refused prompt shows the reason and keeps the step open', async () => {
+    useGetUserMedia([DENIED]);
+    const camera = fastCamera();
     const container = fakeContainer();
 
     camera.run(fakeClient(), container);
     await tick();
 
-    // Both cameras will be refused, so the step is still waiting for a verdict on
-    // the first one. It used to be over already, with a raw browser string as the
-    // note and nothing the operator could press.
+    // The step cannot find a lens without the camera being allowed, so it is
+    // still open on a question rather than over. The operator is asked, and the
+    // countdown that would have photographed a phone nobody can see never began.
     assert.equal(camera.status, 'running');
     assert.equal(container.nodes.get('camera-error-area').hidden, false);
     assert.match(container.nodes.get('camera-error-msg').textContent, /geweigerd/);
     assert.ok(container.nodes.get('btn-camera-retry'));
     assert.ok(container.nodes.get('btn-camera-reject'));
-
-    // The capture buttons are out of the way while the question stands, so the
-    // operator is not invited to take a photo that cannot be taken.
-    assert.equal(container.nodes.get('live-controls').hidden, true);
+    assert.equal(container.nodes.get('cam-timer').hidden, true);
+    assert.equal(container.nodes.get('photo-review').hidden, true);
 
     abandon(camera);
 });
 
 test('camera: retry asks again, and a camera that works after that still passes', async () => {
-    const calls = useGetUserMedia([DENIED, fakeStream(), fakeStream()]);
-    const camera = new CameraTest();
+    const calls = useGetUserMedia([DENIED, fakeStream(), fakeStream(), fakeStream()]);
+    const camera = fastCamera();
     const container = fakeContainer();
 
     const run = camera.run(fakeClient(), container);
     await tick();
     assert.equal(calls.length, 1);
+    assert.equal(container.nodes.get('camera-error-area').hidden, false);
 
     // The operator goes away, grants the camera, comes back.
     container.nodes.get('btn-camera-retry').press();
-    await tick();
-    assert.equal(calls.length, 2);
-    assert.equal(container.nodes.get('live-controls').hidden, false);
+    await tick(250);
+
+    // The question is off the screen, and everything since has been
+    // photographed without a hand on a shutter: the step did not go back to
+    // waiting for somebody to take the photos one at a time.
     assert.equal(container.nodes.get('camera-error-area').hidden, true);
+    assert.ok(container.nodes.get('photo-0'));
+    assert.ok(container.nodes.get('photo-1'));
 
-    container.nodes.get('btn-capture').press();
-    assert.equal(container.nodes.get('photo-canvas').hidden, false);
-    assert.equal(container.nodes.get('review-controls').hidden, false);
-    container.nodes.get('btn-use-photo').press();
+    container.nodes.get('btn-use-photo-0').press();
+    container.nodes.get('btn-use-photo-1').press();
+    await run;
+
+    assert.equal(camera.status, 'passed');
+    assert.equal(calls.length, 4);
+    assert.match(camera.details.rearCamera.note, /goedgekeurd/);
+    assert.match(camera.details.frontCamera.note, /goedgekeurd/);
+});
+
+test('camera: the timer photographs every lens, and only then is anything judged', async () => {
+    const calls = useGetUserMedia([fakeStream(), fakeStream(), fakeStream()]);
+    const camera = fastCamera();
+    const container = fakeContainer();
+
+    const run = camera.run(fakeClient(), container);
     await tick();
 
-    // Then the front camera, taken the same way.
-    container.nodes.get('btn-capture').press();
-    container.nodes.get('btn-use-photo').press();
+    // The live view is up and the round timer is running over it. Nothing has
+    // been pressed: the photo is taken when the timer runs out, which is what
+    // makes the photographing part the step's and not the operator's.
+    assert.equal(container.nodes.get('live-video').hidden, false);
+    assert.equal(container.nodes.get('cam-timer').hidden, false);
+    assert.equal(container.nodes.get('photo-review').hidden, true);
+    assert.equal(calls.length, 2);
+
+    await tick(60);
+
+    // The first lens has been photographed and the second is being counted
+    // down, still with nothing asked of anybody.
+    assert.equal(calls.length, 3);
+    assert.equal(container.nodes.get('photo-review').hidden, true);
+
+    await tick(60);
+
+    // Now every lens has been photographed and the list comes up with all of
+    // them at once, so the verdicts are made side by side rather than one at a
+    // time with the next camera already running.
+    assert.equal(container.nodes.get('photo-review').hidden, false);
+    assert.equal(container.nodes.get('video-container').hidden, true);
+    assert.ok(container.nodes.get('photo-0'));
+    assert.ok(container.nodes.get('photo-1'));
+    assert.notEqual(container.nodes.get('photo-0').src, container.nodes.get('photo-1').src);
+    assert.match(container.nodes.get('cam-step-title').textContent, /Beoordeel de foto/);
+    assert.match(container.nodes.get('cam-instructions').textContent, /elke foto/);
+    assert.equal(camera.status, 'running');
+
+    // Two buttons per photo, and the answer to one is not the answer to the other.
+    container.nodes.get('btn-use-photo-0').press();
+    assert.equal(camera.status, 'running');
+    assert.equal(container.nodes.get('btn-use-photo-1').disabled, false);
+
+    container.nodes.get('btn-use-photo-1').press();
     await run;
 
     assert.equal(camera.status, 'passed');
     assert.equal(calls.length, 3);
     assert.match(camera.details.rearCamera.note, /goedgekeurd/);
     assert.match(camera.details.frontCamera.note, /goedgekeurd/);
+    assert.equal(camera.backWorking, true);
+    assert.equal(camera.frontWorking, true);
 });
 
-test('camera: a rear camera that was accepted is not lost when the front will not open', async () => {
-    useGetUserMedia([fakeStream(), BUSY]);
-    const camera = new CameraTest();
+test('camera: a lens that will not open does not cost the others their photos', async () => {
+    useGetUserMedia([fakeStream(), fakeStream(), BUSY]);
+    const camera = fastCamera();
     const container = fakeContainer();
 
     const run = camera.run(fakeClient(), container);
-    await tick();
-    container.nodes.get('btn-capture').press();
-    container.nodes.get('btn-use-photo').press();
-    await tick();
+    await tick(250);
 
-    // The front camera is in use by something else. The operator is told what the
-    // browser said and gets to choose; the step is not over yet.
+    // The front camera is held by something else. It is on the list with what
+    // the browser said where its photo should be, and the lens before it still
+    // has its photo, so a broken lens cannot read on the report as a phone with
+    // no camera at all.
+    assert.ok(container.nodes.get('photo-0'));
+    assert.ok(!container.nodes.get('photo-1'));
+    assert.match(container.nodes.get('photo-missing-1').textContent, /busy/);
+    assert.equal(container.nodes.get('btn-use-photo-1'), undefined);
+    assert.equal(container.nodes.get('btn-retake-1').disabled, false);
     assert.equal(camera.status, 'running');
-    assert.equal(container.nodes.get('camera-error-area').hidden, false);
-    assert.match(container.nodes.get('camera-error-msg').textContent, /andere app/);
 
-    container.nodes.get('btn-camera-reject').press();
+    // And it can be taken again from there, which is the whole choice there is
+    // for a camera that would not open the first time.
+    container.nodes.get('btn-use-photo-0').press();
     await run;
 
-    // The report names the camera that would not open, so "the front camera is
+    // The report names the lens that would not open, so "the front camera is
     // broken" cannot be read as "the camera is broken".
     assert.equal(camera.status, 'failed');
     assert.match(camera.notes, /voor: busy/);
@@ -297,31 +382,50 @@ test('camera: a rear camera that was accepted is not lost when the front will no
     assert.equal(camera.frontWorking, false);
 });
 
-test('camera: a defect is recorded with the reason the operator gave', async () => {
-    useGetUserMedia([fakeStream(), fakeStream()]);
-    const camera = new CameraTest();
+test('camera: a photo the operator turns down carries the reason they gave', async () => {
+    useGetUserMedia([fakeStream(), fakeStream(), fakeStream()]);
+    const camera = fastCamera();
     const container = fakeContainer();
 
     const run = camera.run(fakeClient(), container);
-    await tick();
-    container.nodes.get('btn-capture').press();
-    container.nodes.get('btn-use-photo').press();
-    await tick();
+    await tick(250);
 
-    // The rear camera is fine; the front one is not, and the operator says why.
-    container.nodes.get('btn-camera-defect').press();
-    assert.equal(container.nodes.get('reject-controls').hidden, false);
-    container.nodes.get('btn-reject-blurry').press();
+    // The reason is asked per photo, under the photo it is about, and asking
+    // about one says nothing about any of the others.
+    container.nodes.get('btn-camera-defect-1').press();
+    assert.equal(container.nodes.get('reject-controls-1').hidden, false);
+    assert.equal(container.nodes.get('reject-controls-0').hidden, true);
+
+    container.nodes.get('btn-reject-blurry-1').press();
+
+    // The answer is on the record and the row closes behind it, so a second tap
+    // cannot change a verdict that has already been written.
+    assert.match(container.nodes.get('photo-verdict-1').textContent, /Onscherpe foto/);
+    assert.equal(container.nodes.get('btn-use-photo-1').disabled, true);
+    assert.equal(container.nodes.get('btn-camera-defect-1').disabled, true);
+    assert.equal(container.nodes.get('btn-retake-1').disabled, true);
+    assert.equal(container.nodes.get('reject-controls-1').hidden, true);
+    assert.equal(camera.status, 'running');
+
+    container.nodes.get('btn-use-photo-0').press();
     await run;
 
     assert.equal(camera.status, 'failed');
     assert.match(camera.notes, /voor: Onscherpe foto/);
     assert.doesNotMatch(camera.notes, /achter: /);
+
+    // Both rows carry an answer, and each is marked with the answer rather than
+    // with the fact that one was given: a green bar on the photo that was turned
+    // down reads as "good" from across the desk.
+    assert.equal(container.nodes.get('photo-row-1').classes.has('photo-row-rejected'), true);
+    assert.equal(container.nodes.get('photo-row-1').classes.has('photo-row-approved'), false);
+    assert.equal(container.nodes.get('photo-row-0').classes.has('photo-row-approved'), true);
+    assert.equal(container.nodes.get('photo-row-0').classes.has('photo-row-rejected'), false);
 });
 
 test('camera: a phone with no camera API is a gap, and still a question', async () => {
     delete global.navigator.mediaDevices;
-    const camera = new CameraTest();
+    const camera = fastCamera();
     const container = fakeContainer();
 
     const run = camera.run(fakeClient(), container);
@@ -330,107 +434,197 @@ test('camera: a phone with no camera API is a gap, and still a question', async 
     assert.equal(camera.status, 'running');
     assert.match(container.nodes.get('camera-error-msg').textContent, /geen achtercamera/);
 
-    // Both cameras get the same question, because both are missing for the same
-    // reason and neither is the operator's to guess at.
+    // The operator calls it broken rather than trying again. There is no list to
+    // read without a grant, so the step falls back to the two cameras it can
+    // name without one, and both come back with what the browser said. It does
+    // not decide for the operator that the phone has no camera.
     container.nodes.get('btn-camera-reject').press();
-    await tick();
-    container.nodes.get('btn-camera-reject').press();
+    await tick(60);
     await run;
 
     assert.equal(camera.status, 'failed');
     assert.equal(camera.details.rearCamera.note.includes('missing'), true);
+    assert.equal(camera.details.frontCamera.note.includes('missing'), true);
     assert.match(reportedGaps().join(' '), /missing/);
 });
 
-test('camera: a photo cannot be taken before there is a frame', async () => {
-    useGetUserMedia([fakeStream(), fakeStream()]);
-    const camera = new CameraTest();
-    const container = fakeContainer();
-
-    camera.run(fakeClient(), container);
-    await tick();
-
-    // The video element has not produced a frame yet. Accepting that would put a
-    // black rectangle on the report as a photo the technician approved. On the
-    // real phone the frame arrives at 480x640, so the guard is about the first
-    // moment after opening, not about a camera that cannot do it.
-    container.nodes.get('live-video').videoWidth = 0;
-    container.nodes.get('btn-capture').press();
-
-    assert.equal(container.nodes.get('photo-canvas').hidden, true);
-    assert.equal(container.nodes.get('review-controls').hidden, true);
-    assert.match(container.nodes.get('cam-instructions').textContent, /Nog geen beeld/);
-
-    abandon(camera);
-});
-
-test('camera: a camera with no torch is noted and judged without one', async () => {
-    useGetUserMedia([fakeStream({ torch: false }), fakeStream()]);
-    const camera = new CameraTest();
+test('camera: a lens that never gives a frame is not photographed', async () => {
+    useGetUserMedia([fakeStream(), fakeStream(), fakeStream()]);
+    const camera = fastCamera();
     const container = fakeContainer();
 
     const run = camera.run(fakeClient(), container);
     await tick();
 
-    // Most cameras have no torch. The old step put the generic "inspect the photo
-    // carefully" text in that place, which read as if something had gone wrong.
+    // The video element has not produced a frame when the timer runs out, so
+    // the first lens gets no photo: a black rectangle with a technician's
+    // approval on it is exactly what this guard is for. On the real phone the
+    // frame arrives at 480x640, so the guard is about the first moments after
+    // opening, not about a camera that cannot do it.
+    container.nodes.get('live-video').videoWidth = 0;
+    await tick(60);
+    container.nodes.get('live-video').videoWidth = 640;
+    await tick(60);
+
+    assert.ok(!container.nodes.get('photo-0'));
+    assert.match(container.nodes.get('photo-missing-0').textContent, /geen beeld/);
+    assert.ok(container.nodes.get('photo-1'));
+
+    container.nodes.get('btn-use-photo-1').press();
+    await run;
+
+    assert.equal(camera.status, 'failed');
+    assert.match(camera.notes, /achter: Deze lens gaf geen beeld/);
+    assert.doesNotMatch(camera.notes, /voor: /, 'a lens that was photographed is not a fault');
+});
+
+test('camera: a camera with no torch is noted and judged without one', async () => {
+    useGetUserMedia([fakeStream({ torch: false }), fakeStream(), fakeStream()]);
+    const camera = fastCamera();
+    const container = fakeContainer();
+
+    const run = camera.run(fakeClient(), container);
+    await tick();
+
+    // Most cameras have no torch. The overlay says so over the lens that was
+    // asked, which is the rear one, and the old step used to put the generic
+    // "inspect the photo carefully" text in that place, which read as if
+    // something had gone wrong.
     assert.equal(container.nodes.get('torch-overlay').hidden, false);
     assert.match(container.nodes.get('torch-overlay').textContent, /geen flits/);
     assert.equal(camera.torchActive, false);
 
-    container.nodes.get('btn-capture').press();
-    container.nodes.get('btn-use-photo').press();
+    await tick(250);
+    container.nodes.get('btn-use-photo-0').press();
+    container.nodes.get('btn-use-photo-1').press();
+    await run;
+
+    assert.equal(camera.status, 'passed');
+    assert.equal(camera.details.torchAvailable, false);
+});
+
+test('camera: every lens the browser names is photographed, not just two', async () => {
+    const calls = useGetUserMedia([
+        fakeStream({ id: 'back-main' }),
+        fakeStream({ id: 'back-main' }),
+        fakeStream({ id: 'back-ultra' }),
+        fakeStream({ id: 'front', facing: 'user' })
+    ]);
+    useLensList([
+        { kind: 'audioinput', deviceId: 'mic-1', label: 'Internal microphone' },
+        { kind: 'videoinput', deviceId: 'back-main', label: 'Back Camera' },
+        { kind: 'videoinput', deviceId: 'back-ultra', label: 'Back Ultra Wide Camera' },
+        { kind: 'videoinput', deviceId: 'front', label: 'Front Camera' },
+        // A device the browser will not name yet. It is not a lens, and opening
+        // it would be opening a camera nobody has described.
+        { kind: 'videoinput', deviceId: '', label: 'Unnamed' }
+    ]);
+    const camera = fastCamera();
+    const container = fakeContainer();
+
+    const run = camera.run(fakeClient(), container);
+    await tick(250);
+
+    // The phone reports three cameras and three cameras are on the list. The
+    // ultrawide is not the rear camera and does not get filed under its name,
+    // which is what used to happen to every lens that was not one of the two
+    // the step knew the words for.
+    assert.equal(container.nodes.get('photo-review').hidden, false);
+    assert.ok(container.nodes.get('photo-0'));
+    assert.ok(container.nodes.get('photo-1'));
+    assert.ok(container.nodes.get('photo-2'));
+    assert.match(container.nodes.get('photo-row-1').textContent, /Back Ultra Wide Camera/);
+
+    // Each one is opened by its own device id. The first camera is opened by
+    // facing, because facing is the only thing that can be asked for before the
+    // browser will name anything at all.
+    assert.deepEqual(calls[0], { video: { facingMode: 'environment' } });
+    assert.deepEqual(calls[1], { video: { deviceId: { exact: 'back-main' } } });
+    assert.deepEqual(calls[2], { video: { deviceId: { exact: 'back-ultra' } } });
+    assert.deepEqual(calls[3], { video: { deviceId: { exact: 'front' } } });
+
+    container.nodes.get('btn-use-photo-0').press();
+    container.nodes.get('btn-use-photo-1').press();
+    container.nodes.get('btn-use-photo-2').press();
+    await run;
+
+    assert.equal(camera.status, 'passed');
+    assert.equal(camera.details.rearCamera.working, true);
+    assert.equal(camera.details.camera2.working, true);
+    assert.equal(camera.details.frontCamera.working, true);
+    assert.equal(camera.backWorking, true);
+    assert.equal(camera.frontWorking, true);
+});
+
+test('camera: a photo can be taken again from the list', async () => {
+    const calls = useGetUserMedia([fakeStream(), fakeStream(), fakeStream(), fakeStream()]);
+    const camera = fastCamera();
+    const container = fakeContainer();
+
+    const run = camera.run(fakeClient(), container);
+    await tick(250);
+    const first = container.nodes.get('photo-0').src;
+
+    // The camera comes back up under the same card rather than somewhere else,
+    // and the list is out of the way while it is being used.
+    container.nodes.get('btn-retake-0').press();
     await tick();
-    container.nodes.get('btn-capture').press();
-    container.nodes.get('btn-use-photo').press();
+    assert.equal(container.nodes.get('video-container').hidden, false);
+    assert.equal(container.nodes.get('photo-review').hidden, true);
+
+    await tick(120);
+
+    // A different photo on the same row, from a lens opened again, and nothing
+    // else on the list has been touched by it.
+    assert.equal(container.nodes.get('photo-review').hidden, false);
+    assert.notEqual(container.nodes.get('photo-0').src, first);
+    assert.ok(container.nodes.get('photo-1'));
+    assert.equal(calls.length, 4);
+
+    container.nodes.get('btn-use-photo-0').press();
+    container.nodes.get('btn-use-photo-1').press();
     await run;
 
     assert.equal(camera.status, 'passed');
 });
 
-test('camera: the second camera starts from a clean card', async () => {
-    useGetUserMedia([fakeStream(), fakeStream()]);
-    const camera = new CameraTest();
-    const container = fakeContainer();
-
-    const run = camera.run(fakeClient(), container);
-    await tick();
-    container.nodes.get('btn-capture').press();
-    container.nodes.get('btn-camera-defect').press();
-    assert.equal(container.nodes.get('reject-controls').hidden, false);
-    container.nodes.get('btn-reject-dark').press();
-    await tick();
-
-    // The defect buttons belonged to the rear camera. Left on screen they offered
-    // the operator a second chance to reject a camera they had already judged.
-    assert.equal(container.nodes.get('reject-controls').hidden, true);
-    assert.equal(container.nodes.get('cam-reject-reason').hidden, true);
-    assert.equal(container.nodes.get('live-controls').hidden, false);
-
-    container.nodes.get('btn-capture').press();
-    container.nodes.get('btn-use-photo').press();
-    await run;
-
-    assert.equal(camera.status, 'failed');
-    assert.match(camera.notes, /achter: Te donker/);
+test('camera: the timer a technician waits for is three seconds', () => {
+    // Every other test in here runs the step on a short timer so it does not sit
+    // out three seconds a lens, which means the value actually shipped has to be
+    // pinned somewhere or it could be changed to anything without a failure.
+    assert.equal(CameraTest.PHOTO_DELAY_MS, 3000);
+    assert.equal(new CameraTest().photoDelayMs, CameraTest.PHOTO_DELAY_MS);
 });
 
-test('camera: two cameras need more than the single-measurement failsafe', () => {
+test('camera: several lenses need more than the single-measurement failsafe', () => {
     assert.ok(new CameraTest().getFailsafeMs() > 90000);
 });
 
 test('camera: the stream is released when the step is abandoned', async () => {
     const stream = fakeStream();
-    useGetUserMedia([stream]);
-    const camera = new CameraTest();
+    const calls = useGetUserMedia([stream, stream]);
+    const camera = fastCamera();
     const container = fakeContainer();
 
     camera.run(fakeClient(), container);
     await tick();
 
+    // The list has been read with the rear camera open, and the rear camera is
+    // open again for its own photograph.
     assert.equal(camera._stream, stream);
+    assert.equal(calls.length, 2);
+
     abandon(camera);
+
     assert.equal(stream.track.stopped, true);
+    assert.equal(camera._stream, null);
+
+    // The countdown running over it goes with it, so a step that has been left
+    // does not go on to open the next lens on a phone nobody is testing. The
+    // camera light going on again after the operator has walked away would be
+    // the most visible thing this app could do wrong.
+    await tick(200);
+    assert.equal(calls.length, 2);
     assert.equal(camera._stream, null);
 });
 
