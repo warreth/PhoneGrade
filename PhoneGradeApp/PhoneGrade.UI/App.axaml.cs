@@ -28,6 +28,10 @@ public partial class App : Application
         PhoneGrade.Core.SystemEventLogger.Info(PhoneGrade.Core.LogSource.Desktop, $"Tools directory: {PhoneGrade.Core.ToolRunner.ToolsDir}");
         PhoneGrade.Core.SystemEventLogger.Info(PhoneGrade.Core.LogSource.Desktop, $"Log directory: {PhoneGrade.Core.SystemEventLogger.LogDir}");
         PhoneGrade.Core.SystemEventLogger.Info(PhoneGrade.Core.LogSource.Desktop, $"Language: {settings.Language}");
+
+        // A connector left by a run that was killed rather than closed cannot tidy
+        // up after itself, so the leftovers go before anything new is started.
+        PhoneGrade.Core.ConnectorLedger.ReapOrphans();
     }
 
     public override void OnFrameworkInitializationCompleted()
