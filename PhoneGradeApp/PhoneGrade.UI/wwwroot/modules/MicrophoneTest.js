@@ -8,36 +8,46 @@ import {
 } from './MediaCapability.js';
 
 /**
- * The microphone, checked by watching the level move while the operator talks.
+ * The microphone, checked by playing back what it recorded.
  *
- * The old step ran getUserMedia inside a try, and any failure at all fell
- * straight through to a recording made with the phone's own voice recorder. On a
- * phone where the operator had simply refused the microphone prompt, that
- * replaced a measurement with a different test: the recorder app records with
- * the same hardware the prompt was protecting, so the two are not
- * interchangeable, and a phone with a dead microphone could still be passed by
- * pressing "yes, clear" on a recording that never had any sound in it.
+ * The step opens the microphone once and records three seconds of it, then
+ * hands the clip straight back. The level bar alone said that something moved
+ * the diaphragm. It never let the operator hear whether what came out was their
+ * voice or a buzz, and that is the answer they are actually grading: a phone
+ * whose microphone is wired to nothing and a phone with a scratchy one both move
+ * a bar, so the bar cannot be the whole verdict.
  *
- * A refusal is now shown as a refusal, with a retry. The recorder is kept for the
- * one case it is actually for: a browser that does not expose the microphone API
- * at all, where there is no measurement to make and a human listening back is
- * the only check available.
+ * The level is still measured while the recording runs, and a clip nobody can be
+ * heard in fails on that measurement before the question is ever asked. The yes
+ * button must never be the only thing standing between a dead microphone and a
+ * pass, which is the thing the meter was introduced to stop: an operator who
+ * never listened to the recording is how one used to get through.
+ *
+ * A refusal is still shown as a refusal, with a retry. The recorder is kept for
+ * the one case it is actually for: a browser that does not expose the microphone
+ * API at all, where there is no measurement to make and a human listening back
+ * is the only check available. A browser that can open the microphone but has no
+ * MediaRecorder gets the meter, which is the same measurement without the clip.
  *
  * The stream and the audio context are released in dispose(), which the runner
  * calls on every exit. Without it a skipped microphone step left the input open,
  * and the phone kept showing its microphone indicator for the rest of the run.
  */
 export class MicrophoneTest extends DeviceTest {
+    /** How long the clip runs. Long enough to say a word, short enough to hear. */
+    static RECORD_MS = 3000;
+
     constructor() {
         super('microphone', t('microphone.title'), t('microphone.stepDescription'));
         this._stream = null;
         this._audioCtx = null;
+        this._recorder = null;
     }
 
     /**
-     * The live meter needs ten seconds of quiet before it gives up, and the
-     * recorder fallback needs the operator to record and listen back. 90 s covers
-     * the first and not the second.
+     * The clip takes three seconds to make and then the operator's ear, and the
+     * recorder fallback takes a recording made in another app first. 90 s covers
+     * neither.
      */
     getFailsafeMs() {
         return 150000;
@@ -48,6 +58,14 @@ export class MicrophoneTest extends DeviceTest {
     }
 
     stopCapture() {
+        if (this._recorder) {
+            // A recorder left running holds the input open exactly as the stream
+            // does, and leaving it open is the thing dispose() exists to prevent.
+            try {
+                if (this._recorder.state !== 'inactive') this._recorder.stop();
+            } catch (e) { /* the track went first */ }
+            this._recorder = null;
+        }
         if (this._stream) {
             this._stream.getTracks().forEach(track => track.stop());
             this._stream = null;
@@ -92,7 +110,7 @@ export class MicrophoneTest extends DeviceTest {
             if (stream) {
                 this._stream = stream;
                 try {
-                    return await this.runLiveMeterTest(wsClient, container, stream);
+                    return await this.runPlaybackTest(wsClient, container, stream);
                 } catch (err) {
                     this.stopCapture();
                     const text = t('microphone.levelMeterFailed', { error: err && err.message ? err.message : String(err) });
@@ -211,6 +229,62 @@ export class MicrophoneTest extends DeviceTest {
         });
     }
 
+    /**
+     * Measures the microphone while it runs, and paints the bar as it does.
+     *
+     * Both paths this step can take need the same two things: a level the
+     * operator can watch, and a peak a verdict is made on. The number comes off
+     * the byte spectrum the analyser fills, so it is a figure the phone measured
+     * rather than one the step made up. The analysis context is kept on the step
+     * so dispose() releases it along with the stream.
+     *
+     * Returns null when the browser has no AudioContext, which is the one case
+     * where there is nothing to measure with.
+     */
+    startMeter(stream, vuBar, onLevel) {
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor) return null;
+
+        this._audioCtx = new AudioCtor();
+        const analyser = this._audioCtx.createAnalyser();
+        const source = this._audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let peak = 0;
+        let stopped = false;
+
+        const measure = () => {
+            if (stopped) return;
+
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            const pct = Math.min(100, Math.round(((sum / dataArray.length) / 128) * 100));
+
+            if (vuBar) vuBar.style.width = pct + '%';
+            if (pct > peak) peak = pct;
+            onLevel(pct, peak);
+
+            requestAnimationFrame(measure);
+        };
+
+        requestAnimationFrame(measure);
+
+        return {
+            peak: () => peak,
+            // The loop parks itself rather than being cancelled, so a step that has
+            // settled stops measuring even where there is no handle to cancel the
+            // frame with.
+            stop: () => { stopped = true; }
+        };
+    }
+
+    /**
+     * The path for a browser with no MediaRecorder: the level is the whole
+     * answer, so the step ends on the measurement and nothing is handed back.
+     */
     async runLiveMeterTest(wsClient, container, stream) {
         container.innerHTML = `
             <div class="step-screen">
@@ -230,70 +304,207 @@ export class MicrophoneTest extends DeviceTest {
         const vuBar = container.querySelector('#mic-vu-bar');
         const statusText = container.querySelector('#live-mic-status');
 
-        const AudioCtor = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtor) {
-            this.stopCapture();
-            return this.fail(t('microphone.cannotMeasureSignal'));
-        }
-
-        this._audioCtx = new AudioCtor();
-        const analyser = this._audioCtx.createAnalyser();
-        const source = this._audioCtx.createMediaStreamSource(stream);
-        source.connect(analyser);
-        analyser.fftSize = 256;
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        let peakLevel = 0;
-        let settled = false;
-
         return new Promise((resolve) => {
+            let settled = false;
+            let verdictTimer = null;
+            let meter = null;
+
             const finish = (passed, notes) => {
                 if (settled) return;
                 settled = true;
+                if (verdictTimer) clearTimeout(verdictTimer);
+                if (meter) meter.stop();
                 this.stopCapture();
                 this.details.checkMethod = 'live-meter';
-                this.details.peakLevel = peakLevel;
-                if (passed) this.pass(notes);
-                else this.fail(notes);
+                this.details.peakLevel = meter ? meter.peak() : 0;
+                // The runner settles a step from under a pending timer just as it
+                // settles one that is still waiting on the operator, and a verdict
+                // written after that would replace the one it gave.
+                if (this.status === 'running') {
+                    if (passed) this.pass(notes);
+                    else this.fail(notes);
+                }
                 resolve();
             };
 
-            const checkAudio = () => {
-                if (settled) return;
-
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-                const avg = sum / dataArray.length;
-                const pct = Math.min(100, Math.round((avg / 128) * 100));
-
-                if (vuBar) vuBar.style.width = pct + '%';
-                if (pct > peakLevel) peakLevel = pct;
-
-                if (peakLevel > 20) {
-                    if (statusText) {
-                        statusText.textContent = t('microphone.soundDetected', { peak: peakLevel });
-                        statusText.style.color = 'var(--color-success-text)';
-                    }
-                    setTimeout(() => {
-                        this.reportProgress(wsClient, 100, t('microphone.progressWorking'));
-                        finish(true, t('microphone.registersSound', { peak: peakLevel }));
-                    }, 1000);
-                    return;
+            meter = this.startMeter(stream, vuBar, (pct, peak) => {
+                if (peak <= 20) return;
+                if (statusText) {
+                    statusText.textContent = t('microphone.soundDetected', { peak });
+                    statusText.style.color = 'var(--color-success-text)';
                 }
+                if (verdictTimer) return;
+                // Sound has answered. One more second of it, so a syllable that
+                // happened to pass does not settle the step on its own.
+                verdictTimer = setTimeout(() => {
+                    this.reportProgress(wsClient, 100, t('microphone.progressWorking'));
+                    finish(true, t('microphone.registersSound', { peak: meter.peak() }));
+                }, 1000);
+            });
 
-                requestAnimationFrame(checkAudio);
-            };
-
-            requestAnimationFrame(checkAudio);
+            if (!meter) {
+                this.stopCapture();
+                this.fail(t('microphone.cannotMeasureSignal'));
+                resolve();
+                return;
+            }
 
             setTimeout(() => {
-                if (peakLevel <= 20) {
+                if (meter.peak() <= 20) {
                     this.reportProgress(wsClient, 100, t('microphone.progressNoSignal'));
                     finish(false, t('microphone.noSignalMeasured'));
                 }
             }, 10000);
         });
+    }
+
+    /**
+     * The main path: record three seconds of the open stream, then hand the clip
+     * back to be heard.
+     *
+     * Reached with the microphone already open, so the permission prompt this
+     * step is really about has been answered. A browser that cannot record is
+     * sent to the meter rather than failed, because the measurement is still
+     * there even when the clip is not.
+     */
+    async runPlaybackTest(wsClient, container, stream) {
+        if (typeof MediaRecorder === 'undefined') {
+            return this.runLiveMeterTest(wsClient, container, stream);
+        }
+
+        let recorder;
+        try {
+            recorder = new MediaRecorder(stream);
+        } catch (err) {
+            // The constructor is there and this stream is not recordable. The
+            // level still is, so the step does not fail for a browser's opinion
+            // about codecs.
+            return this.runLiveMeterTest(wsClient, container, stream);
+        }
+
+        container.innerHTML = `
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title">${t('microphone.title')}</h3>
+                    <div class="step-card">
+                        <p class="step-lead">${t('microphone.recordLead')}</p>
+                        <div class="mic-meter">
+                            <div id="mic-vu-bar" class="mic-meter-fill"></div>
+                        </div>
+                        <p id="live-mic-status" class="sensor-status">${t('microphone.listeningStatus')}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const vuBar = container.querySelector('#mic-vu-bar');
+        const statusText = container.querySelector('#live-mic-status');
+
+        return new Promise((resolve) => {
+            const chunks = [];
+            let settled = false;
+            let meter = null;
+
+            const finish = (passed, notes, progress) => {
+                if (settled) return;
+                settled = true;
+                if (meter) meter.stop();
+                this.stopCapture();
+                this.details.checkMethod = 'record-and-replay';
+                this.details.peakLevel = meter ? meter.peak() : 0;
+                if (this.status === 'running') {
+                    this.reportProgress(wsClient, 100, progress);
+                    if (passed) this.pass(notes);
+                    else this.fail(notes);
+                }
+                resolve();
+            };
+
+            meter = this.startMeter(stream, vuBar, (pct, peak) => {
+                if (peak <= 20 || !statusText) return;
+                statusText.textContent = t('microphone.soundDetected', { peak });
+                statusText.style.color = 'var(--color-success-text)';
+            });
+
+            if (!meter) {
+                this.stopCapture();
+                this.fail(t('microphone.cannotMeasureSignal'));
+                resolve();
+                return;
+            }
+
+            this._recorder = recorder;
+
+            recorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) chunks.push(event.data);
+            };
+
+            recorder.onstop = () => {
+                // The runner ends the step from under a recording just as it ends
+                // one from under a timer. Anything after that is the old step
+                // writing on a screen it no longer owns.
+                if (settled || this.status !== 'running') return;
+
+                const peak = meter.peak();
+
+                if (peak <= 20) {
+                    // The measurement comes before the question. A clip nobody can
+                    // be heard in fails here, so the yes button is never the only
+                    // thing between a dead microphone and a pass.
+                    finish(false, t('microphone.noSignalMeasured'), t('microphone.progressNoSignal'));
+                    return;
+                }
+
+                if (chunks.length === 0) {
+                    // The level moved and nothing was written down, which is a
+                    // recording that failed rather than a microphone that did.
+                    finish(false, t('microphone.playbackFailNotes'), t('microphone.progressNotAudible'));
+                    return;
+                }
+
+                const clip = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+                this.showPlayback(container, URL.createObjectURL(clip), peak, finish);
+            };
+
+            recorder.start();
+            setTimeout(() => {
+                if (recorder.state !== 'inactive') recorder.stop();
+            }, MicrophoneTest.RECORD_MS);
+        });
+    }
+
+    /**
+     * Plays the clip back and waits for the operator's answer.
+     *
+     * The question is the one the recorder fallback has always asked, because it
+     * is the same judgement about the same thing: what this microphone put out.
+     * Only a clip with something in it gets this far, so nobody is ever asked to * listen to silence.
+     */
+    showPlayback(container, clipUrl, peak, settle) {
+        container.innerHTML = `
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title">${t('microphone.title')}</h3>
+                    <div class="step-card">
+                        <p class="step-lead">${t('microphone.soundDetected', { peak })}</p>
+                        <audio id="mic-playback" controls class="mic-preview"></audio>
+                        <p class="step-question">${t('microphone.hearYourselfQuestion')}</p>
+                        <div class="step-actions">
+                            <button id="mic-yes" class="btn btn-success">${t('microphone.yesClear')}</button>
+                            <button id="mic-no" class="btn btn-danger">${t('microphone.noNoise')}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const clip = container.querySelector('#mic-playback');
+        const yes = container.querySelector('#mic-yes');
+        const no = container.querySelector('#mic-no');
+        clip.src = clipUrl;
+
+        yes.onclick = () => settle(true, t('microphone.playbackPassNotes', { peak }), t('microphone.progressListenedBack'));
+        no.onclick = () => settle(false, t('microphone.playbackFailNotes'), t('microphone.progressNotAudible'));
     }
 
     async reportCapabilityGap(wsClient, missingApi, reason) {
