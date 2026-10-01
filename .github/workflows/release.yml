@@ -243,6 +243,48 @@ jobs:
           ls "$tools_dir"
           test -x "$tools_dir/idevice_id" -a -x "$tools_dir/ideviceactivation"
 
+      # The tunnel connector is what gives a phone that cannot use the cable an
+      # https address, and fetching it on first use is one more thing that can be
+      # missing on a customer machine. Shipping it beside the exe puts it in place
+      # at install time, in the same directory the libimobiledevice tools above go
+      # to and the one ToolRunner looks in.
+      - name: Bundle the tunnel connector
+        shell: bash
+        run: |
+          set -e
+          tools_dir="${{ matrix.packDir }}/idevice-tools"
+          mkdir -p "$tools_dir"
+
+          case "${{ matrix.rid }}" in
+            win-x64)   asset="cloudflared-windows-amd64.exe"; out="cloudflared.exe" ;;
+            osx-x64)   asset="cloudflared-darwin-amd64.tgz";  out="cloudflared" ;;
+            osx-arm64) asset="cloudflared-darwin-arm64.tgz";  out="cloudflared" ;;
+            linux-x64) asset="cloudflared-linux-amd64";       out="cloudflared" ;;
+            *)         echo "no cloudflared build for ${{ matrix.rid }}" >&2; exit 1 ;;
+          esac
+
+          curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/$asset" \
+            -o /tmp/cloudflared-download
+
+          case "$asset" in
+            *.tgz)
+              mkdir -p /tmp/cloudflared-unpack
+              tar -xzf /tmp/cloudflared-download -C /tmp/cloudflared-unpack
+              # The archive has held the binary at its root and inside a
+              # directory both, so the name is looked for rather than assumed.
+              src="$(find /tmp/cloudflared-unpack -type f -name cloudflared | head -n 1)"
+              test -n "$src" || { echo "no cloudflared in the archive" >&2; exit 1; }
+              mv "$src" "$tools_dir/$out"
+              ;;
+            *)
+              mv /tmp/cloudflared-download "$tools_dir/$out"
+              ;;
+          esac
+
+          chmod +x "$tools_dir/$out"
+          test -f "$tools_dir/$out"
+          ls -l "$tools_dir/$out"
+
       - name: Build Velopack installer
         shell: bash
         run: |
