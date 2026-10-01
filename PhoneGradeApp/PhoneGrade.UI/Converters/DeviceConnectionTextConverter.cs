@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
+using PhoneGrade.UI.Services;
 
 namespace PhoneGrade.UI.Converters;
 
@@ -15,7 +16,9 @@ namespace PhoneGrade.UI.Converters;
 public class DeviceConnectionTextConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => value is string key && !string.IsNullOrEmpty(key) ? "Toestel Verbonden" : "Geen Toestel";
+        => value is string key && !string.IsNullOrEmpty(key)
+            ? LocalizationManager.GetString("Header_Connected")
+            : LocalizationManager.GetString("Header_NoDevice");
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();

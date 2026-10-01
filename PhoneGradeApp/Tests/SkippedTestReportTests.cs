@@ -1,6 +1,8 @@
 using System.Text.Json;
+using Avalonia.Headless.XUnit;
 using PhoneGrade.Core;
 using PhoneGrade.Tests;
+using PhoneGrade.UI.Services;
 using PhoneGrade.UI.ViewModels;
 using Xunit;
 
@@ -62,23 +64,31 @@ public class SkippedTestReportTests
         Assert.False(suite.AllPassed, "a skipped row is not a run where everything passed");
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ASkippedTestIsListedAndTheGreenLineIsWithdrawn()
     {
         using var vm = new MainWindowViewModel();
 
         vm.ApplyInteractiveResults(ReadSuite(SuitePayload));
 
-        Assert.Contains("1 overgeslagen", vm.InteractiveTestSummary);
-        Assert.Contains("overgeslagen", vm.InteractiveSessionStatus);
-        Assert.DoesNotContain("Alles geslaagd", vm.InteractiveSessionStatus);
+        Assert.Equal(
+            string.Format(LocalizationManager.GetString("Session_TestsSkipped"), 1, 1, 1, "iOS"),
+            vm.InteractiveTestSummary);
+        Assert.Equal(
+            string.Format(LocalizationManager.GetString("Session_FailedSkipped"), 1, 1),
+            vm.InteractiveSessionStatus);
+
+        // The wording only resolves when the language dictionary is on the app,
+        // so a raw key here means the run read nothing at all.
+        Assert.NotEqual("Session_FailedSkipped", vm.InteractiveSessionStatus);
+        Assert.NotEqual(LocalizationManager.GetString("Session_AllPassed"), vm.InteractiveSessionStatus);
 
         Assert.Equal("Locatie (GPS)", Assert.Single(vm.SkippedInteractiveTests).Name);
         Assert.Single(vm.FailedInteractiveTests);
         Assert.False(vm.NoInteractiveTestProblems);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void AFailureStillReadsAsAFailureAlongsideTheSkippedOne()
     {
         using var vm = new MainWindowViewModel();
@@ -86,13 +96,16 @@ public class SkippedTestReportTests
         vm.ApplyInteractiveResults(ReadSuite(SuitePayload));
 
         Assert.Equal("Camera", Assert.Single(vm.FailedInteractiveTests).Name);
-        Assert.Contains("1 fout(en)", vm.InteractiveSessionStatus);
-        Assert.True(vm.InteractiveSessionStatus.Contains("1 overgeslagen", StringComparison.Ordinal),
-            "one row went wrong and another never ran, so the status line has to carry both numbers: "
-            + vm.InteractiveSessionStatus);
+
+        // One row went wrong and another never ran, so the line the operator
+        // reads has to carry both numbers.
+        Assert.Equal(
+            string.Format(LocalizationManager.GetString("Session_FailedSkipped"), 1, 1),
+            vm.InteractiveSessionStatus);
+        Assert.NotEqual("Session_FailedSkipped", vm.InteractiveSessionStatus);
     }
 
-    [Fact]
+    [AvaloniaFact]
     public void ARunWhereEverythingRanAndPassedKeepsItsGreenLine()
     {
         using var vm = new MainWindowViewModel();
@@ -102,8 +115,11 @@ public class SkippedTestReportTests
         Assert.Empty(vm.SkippedInteractiveTests);
         Assert.Empty(vm.FailedInteractiveTests);
         Assert.True(vm.NoInteractiveTestProblems);
-        Assert.Equal("Interactieve hardwaretest: Alles geslaagd!", vm.InteractiveSessionStatus);
-        Assert.DoesNotContain("overgeslagen", vm.InteractiveTestSummary);
+        Assert.Equal(LocalizationManager.GetString("Session_AllPassed"), vm.InteractiveSessionStatus);
+        Assert.NotEqual("Session_AllPassed", vm.InteractiveSessionStatus);
+        Assert.Equal(
+            string.Format(LocalizationManager.GetString("Session_TestsPlain"), 3, 0, "iOS"),
+            vm.InteractiveTestSummary);
     }
 
     [Fact]
@@ -159,7 +175,7 @@ public class SkippedTestReportTests
     {
         string view = RepoPath.Read("PhoneGradeApp", "PhoneGrade.UI", "Views", "MainWindow.axaml");
         Assert.Contains("ItemsSource=\"{Binding SkippedInteractiveTests}\"", view);
-        Assert.Contains("OVERGESLAGEN", view);
+        Assert.Contains("Report_Skipped", view);
         Assert.Contains("IsVisible=\"{Binding NoInteractiveTestProblems}\"", view);
 
         string index = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/index.html");

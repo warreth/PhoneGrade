@@ -46,9 +46,30 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// </summary>
     public ObservableCollection<InteractiveTestResult> SkippedInteractiveTests { get; } = [];
 
-    /// <summary>True when the inspection report has nothing to show about the phone's own tests.</summary>
+    /// <summary>
+    /// The rows the operator took out of the report. Kept as rows rather than
+    /// as a number so the count cannot drift from what is actually hidden.
+    /// </summary>
+    public ObservableCollection<InteractiveTestResult> DismissedInteractiveTests { get; } = [];
+
+    /// <summary>True when the report hides at least one row, so the undo line has something to restore.</summary>
+    public bool HasDismissedInteractiveTests => DismissedInteractiveTests.Count > 0;
+
+    /// <summary>How many rows the report is leaving out. The line that says so needs the figure.</summary>
+    public int DismissedInteractiveTestCount => DismissedInteractiveTests.Count;
+
+    /// <summary>
+    /// True when the inspection report has nothing to show about the phone's
+    /// own tests, the dismissed rows included.
+    ///
+    /// A run whose failures were all dismissed is not a clean run, and the
+    /// green line saying so would have the report misinform whoever reads it
+    /// next.
+    /// </summary>
     public bool NoInteractiveTestProblems =>
-        FailedInteractiveTests.Count == 0 && SkippedInteractiveTests.Count == 0;
+        FailedInteractiveTests.Count == 0
+        && SkippedInteractiveTests.Count == 0
+        && DismissedInteractiveTests.Count == 0;
     public UnifiedLogsViewModel LogsViewModel { get; } = new();
     public TroubleshootViewModel TroubleshootViewModel { get; } = new();
 
@@ -105,7 +126,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set => this.RaiseAndSetIfChanged(ref _qrCodeBitmap, value);
     }
 
-    private string _interactiveSessionStatus = "Web runner standby";
+    private string _interactiveSessionStatus = LocalizationManager.GetString("Status_WebStandby");
     public string InteractiveSessionStatus
     {
         get => _interactiveSessionStatus;
@@ -122,7 +143,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private int _progress;
     public int Progress { get => _progress; set => this.RaiseAndSetIfChanged(ref _progress, value); }
 
-    private string _status = "Sluit een toestel aan om te starten...";
+    private string _status = LocalizationManager.GetString("Status_ConnectToStart");
     public string Status
     {
         get => _status;
@@ -137,15 +158,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     {
         if (string.IsNullOrWhiteSpace(raw)) return "";
         if (raw.Contains("Could not connect to lockdownd") || raw.Contains("Mux error"))
-            return "Verbindingsfout met toestel (lockdownd).";
+            return LocalizationManager.GetString("Status_LockdownError");
         if (raw.Contains("PairingDialogResponsePending") || raw.Contains("PasswordProtected"))
-            return "Wachten op toestemming op iPhone...";
+            return LocalizationManager.GetString("Status_PairingPending");
         if (raw.Contains("unauthorized"))
-            return "Wachten op RSA-autorisatie op Android...";
-        if (raw.StartsWith("ERROR:") || raw.StartsWith("Fout:"))
+            return LocalizationManager.GetString("Status_RsaPending");
+        if (raw.StartsWith("ERROR:") || raw.StartsWith("Fout:") || raw.StartsWith("Error:"))
         {
-            if (raw.Contains("timed out")) return "Time-out bij communicatie.";
-            return "Communicatiefout met toestel.";
+            if (raw.Contains("timed out")) return LocalizationManager.GetString("Status_Timeout");
+            return LocalizationManager.GetString("Status_CommsError");
         }
         return raw;
     }
@@ -467,11 +488,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set => this.RaiseAndSetIfChanged(ref _isSettingsDrawerOpen, value);
     }
 
-    private bool _showAdvancedSettings;
-    public bool ShowAdvancedSettings
+    // Which topic of the settings page is on screen: one of General, Workflow,
+    // Connection, License, Support, Advanced. A single string rather than a
+    // boolean per topic, so a topic is one line in the view and nowhere else.
+    private string _selectedSettingsSection = "General";
+    public string SelectedSettingsSection
     {
-        get => _showAdvancedSettings;
-        set => this.RaiseAndSetIfChanged(ref _showAdvancedSettings, value);
+        get => _selectedSettingsSection;
+        set => this.RaiseAndSetIfChanged(ref _selectedSettingsSection, value);
     }
 
     private bool _isLogsModalOpen;
@@ -489,6 +513,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     }
 
     public ReactiveCommand<Unit, Unit> ToggleSettingsCommand { get; }
+    public ReactiveCommand<string, Unit> SelectSettingsSectionCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenLogsModalCommand { get; }
     public ReactiveCommand<Unit, Unit> CloseLogsModalCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenTroubleshootModalCommand { get; }
@@ -514,6 +539,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> RetestCommand { get; }
     public ReactiveCommand<string, Unit> SetQualityCommand { get; }
     public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
+    public ReactiveCommand<InteractiveTestResult, Unit> DismissInteractiveTestCommand { get; }
+    public ReactiveCommand<Unit, Unit> RestoreDismissedTestsCommand { get; }
 
     private bool _showAdbWarning;
     public bool ShowAdbWarning { get => _showAdbWarning; set => this.RaiseAndSetIfChanged(ref _showAdbWarning, value); }
@@ -596,6 +623,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         });
         SetQualityCommand = ReactiveCommand.Create<string>(q => _ = ContinueAfterQualityAsync(q));
         SetPaymentMethodCommand = ReactiveCommand.Create<string>(p => ContinueAfterPaymentAsync(p));
+        DismissInteractiveTestCommand = ReactiveCommand.Create<InteractiveTestResult>(DismissInteractiveTest);
+        RestoreDismissedTestsCommand = ReactiveCommand.Create(RestoreDismissedTests);
         OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
         OpenEditorCommand = ReactiveCommand.Create(() => DataEditorRequested?.Invoke(DeviceData));
         FinishInspectionCommand = ReactiveCommand.CreateFromTask(FinishInspectionAsync);
@@ -614,6 +643,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         });
 
         ToggleSettingsCommand = ReactiveCommand.Create(() => { IsSettingsDrawerOpen = !IsSettingsDrawerOpen; });
+        SelectSettingsSectionCommand = ReactiveCommand.Create<string>(section => SelectedSettingsSection = section);
         OpenLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = true; IsSettingsDrawerOpen = false; });
         CloseLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = false; });
         OpenTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = true; IsSettingsDrawerOpen = false; });
@@ -665,7 +695,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    InteractiveSessionStatus = $"Toestel verbonden voor webtest ({e.SessionId})";
+                    InteractiveSessionStatus = string.Format(
+                        LocalizationManager.GetString("Session_Connected"), e.SessionId);
                 });
             };
 
@@ -675,11 +706,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
                 {
                     if (e.Message?.Type == "test_progress")
                     {
-                        InteractiveSessionStatus = $"Test bezig: {e.Message.TestName} ({e.Message.Progress}%)";
+                        InteractiveSessionStatus = string.Format(
+                            LocalizationManager.GetString("Session_TestRunning"),
+                            e.Message.TestName, e.Message.Progress);
                     }
                     else if (e.Message?.Type == "test_complete")
                     {
-                        InteractiveSessionStatus = $"Test afgerond: {e.Message.TestName} -> {e.Message.Status}";
+                        InteractiveSessionStatus = string.Format(
+                            LocalizationManager.GetString("Session_TestDone"),
+                            e.Message.TestName, e.Message.Status);
                     }
                 });
             };
@@ -730,7 +765,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
                         {
                             Name = checkName,
                             Status = ComponentStatusType.Failed,
-                            Details = $"The mandatory browser API '{e.MissingApi}' is missing on this device."
+                            Details = string.Format(
+                                LocalizationManager.GetString("Api_MissingDetails"), e.MissingApi)
                         });
                     }
 
@@ -752,7 +788,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
                         Id = testId,
                         Name = $"Browser API: {e.MissingApi}",
                         Status = TestStatus.Failed,
-                        Notes = $"De PWA kon deze vereiste hardware API niet vinden.",
+                        Notes = LocalizationManager.GetString("Api_MissingNotes"),
                         DurationMs = 0
                     });
                 });
@@ -783,7 +819,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            InteractiveSessionStatus = $"Web runner fout: {ex.Message}";
+            InteractiveSessionStatus = string.Format(
+                LocalizationManager.GetString("Session_WebRunnerError"), ex.Message);
         }
     }
 
@@ -816,7 +853,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            InteractiveSessionStatus = $"QR fout: {ex.Message}";
+            InteractiveSessionStatus = string.Format(
+                LocalizationManager.GetString("Session_QrError"), ex.Message);
         }
     }
 
@@ -900,12 +938,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private string DescribeWebRunnerRoute(WebRunnerOrigin origin)
     {
         if (QrCodeService.IsLoopbackAddress(origin.Address))
-            return $"Scan QR om te openen via USB: {WebRunnerUrl}";
+            return string.Format(LocalizationManager.GetString("Route_Usb"), WebRunnerUrl);
 
         if (QrCodeService.IsSecureAddress(origin.Address))
-            return $"Scan QR of open via internet: {WebRunnerUrl}";
+            return string.Format(LocalizationManager.GetString("Route_Internet"), WebRunnerUrl);
 
-        return $"Scan QR of open: {WebRunnerUrl}";
+        return string.Format(LocalizationManager.GetString("Route_Local"), WebRunnerUrl);
     }
 
     /// <summary>Rebuilds the QR code after the origin setting changed.</summary>
@@ -988,23 +1026,24 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
         if (snapshot.Finished)
         {
-            InteractiveSessionStatus = $"Webtest klaar: {done} van {total} tests afgerond.";
+            InteractiveSessionStatus = string.Format(
+                LocalizationManager.GetString("Session_Finished"), done, total);
             return;
         }
 
         if (!snapshot.Started)
         {
-            InteractiveSessionStatus = "Webtest staat klaar op de telefoon.";
+            InteractiveSessionStatus = LocalizationManager.GetString("Session_Ready");
             return;
         }
 
         string where = string.IsNullOrWhiteSpace(snapshot.CurrentTestName)
-            ? "volgende stap"
+            ? LocalizationManager.GetString("Session_NextStep")
             : snapshot.CurrentTestName;
 
         InteractiveSessionStatus = done == 0
-            ? $"Webtest gestart, bezig met {where}."
-            : $"Webtest bezig: {where} ({done} van {total} afgerond).";
+            ? string.Format(LocalizationManager.GetString("Session_Started"), where)
+            : string.Format(LocalizationManager.GetString("Session_InProgress"), where, done, total);
     }
 
     public void ApplyInteractiveResults(InteractiveTestSuiteResult suite)
@@ -1023,24 +1062,24 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         int skipped = suite.Tests.Count(t => t.Status == TestStatus.Skipped);
 
         InteractiveTestSummary = skipped == 0
-            ? $"Interactieve tests: {passed} geslaagd, {failed} gefaald ({suite.Platform})"
-            : $"Interactieve tests: {passed} geslaagd, {failed} gefaald, {skipped} overgeslagen ({suite.Platform})";
+            ? string.Format(LocalizationManager.GetString("Session_TestsPlain"), passed, failed, suite.Platform)
+            : string.Format(LocalizationManager.GetString("Session_TestsSkipped"), passed, failed, skipped, suite.Platform);
 
         if (failed > 0)
         {
             InteractiveSessionStatus = skipped > 0
-                ? $"Interactieve hardwaretest voltooid: {failed} fout(en), {skipped} overgeslagen"
-                : $"Interactieve hardwaretest voltooid: {failed} fout(en)";
+                ? string.Format(LocalizationManager.GetString("Session_FailedSkipped"), failed, skipped)
+                : string.Format(LocalizationManager.GetString("Session_Failed"), failed);
         }
         else if (skipped > 0)
         {
-            InteractiveSessionStatus = $"Interactieve hardwaretest voltooid: {skipped} test(en) overgeslagen";
+            InteractiveSessionStatus = string.Format(
+                LocalizationManager.GetString("Session_SkippedOnly"), skipped);
         }
         else
         {
-            InteractiveSessionStatus = suite.AllPassed
-                ? "Interactieve hardwaretest: Alles geslaagd!"
-                : "Interactieve hardwaretest voltooid";
+            InteractiveSessionStatus = LocalizationManager.GetString(
+                suite.AllPassed ? "Session_AllPassed" : "Session_Done");
         }
 
         RefreshInteractiveTestLists();
@@ -1057,10 +1096,16 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     {
         FailedInteractiveTests.Clear();
         SkippedInteractiveTests.Clear();
+        DismissedInteractiveTests.Clear();
 
         foreach (var test in DeviceData.InteractiveTests?.Tests ?? Enumerable.Empty<InteractiveTestResult>())
         {
-            if (test.Status == TestStatus.Failed)
+            // Counted, not dropped: the report says how much it is leaving out.
+            if (test.Excluded)
+            {
+                DismissedInteractiveTests.Add(test);
+            }
+            else if (test.Status == TestStatus.Failed)
             {
                 FailedInteractiveTests.Add(test);
             }
@@ -1070,7 +1115,56 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             }
         }
 
+        RaiseReportChanged();
+    }
+
+    /// <summary>
+    /// Takes one row out of the inspection report.
+    ///
+    /// The decision is written onto the row, not kept in the list, because both
+    /// lists are emptied and refilled every time the report refreshes: a
+    /// dismissal held only by a list would be back on the next refresh. A new
+    /// run rebuilds the rows from what the phone sent, so a fresh measurement
+    /// shows itself again.
+    /// </summary>
+    private void DismissInteractiveTest(InteractiveTestResult? test)
+    {
+        if (test is null || test.Excluded) return;
+
+        test.Excluded = true;
+        FailedInteractiveTests.Remove(test);
+        SkippedInteractiveTests.Remove(test);
+        DismissedInteractiveTests.Add(test);
+
+        RaiseReportChanged();
+    }
+
+    /// <summary>Puts every row back in the report, so a dismissal is never final.</summary>
+    private void RestoreDismissedTests()
+    {
+        if (DismissedInteractiveTests.Count == 0) return;
+
+        foreach (var test in DismissedInteractiveTests)
+        {
+            test.Excluded = false;
+        }
+
+        RefreshInteractiveTestLists();
+    }
+
+    /// <summary>
+    /// Raises everything that moves when a row enters or leaves the report.
+    ///
+    /// The three are one piece of state: what is listed, what is hidden, and
+    /// whether the green line is allowed to stand. Raising them together is
+    /// what keeps a view from showing a figure for rows it no longer believes
+    /// are hidden.
+    /// </summary>
+    private void RaiseReportChanged()
+    {
         this.RaisePropertyChanged(nameof(NoInteractiveTestProblems));
+        this.RaisePropertyChanged(nameof(HasDismissedInteractiveTests));
+        this.RaisePropertyChanged(nameof(DismissedInteractiveTestCount));
     }
 
     /// <summary>Polls for device changes every 2s; starts the auto flow on first sight of a device.</summary>
@@ -1115,7 +1209,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
                         ComponentChecks.Clear();
                         foreach (var c in DeviceData.ComponentChecks) ComponentChecks.Add(c);
                         WorkflowState = AppWorkflowState.Active;
-                        Status = "Toestel heraangesloten: data herladen (vanaf 0%).";
+                        Status = LocalizationManager.GetString("Status_Reconnected");
                         DeviceSessionManager.MarkStarted(udid, DeviceData);
                         UpdateWebRunnerSession(udid);
                         return;
@@ -1148,11 +1242,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         if (WorkflowState == AppWorkflowState.Active && !string.IsNullOrWhiteSpace(lastUdid) && DeviceData != null)
         {
             DeviceSessionManager.PreserveDisconnectedSession(lastUdid, DeviceData, Progress);
-            Status = "Toestel losgekoppeld. Sluit hetzelfde toestel opnieuw aan om verder te gaan.";
+            Status = LocalizationManager.GetString("Status_Disconnected");
         }
         else
         {
-            Status = "Sluit een toestel aan via USB om te starten...";
+            Status = LocalizationManager.GetString("Status_ConnectUsb");
         }
 
         WorkflowState = AppWorkflowState.Idle;
@@ -1232,29 +1326,29 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             Status = diagState switch
             {
                 DeviceService.ConnectionState.ToolsMissing =>
-                    "USB tools ontbreken: noch libimobiledevice noch adb is geinstalleerd of vindbaar in PATH. Open de Troubleshoot tab voor installatie-instructies.",
+                    LocalizationManager.GetString("Status_ToolsMissing"),
                 DeviceService.ConnectionState.Unauthorized =>
-                    "Wachten op RSA-autorisatie op Android. Accepteer USB-foutopsporing.",
+                    LocalizationManager.GetString("Status_Unauthorized"),
                 DeviceService.ConnectionState.PermissionDenied =>
-                    "Rechten ontbreken (chmod +x nodig of Gatekeeper waarschuwing).",
+                    LocalizationManager.GetString("Status_PermissionDenied"),
                 DeviceService.ConnectionState.DriverMissing =>
-                    "Apple USB Driver ontbreekt. Installeer iTunes of Apple Mobile Device Support.",
+                    LocalizationManager.GetString("Status_DriverMissing"),
                 DeviceService.ConnectionState.DaemonStopped =>
-                    OperatingSystem.IsWindows()
-                        ? "Apple Mobile Device Service is gestopt: start de Windows service 'Apple Mobile Device Service'."
-                        : "usbmuxd daemon draait niet.",
+                    LocalizationManager.GetString(OperatingSystem.IsWindows()
+                        ? "Status_DaemonStoppedWin"
+                        : "Status_DaemonStoppedUnix"),
                 DeviceService.ConnectionState.NotTrusted =>
-                    "Wachten op toestemming op iPhone. Ontgrendel en tik op 'Vertrouw'.",
+                    LocalizationManager.GetString("Status_NotTrusted"),
                 _ =>
-                    "Geen toestel gevonden. Controleer de kabel of ontgrendel het toestel."
+                    LocalizationManager.GetString("Status_NoDeviceFound")
             };
             return;
         }
 
         Status = count switch
         {
-            1 => "Eén toestel gevonden en geselecteerd.",
-            _ => $"{count} toestellen gevonden: kies er één.",
+            1 => LocalizationManager.GetString("Status_OneFound"),
+            _ => string.Format(LocalizationManager.GetString("Status_ManyFound"), count),
         };
     }
 
@@ -1289,14 +1383,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         string? udid = SelectedDevice.Key;
         if (udid is not { Length: > 0 })
         {
-            Status = "Geen toestel geselecteerd.";
+            Status = LocalizationManager.GetString("Status_NoDeviceSelected");
             return;
         }
 
         // Licensing gate: block at the limit before any device work starts.
         if (!await PassScanGateAsync().ConfigureAwait(false))
         {
-            Status = "Gratis proefversie limiet bereikt (10/10). Koop een licentie om door te gaan met scannen.";
+            Status = LocalizationManager.GetString("Status_TrialLimit");
             return;
         }
 
@@ -1311,40 +1405,40 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         try
         {
             // 1. Trust / connectivity
-            Status = "Verbinding controleren…";
+            Status = LocalizationManager.GetString("Status_Checking");
             var state = await DeviceService.GetConnectionStateAsync(udid);
             if (state == DeviceService.ConnectionState.Unauthorized)
             {
-                Status = "Wachten op RSA-autorisatie op Android. Accepteer USB-foutopsporing.";
+                Status = LocalizationManager.GetString("Status_Unauthorized");
                 WorkflowState = AppWorkflowState.Idle; // Fallback to Idle
                 return;
             }
             if (state == DeviceService.ConnectionState.NotTrusted)
             {
-                Status = "Wachten op toestemming op iPhone. Ontgrendel en tik op 'Vertrouw'.";
+                Status = LocalizationManager.GetString("Status_NotTrusted");
                 WorkflowState = AppWorkflowState.Idle; // Fallback to Idle
                 return;
             }
             if (state == DeviceService.ConnectionState.PermissionDenied)
             {
-                Status = "Executable permissions missing: bestandspermissies ontoereikend.";
+                Status = LocalizationManager.GetString("Status_PermissionDenied");
                 return;
             }
             if (state == DeviceService.ConnectionState.DriverMissing)
             {
-                Status = "Apple USB Driver missing: installeer Apple Mobile Device Support.";
+                Status = LocalizationManager.GetString("Status_DriverMissing");
                 return;
             }
             if (state == DeviceService.ConnectionState.DaemonStopped)
             {
-                Status = OperatingSystem.IsWindows()
-                    ? "Apple Mobile Device Service is gestopt: start de service in Windows Services."
-                    : "usbmuxd daemon draait niet: start usbmuxd.";
+                Status = LocalizationManager.GetString(OperatingSystem.IsWindows()
+                    ? "Status_DaemonStoppedWin"
+                    : "Status_DaemonStoppedUnix");
                 return;
             }
             if (state != DeviceService.ConnectionState.Connected)
             {
-                Status = "Toestel niet bereikbaar: probeer een andere kabel of poort.";
+                Status = LocalizationManager.GetString("Status_Unreachable");
                 return;
             }
             Progress = 20;
@@ -1353,14 +1447,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             if (AutoActivate && state == DeviceService.ConnectionState.NotActivated ||
                 AutoActivate && await NeedsActivationAsync(udid))
             {
-                Status = "Toestel activeren (bypass)…";
+                Status = LocalizationManager.GetString("Status_Activating");
                 string result = await ActivationService.SkipActivationAsync(udid);
                 Status = result;
             }
             Progress = 40;
 
             // 3. Read device data
-            Status = "Toesteldata uitlezen…";
+            Status = LocalizationManager.GetString("Status_ReadingData");
             DeviceData = await DeviceService.GetDeviceDataAsync(udid);
             ComponentChecks.Clear();
             foreach (var check in DeviceData.ComponentChecks)
@@ -1390,11 +1484,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             Progress = 75;
 
             // Wait for user to explicitly click 'Afronden'
-            Status = "Specificaties gelezen. Voer de interactieve test uit en klik op 'Afronden'.";
+            Status = LocalizationManager.GetString("Status_SpecsRead");
         }
         catch (Exception ex)
         {
-            Status = $"Fout: {ex.Message}";
+            Status = string.Format(LocalizationManager.GetString("Status_Error"), ex.Message);
         }
         finally
         {
@@ -1412,7 +1506,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         {
             quality = penalised;
             SystemEventLogger.Warning(LogSource.Desktop, "Prevented Grade 'A' selection due to missing mandatory browser APIs.", DeviceData.Identifier);
-            Status = "Klasse A is niet toegestaan (ontbrekende API's). Automatisch verlaagd naar B.";
+            Status = LocalizationManager.GetString("Status_GradeDowngraded");
         }
         
         SelectedGrade = quality;
@@ -1425,7 +1519,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         else
         {
             Progress = 90;
-            Status = "Kies de factuurmethode...";
+            Status = LocalizationManager.GetString("Status_ChoosePayment");
             IsPaymentPopupVisible = true;
         }
     }
@@ -1436,7 +1530,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         IsQualityPopupVisible = false;
         IsPaymentPopupVisible = false;
         Progress = 100;
-        Status = "Testen voltooid. Controleer de resultaten en print het label.";
+        Status = LocalizationManager.GetString("Status_TestsComplete");
         // Populate defect inspection report (only non-OEM/mismatch components and failed tests)
         DefectiveComponents.Clear();
         foreach (var c in DeviceData.ComponentChecks)
@@ -1477,7 +1571,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         // Check if PWA test is required and not completed
         if (RequirePwaTest && DeviceData.InteractiveTests == null)
         {
-            Status = "PWA hardwaretest is verplicht. Voer eerst de interactieve test uit.";
+            Status = LocalizationManager.GetString("Status_PwaRequired");
             return;
         }
 
@@ -1494,7 +1588,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         else
         {
             IsQualityPopupVisible = true;
-            Status = "Kies de kwaliteit...";
+            Status = LocalizationManager.GetString("Status_ChooseQuality");
         }
     }
 
@@ -1502,7 +1596,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     {
         try
         {
-            Status = "Label genereren…";
+            Status = LocalizationManager.GetString("Status_LabelGenerating");
             string path = LabelService.GenerateLabel(DeviceData);
             AuditLogService.ExportAuditLog(DeviceData);
             Status = LabelService.OpenLabelFile(path);
@@ -1511,7 +1605,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            Status = $"Label mislukt: {ex.Message}";
+            Status = string.Format(LocalizationManager.GetString("Status_LabelFailed"), ex.Message);
         }
     }
 
@@ -1520,6 +1614,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         if (File.Exists(LabelService.OutputPath))
             Status = LabelService.OpenLabelFile();
         else
-            Status = "Nog geen label gegenereerd.";
+            Status = LocalizationManager.GetString("Status_NoLabel");
     }
 }

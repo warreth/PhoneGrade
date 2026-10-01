@@ -13,47 +13,70 @@
 
     <Panel>
         <Grid RowDefinitions="64,*">
-            <!-- ==================== FIXED HEADER BAR ==================== -->
-            <Border Grid.Row="0" Background="{DynamicResource CardColor}" 
-                    BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="0,0,0,1" 
-                    Padding="24,0">
-                <Grid ColumnDefinitions="280,*,200" VerticalAlignment="Center">
-                    <!-- Left: Brand / Connection Status Pill -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                        
+            <!--
+                ==================== FIXED HEADER BAR ====================
+
+                Three columns: what the window is, what it is working on, and what
+                can be opened. The outer two are Auto and only as wide as their
+                content, so the middle one is the column that gives way - it clips
+                and ellipsizes instead of pushing the buttons off the right edge,
+                which is what the old 280px / 200px columns did at the minimum
+                window width.
+            -->
+            <Border Grid.Row="0" Classes="topBar" Height="64">
+                <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                    <!-- Left: brand and whether a phone is plugged in -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+
                         <!-- Unified PG SVG Logo -->
-                        <Viewbox Width="24" Height="24" Stretch="Uniform" VerticalAlignment="Center">
+                        <Viewbox Width="22" Height="22" Stretch="Uniform" VerticalAlignment="Center">
                             <Canvas Width="100" Height="100">
                                 <Rectangle Fill="#2563eb" Width="100" Height="100" RadiusX="16" RadiusY="16"/>
                                 <TextBlock Text="PG" FontSize="54" Foreground="#ffffff" FontFamily="system-ui, -apple-system" FontWeight="Bold" Canvas.Left="19" Canvas.Top="14"/>
                             </Canvas>
                         </Viewbox>
-                        <TextBlock Text="PhoneGrade" FontSize="18" FontWeight="Bold" 
-                                   Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center"/>
-                        
-                        <Border Classes="pill" 
+                        <TextBlock Classes="brand" Text="PhoneGrade"/>
+
+                        <!--
+                            Two labels, one pill: the wording lives in the string
+                            dictionaries so a language switch follows, and the
+                            converter that used to print the words itself had no
+                            way of knowing the language had changed.
+                        -->
+                        <Border Classes="pill"
                                 Classes.success="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                 Classes.neutral="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNullOrEmpty}}">
-                            <TextBlock Classes="pillText" 
-                                       Text="{Binding SelectedDevice.Key, Converter={StaticResource DeviceConnectionTextConverter}}"
-                                       VerticalAlignment="Center"/>
+                            <Panel>
+                                <TextBlock Classes="pillText" Text="{DynamicResource Header_Connected}"
+                                           IsVisible="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                <TextBlock Classes="pillText" Text="{DynamicResource Header_NoDevice}"
+                                           IsVisible="{Binding SelectedDevice.Key, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                            </Panel>
                         </Border>
                     </StackPanel>
 
-                    <!-- Center: Current Device Summary (if active) -->
-                    <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" ClipToBounds="True">
-                        <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding HasDevice}">
-                            <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
-                            <TextBlock Text="|" Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="12" VerticalAlignment="Center"/>
-                            <TextBlock Text="|" Foreground="{DynamicResource TextDimColor}" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding Status}" Classes="dim" FontSize="12" VerticalAlignment="Center" 
-                                       MaxWidth="240" TextTrimming="CharacterEllipsis"/>
+                    <!-- Center: what is being worked on, clipped so it can never
+                         push the buttons on the right out of the window -->
+                    <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            ClipToBounds="True" Margin="16,0" MaxWidth="460">
+                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasDevice}">
+                            <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}"
+                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"
+                                       MaxWidth="170" TextTrimming="CharacterEllipsis"/>
+                            <Border Width="1" Height="13" Background="{DynamicResource CardBorderColor}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="12"
+                                       VerticalAlignment="Center" MaxWidth="130" TextTrimming="CharacterEllipsis"/>
+                            <Border Width="1" Height="13" Background="{DynamicResource CardBorderColor}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Status}" Classes="dim" FontSize="12" VerticalAlignment="Center"
+                                       MaxWidth="180" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Border>
 
-                    <!-- Right: License status, Quick Actions & Settings Gear -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" VerticalAlignment="Center">
+                    <!-- Right: license status and settings. Refreshing the device
+                         list is no longer a button up here: it sits on the screen
+                         where a phone is waited for, and the list also refreshes
+                         on plug and every few seconds by itself. -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6" VerticalAlignment="Center">
                         <!--
                             The whole licensing story in one place: tier, scans left
                             on it, and a click into the panel that activates a key
@@ -71,35 +94,40 @@
                             <TextBlock Classes="pillText" Text="{Binding Licensing.TierSummary}"/>
                         </Button>
 
-                        <Button Classes="iconBtn" Command="{Binding RefreshDevicesCommand}"
-                                ToolTip.Tip="Zoek opnieuw naar verbonden apparaten">
-                            <TextBlock Text="Verversen" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}"/>
-                        </Button>
-
-                        <Button Classes="iconBtn" Command="{Binding ToggleSettingsCommand}"
-                                ToolTip.Tip="Instellingen en opties">
-                            <TextBlock Text="Instellingen" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
+                        <Button Classes="headerBtn" Classes.on="{Binding IsSettingsDrawerOpen}"
+                                Command="{Binding ToggleSettingsCommand}"
+                                ToolTip.Tip="{DynamicResource Header_SettingsTooltip}"
+                                Width="36" Height="36" Padding="0"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                            <Path Classes="glyph" Fill="{DynamicResource TextDimColor}"
+                                  Data="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94l-0.36-2.54c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.44,0.17-0.47,0.41l-0.36,2.54c-0.59,0.24-1.13,0.56-1.62,0.94l-2.39-0.96c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87c-0.12,0.21-0.08,0.47,0.12,0.61l2.03,1.58c-0.05,0.3-0.09,0.63-0.09,0.94s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
                         </Button>
                     </StackPanel>
                 </Grid>
             </Border>
 
             <!-- ==================== MAIN DYNAMIC CONTENT AREA ==================== -->
-            <Panel Grid.Row="1" Background="{DynamicResource AppBgColor}">
+            <!--
+                The banner takes the first row and the states share the second one,
+                so a trial warning pushes the work down instead of lying on top of
+                it: as siblings in a Panel the two overlap and the banner covered
+                the first lines of whatever state was showing.
+            -->
+            <Grid Grid.Row="1" Background="{DynamicResource AppBgColor}" RowDefinitions="Auto,*">
 
                 <!-- Trial limit warning banner (appears above idle/active states) -->
-                <Border Classes="card" IsVisible="{Binding IsTrialLimitReached}"
+                <Border Grid.Row="0" Classes="card" IsVisible="{Binding IsTrialLimitReached}"
                         BorderBrush="{DynamicResource WarnColor}" BorderThickness="2"
-                        Padding="16" Margin="32,0,32,16">
+                        Padding="16" Margin="32,16,32,0">
                     <StackPanel Spacing="12">
                         <TextBlock TextWrapping="Wrap" LineHeight="20"
                                    Foreground="{DynamicResource WarnColor}" FontWeight="SemiBold"
-                                   Text="Gratis proefversie limiet bereikt (10/10). Koop een licentie om door te gaan met scannen."/>
+                                   Text="{DynamicResource TrialLimit_Reached}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- ==================== STATE 1: IDLE ==================== -->
-                <Grid IsVisible="{Binding IsIdleState}" RowDefinitions="*,Auto,*" Margin="32">
+                <Grid x:Name="IdleState" Grid.Row="1" IsVisible="{Binding IsIdleState}" RowDefinitions="*,Auto,*" Margin="32">
                     <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="24" MaxWidth="500">
                         <Border Width="88" Height="88" CornerRadius="44" Background="{DynamicResource CardColor}"
                                 BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="2"
@@ -109,16 +137,16 @@
                         </Border>
 
                         <StackPanel Spacing="8" HorizontalAlignment="Center">
-                            <TextBlock Text="Sluit een toestel aan via USB" FontSize="24" FontWeight="Bold" 
+                            <TextBlock Text="{DynamicResource Idle_Title}" FontSize="24" FontWeight="Bold" 
                                        HorizontalAlignment="Center" TextAlignment="Center"/>
-                            <TextBlock Text="Ondersteunt iPhone, iPad en Android toestellen. Zorg dat het scherm ontgrendeld is en bevestig 'Vertrouw deze computer'." 
+                            <TextBlock Text="{DynamicResource Idle_Lead}"
                                        Classes="dim" FontSize="14" TextWrapping="Wrap" TextAlignment="Center" LineHeight="20"/>
                         </StackPanel>
 
                         <!-- Device dropdown selector if multiple connected -->
                         <Border Classes="card" IsVisible="{Binding Devices.Count}" Padding="16" Margin="0,8,0,0">
                             <StackPanel Spacing="10">
-                                <TextBlock Text="Gedetecteerde apparaten:" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock Text="{DynamicResource Idle_DetectedDevices}" FontWeight="SemiBold" FontSize="12"/>
                                 <!-- The selection is only ever written into the view model, never read out of a
                                      cleared control: see DeviceSelectionChanged. -->
                                 <ComboBox ItemsSource="{Binding Devices}"
@@ -131,7 +159,7 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                                <Button Classes="cta" Command="{Binding StartCommand}" Content="Start Inspectie" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                <Button Classes="cta" Command="{Binding StartCommand}" Content="{DynamicResource Btn_StartInspection}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                             </StackPanel>
                         </Border>
 
@@ -156,59 +184,61 @@
 
                                 <TextBlock TextWrapping="Wrap" LineHeight="20"
                                            Foreground="{DynamicResource WarnColor}" FontWeight="SemiBold"
-                                           Text="De telefoon is verbonden, maar vertrouwt deze computer nog niet. De telefoon zelf is prima; er moet een keer op de telefoon worden getikt."/>
+                                           Text="{DynamicResource AdbGuide_Lead}"/>
 
                                 <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
                                     <Border Grid.Column="0" Grid.Row="0" Classes="stepBadge" Margin="0,0,0,8">
                                         <TextBlock Text="1"/>
                                     </Border>
                                     <TextBlock Grid.Column="1" Grid.Row="0" Classes="stepBody" Margin="10,0,0,8"
-                                               Text="Ontgrendel het scherm en laat het aan. Een vergrendeld scherm toont de vraag niet."/>
+                                               Text="{DynamicResource AdbGuide_Step1}"/>
 
                                     <Border Grid.Column="0" Grid.Row="1" Classes="stepBadge" Margin="0,0,0,8">
                                         <TextBlock Text="2"/>
                                     </Border>
                                     <TextBlock Grid.Column="1" Grid.Row="1" Classes="stepBody" Margin="10,0,0,8"
-                                               Text="Open de melding &#8220;USB-debugging toestaan?&#8221; op de telefoon. Tik &#8220;Altijd toestaan vanaf deze computer&#8221; aan en daarna op OK."/>
+                                               Text="{DynamicResource AdbGuide_Step2}"/>
 
                                     <Border Grid.Column="0" Grid.Row="2" Classes="stepBadge" Margin="0,0,0,8">
                                         <TextBlock Text="3"/>
                                     </Border>
                                     <TextBlock Grid.Column="1" Grid.Row="2" Classes="stepBody" Margin="10,0,0,8"
-                                               Text="Staat die melding er niet? Ga naar Instellingen, &#8220;Over de telefoon&#8221; en tik zeven keer op &#8220;Build-nummer&#8221;."/>
+                                               Text="{DynamicResource AdbGuide_Step3}"/>
 
                                     <Border Grid.Column="0" Grid.Row="3" Classes="stepBadge">
                                         <TextBlock Text="4"/>
                                     </Border>
                                     <TextBlock Grid.Column="1" Grid.Row="3" Classes="stepBody" Margin="10,0,0,0"
-                                               Text="Kies daarna &#8220;Ontwikkelaarsopties&#8221; en zet &#8220;USB-debugging&#8221; aan. De melding verschijnt dan vanzelf opnieuw."/>
+                                               Text="{DynamicResource AdbGuide_Step4}"/>
                                 </Grid>
 
-                                <Border Background="#20F5A623" CornerRadius="4" Padding="10,8">
+                                <Border Classes="stepCaveatBox">
                                     <TextBlock Classes="stepCaveat"
-                                               Text="Zonder &#8220;Altijd toestaan&#8221; vraagt de telefoon het bij elke nieuwe kabel opnieuw en staat de pc steeds weer op &#8220;niet vertrouwd&#8221;."/>
+                                               Text="{DynamicResource AdbGuide_Caveat}"/>
                                 </Border>
 
                                 <Button Classes="cta" Command="{Binding RetryAdbDetectionCommand}"
-                                        Content="Opnieuw zoeken" HorizontalAlignment="Left"/>
+                                        Content="{DynamicResource AdbGuide_Retry}" HorizontalAlignment="Left"/>
                             </StackPanel>
                         </Border>
 
-                        <Button Classes="kioskSecondary" Command="{Binding RefreshDevicesCommand}" Content="Handmatig Scannen" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                        <Button Classes="kioskSecondary" Command="{Binding RefreshDevicesCommand}" Content="{DynamicResource Btn_ScanManually}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Grid>
 
                 <!-- ==================== STATE 2: ACTIVE (Reading Specs & Testing) ==================== -->
-                <ScrollViewer IsVisible="{Binding IsActiveState}" HorizontalScrollBarVisibility="Disabled">
-                    <Grid ColumnDefinitions="*,340" Margin="16,12" RowDefinitions="Auto,*">
+                <ScrollViewer x:Name="ActiveState" Grid.Row="1" IsVisible="{Binding IsActiveState}" HorizontalScrollBarVisibility="Disabled">
+                    <Grid ColumnDefinitions="*,300" Margin="16,12" RowDefinitions="Auto,*">
                         <!-- Top: Progress bar -->
                         <Border Grid.Row="0" Grid.ColumnSpan="2" Classes="card" Padding="12,8" Margin="0,0,0,10">
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Status}" FontWeight="SemiBold" FontSize="13"/>
+                                    <!-- The message can be a full instruction, so it is allowed a second
+                                         line rather than cut in the middle of the sentence. -->
+                                    <TextBlock Text="{Binding Status}" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap"/>
                                     <ProgressBar Value="{Binding Progress}" Maximum="100" Height="5"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Classes="kioskSecondary" Command="{Binding RetestCommand}" Content="Opnieuw Scannen" Margin="12,0,0,0" Padding="10,6"/>
+                                <Button Grid.Column="1" Classes="kioskSecondary" Command="{Binding RetestCommand}" Content="{DynamicResource Btn_Rescan}" Margin="12,0,0,0" Padding="10,6"/>
                             </Grid>
                         </Border>
 
@@ -217,37 +247,37 @@
                             <!-- Specs Card -->
                             <Border Classes="card" Padding="10,8">
                                 <StackPanel Spacing="10">
-                                    <TextBlock Classes="cardTitle" Text="HARDWARE SPECIFICATIES" FontSize="11"/>
+                                    <TextBlock Classes="cardTitle" Text="{DynamicResource Active_SpecsTitle}" FontSize="11"/>
                                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" Margin="0,2,0,0">
                                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="1" Margin="0,0,6,8">
-                                            <TextBlock Classes="dim" Text="Model" FontSize="10"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Model}" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="1" Margin="0,0,6,8">
-                                            <TextBlock Classes="dim" Text="Serienummer" FontSize="10"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Serial}" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="0" Grid.Column="2" Spacing="1" Margin="0,0,0,8">
-                                            <TextBlock Classes="dim" Text="Opslag" FontSize="10"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Storage}" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData.Storage}" FontWeight="Bold" FontSize="12"/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="1" Grid.Column="0" Spacing="1" Margin="0,0,6,0">
-                                            <TextBlock Classes="dim" Text="Kleur" FontSize="10"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Color}" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" FontWeight="SemiBold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="1" Margin="0,0,6,0">
-                                            <TextBlock Classes="dim" Text="Batterijconditie" FontSize="10"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Battery}" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="SemiBold" FontSize="12"/>
                                             <TextBlock Text="{Binding DeviceData.BatteryLevel, Converter={StaticResource BatteryLevelConverter}}" Classes="dim" FontSize="10"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="1" Grid.Column="2" Spacing="1">
-                                            <TextBlock Classes="dim" Text="Kwaliteitsklasse" FontSize="10"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Grade}" FontSize="10"/>
                                             <TextBlock Text="{Binding SelectedGradeDisplay}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentColor}"/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="2" Grid.Column="0" Spacing="1">
-                                            <TextBlock Classes="dim" Text="Geheugen" FontSize="10"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Memory}" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData.Memory, Converter={StaticResource MemoryConverter}}" FontWeight="SemiBold" FontSize="12"/>
                                         </StackPanel>
                                     </Grid>
@@ -257,26 +287,26 @@
                             <!-- Security & Locks Card -->
                             <Border Classes="card" Padding="10,8">
                                 <StackPanel Spacing="10">
-                                    <TextBlock Classes="cardTitle" Text="BEVEILIGING &amp; STATUS" FontSize="11"/>
+                                    <TextBlock Classes="cardTitle" Text="{DynamicResource Active_SecurityTitle}" FontSize="11"/>
                                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto" Margin="0,2,0,0">
                                         <StackPanel Grid.Column="0" Spacing="1" Margin="0,0,6,0">
-                                            <TextBlock Classes="dim" Text="IMEI Nummer" FontSize="10"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Imei}" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Spacing="1" Margin="0,0,6,0">
                                             <StackPanel Orientation="Horizontal" Spacing="3">
-                                                <TextBlock Classes="dim" Text="Find My (iCloud)" FontSize="10"/>
+                                                <TextBlock Classes="dim" Text="{DynamicResource Spec_FindMy}" FontSize="10"/>
                                                 <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="3,1">
                                                     <TextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
                                                 </Border>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}, FallbackValue='Onbekend'}" 
+                                            <TextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}}" 
                                                        Foreground="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockBrushConverter}}"
                                                        FontWeight="Bold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Spacing="1">
-                                            <TextBlock Classes="dim" Text="Blacklist Status" FontSize="10"/>
-                                            <TextBlock Text="Niet gecontroleerd" Classes="dim" FontSize="12"/>
+                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Blacklist}" FontSize="10"/>
+                                            <TextBlock Text="{DynamicResource Spec_NotChecked}" Classes="dim" FontSize="12"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
@@ -285,21 +315,29 @@
                             <!-- Component Audit List -->
                             <Border Classes="card" Padding="10,8">
                                 <StackPanel Spacing="8">
-                                    <TextBlock Classes="cardTitle" Text="ORIGINELE ONDERDELEN AUDIT (OEM)" FontSize="11"/>
+                                    <TextBlock Classes="cardTitle" Text="{DynamicResource Active_OemTitle}" FontSize="11"/>
                                     <ItemsControl ItemsSource="{Binding ComponentChecks}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Background="{DynamicResource CardDeepColor}" CornerRadius="6" Padding="8,4" Margin="0,0,0,4"
                                                         BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                                    <Grid ColumnDefinitions="210,*,*,90">
-                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                                        <StackPanel Grid.Column="1" Spacing="1">
-                                                            <TextBlock Classes="dim" Text="Gelezen" FontSize="9"/>
-                                                            <TextBlock Text="{Binding SerialRead}" FontSize="10" TextTrimming="CharacterEllipsis"/>
-                                                        </StackPanel>
-                                                        <StackPanel Grid.Column="2" Spacing="1">
-                                                            <TextBlock Classes="dim" Text="Origineel" FontSize="9"/>
+                                                    <!--
+                                                        The badge is as wide as its word rather than a fixed 90 and
+                                                        each cell keeps its own gutter: at the minimum window width the
+                                                        three cells had no space between them and the header, the value
+                                                        and the next header ran into one another. The two value columns
+                                                        carry their own short labels and are in the same order as the
+                                                        report, so the eye does not have to learn the table twice.
+                                                    -->
+                                                    <Grid ColumnDefinitions="210,*,*,Auto">
+                                                        <TextBlock Grid.Column="0" Margin="0,0,10,0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                        <StackPanel Grid.Column="1" Margin="0,0,10,0" Spacing="1">
+                                                            <TextBlock Classes="dim" Text="{DynamicResource Active_ColFactory}" FontSize="9" TextTrimming="CharacterEllipsis"/>
                                                             <TextBlock Text="{Binding SerialOriginal}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" Margin="0,0,10,0" Spacing="1">
+                                                            <TextBlock Classes="dim" Text="{DynamicResource Active_ColRead}" FontSize="9" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding SerialRead}" FontSize="10" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                         <Border Grid.Column="3" CornerRadius="3" Padding="5,2" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                                 Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
@@ -317,9 +355,9 @@
                         <!-- Right Column: Integrated PWA Hardware Test Card -->
                         <Border Grid.Row="1" Grid.Column="1" Classes="card" VerticalAlignment="Top" Padding="10,8">
                             <StackPanel Spacing="10">
-                                <TextBlock Classes="cardTitle" Text="INTERACTIEVE HARDWARETEST" FontSize="11"/>
+                                <TextBlock Classes="cardTitle" Text="{DynamicResource Active_InteractiveTitle}" FontSize="11"/>
                                 
-                                <TextBlock Text="Scan met de camera van het toestel om display, touch, camera en audio te testen:" 
+                                <TextBlock Text="{DynamicResource Active_InteractiveLead}" 
                                            Classes="dim" FontSize="11" TextWrapping="Wrap" LineHeight="15"/>
 
                                 <!-- QR Container -->
@@ -337,7 +375,7 @@
                                 <TextBlock Text="{Binding InteractiveTestSummary}" Foreground="{DynamicResource SuccessColor}" 
                                            FontWeight="SemiBold" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Margin="0,2,0,0"/>
 
-                                <Button Classes="cta" Command="{Binding FinishInspectionCommand}" Content="Afronden" 
+                                <Button Classes="cta" Command="{Binding FinishInspectionCommand}" Content="{DynamicResource Btn_Finish}" 
                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,6,0,0" Padding="0,8"/>
                             </StackPanel>
                         </Border>
@@ -345,20 +383,39 @@
                 </ScrollViewer>
 
                 <!-- ==================== STATE 3: SUMMARY (Results & Print) ==================== -->
-                <Grid IsVisible="{Binding IsSummaryState}" RowDefinitions="Auto,*,Auto" Margin="20,12" MaxWidth="960" HorizontalAlignment="Stretch">
-                    <!-- Top Row: Compact Grade Banner & Specs Summary Card -->
-                    <Grid Grid.Row="0" RowDefinitions="Auto,Auto" Margin="0,0,0,10">
-                        <!-- Top Grade & Result Banner -->
-                        <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="14,10" Margin="0,0,0,8">
+                <!--
+                    Three rows that never move: what was found, the report, and the
+                    actions. Only the report scrolls, so the print button is on
+                    screen at the minimum window height. Every colour on a row comes
+                    from the theme - the rows used to carry their own light red and
+                    light green, which in the dark theme read as two glowing blocks.
+                -->
+                <Grid x:Name="SummaryState" Grid.Row="1" IsVisible="{Binding IsSummaryState}" RowDefinitions="Auto,*,Auto">
+                    <!-- What was found -->
+                    <Grid Grid.Row="0" RowDefinitions="Auto,Auto" Margin="24,20,24,12" MaxWidth="960"
+                          HorizontalAlignment="Stretch">
+                        <Border Classes="settingCard" Padding="16,12" Margin="0,0,0,10">
                             <Grid ColumnDefinitions="*,Auto">
-                                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
                                     <TextBlock Text="{DynamicResource Summary_Title}" Classes="cardTitle" FontSize="11"/>
                                     <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontSize="18" FontWeight="Bold"/>
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <TextBlock Text="{Binding DeviceData.Identifier, StringFormat='IMEI / Serienummer: {0}'}" Classes="dim" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Storage, StringFormat='Opslag: {0}'}" Classes="dim" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Memory, Converter={StaticResource MemoryConverter}, StringFormat='Geheugen: {0}'}" Classes="dim" FontSize="11"/>
-                                        <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}, StringFormat='Kleur: {0}'}" Classes="dim" FontSize="11"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="14">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{DynamicResource Summary_Imei}" Classes="dim" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="11"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{DynamicResource Summary_Storage}" Classes="dim" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Storage}" Classes="dim" FontSize="11"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{DynamicResource Summary_Memory}" Classes="dim" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Memory, Converter={StaticResource MemoryConverter}}" Classes="dim" FontSize="11"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{DynamicResource Summary_Color}" Classes="dim" FontSize="11"/>
+                                            <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" Classes="dim" FontSize="11"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </StackPanel>
 
@@ -367,7 +424,7 @@
                                     <Border Classes="pill" Background="{DynamicResource CardColor}" BorderBrush="{DynamicResource CardBorderColor}" Padding="8,4">
                                         <StackPanel Spacing="1">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock Text="iCloud (FMI)" FontSize="9" Classes="dim"/>
+                                                <TextBlock Text="{DynamicResource Summary_Fmi}" FontSize="9" Classes="dim"/>
                                                 <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="2,0">
                                                     <TextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
                                                 </Border>
@@ -379,93 +436,99 @@
                                     </Border>
 
                                     <Border Classes="pill success" Padding="12,6" CornerRadius="10">
-                                        <TextBlock Text="{Binding SelectedGradeDisplay}" 
+                                        <TextBlock Text="{Binding SelectedGradeDisplay}"
                                                    FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
                                     </Border>
                                 </StackPanel>
                             </Grid>
                         </Border>
 
-                        <!-- Hardware Checklist Summary Grid -->
-                        <Border Grid.Row="1" Classes="card" Padding="12,8">
-                            <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto">
-                                <StackPanel Grid.Column="0" Spacing="1">
-                                    <TextBlock Classes="dim" Text="Batterijconditie" FontSize="10"/>
+                        <!-- Hardware checklist at a glance -->
+                        <Border Grid.Row="1" Classes="settingCard" Padding="16,10">
+                            <Grid ColumnDefinitions="*,*,*,*">
+                                <StackPanel Grid.Column="0" Spacing="2">
+                                    <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_BatteryHealth}"/>
                                     <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="Bold" FontSize="12"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Spacing="1">
-                                    <TextBlock Classes="dim" Text="Factuurmethode" FontSize="10"/>
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_InvoiceMethod}"/>
                                     <TextBlock Text="{Binding SelectedInvoiceMethodDisplay}" FontWeight="Bold" FontSize="12"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="2" Spacing="1">
-                                    <TextBlock Classes="dim" Text="SIM Lock" FontSize="10"/>
+                                <StackPanel Grid.Column="2" Spacing="2">
+                                    <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_SimLock}"/>
                                     <TextBlock Text="{DynamicResource Summary_SimLockFree}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource SuccessColor}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="3" Spacing="1">
-                                    <TextBlock Classes="dim" Text="Hardware Tests (PWA)" FontSize="10"/>
-                                    <TextBlock Text="{Binding InteractiveTestSummary}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource SuccessColor}" TextTrimming="CharacterEllipsis"/>
+                                <StackPanel Grid.Column="3" Spacing="2">
+                                    <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_HardwareTests}"/>
+                                    <TextBlock Text="{Binding InteractiveTestSummary}" FontWeight="Bold" FontSize="12"
+                                               Foreground="{DynamicResource SuccessColor}" TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
                     </Grid>
 
-                    <!-- Middle Row: Inspection Report (Defects & Non-OEM Only) -->
-                    <Border Grid.Row="1" Classes="card" Padding="12,10" Margin="0,0,0,10">
-                        <Grid RowDefinitions="Auto,Auto,*,Auto,*">
-                            <!-- Table Title Bar -->
-                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
-                                <TextBlock Classes="cardTitle" Text="INSPECTIERAPPORT (AFWIJKINGEN &amp; DEFECTEN)" FontSize="12" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="1" Text="Enkel niet-originele onderdelen en mislukte of overgeslagen tests" Classes="dim" FontSize="10" VerticalAlignment="Center"/>
+                    <!-- The report: deviations only, and the only thing that scrolls -->
+                    <Border Grid.Row="1" Classes="card" Margin="24,0" Padding="16,12">
+                        <Grid RowDefinitions="Auto,*">
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                                <TextBlock Classes="cardTitle" Text="{DynamicResource Summary_ReportTitle}" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource Summary_ReportNote}" Classes="dim" FontSize="10" VerticalAlignment="Center"/>
                             </Grid>
 
-                            <!-- Component Defects Section -->
-                            <TextBlock Grid.Row="1" Text="ONDERDELEN AUDIT (NIET-OEM / VERVANGEN)" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}" Margin="0,4,0,4"/>
-                            
-                            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="130">
-                                <StackPanel>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel Spacing="4">
+
+                                    <TextBlock Text="{DynamicResource Summary_AuditSection}" Classes="fieldLabel" Margin="0,4,0,6"/>
                                     <ItemsControl ItemsSource="{Binding DefectiveComponents}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="#fee2e2" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
-                                                        BorderBrush="#fca5a5" BorderThickness="1">
-                                                    <Grid ColumnDefinitions="200,*,*,90">
-                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#991b1b" VerticalAlignment="Center"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding SerialOriginal}" FontSize="11" Foreground="#7f1d1d" VerticalAlignment="Center" Classes="dim"/>
-                                                        <TextBlock Grid.Column="2" Text="{Binding SerialRead}" FontSize="11" Foreground="#991b1b" VerticalAlignment="Center"/>
-                                                        <Border Grid.Column="3" CornerRadius="3" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#dc2626">
-                                                            <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                <Border Classes="reportRow bad">
+                                                    <Grid ColumnDefinitions="170,*,*,Auto">
+                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11"
+                                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                        <StackPanel Grid.Column="1" Spacing="1" Margin="12,0">
+                                                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColFactory}" FontSize="9"/>
+                                                            <TextBlock Text="{Binding SerialOriginal}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" Spacing="1" Margin="12,0">
+                                                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColRead}" FontSize="9"/>
+                                                            <TextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                                        </StackPanel>
+                                                        <Border Grid.Column="3" Classes="chip bad">
+                                                            <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}"/>
                                                         </Border>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <Border IsVisible="{Binding !DefectiveComponents.Count}" Background="#dcfce7" CornerRadius="4" Padding="8,6" BorderBrush="#86efac" BorderThickness="1">
-                                        <TextBlock Text="[OK] Alle onderdelen zijn origineel (OEM)" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/>
+                                    <Border Classes="reportRow ok" IsVisible="{Binding !DefectiveComponents.Count}">
+                                        <TextBlock Classes="emptyNote" Text="{DynamicResource Summary_AllOemOriginal}"/>
                                     </Border>
-                                </StackPanel>
-                            </ScrollViewer>
 
-                            <!-- Interactive Tests Section -->
-                            <TextBlock Grid.Row="3" Text="INTERACTIEVE HARDWARETESTS" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource TextDimColor}" Margin="0,8,0,4"/>
-                            
-                            <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="130">
-                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource Summary_TestsSection}" Classes="fieldLabel" Margin="0,12,0,6"/>
                                     <ItemsControl ItemsSource="{Binding FailedInteractiveTests}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="#fee2e2" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
-                                                        BorderBrush="#fca5a5" BorderThickness="1">
-                                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#991b1b" VerticalAlignment="Center"/>
-                                                        <Border Grid.Row="0" Grid.Column="1" CornerRadius="3" Padding="6,2" Background="#dc2626">
-                                                            <TextBlock Text="MISLUKT" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                <Border Classes="reportRow bad">
+                                                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Border Grid.Row="0" Grid.Column="1" Classes="chip bad">
+                                                            <TextBlock Text="{DynamicResource Report_Failed}"/>
                                                         </Border>
+                                                        <!-- The way out of the report, one row at a time. The command is
+                                                             taken from the list that owns this template, because inside a
+                                                             row the data context is the row itself. -->
+                                                        <Button Grid.Row="0" Grid.Column="2" Classes="dismissTest"
+                                                                Content="&#x2715;"
+                                                                ToolTip.Tip="{DynamicResource Report_DismissTest}"
+                                                                Command="{ReflectionBinding $parent[ItemsControl].DataContext.DismissInteractiveTestCommand}"
+                                                                CommandParameter="{Binding}"/>
                                                         <!-- Why, not just that. The phone sends the note with the row; showing
                                                              only the name and the badge left the operator to guess. -->
-                                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                                   Text="{Binding Notes}" FontSize="10" Foreground="#7f1d1d"
-                                                                   TextWrapping="Wrap" Margin="0,2,0,0"
+                                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                                                   Text="{Binding Notes}" FontSize="11"
+                                                                   TextWrapping="Wrap" Margin="0,4,0,0"
                                                                    IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                     </Grid>
                                                 </Border>
@@ -476,18 +539,22 @@
                                     <ItemsControl ItemsSource="{Binding SkippedInteractiveTests}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="#fef3c7" CornerRadius="4" Padding="8,5" Margin="0,0,0,3"
-                                                        BorderBrush="#fcd34d" BorderThickness="1">
-                                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontWeight="Bold" FontSize="11" Foreground="#92400e" VerticalAlignment="Center"/>
-                                                        <Border Grid.Row="0" Grid.Column="1" CornerRadius="3" Padding="6,2" Background="#d97706">
-                                                            <TextBlock Text="OVERGESLAGEN" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                                <Border Classes="reportRow warn">
+                                                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                                        <Border Grid.Row="0" Grid.Column="1" Classes="chip warn">
+                                                            <TextBlock Text="{DynamicResource Report_Skipped}"/>
                                                         </Border>
+                                                        <Button Grid.Row="0" Grid.Column="2" Classes="dismissTest"
+                                                                Content="&#x2715;"
+                                                                ToolTip.Tip="{DynamicResource Report_DismissTest}"
+                                                                Command="{ReflectionBinding $parent[ItemsControl].DataContext.DismissInteractiveTestCommand}"
+                                                                CommandParameter="{Binding}"/>
                                                         <!-- Why it did not run: the browser refused, the phone never sent a
                                                              fix, or the browser has no location API at all. -->
-                                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                                   Text="{Binding Notes}" FontSize="10" Foreground="#78350f"
-                                                                   TextWrapping="Wrap" Margin="0,2,0,0"
+                                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                                                   Text="{Binding Notes}" FontSize="11"
+                                                                   TextWrapping="Wrap" Margin="0,4,0,0"
                                                                    IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                     </Grid>
                                                 </Border>
@@ -495,159 +562,350 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
 
-                                    <Border IsVisible="{Binding NoInteractiveTestProblems}" Background="#dcfce7" CornerRadius="4" Padding="8,6" BorderBrush="#86efac" BorderThickness="1">
-                                        <TextBlock Text="[OK] Alle interactieve tests zijn geslaagd" FontSize="11" FontWeight="SemiBold" Foreground="#166534"/>
+                                    <!-- What the report is leaving out, stated as a figure. A report that
+                                         quietly drops rows is worse than one that says it dropped them,
+                                         and the undo is what keeps the decision from being final. -->
+                                    <Border x:Name="DismissedLine" Classes="reportRow" IsVisible="{Binding HasDismissedInteractiveTests}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <TextBlock Grid.Column="0" Text="{Binding DismissedInteractiveTestCount}"
+                                                       FontWeight="Bold" FontSize="11" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextDimColor}"/>
+                                            <TextBlock Grid.Column="1" Text="{DynamicResource Report_Dismissed}"
+                                                       FontSize="11" Margin="6,0,0,0" TextWrapping="Wrap"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextDimColor}"/>
+                                            <Button Grid.Column="2" Classes="iconBtn" FontSize="11"
+                                                    Padding="8,3" Margin="8,0,0,0"
+                                                    Foreground="{DynamicResource AccentColor}"
+                                                    Content="{DynamicResource Report_Restore}"
+                                                    Command="{Binding RestoreDismissedTestsCommand}"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Classes="reportRow ok" IsVisible="{Binding NoInteractiveTestProblems}">
+                                        <TextBlock Classes="emptyNote" Text="{DynamicResource Summary_AllTestsPassed}"/>
                                     </Border>
                                 </StackPanel>
                             </ScrollViewer>
                         </Grid>
                     </Border>
 
-                    <!-- Bottom Row: Fixed Anchored Action Buttons (ALWAYS VISIBLE WITHOUT SCROLLING!) -->
-                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-                        <Button Grid.Column="0" Classes="kioskSecondary" Command="{Binding RetestCommand}" 
-                                Content="{DynamicResource Summary_BtnRetest}" Padding="16,10" HorizontalContentAlignment="Center"/>
-                        
-                        <Button Grid.Column="1" Classes="kioskPrint" Command="{Binding OpenLabelCommand}" 
-                                Content="{DynamicResource Summary_BtnPrint}" Margin="12,0" Padding="20,12" FontSize="14" FontWeight="Bold"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-                        
-                        <Button Grid.Column="2" Classes="kioskSecondary" Command="{Binding BackToIdleCommand}" 
-                                Content="{DynamicResource Summary_BtnNext}" Padding="16,10" HorizontalContentAlignment="Center"/>
-                    </Grid>
-                </Grid>
-            </Panel>
-        </Grid>
+                    <!-- Actions: a bar, not three buttons floating on the background -->
+                    <Border Grid.Row="2" Classes="actionBar">
+                        <Grid Grid.Column="0" ColumnDefinitions="Auto,*,Auto" MaxWidth="960" HorizontalAlignment="Stretch">
+                            <Button Grid.Column="0" Classes="kioskSecondary" Command="{Binding RetestCommand}"
+                                    Content="{DynamicResource Summary_BtnRetest}" Padding="16,10" HorizontalContentAlignment="Center"/>
 
-        <!-- ==================== SETTINGS SLIDE-IN DRAWER OVERLAY ==================== -->
-        <Panel IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="50">
-            <!-- Semi-transparent backdrop -->
-            <Button Background="{DynamicResource OverlayColor}" Command="{Binding ToggleSettingsCommand}"
-                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch" BorderThickness="0"/>
+                            <Button Grid.Column="1" Classes="kioskPrint" Command="{Binding OpenLabelCommand}"
+                                    Content="{DynamicResource Summary_BtnPrint}" Margin="12,0" Padding="20,12" FontSize="14" FontWeight="Bold"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
 
-            <!-- Drawer Container -->
-            <Border Width="420" HorizontalAlignment="Right" VerticalAlignment="Stretch"
-                    Background="{DynamicResource CardColor}" BorderBrush="{DynamicResource CardBorderColor}" 
-                    BorderThickness="1,0,0,0" BoxShadow="-8 0 32 0 #55000000" Padding="24">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Spacing="18">
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Text="Instellingen" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Classes="iconBtn" Command="{Binding ToggleSettingsCommand}">
-                                <TextBlock Text="Sluiten" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}"/>
-                            </Button>
+                            <Button Grid.Column="2" Classes="kioskSecondary" Command="{Binding BackToIdleCommand}"
+                                    Content="{DynamicResource Summary_BtnNext}" Padding="16,10" HorizontalContentAlignment="Center"/>
                         </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
 
-                        <Separator/>
+        <!--
+            ==================== SETTINGS PAGE ====================
+            A page, not a drawer: the topics are on the left, the chosen topic is
+            on the right, and the header stays where it always is so the gear that
+            opened this is the gear that closes it again. The old drawer was one
+            long list of everything, which meant the daily options and the debug
+            toggles sat in the same scroll and nothing could be found by place.
+        -->
+        <Panel Grid.Row="1" IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="40"
+               Background="{DynamicResource AppBgColor}">
+            <Grid RowDefinitions="Auto,*">
+                <Border Classes="topBar" Padding="24,16">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Classes="pageTitle" Text="{DynamicResource Settings_Title}"/>
+                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_Lead}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="headerBtn" VerticalAlignment="Center"
+                                Command="{Binding ToggleSettingsCommand}"
+                                ToolTip.Tip="{DynamicResource Settings_CloseTooltip}"
+                                Content="{DynamicResource Settings_Close}"/>
+                    </Grid>
+                </Border>
 
-                        <!-- Daily Operator Needs (Default Simple View) -->
-                        <TextBlock Text="{DynamicResource Settings_DailyOptions}" Classes="cardTitle"/>
+                <Grid Grid.Row="1" ColumnDefinitions="220,*" Margin="24,20,24,24">
+                    <!-- The topics. One is lit; the rest are one click away. -->
+                    <Border Grid.Column="0" Classes="settingCard" Padding="8" VerticalAlignment="Top">
+                        <StackPanel Spacing="2">
+                            <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=General}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="General"
+                                    Content="{DynamicResource Settings_SecGeneral}"/>
+                            <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Workflow}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Workflow"
+                                    Content="{DynamicResource Settings_SecWorkflow}"/>
+                            <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Connection}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Connection"
+                                    Content="{DynamicResource Settings_SecConnection}"/>
+                            <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=License}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="License"
+                                    Content="{DynamicResource Settings_SecLicense}"/>
+                            <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Support}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Support"
+                                    Content="{DynamicResource Settings_SecSupport}"/>
+                            <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Advanced}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Advanced"
+                                    Content="{DynamicResource Settings_SecAdvanced}"/>
+                        </StackPanel>
+                    </Border>
 
-                        <StackPanel Spacing="12">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="{DynamicResource Settings_Language}" VerticalAlignment="Center"/>
-                                <ComboBox Grid.Column="1" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}" Width="130"/>
-                            </Grid>
+                    <ScrollViewer Grid.Column="1" Margin="20,0,0,0" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
 
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="{DynamicResource Settings_Theme}" VerticalAlignment="Center"/>
-                                <ComboBox Grid.Column="1" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}" Width="130"/>
-                            </Grid>
+                            <!-- ============ General: the language and the look ============ -->
+                            <StackPanel Spacing="14"
+                                        IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=General}">
+                                <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_SecGeneral}"/>
 
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="{DynamicResource Settings_Quality}" VerticalAlignment="Center"/>
-                                <ComboBox Grid.Column="1" ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding DefaultQuality}" Width="130"/>
-                            </Grid>
+                                <Border Classes="settingCard">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                                            <TextBlock Text="{DynamicResource Settings_Language}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LanguageDesc}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" Width="150" VerticalAlignment="Center"
+                                                  ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}"/>
+                                    </Grid>
+                                </Border>
 
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="{DynamicResource Settings_Payment}" VerticalAlignment="Center"/>
-                                <ComboBox Grid.Column="1" ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding DefaultPaymentMethod}" Width="130"/>
-                            </Grid>
+                                <Border Classes="settingCard">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                                            <TextBlock Text="{DynamicResource Settings_Theme}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ThemeDesc}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" Width="150" VerticalAlignment="Center"
+                                                  ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"/>
+                                    </Grid>
+                                </Border>
 
-                            <CheckBox Content="{DynamicResource Settings_AutoDetect}" IsChecked="{Binding AutoDetectOnPlug}"/>
-                            <CheckBox Content="{DynamicResource Settings_AutoStartWebTest}" IsChecked="{Binding AutoStartWebTest}"/>
-                            <CheckBox Content="{DynamicResource Settings_RequirePwaTest}" IsChecked="{Binding RequirePwaTest}"/>
-                            <CheckBox Content="{DynamicResource Settings_AutoFinishAfterTest}" IsChecked="{Binding AutoFinishAfterTest}"/>
-                            <CheckBox Content="{DynamicResource Settings_ShowSummary}" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
-                            
-                            <StackPanel Spacing="4" Margin="0,4,0,0">
-                                <TextBlock Text="{DynamicResource Settings_ImeiApiKey}" FontSize="12" Foreground="{DynamicResource TextDimColor}"/>
-                                <TextBox Text="{Binding ImeiApiKey}" Watermark="SickW / IMEIPro API Key..." PasswordChar="*"/>
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="{DynamicResource Settings_ImeiApiKey}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ApiKeyDesc}"/>
+                                        <TextBox Text="{Binding ImeiApiKey}" PasswordChar="*"
+                                                 Watermark="{DynamicResource Settings_ApiKeyWatermark}"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                        </StackPanel>
 
-                        <Separator Margin="0,8,0,8"/>
+                            <!-- ============ Workflow: what a normal inspection starts with ============ -->
+                            <StackPanel Spacing="14"
+                                        IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Workflow}">
+                                <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_SecWorkflow}"/>
 
-                        <!-- How the phone reaches this pc: two options that decide the address it
-                             is given. They get a heading of their own because they decide whether
-                             the camera, the microphone and the motion sensors can be reached at
-                             all, and loose at the end of the advanced list they read as debug
-                             toggles instead of as the choice between a cable and the internet. -->
-                        <TextBlock Text="{DynamicResource Settings_Connection}" Classes="cardTitle" Margin="0,4,0,0"/>
+                                <Border Classes="settingCard">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                                            <TextBlock Text="{DynamicResource Settings_Quality}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_QualityDesc}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" Width="190" VerticalAlignment="Center"
+                                                  ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding DefaultQuality}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Converter={StaticResource QualityOptionLabelConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                </Border>
 
-                        <StackPanel Spacing="10">
-                            <CheckBox IsChecked="{Binding UseSecureOrigin}">
-                                <StackPanel Spacing="2">
-                                    <TextBlock Text="{DynamicResource Settings_SecureOrigin}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{DynamicResource Settings_SecureOriginDesc}" Classes="dim"
-                                               FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
-                                </StackPanel>
-                            </CheckBox>
+                                <Border Classes="settingCard">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                                            <TextBlock Text="{DynamicResource Settings_Payment}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_PaymentDesc}"/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" Width="190" VerticalAlignment="Center"
+                                                  ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding DefaultPaymentMethod}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Converter={StaticResource PaymentOptionLabelConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                </Border>
 
-                            <CheckBox IsChecked="{Binding UsePublicTunnel}">
-                                <StackPanel Spacing="2">
-                                    <TextBlock Text="{DynamicResource Settings_PublicTunnel}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{DynamicResource Settings_PublicTunnelDesc}" Classes="dim"
-                                               FontSize="11" TextWrapping="Wrap" MaxWidth="340"/>
-                                </StackPanel>
-                            </CheckBox>
-                        </StackPanel>
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_AutoDetect}" IsChecked="{Binding AutoDetectOnPlug}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_AutoDetectDesc}"/>
+                                    </StackPanel>
+                                </Border>
 
-                        <!--
-                            Licensing lives in the panel the title bar pill opens,
-                            so this is only a pointer: the tier as it stands, and
-                            one button over to where a key gets typed in. Keeping
-                            the key box here as well meant two copies of the same
-                            form that could disagree after an activation.
-                        -->
-                        <Border Classes="card" Padding="16" Margin="0,8,0,0">
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="{DynamicResource Settings_LicensingCardTitle}" Classes="cardTitle"/>
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_AutoStartWebTest}" IsChecked="{Binding AutoStartWebTest}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_AutoStartWebTestDesc}"/>
+                                    </StackPanel>
+                                </Border>
 
-                                <TextBlock Text="{Binding Licensing.LicensingStatusText, Mode=OneWay}"
-                                           FontWeight="SemiBold" FontSize="14"/>
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_RequirePwaTest}" IsChecked="{Binding RequirePwaTest}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_RequirePwaTestDesc}"/>
+                                    </StackPanel>
+                                </Border>
 
-                                <Button Classes="cta" Command="{Binding ManageLicenseCommand}"
-                                        Content="{DynamicResource Settings_ManageLicense}"
-                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_AutoFinishAfterTest}" IsChecked="{Binding AutoFinishAfterTest}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_AutoFinishAfterTestDesc}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_ShowSummary}" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_ShowSummaryDesc}"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                        </Border>
 
-                        <Separator Margin="0,8,0,8"/>
+                            <!--
+                                Connection: how the phone reaches this pc. The two
+                                options are together under their own heading because
+                                they decide whether the camera, the microphone and
+                                the motion sensors can be reached at all, and loose
+                                at the end of a list they read as debug toggles
+                                instead of as the choice between a cable and the
+                                internet.
+                            -->
+                            <StackPanel Spacing="14"
+                                        IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Connection}">
+                                <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_Connection}"/>
 
-                        <!-- Advanced Section Toggle -->
-                        <Button Classes="kioskSecondary" Command="{Binding OpenTroubleshootModalCommand}"
-                                Content="{DynamicResource Btn_Troubleshoot}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox IsChecked="{Binding UseSecureOrigin}">
+                                            <TextBlock Text="{DynamicResource Settings_SecureOrigin}" FontWeight="SemiBold"/>
+                                        </CheckBox>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_SecureOriginDesc}"/>
+                                    </StackPanel>
+                                </Border>
 
-                        <Button Classes="kioskSecondary" Command="{Binding OpenLogsModalCommand}"
-                                Content="{DynamicResource Btn_Logs}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox IsChecked="{Binding UsePublicTunnel}">
+                                            <TextBlock Text="{DynamicResource Settings_PublicTunnel}" FontWeight="SemiBold"/>
+                                        </CheckBox>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_PublicTunnelDesc}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
 
-                        <Separator Margin="0,8,0,8"/>
+                            <!--
+                                Licensing lives in the panel the title bar pill
+                                opens, so this is only a pointer: the tier as it
+                                stands, and one button over to where a key gets
+                                typed in. A second key box here meant two copies of
+                                the same form that could disagree after an
+                                activation.
+                            -->
+                            <StackPanel Spacing="14"
+                                        IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=License}">
+                                <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_SecLicense}"/>
 
-                        <!-- Advanced Automation (Clean divided list, no accordions) -->
-                        <TextBlock Text="{DynamicResource Settings_Advanced}" Classes="cardTitle" Margin="0,4,0,0"/>
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="{DynamicResource Settings_LicensingCardTitle}" Classes="cardTitle"/>
+                                        <TextBlock Text="{Binding Licensing.LicensingStatusText, Mode=OneWay}"
+                                                   FontWeight="SemiBold" FontSize="14"/>
+                                        <Button Classes="cta" Command="{Binding ManageLicenseCommand}"
+                                                Content="{DynamicResource Settings_ManageLicense}"
+                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
 
-                        <StackPanel Spacing="10">
-                            <CheckBox Content="{DynamicResource Settings_AutoActivate}" IsChecked="{Binding AutoActivate}"/>
-                            <CheckBox Content="{DynamicResource Settings_RunDiagnostics}" IsChecked="{Binding RunDiagnostics}"/>
-                            <CheckBox Content="{DynamicResource Settings_Enable85Checker}" IsChecked="{Binding Enable85PercentChecker}"/>
-                            <CheckBox Content="{DynamicResource Settings_OpenEditor}" IsChecked="{Binding OpenEditorBeforePrint}"/>
-                            <CheckBox Content="Debug Modus &amp; Netwerk Tracing" IsChecked="{Binding IsDebugMode}"/>
+                            <!-- ============ Support: the two windows that answer "why" ============ -->
+                            <StackPanel Spacing="14"
+                                        IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Support}">
+                                <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_SecSupport}"/>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="{DynamicResource Settings_TroubleshootCardTitle}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_TroubleshootCardDesc}"/>
+                                        <Button Classes="kioskSecondary" Command="{Binding OpenTroubleshootModalCommand}"
+                                                Content="{DynamicResource Btn_Troubleshoot}"
+                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="{DynamicResource Settings_LogsCardTitle}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LogsCardDesc}"/>
+                                        <Button Classes="kioskSecondary" Command="{Binding OpenLogsModalCommand}"
+                                                Content="{DynamicResource Btn_Logs}"
+                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ============ Advanced: things that change how the tool behaves ============ -->
+                            <StackPanel Spacing="14"
+                                        IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Advanced}">
+                                <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_Advanced}"/>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_AutoActivate}" IsChecked="{Binding AutoActivate}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_AutoActivateDesc}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_RunDiagnostics}" IsChecked="{Binding RunDiagnostics}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_RunDiagnosticsDesc}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_Enable85Checker}" IsChecked="{Binding Enable85PercentChecker}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_Enable85CheckerDesc}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_OpenEditor}" IsChecked="{Binding OpenEditorBeforePrint}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_OpenEditorDesc}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_DebugMode}" IsChecked="{Binding IsDebugMode}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_DebugModeDesc}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
                         </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
         </Panel>
+        </Grid>
 
         <!-- ==================== SYSTEM LOGS MODAL OVERLAY ==================== -->
         <Panel IsVisible="{Binding IsLogsModalOpen}" ZIndex="60">
@@ -656,22 +914,22 @@
                     BoxShadow="0 24 64 0 #77000000" Padding="20">
                 <Grid RowDefinitions="Auto,Auto,*">
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                        <TextBlock Text="Systeemlogboeken &amp; Tool Output" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Logs_Title}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
                         <Button Grid.Column="1" Classes="iconBtn" Command="{Binding CloseLogsModalCommand}">
-                            <TextBlock Text="Sluiten" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
+                            <TextBlock Text="{DynamicResource Btn_Close}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
                         </Button>
                     </Grid>
 
                     <!-- Filter Controls -->
                     <Border Grid.Row="1" Background="{DynamicResource CardDeepColor}" CornerRadius="8" Padding="12" Margin="0,0,0,10">
                         <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,12,*,12,Auto,8,Auto">
-                            <CheckBox Grid.Column="0" Content="Debug" IsChecked="{Binding LogsViewModel.ShowDebug}" Margin="0,0,10,0"/>
-                            <CheckBox Grid.Column="1" Content="Info" IsChecked="{Binding LogsViewModel.ShowInfo}" Margin="0,0,10,0"/>
-                            <CheckBox Grid.Column="2" Content="Warning" IsChecked="{Binding LogsViewModel.ShowWarning}" Margin="0,0,10,0"/>
-                            <CheckBox Grid.Column="3" Content="Error" IsChecked="{Binding LogsViewModel.ShowError}"/>
-                            <TextBox Grid.Column="5" Text="{Binding LogsViewModel.SearchQuery}" Watermark="Zoeken in logs..."/>
-                            <Button Grid.Column="7" Content="Wissen" Command="{Binding LogsViewModel.ClearLogsCommand}"/>
-                            <Button Grid.Column="9" Content="Kopiëren" Command="{Binding LogsViewModel.CopyLogsCommand}"/>
+                            <CheckBox Grid.Column="0" Content="{DynamicResource Logs_FilterDebug}" IsChecked="{Binding LogsViewModel.ShowDebug}" Margin="0,0,10,0"/>
+                            <CheckBox Grid.Column="1" Content="{DynamicResource Logs_FilterInfo}" IsChecked="{Binding LogsViewModel.ShowInfo}" Margin="0,0,10,0"/>
+                            <CheckBox Grid.Column="2" Content="{DynamicResource Logs_FilterWarning}" IsChecked="{Binding LogsViewModel.ShowWarning}" Margin="0,0,10,0"/>
+                            <CheckBox Grid.Column="3" Content="{DynamicResource Logs_FilterError}" IsChecked="{Binding LogsViewModel.ShowError}"/>
+                            <TextBox Grid.Column="5" Text="{Binding LogsViewModel.SearchQuery}" Watermark="{DynamicResource Logs_SearchPlaceholder}"/>
+                            <Button Grid.Column="7" Content="{DynamicResource Btn_Clear}" Command="{Binding LogsViewModel.ClearLogsCommand}"/>
+                            <Button Grid.Column="9" Content="{DynamicResource Btn_Copy}" Command="{Binding LogsViewModel.CopyLogsCommand}"/>
                         </Grid>
                     </Border>
 
@@ -686,7 +944,7 @@
                                             <Border Grid.Column="1" CornerRadius="3" Padding="4,1" Background="{Binding LevelColor}" HorizontalAlignment="Left">
                                                 <TextBlock Text="{Binding Level}" FontSize="9" FontWeight="Bold" Foreground="White"/>
                                             </Border>
-                                            <TextBlock Grid.Column="2" Text="{Binding Source}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}"/>
+                                            <TextBlock Grid.Column="2" Margin="0,0,8,0" Text="{Binding Source}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="3" Text="{Binding Message}" FontSize="11" TextWrapping="Wrap" FontFamily="Consolas,Courier New"/>
                                         </Grid>
                                     </Border>
@@ -705,17 +963,17 @@
                     BoxShadow="0 24 64 0 #77000000" Padding="20">
                 <Grid RowDefinitions="Auto,Auto,*">
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                        <TextBlock Text="USB &amp; Driver Diagnose" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Troubleshoot_Title}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
                         <Button Grid.Column="1" Classes="iconBtn" Command="{Binding CloseTroubleshootModalCommand}">
-                            <TextBlock Text="Sluiten" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
+                            <TextBlock Text="{DynamicResource Btn_Close}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
                         </Button>
                     </Grid>
 
                     <Border Grid.Row="1" Classes="card" Background="{DynamicResource CardDeepColor}" Padding="12" Margin="0,0,0,10">
                         <Grid ColumnDefinitions="*,Auto,8,Auto">
                             <TextBlock Grid.Column="0" Text="{Binding TroubleshootViewModel.OverallStatus}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Classes="cta" Content="Los Alles Op" Command="{Binding TroubleshootViewModel.FixAllCommand}"/>
-                            <Button Grid.Column="3" Content="Opnieuw Scannen" Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"/>
+                            <Button Grid.Column="1" Classes="cta" Content="{DynamicResource Btn_FixAll}" Command="{Binding TroubleshootViewModel.FixAllCommand}"/>
+                            <Button Grid.Column="3" Content="{DynamicResource Btn_Rescan}" Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"/>
                         </Grid>
                     </Border>
 
@@ -751,27 +1009,70 @@
         </Panel>
 
         <!-- ==================== Quality & Payment Dialog Popups ==================== -->
+        <!--
+            Two questions at the end of an inspection, and only when no default is
+            set. Each option is a row with the grade letter in its own colour
+            rather than a whole button painted green, amber or red, which made the
+            three look like a warning, a warning and an error.
+        -->
         <Panel IsVisible="{Binding IsQualityPopupVisible}" ZIndex="70">
             <Rectangle Fill="{DynamicResource OverlayColor}"/>
-            <Border Classes="card" Width="380" VerticalAlignment="Center" HorizontalAlignment="Center"
-                    BoxShadow="0 24 60 0 #66000000" Padding="28">
-                <StackPanel Spacing="14">
-                    <TextBlock Text="Kies de kwaliteit" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-                    <Button Classes="cta" Height="48" Content="A - Zo goed als nieuw" Command="{Binding SetQualityCommand}" CommandParameter="A" Background="{DynamicResource SuccessColor}"/>
-                    <Button Classes="cta" Height="48" Content="B - Licht gebruik" Command="{Binding SetQualityCommand}" CommandParameter="B" Background="{DynamicResource WarnColor}"/>
-                    <Button Classes="cta" Height="48" Content="C - Duidelijke sporen" Command="{Binding SetQualityCommand}" CommandParameter="C" Background="{DynamicResource DangerColor}"/>
+            <Border Classes="card" Width="440" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 24 60 0 #66000000" Padding="24">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="{DynamicResource QualityPopup_Title}" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{DynamicResource QualityPopup_Lead}" Classes="settingDesc"/>
+
+                    <Button Classes="kioskSecondary" Height="52" HorizontalContentAlignment="Stretch"
+                            Command="{Binding SetQualityCommand}" CommandParameter="A">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Classes="chip ok" HorizontalAlignment="Left">
+                                <TextBlock Text="A"/>
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Quality_A}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="kioskSecondary" Height="52" HorizontalContentAlignment="Stretch"
+                            Command="{Binding SetQualityCommand}" CommandParameter="B">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Classes="chip warn" HorizontalAlignment="Left">
+                                <TextBlock Text="B"/>
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Quality_B}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
+
+                    <Button Classes="kioskSecondary" Height="52" HorizontalContentAlignment="Stretch"
+                            Command="{Binding SetQualityCommand}" CommandParameter="C">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Classes="chip bad" HorizontalAlignment="Left">
+                                <TextBlock Text="C"/>
+                            </Border>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Quality_C}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                        </Grid>
+                    </Button>
                 </StackPanel>
             </Border>
         </Panel>
 
         <Panel IsVisible="{Binding IsPaymentPopupVisible}" ZIndex="70">
             <Rectangle Fill="{DynamicResource OverlayColor}"/>
-            <Border Classes="card" Width="380" VerticalAlignment="Center" HorizontalAlignment="Center"
-                    BoxShadow="0 24 60 0 #66000000" Padding="28">
-                <StackPanel Spacing="14">
-                    <TextBlock Text="Factuurmethode" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-                    <Button Classes="cta" Height="48" Content="Marge (0% BTW)" Command="{Binding SetPaymentMethodCommand}" CommandParameter="Marge" Background="{DynamicResource AccentColor}"/>
-                    <Button Classes="cta" Height="48" Content="BTW (21%)" Command="{Binding SetPaymentMethodCommand}" CommandParameter="BTW" Background="{DynamicResource TrackColor}"/>
+            <Border Classes="card" Width="440" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 24 60 0 #66000000" Padding="24">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="{DynamicResource PaymentPopup_Title}" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{DynamicResource PaymentPopup_Lead}" Classes="settingDesc"/>
+
+                    <Button Classes="kioskSecondary" Height="52" HorizontalContentAlignment="Stretch"
+                            Command="{Binding SetPaymentMethodCommand}" CommandParameter="Marge">
+                        <TextBlock Text="{DynamicResource Payment_Marge}" VerticalAlignment="Center"/>
+                    </Button>
+
+                    <Button Classes="kioskSecondary" Height="52" HorizontalContentAlignment="Stretch"
+                            Command="{Binding SetPaymentMethodCommand}" CommandParameter="BTW">
+                        <TextBlock Text="{DynamicResource Payment_BTW}" VerticalAlignment="Center"/>
+                    </Button>
                 </StackPanel>
             </Border>
         </Panel>

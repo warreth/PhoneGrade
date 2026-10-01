@@ -9,6 +9,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using ReactiveUI;
 using PhoneGrade.Core;
+using PhoneGrade.UI.Services;
 
 namespace PhoneGrade.UI.ViewModels;
 
@@ -110,7 +111,7 @@ public class TroubleshootViewModel : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _installStatusText, value);
     }
 
-    private string _overallStatus = "Click 'Run Diagnostics' to scan your system for USB tools, drivers, and connected devices.";
+    private string _overallStatus = LocalizationManager.GetString("Troubleshoot_ClickToScan");
     public string OverallStatus
     {
         get => _overallStatus;
@@ -171,7 +172,7 @@ public class TroubleshootViewModel : ReactiveObject
     public async Task RunDiagnosticsAsync()
     {
         IsRunning = true;
-        InstallStatusText = "Scanning system hardware, tools, and background services...";
+        InstallStatusText = LocalizationManager.GetString("Troubleshoot_Scanning");
 
         try
         {
@@ -191,7 +192,8 @@ public class TroubleshootViewModel : ReactiveObject
         }
         catch (Exception ex)
         {
-            OverallStatus = $"Diagnostic scan error: {ex.Message}";
+            OverallStatus = string.Format(
+                LocalizationManager.GetString("Troubleshoot_ScanError"), ex.Message);
             SystemEventLogger.Error(LogSource.Diagnostic, $"Diagnostic scan error: {ex.Message}");
         }
         finally
@@ -205,7 +207,7 @@ public class TroubleshootViewModel : ReactiveObject
     {
         IsInstalling = true;
         InstallProgress = 0;
-        InstallStatusText = "Starting fix...";
+        InstallStatusText = LocalizationManager.GetString("Troubleshoot_FixStarting");
 
         var progress = new Progress<(int Percent, string Message)>(p =>
         {
@@ -221,18 +223,19 @@ public class TroubleshootViewModel : ReactiveObject
             bool success = await ToolInstallerService.ExecuteFixAsync(actionKey, progress);
             if (success)
             {
-                InstallStatusText = "Fix applied successfully. Rescanning...";
+                InstallStatusText = LocalizationManager.GetString("Troubleshoot_FixApplied");
                 await Task.Delay(1000);
                 await RunDiagnosticsAsync();
             }
             else
             {
-                InstallStatusText = "Fix could not be completed automatically. See resolution steps.";
+                InstallStatusText = LocalizationManager.GetString("Troubleshoot_FixManual");
             }
         }
         catch (Exception ex)
         {
-            InstallStatusText = $"Error applying fix: {ex.Message}";
+            InstallStatusText = string.Format(
+                LocalizationManager.GetString("Troubleshoot_FixError"), ex.Message);
             SystemEventLogger.Error(LogSource.Desktop, $"Error applying fix: {ex.Message}");
         }
         finally
@@ -251,7 +254,8 @@ public class TroubleshootViewModel : ReactiveObject
         foreach (var item in fixableItems)
         {
             if (item.FixActionKey == null) continue;
-            InstallStatusText = $"Fixing: {item.Title}...";
+            InstallStatusText = string.Format(
+                LocalizationManager.GetString("Troubleshoot_Fixing"), item.Title);
             await ExecuteFixAsync(item.FixActionKey);
         }
 

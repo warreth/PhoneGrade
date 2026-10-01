@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using PhoneGrade.Core;
 using PhoneGrade.UI.Models;
+using PhoneGrade.UI.Services;
 using PhoneGrade.UI.ViewModels;
 using PhoneGrade.UI.Views;
 using Xunit;
@@ -54,14 +55,16 @@ public class UiTests : IDisposable
         // Start inspection completion flow
         vm.FinishInspectionCommand.Execute().Subscribe();
         Assert.True(vm.IsQualityPopupVisible);
-        Assert.Equal("Kies de kwaliteit...", vm.Status);
+        Assert.Equal(LocalizationManager.GetString("Status_ChooseQuality"), vm.Status);
+        Assert.NotEqual("Status_ChooseQuality", vm.Status);
 
         // User clicks Quality "B"
         vm.SetQualityCommand.Execute("B").Subscribe();
         Assert.False(vm.IsQualityPopupVisible);
         Assert.True(vm.IsPaymentPopupVisible);
         Assert.Equal(90, vm.Progress);
-        Assert.Equal("Kies de factuurmethode...", vm.Status);
+        Assert.Equal(LocalizationManager.GetString("Status_ChoosePayment"), vm.Status);
+        Assert.NotEqual("Status_ChoosePayment", vm.Status);
         Assert.Equal("KLASSE B", vm.SelectedGradeDisplay);
 
         // User clicks Payment "Marge"
@@ -70,7 +73,8 @@ public class UiTests : IDisposable
         Assert.Equal(100, vm.Progress);
         Assert.Equal(AppWorkflowState.Summary, vm.WorkflowState);
         Assert.Equal("Marge (0% BTW)", vm.SelectedInvoiceMethodDisplay);
-        Assert.Contains("Testen voltooid", vm.Status);
+        Assert.Equal(LocalizationManager.GetString("Status_TestsComplete"), vm.Status);
+        Assert.NotEqual("Status_TestsComplete", vm.Status);
 
         // Verify persisted to DeviceSessionManager
         Assert.True(DeviceSessionManager.IsDeviceCompleted("MOCK_UDID"));
@@ -188,7 +192,8 @@ public class UiTests : IDisposable
     public void ModelDisplayConverter_FallsBackForNonDeviceData()
     {
         var c = new PhoneGrade.UI.Converters.ModelDisplayConverter();
-        Assert.Equal("Onbekend Toestel", c.Convert(null, typeof(string), null, null));
+        Assert.Equal(PhoneGrade.UI.Services.LocalizationManager.GetString("Value_UnknownDevice"),
+            c.Convert(null, typeof(string), null, null));
         Assert.Equal("iPhone 8", c.Convert("8", typeof(string), null, null));
     }
 
@@ -196,7 +201,9 @@ public class UiTests : IDisposable
     public void BatteryLevelConverter_ShowsTheChargeOnlyWhenKnown()
     {
         var c = new PhoneGrade.UI.Converters.BatteryLevelConverter();
-        Assert.Equal("Lading 20%", c.Convert(20, typeof(string), null, null));
+        Assert.Equal(
+            string.Format(PhoneGrade.UI.Services.LocalizationManager.GetString("Value_BatteryLevel"), 20),
+            c.Convert(20, typeof(string), null, null));
         Assert.Equal("", c.Convert(null, typeof(string), null, null));
         Assert.Equal("", c.Convert(0, typeof(string), null, null));
     }
@@ -209,9 +216,10 @@ public class UiTests : IDisposable
 
         // iOS never reports the installed memory, and a raw placeholder on a
         // graded device's label would read as a fault rather than as a gap.
-        Assert.Equal("Niet opgegeven", c.Convert("NOMEMORY", typeof(string), null, null));
-        Assert.Equal("Niet opgegeven", c.Convert("", typeof(string), null, null));
-        Assert.Equal("Niet opgegeven", c.Convert(null, typeof(string), null, null));
+        var notSet = PhoneGrade.UI.Services.LocalizationManager.GetString("Value_NotSet");
+        Assert.Equal(notSet, c.Convert("NOMEMORY", typeof(string), null, null));
+        Assert.Equal(notSet, c.Convert("", typeof(string), null, null));
+        Assert.Equal(notSet, c.Convert(null, typeof(string), null, null));
     }
 
     public void Dispose()

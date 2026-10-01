@@ -65,7 +65,19 @@
     <!-- Component Status -->
     <x:String x:Key="Component_Read">Read</x:String>
     <x:String x:Key="Component_Original">Original</x:String>
+    <x:String x:Key="Component_Mismatch">Replaced</x:String>
+    <x:String x:Key="Component_Untrusted">Non-original</x:String>
     <x:String x:Key="Component_Status">Status</x:String>
+
+    <!-- Words for a value the phone never reported -->
+    <x:String x:Key="Value_Unknown">Unknown</x:String>
+    <x:String x:Key="Value_UnknownDevice">Unknown device</x:String>
+    <x:String x:Key="Value_BatteryLevel">Charge {0}%</x:String>
+    <x:String x:Key="Value_Checking">Checking...</x:String>
+    <x:String x:Key="Value_NotSet">Not set</x:String>
+    <x:String x:Key="Value_NotGraded">Not graded</x:String>
+    <x:String x:Key="ActivationLock_On">ON (locked)</x:String>
+    <x:String x:Key="ActivationLock_Off">OFF (unlocked)</x:String>
     
     <x:String x:Key="Settings_DailyOptions">DAILY OPTIONS</x:String>
     <x:String x:Key="Settings_Quality">Default Quality</x:String>
@@ -75,7 +87,7 @@
     <x:String x:Key="Settings_AutoFinishAfterTest">Automatically finish after test</x:String>
     <x:String x:Key="Settings_ImeiApiKey">IMEI / FMI API Key</x:String>
     <x:String x:Key="Settings_ShowSummary">Show summary before printing label</x:String>
-    <x:String x:Key="Settings_Advanced">ADVANCED AUTOMATION</x:String>
+    <x:String x:Key="Settings_Advanced">Advanced automation</x:String>
     <x:String x:Key="Settings_AutoActivate">Auto-activate (bypass)</x:String>
     <x:String x:Key="Settings_RunDiagnostics">Run hardware diagnostics (panic logs)</x:String>
     <x:String x:Key="Settings_Enable85Checker">85% Battery check (100%-X label)</x:String>
@@ -130,12 +142,215 @@
     <x:String x:Key="Summary_ColComponent">Component</x:String>
     <x:String x:Key="Summary_ColFactory">Ex-Factory Value</x:String>
     <x:String x:Key="Summary_ColRead">Read Value</x:String>
+    <!-- The audit rows are far narrower than the report, so the two columns get
+         their own short labels; the full ones would be cut in the middle. -->
+    <x:String x:Key="Active_ColFactory">Factory value</x:String>
+    <x:String x:Key="Active_ColRead">Read value</x:String>
     <x:String x:Key="Summary_ColStatus">Status</x:String>
     <x:String x:Key="Summary_BtnPrint">PRINT DYMO LABEL</x:String>
     <x:String x:Key="Summary_BtnRetest">Retest</x:String>
     <x:String x:Key="Summary_BtnNext">Next Device (Done)</x:String>
     <x:String x:Key="Summary_SimLockFree">Unlocked (SIM-free)</x:String>
     <x:String x:Key="Summary_SimLocked">SIM Locked</x:String>
+
+    <!-- Header bar -->
+    <x:String x:Key="Header_Connected">Device connected</x:String>
+    <x:String x:Key="Header_NoDevice">No device</x:String>
+    <x:String x:Key="Header_SettingsTooltip">Settings and options</x:String>
+    <x:String x:Key="Btn_Close">Close</x:String>
+    <x:String x:Key="Btn_Rescan">Scan again</x:String>
+    <x:String x:Key="Btn_ScanManually">Scan manually</x:String>
+    <x:String x:Key="Btn_StartInspection">Start inspection</x:String>
+    <x:String x:Key="Btn_Finish">Finish</x:String>
+
+    <!-- Idle screen and the USB trust guide -->
+    <x:String x:Key="TrialLimit_Reached">The free trial limit is reached (10/10). Buy a license to keep scanning.</x:String>
+    <x:String x:Key="Idle_Title">Connect a device by USB</x:String>
+    <x:String x:Key="Idle_Lead">Supports iPhone, iPad and Android devices. Keep the screen unlocked and confirm "Trust this computer".</x:String>
+    <x:String x:Key="Idle_DetectedDevices">Detected devices:</x:String>
+    <x:String x:Key="AdbGuide_Lead">The phone is connected but does not trust this computer yet. The phone itself is fine; one tap on the phone is needed.</x:String>
+    <x:String x:Key="AdbGuide_Step1">Unlock the screen and leave it on. A locked screen does not show the question.</x:String>
+    <x:String x:Key="AdbGuide_Step2">Open the "Allow USB debugging?" notification on the phone. Tap "Always allow from this computer" and then OK.</x:String>
+    <x:String x:Key="AdbGuide_Step3">No notification? Go to Settings, "About phone" and tap "Build number" seven times.</x:String>
+    <x:String x:Key="AdbGuide_Step4">Then open "Developer options" and turn "USB debugging" on. The notification appears again by itself.</x:String>
+    <x:String x:Key="AdbGuide_Caveat">Without "Always allow" the phone asks again on every new cable, and the pc goes back to "not trusted" every time.</x:String>
+    <x:String x:Key="AdbGuide_Retry">Search again</x:String>
+
+    <!-- Inspection in progress -->
+    <x:String x:Key="Active_SpecsTitle">HARDWARE SPECIFICATIONS</x:String>
+    <x:String x:Key="Spec_Model">Model</x:String>
+    <x:String x:Key="Spec_Serial">Serial number</x:String>
+    <x:String x:Key="Spec_Storage">Storage</x:String>
+    <x:String x:Key="Spec_Color">Colour</x:String>
+    <x:String x:Key="Spec_Battery">Battery condition</x:String>
+    <x:String x:Key="Spec_Grade">Quality grade</x:String>
+    <x:String x:Key="Spec_Memory">Memory</x:String>
+    <x:String x:Key="Active_SecurityTitle">SECURITY &amp; STATUS</x:String>
+    <x:String x:Key="Spec_Imei">IMEI number</x:String>
+    <x:String x:Key="Spec_FindMy">Find My (iCloud)</x:String>
+    <x:String x:Key="Spec_Blacklist">Blacklist status</x:String>
+    <x:String x:Key="Spec_NotChecked">Not checked</x:String>
+    <x:String x:Key="Active_OemTitle">ORIGINAL PARTS AUDIT (OEM)</x:String>
+    <x:String x:Key="Active_InteractiveTitle">INTERACTIVE HARDWARE TEST</x:String>
+    <x:String x:Key="Active_InteractiveLead">Scan the code with the camera of the device to test display, touch, camera and audio.</x:String>
+
+    <!-- Result screen -->
+    <x:String x:Key="Summary_Imei">IMEI / serial:</x:String>
+    <x:String x:Key="Summary_Storage">Storage:</x:String>
+    <x:String x:Key="Summary_Memory">Memory:</x:String>
+    <x:String x:Key="Summary_Color">Colour:</x:String>
+    <x:String x:Key="Summary_Fmi">iCloud (FMI)</x:String>
+    <x:String x:Key="Summary_BatteryHealth">Battery condition</x:String>
+    <x:String x:Key="Summary_InvoiceMethod">Invoice method</x:String>
+    <x:String x:Key="Summary_SimLock">SIM lock</x:String>
+    <x:String x:Key="Summary_HardwareTests">Hardware tests (PWA)</x:String>
+    <x:String x:Key="Summary_ReportTitle">INSPECTION REPORT (DEVIATIONS &amp; DEFECTS)</x:String>
+    <x:String x:Key="Summary_ReportNote">Only non-original parts and failed or skipped tests</x:String>
+    <x:String x:Key="Summary_AuditSection">PARTS AUDIT (NON-ORIGINAL / REPLACED)</x:String>
+    <x:String x:Key="Summary_TestsSection">INTERACTIVE HARDWARE TESTS</x:String>
+    <x:String x:Key="Summary_AllOemOriginal">All parts are original (OEM)</x:String>
+    <x:String x:Key="Summary_AllTestsPassed">All interactive tests passed</x:String>
+    <x:String x:Key="Report_Failed">FAILED</x:String>
+    <x:String x:Key="Report_Skipped">SKIPPED</x:String>
+    <x:String x:Key="Report_DismissTest">Leave this test out of the report</x:String>
+    <x:String x:Key="Report_Dismissed">tests left out of the report</x:String>
+    <x:String x:Key="Report_Restore">Undo</x:String>
+
+    <!-- The two questions at the end of an inspection -->
+    <x:String x:Key="QualityPopup_Title">Choose the quality</x:String>
+    <x:String x:Key="QualityPopup_Lead">How this device reads after the inspection. It ends up on the label.</x:String>
+    <x:String x:Key="PaymentPopup_Title">Invoice method</x:String>
+    <x:String x:Key="PaymentPopup_Lead">How this device is invoiced.</x:String>
+
+    <!-- Logs and diagnostics -->
+    <x:String x:Key="Logs_Title">System logs &amp; tool output</x:String>
+
+    <!-- Settings page: the topics and their rows -->
+    <x:String x:Key="Settings_Lead">Language, workflow and connection. Changes are saved as you make them.</x:String>
+    <x:String x:Key="Settings_Close">Close</x:String>
+    <x:String x:Key="Settings_CloseTooltip">Back to the screen behind</x:String>
+    <x:String x:Key="Settings_SecGeneral">General</x:String>
+    <x:String x:Key="Settings_SecWorkflow">Workflow</x:String>
+    <x:String x:Key="Settings_SecConnection">Connection</x:String>
+    <x:String x:Key="Settings_SecLicense">License</x:String>
+    <x:String x:Key="Settings_SecSupport">Support</x:String>
+    <x:String x:Key="Settings_SecAdvanced">Advanced</x:String>
+    <x:String x:Key="Settings_ApiKeyDesc">Reads the IMEI and the iCloud status of a device. The key stays on this computer.</x:String>
+    <x:String x:Key="Settings_ApiKeyWatermark">SickW or IMEIPro key...</x:String>
+    <x:String x:Key="Settings_QualityDesc">The grade an inspection starts with. An empty choice asks at every inspection.</x:String>
+    <x:String x:Key="Settings_PaymentDesc">The invoice method an inspection starts with. An empty choice asks at every inspection.</x:String>
+    <x:String x:Key="Settings_QualityAsk">Ask every time</x:String>
+    <x:String x:Key="Settings_PaymentAsk">Ask every time</x:String>
+    <x:String x:Key="Settings_AutoStartWebTestDesc">Opens the test page as soon as the code is scanned, so the operator does not have to start it.</x:String>
+    <x:String x:Key="Settings_RequirePwaTestDesc">The inspection cannot be finished until the test on the phone has run.</x:String>
+    <x:String x:Key="Settings_AutoFinishAfterTestDesc">Goes to the result screen on its own once the test on the phone reports back.</x:String>
+    <x:String x:Key="Settings_ShowSummaryDesc">Shows the report before the label is printed, so it can still be corrected.</x:String>
+    <x:String x:Key="Settings_TroubleshootCardTitle">USB and driver diagnostics</x:String>
+    <x:String x:Key="Settings_TroubleshootCardDesc">Checks the tools, the drivers and the daemons this tool needs, and repairs what it can.</x:String>
+    <x:String x:Key="Settings_LogsCardTitle">System logs</x:String>
+    <x:String x:Key="Settings_LogsCardDesc">Everything the tool and its helpers have reported, with a filter and a search box.</x:String>
+    <x:String x:Key="Settings_AutoActivateDesc">Activates a connected device without asking, which speeds up a run of the same phone.</x:String>
+    <x:String x:Key="Settings_RunDiagnosticsDesc">Reads the panic logs and other hardware diagnostics while inspecting.</x:String>
+    <x:String x:Key="Settings_Enable85CheckerDesc">Flags a battery below 85 percent of its design capacity on the label.</x:String>
+    <x:String x:Key="Settings_OpenEditorDesc">Opens the data editor before printing, so the printed values can be corrected first.</x:String>
+    <x:String x:Key="Settings_DebugMode">Debug mode and network tracing</x:String>
+    <x:String x:Key="Settings_DebugModeDesc">Writes verbose logs of every request. Only useful while tracking down a problem.</x:String>
+
+    <!-- Quality and invoice options, in the wording they are offered in -->
+    <x:String x:Key="Quality_A">A - As good as new</x:String>
+    <x:String x:Key="Quality_B">B - Light signs of use</x:String>
+    <x:String x:Key="Quality_C">C - Clear signs of use</x:String>
+    <x:String x:Key="Payment_Marge">Margin (0% VAT)</x:String>
+    <x:String x:Key="Payment_BTW">VAT (21%)</x:String>
+
+    <!-- Label editor -->
+    <x:String x:Key="Editor_Title">Edit device data</x:String>
+    <x:String x:Key="Editor_Lead">Check and adjust the values that go on the label.</x:String>
+    <x:String x:Key="Editor_Identity">Identity</x:String>
+    <x:String x:Key="Editor_Identifier">Identifier (IMEI / serial)</x:String>
+    <x:String x:Key="Editor_Battery">Battery</x:String>
+    <x:String x:Key="Editor_Grading">Grading</x:String>
+    <x:String x:Key="Editor_Quality">Quality</x:String>
+    <x:String x:Key="Editor_Payment">Invoice method</x:String>
+    <x:String x:Key="Editor_MetricsTitle">Hardware &amp; battery metrics</x:String>
+    <x:String x:Key="Editor_Cycles">Charge cycles</x:String>
+    <x:String x:Key="Editor_DesignMah">Design mAh</x:String>
+    <x:String x:Key="Editor_CurrentMah">Current mAh</x:String>
+    <x:String x:Key="Editor_Save">Save and open label</x:String>
+    <x:String x:Key="Editor_Unset">Not set</x:String>
+
+    <!-- Status line of the inspection window -->
+    <x:String x:Key="Status_ConnectToStart">Connect a device to start...</x:String>
+    <x:String x:Key="Status_ConnectUsb">Connect a device over USB to start...</x:String>
+    <x:String x:Key="Status_WebStandby">Web test on standby</x:String>
+    <x:String x:Key="Status_LockdownError">Could not talk to the device (lockdownd).</x:String>
+    <x:String x:Key="Status_PairingPending">Waiting for approval on the iPhone...</x:String>
+    <x:String x:Key="Status_RsaPending">Waiting for the RSA prompt on Android...</x:String>
+    <x:String x:Key="Status_Timeout">The device did not answer in time.</x:String>
+    <x:String x:Key="Status_CommsError">Communication with the device failed.</x:String>
+    <x:String x:Key="Status_Reconnected">Device reconnected: data reloaded (from 0%).</x:String>
+    <x:String x:Key="Status_Disconnected">Device unplugged. Reconnect the same device to continue.</x:String>
+    <x:String x:Key="Status_Unauthorized">Waiting for the RSA prompt on Android. Accept USB debugging.</x:String>
+    <x:String x:Key="Status_NotTrusted">Waiting for approval on the iPhone. Unlock it and tap Trust.</x:String>
+    <x:String x:Key="Status_PermissionDenied">Permissions missing: run chmod +x or check the Gatekeeper warning.</x:String>
+    <x:String x:Key="Status_DriverMissing">The Apple USB driver is missing. Install iTunes or Apple Mobile Device Support.</x:String>
+    <x:String x:Key="Status_DaemonStoppedWin">The Apple Mobile Device Service has stopped: start it in Windows Services.</x:String>
+    <x:String x:Key="Status_DaemonStoppedUnix">The usbmuxd daemon is not running: start usbmuxd.</x:String>
+    <x:String x:Key="Status_NoDeviceFound">No device found. Check the cable or unlock the device.</x:String>
+    <x:String x:Key="Status_OneFound">One device found and selected.</x:String>
+    <x:String x:Key="Status_ManyFound">{0} devices found: pick one.</x:String>
+    <x:String x:Key="Status_NoDeviceSelected">No device selected.</x:String>
+    <x:String x:Key="Status_TrialLimit">Free trial limit reached (10/10). Buy a licence to keep scanning.</x:String>
+    <x:String x:Key="Status_Checking">Checking the connection…</x:String>
+    <x:String x:Key="Status_Unreachable">The device is unreachable: try another cable or port.</x:String>
+    <x:String x:Key="Status_Activating">Activating the device (bypass)…</x:String>
+    <x:String x:Key="Status_ReadingData">Reading the device data…</x:String>
+    <x:String x:Key="Status_SpecsRead">Specifications read. Run the interactive test and click Finish.</x:String>
+    <x:String x:Key="Status_Error">Error: {0}</x:String>
+    <x:String x:Key="Status_GradeDowngraded">Grade A is not allowed (missing APIs). Automatically lowered to B.</x:String>
+    <x:String x:Key="Status_ChoosePayment">Choose the payment method...</x:String>
+    <x:String x:Key="Status_TestsComplete">Tests finished. Check the results and print the label.</x:String>
+    <x:String x:Key="Status_PwaRequired">The PWA hardware test is required. Run the interactive test first.</x:String>
+    <x:String x:Key="Status_ChooseQuality">Choose the quality...</x:String>
+    <x:String x:Key="Status_LabelGenerating">Generating the label…</x:String>
+    <x:String x:Key="Status_LabelFailed">Label failed: {0}</x:String>
+    <x:String x:Key="Status_NoLabel">No label generated yet.</x:String>
+
+    <!-- Web test session on the phone -->
+    <x:String x:Key="Session_Connected">Device connected for the web test ({0})</x:String>
+    <x:String x:Key="Session_TestRunning">Test running: {0} ({1}%)</x:String>
+    <x:String x:Key="Session_TestDone">Test finished: {0} -&gt; {1}</x:String>
+    <x:String x:Key="Session_WebRunnerError">Web runner error: {0}</x:String>
+    <x:String x:Key="Session_QrError">QR error: {0}</x:String>
+    <x:String x:Key="Session_Finished">Web test done: {0} of {1} tests finished.</x:String>
+    <x:String x:Key="Session_Ready">The web test is ready on the phone.</x:String>
+    <x:String x:Key="Session_NextStep">next step</x:String>
+    <x:String x:Key="Session_Started">Web test started, working on {0}.</x:String>
+    <x:String x:Key="Session_InProgress">Web test running: {0} ({1} of {2} finished).</x:String>
+    <x:String x:Key="Session_TestsPlain">Interactive tests: {0} passed, {1} failed ({2})</x:String>
+    <x:String x:Key="Session_TestsSkipped">Interactive tests: {0} passed, {1} failed, {2} skipped ({3})</x:String>
+    <x:String x:Key="Session_FailedSkipped">Interactive hardware test finished: {0} failure(s), {1} skipped</x:String>
+    <x:String x:Key="Session_Failed">Interactive hardware test finished: {0} failure(s)</x:String>
+    <x:String x:Key="Session_SkippedOnly">Interactive hardware test finished: {0} test(s) skipped</x:String>
+    <x:String x:Key="Session_AllPassed">Interactive hardware test: all passed!</x:String>
+    <x:String x:Key="Session_Done">Interactive hardware test finished</x:String>
+
+    <!-- Which route the web runner address took -->
+    <x:String x:Key="Route_Usb">Scan the QR to open over USB: {0}</x:String>
+    <x:String x:Key="Route_Internet">Scan the QR or open over the internet: {0}</x:String>
+    <x:String x:Key="Route_Local">Scan the QR or open: {0}</x:String>
+
+    <!-- What the phone could not find -->
+    <x:String x:Key="Api_MissingDetails">The mandatory browser API '{0}' is missing on this device.</x:String>
+    <x:String x:Key="Api_MissingNotes">The PWA could not find this required hardware API.</x:String>
+
+    <!-- System diagnostics -->
+    <x:String x:Key="Troubleshoot_ScanError">Diagnostic error: {0}</x:String>
+    <x:String x:Key="Troubleshoot_FixStarting">Applying the fix...</x:String>
+    <x:String x:Key="Troubleshoot_FixApplied">Fix applied. Scanning again...</x:String>
+    <x:String x:Key="Troubleshoot_FixManual">The fix could not be completed automatically. See the resolution steps.</x:String>
+    <x:String x:Key="Troubleshoot_FixError">Error applying the fix: {0}</x:String>
+    <x:String x:Key="Troubleshoot_Fixing">Fixing: {0}...</x:String>
 
 </ResourceDictionary>
 
