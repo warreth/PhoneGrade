@@ -28,10 +28,10 @@ import {
  * one, is in location-step.test.js.
  *
  * The rule these tests pin down is one rule: nothing in these steps may reach a
- * verdict without the operator. A refusal has to leave the step waiting, with
- * something the operator can press. A retry has to be possible. And the one
- * verdict still taken without asking, a genuinely absent API, has to be a real
- * gap rather than a mood.
+ * verdict on the operator's behalf. A refusal has to leave the step waiting,
+ * with something the operator can press. A retry has to be possible. A verdict
+ * still taken without asking has to rest on something the phone measured, a
+ * genuinely absent API or a microphone nobody spoke into, rather than on a mood.
  *
  * Measured on a Pixel 8 Pro over adb reverse, which is what made this a real
  * problem and not a theory: on a secure origin the four APIs are all present and
@@ -478,6 +478,39 @@ function useFakeMeter() {
     };
 }
 
+/**
+ * A MediaRecorder that writes a clip of its own the moment the step stops it.
+ *
+ * The page hands the clip to <audio> through an object URL, which node has no
+ * blobs of its own to make, so the URL is stood in for as well.
+ */
+function useFakeRecorder() {
+    global.MediaRecorder = class FakeMediaRecorder {
+        constructor(stream) {
+            this.stream = stream;
+            this.mimeType = 'audio/webm';
+            this.state = 'inactive';
+            this.ondataavailable = null;
+            this.onstop = null;
+        }
+
+        start() { this.state = 'recording'; }
+
+        stop() {
+            if (this.state === 'inactive') return;
+            this.state = 'inactive';
+            if (this.ondataavailable) {
+                this.ondataavailable({ data: new Blob([new Uint8Array(4096)], { type: this.mimeType }) });
+            }
+            if (this.onstop) this.onstop();
+        }
+    };
+
+    if (typeof URL.createObjectURL !== 'function') {
+        URL.createObjectURL = () => 'blob:fake-clip';
+    }
+}
+
 test('microphone: a refusal is a refusal, not a quiet swap for the recorder', async () => {
     useGetUserMedia([DENIED, DENIED]);
     const mic = new MicrophoneTest();
@@ -509,10 +542,11 @@ test('microphone: a refusal is a refusal, not a quiet swap for the recorder', as
     assert.equal(mic.status, 'failed');
 });
 
-test('microphone: retry after a grant measures the level and passes', async () => {
+test('microphone: a silent recording fails the step without asking a question', async () => {
     const stream = fakeAudioStream();
     useGetUserMedia([DENIED, stream]);
     useFakeMeter();
+    useFakeRecorder();
 
     const mic = new MicrophoneTest();
     const container = fakeContainer();
@@ -523,26 +557,31 @@ test('microphone: retry after a grant measures the level and passes', async () =
     await tick(5);
 
     assert.equal(mic.status, 'running', 'notes: ' + mic.notes);
-    assert.ok(container.querySelector('#mic-vu-bar'), 'the trouble card has been replaced by the meter');
+    assert.ok(container.querySelector('#mic-vu-bar'), 'the trouble card has been replaced by the recording screen');
 
-    // Silence for the full ten seconds is the real failure and is allowed to be
-    // one, because it is a measurement rather than a question. The phone in front
-    // of me measured 0 with nobody speaking into it, which is the same answer.
-    await tick(10200);
+    // Nobody speaks for the whole three seconds. The level never moves, and the
+    // step says so on that measurement rather than on an answer nobody gave: the
+    // question is the one a dead microphone would be passed on. The phone in
+    // front of me measured 0 with nobody speaking into it, which is the same
+    // answer.
+    await tick(MicrophoneTest.RECORD_MS + 200);
     await run;
 
     assert.equal(mic.status, 'failed');
     assert.match(mic.notes, /Geen audiosignaal/);
-    assert.equal(mic.details.checkMethod, 'live-meter');
+    assert.equal(mic.details.checkMethod, 'record-and-replay');
+    assert.equal(container.querySelector('#mic-yes'), null, 'silence is never offered the question');
     assert.equal(stream.stopped, true, 'the input is released when the step ends');
 
     delete global.requestAnimationFrame;
+    delete global.MediaRecorder;
 });
 
-test('microphone: sound on the meter ends the step as a pass', async () => {
+test('microphone: the clip comes back and the operator hears it', async () => {
     const stream = fakeAudioStream();
     useGetUserMedia([stream]);
     const meter = useFakeMeter();
+    useFakeRecorder();
 
     const mic = new MicrophoneTest();
     const container = fakeContainer();
@@ -556,12 +595,82 @@ test('microphone: sound on the meter ends the step as a pass', async () => {
     meter.poll();
     assert.match(container.nodes.get('live-mic-status').textContent, /70%/);
 
-    await tick(1200);
+    // Three seconds of it, and then the clip is handed back rather than the bar
+    // being taken for an answer.
+    await tick(MicrophoneTest.RECORD_MS + 200);
+
+    assert.ok(container.querySelector('#mic-playback'), 'the clip is on screen and playable');
+    assert.match(container.nodes.get('mic-playback').src, /^blob:/);
+    assert.match(container.nodes.get('mic-yes').textContent, /helder geluid/);
+
+    container.nodes.get('mic-yes').press();
     await run;
 
     assert.equal(mic.status, 'passed');
     assert.match(mic.notes, /piek 70%/);
     assert.equal(mic.details.peakLevel, 70);
+    assert.equal(mic.details.checkMethod, 'record-and-replay');
+    assert.equal(stream.stopped, true, 'the input is released when the step ends');
+
+    delete global.requestAnimationFrame;
+    delete global.MediaRecorder;
+});
+
+test('microphone: a clip the operator cannot hear fails the step', async () => {
+    const stream = fakeAudioStream();
+    useGetUserMedia([stream]);
+    const meter = useFakeMeter();
+    useFakeRecorder();
+
+    const mic = new MicrophoneTest();
+    const container = fakeContainer();
+
+    const run = mic.run(fakeClient(), container);
+    await tick();
+
+    // The level moved, so the question is asked. What came out of the speaker is
+    // the operator's to judge, and their no is a failure of this step rather than
+    // a note for somebody else to read later.
+    meter.setLevel(90);
+    meter.poll();
+    await tick(MicrophoneTest.RECORD_MS + 200);
+
+    container.nodes.get('mic-no').press();
+    await run;
+
+    assert.equal(mic.status, 'failed');
+    assert.match(mic.notes, /niet hoorbaar/);
+    assert.equal(mic.details.checkMethod, 'record-and-replay');
+    assert.equal(stream.stopped, true, 'the input is released when the step ends');
+
+    delete global.requestAnimationFrame;
+    delete global.MediaRecorder;
+});
+
+test('microphone: a browser that cannot record still gets measured on the meter', async () => {
+    // There is no clip to hand back, but the level is still a measurement of this
+    // microphone, so the step takes it rather than failing a phone for a browser.
+    delete global.MediaRecorder;
+    const stream = fakeAudioStream();
+    useGetUserMedia([stream]);
+    const meter = useFakeMeter();
+
+    const mic = new MicrophoneTest();
+    const container = fakeContainer();
+
+    const run = mic.run(fakeClient(), container);
+    await tick();
+
+    assert.ok(container.querySelector('#mic-vu-bar'));
+
+    meter.setLevel(90);
+    meter.poll();
+
+    await tick(1200);
+    await run;
+
+    assert.equal(mic.status, 'passed');
+    assert.match(mic.notes, /piek 70%/);
     assert.equal(mic.details.checkMethod, 'live-meter');
 
     delete global.requestAnimationFrame;
