@@ -484,18 +484,6 @@ class TestRunner {
                 test.fail(t('runner.testEndedWithoutResult'));
             }
 
-            // A step that reports several rows has to settle all of them when the
-            // runner cuts in. One left pending would count as unfinished on the
-            // desktop for the rest of the run, and a skipped step would look like
-            // a step that never ran.
-            if (typeof test.settleEdgeFromRunner === 'function') {
-                test.settleEdgeFromRunner(
-                    test.status === 'skipped' ? 'skipped' : 'failed',
-                    test.status === 'skipped'
-                        ? t('runner.edgesSkippedWithStep')
-                        : t('runner.edgesInterruptedBeforeDone'));
-            }
-
             try {
                 test.dispose();
             } catch (e) {
