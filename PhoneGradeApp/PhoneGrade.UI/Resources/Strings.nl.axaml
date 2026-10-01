@@ -340,6 +340,21 @@
     <x:String x:Key="Route_Internet">Scan QR of open via internet: {0}</x:String>
     <x:String x:Key="Route_Local">Scan QR of open: {0}</x:String>
 
+    <!-- Waarom het webtestadres geen veilige verbinding is -->
+    <x:String x:Key="Connect_OpeningUsb">Beveiligde verbinding via USB opzetten...</x:String>
+    <x:String x:Key="Connect_OpeningInternet">Beveiligde verbinding via internet opzetten...</x:String>
+    <x:String x:Key="Connect_StartFailed">De veilige verbinding via internet kon niet worden gestart: {0}</x:String>
+    <x:String x:Key="Connect_NoConnector">De veilige verbinding via internet komt niet op: er is geen tunnelprogramma (cloudflared).</x:String>
+    <x:String x:Key="Connect_GaveUp">De veilige verbinding via internet wordt even niet geprobeerd: de connector is te vaak gestopt.</x:String>
+    <x:String x:Key="Connect_NoAddress">De veilige verbinding via internet komt niet op. De connector zei: {0}</x:String>
+    <x:String x:Key="Connect_SecureOff">De veilige verbinding staat uit</x:String>
+    <x:String x:Key="Connect_FailedOne">Geen veilige verbinding: {0} lukte niet</x:String>
+    <x:String x:Key="Connect_FailedMany">Geen veilige verbinding: {0} lukten niet</x:String>
+    <x:String x:Key="Connect_RestrictedApis">Camera, microfoon, bewegingssensoren en locatie werken daardoor niet.</x:String>
+    <x:String x:Key="Connect_RouteUsb">de USB-tunnel</x:String>
+    <x:String x:Key="Connect_RouteInternet">de veilige verbinding via internet</x:String>
+    <x:String x:Key="Connect_Joiner">en</x:String>
+
     <!-- Wat de telefoon niet kon vinden -->
     <x:String x:Key="Api_MissingDetails">De verplichte browser-API '{0}' ontbreekt op dit toestel.</x:String>
     <x:String x:Key="Api_MissingNotes">De PWA kon deze vereiste hardware API niet vinden.</x:String>

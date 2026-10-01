@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using PhoneGrade.Core;
 using Xunit;
@@ -13,6 +14,12 @@ namespace PhoneGrade.UI.Tests.Web;
 /// connector. What is pinned here is the order, the fact that a route which failed
 /// cannot hide the ones behind it, and that an insecure address always carries the
 /// reason, because those three are the whole point of the class.
+///
+/// Everything asserted is fact rather than wording: which routes failed, what step
+/// was reported, what a failing route said about itself. How any of it reads to the
+/// technician is the dictionaries' business and is covered by ConnectionWordingTests,
+/// so a sentence being rewritten cannot fail the tests here and a route being wired
+/// to the wrong step cannot be hidden by a sentence reading plausibly.
 /// </summary>
 public class WebRunnerOriginResolverTests
 {
@@ -38,7 +45,7 @@ public class WebRunnerOriginResolverTests
         public Exception? InternetFailure { get; set; }
 
         /// <summary>Sent down the status line by the internet route, in order.</summary>
-        public IReadOnlyList<string> InternetMessages { get; set; } = Array.Empty<string>();
+        public IReadOnlyList<ConnectionNotice> InternetMessages { get; set; } = Array.Empty<ConnectionNotice>();
 
         public IReadOnlyList<string> Calls
         {
@@ -56,15 +63,17 @@ public class WebRunnerOriginResolverTests
             {
                 lock (_calls) _calls.Add($"internet {port}");
                 if (InternetFailure != null) throw InternetFailure;
-                foreach (string message in InternetMessages) onStatus?.Invoke(message);
+                foreach (ConnectionNotice message in InternetMessages) onStatus?.Invoke(message);
                 return Task.FromResult(InternetAddress);
             });
     }
 
     private static Task<WebRunnerOrigin> Resolve(
         Routes routes, string session, bool secureOrigin = true, bool publicTunnel = true,
-        Action<string>? onStatus = null) =>
+        Action<ConnectionNotice>? onStatus = null) =>
         routes.Build().ResolveAsync(session, 5055, Lan, Loopback, secureOrigin, publicTunnel, onStatus);
+
+    private static readonly ConnectionNotice OpeningInternet = new(ConnectionStep.OpeningInternet);
 
     [Fact]
     public async Task Android_StaysOnUsbAndNeverOpensTheInternet()
@@ -117,8 +126,10 @@ public class WebRunnerOriginResolverTests
 
         Assert.Equal(Lan, origin.Address);
         Assert.False(origin.IsSecure);
-        Assert.Contains("de veilige verbinding via internet lukte niet", origin.Warning);
-        Assert.Contains("Camera, microfoon, bewegingssensoren en locatie werken daardoor niet", origin.Warning);
+
+        ConnectionWarning warning = Assert.IsType<ConnectionWarning>(origin.Warning);
+        Assert.Equal(new[] { ConnectionRoute.Internet }, warning.Failed);
+        Assert.Null(warning.Reason);
     }
 
     [Fact]
@@ -132,33 +143,35 @@ public class WebRunnerOriginResolverTests
             InternetAddress = null,
             InternetMessages = new[]
             {
-                "Beveiligde verbinding via internet opzetten...",
-                "De veilige verbinding via internet komt niet op. De connector zei: ERRTunnel instance limited"
+                OpeningInternet,
+                new ConnectionNotice(ConnectionStep.NoAddress, "ERRTunnel instance limited")
             }
         };
 
         WebRunnerOrigin origin = await Resolve(routes, IphoneUdid);
 
-        Assert.Contains("ERRTunnel instance limited", origin.Warning);
-        Assert.Contains("locatie", origin.Warning);
+        ConnectionWarning warning = Assert.IsType<ConnectionWarning>(origin.Warning);
+        Assert.Equal(ConnectionStep.NoAddress, warning.Reason!.Step);
+        Assert.Contains("ERRTunnel instance limited", warning.Reason.Detail);
     }
 
     [Fact]
     public async Task AFailingTunnelThatSaidNothingNew_StillWarnsOnItsOwn()
     {
-        // A connector stopped by the give-up counter reports nothing at all, and
-        // the sentence the route opens with is not a reason. It may not end up
-        // nested inside the warning as if it were one.
+        // A connector stopped by the give-up counter reports nothing at all, and the
+        // step the route opens with is not a reason. It may not end up nested inside
+        // the warning as if it were one.
         var routes = new Routes
         {
             InternetAddress = null,
-            InternetMessages = new[] { "Beveiligde verbinding via internet opzetten..." }
+            InternetMessages = new[] { OpeningInternet }
         };
 
         WebRunnerOrigin origin = await Resolve(routes, IphoneUdid);
 
-        Assert.Contains("de veilige verbinding via internet lukte niet", origin.Warning);
-        Assert.DoesNotContain("opzetten...", origin.Warning);
+        ConnectionWarning warning = Assert.IsType<ConnectionWarning>(origin.Warning);
+        Assert.Equal(new[] { ConnectionRoute.Internet }, warning.Failed);
+        Assert.Null(warning.Reason);
     }
 
     [Fact]
@@ -169,23 +182,27 @@ public class WebRunnerOriginResolverTests
         WebRunnerOrigin origin = await Resolve(routes, PixelSerial);
 
         Assert.Equal(Lan, origin.Address);
-        Assert.Contains("de USB-tunnel", origin.Warning);
-        Assert.Contains("de veilige verbinding via internet", origin.Warning);
-        Assert.Contains("lukten niet", origin.Warning);
+
+        ConnectionWarning warning = Assert.IsType<ConnectionWarning>(origin.Warning);
+        Assert.Equal(new[] { ConnectionRoute.Usb, ConnectionRoute.Internet }, warning.Failed);
     }
 
     [Fact]
     public async Task TunnelSwitchedOff_SaysSoInsteadOfFailingQuietly()
     {
         // Nothing was even attempted, and the operator still needs to know why the
-        // camera and motion steps are about to be unavailable.
+        // camera and motion steps are about to be unavailable. An empty route list is
+        // how that reads: the window words it as the switch rather than as a failure.
         var routes = new Routes();
 
         WebRunnerOrigin origin = await Resolve(routes, IphoneUdid, publicTunnel: false);
 
         Assert.Equal(Lan, origin.Address);
         Assert.Empty(routes.Calls);
-        Assert.Contains("De veilige verbinding staat uit", origin.Warning);
+
+        ConnectionWarning warning = Assert.IsType<ConnectionWarning>(origin.Warning);
+        Assert.Empty(warning.Failed);
+        Assert.Null(warning.Reason);
     }
 
     [Fact]
@@ -238,7 +255,10 @@ public class WebRunnerOriginResolverTests
         WebRunnerOrigin origin = await Resolve(routes, IphoneUdid);
 
         Assert.Equal(Lan, origin.Address);
-        Assert.Contains("lukte niet", origin.Warning);
+
+        ConnectionWarning warning = Assert.IsType<ConnectionWarning>(origin.Warning);
+        Assert.Equal(ConnectionStep.InternetStartFailed, warning.Reason!.Step);
+        Assert.Equal("no internet", warning.Reason.Detail);
     }
 
     [Fact]
@@ -247,15 +267,15 @@ public class WebRunnerOriginResolverTests
         // The tunnel can take a minute on a first run, and a QR code that sits there
         // without saying what it is doing is what makes people unplug the phone.
         var routes = new Routes { UsbOpens = false };
-        var seen = new List<string>();
+        var seen = new List<ConnectionNotice>();
 
         await Resolve(routes, PixelSerial, onStatus: seen.Add);
 
         Assert.Equal(new[]
         {
-            "Beveiligde verbinding via USB opzetten...",
-            "Beveiligde verbinding via internet opzetten..."
-        }, seen);
+            ConnectionStep.OpeningUsb,
+            ConnectionStep.OpeningInternet
+        }, seen.Select(notice => notice.Step));
     }
 
     [Theory]

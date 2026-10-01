@@ -106,7 +106,7 @@ public sealed partial class QuickTunnel : IDisposable
     /// already serving one. Null means no public address could be had and the
     /// caller should stay on the network address.
     /// </summary>
-    public async Task<string?> StartAsync(int port, Action<string>? onStatus = null)
+    public async Task<string?> StartAsync(int port, Action<ConnectionNotice>? onStatus = null)
     {
         if (port <= 0 || _disposed) return null;
 
@@ -117,7 +117,7 @@ public sealed partial class QuickTunnel : IDisposable
 
             if (IsGivingUp())
             {
-                onStatus?.Invoke(ConnectionText.Get("gaveUp"));
+                onStatus?.Invoke(new ConnectionNotice(ConnectionStep.GaveUp));
                 return null;
             }
 
@@ -127,11 +127,11 @@ public sealed partial class QuickTunnel : IDisposable
                 NoteFailure();
                 SystemEventLogger.Warning(LogSource.UsbDetector,
                     "No tunnel connector available, the phone gets the plain network address");
-                onStatus?.Invoke(ConnectionText.Get("noConnector"));
+                onStatus?.Invoke(new ConnectionNotice(ConnectionStep.NoConnector));
                 return null;
             }
 
-            onStatus?.Invoke(ConnectionText.Get("openingInternet"));
+            onStatus?.Invoke(new ConnectionNotice(ConnectionStep.OpeningInternet));
 
             // Before another connector is added, take down the ones a run that is no
             // longer there left behind. Nothing inside a process that was killed gets
@@ -185,8 +185,10 @@ public sealed partial class QuickTunnel : IDisposable
                     $"The connector said: {tail.Describe()}");
 
                 // The log is one menu away and the operator is looking at a QR code
-                // that is about to point at the plain network address instead.
-                onStatus?.Invoke(ConnectionText.Format("noAddress", tail.Describe()));
+                // that is about to point at the plain network address instead. What
+                // the connector said is passed along as it arrived: it is the
+                // connector's own words, not ours to put into a language.
+                onStatus?.Invoke(new ConnectionNotice(ConnectionStep.NoAddress, tail.Describe()));
                 return null;
             }
 
