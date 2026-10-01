@@ -39,9 +39,6 @@ public sealed class WebRunnerOriginResolver
     private readonly UsbRoute _usb;
     private readonly InternetRoute _internet;
 
-    /// <summary>The sentence this resolver opens the internet route with.</summary>
-    private const string OpeningInternet = "Beveiligde verbinding via internet opzetten...";
-
     public WebRunnerOriginResolver(UsbRoute usb, InternetRoute internet)
     {
         _usb = usb;
@@ -78,7 +75,7 @@ public sealed class WebRunnerOriginResolver
 
         if (AdbReverseTunnel.SupportsReverse(sessionUdid))
         {
-            onStatus?.Invoke("Beveiligde verbinding via USB opzetten...");
+            onStatus?.Invoke(ConnectionText.Get("openingUsb"));
 
             bool opened = false;
             try
@@ -96,14 +93,17 @@ public sealed class WebRunnerOriginResolver
                 return new WebRunnerOrigin(loopbackAddress, true, null);
             }
 
-            failed.Add("de USB-tunnel");
+            failed.Add(ConnectionText.Get("routeUsb"));
         }
 
         // A placeholder session is only ever opened by the technician's own browser
         // to look around, and a tunnel for it would publish the app for nothing.
         if (publicTunnelEnabled && !IsPlaceholderSession(sessionUdid))
         {
-            onStatus?.Invoke(OpeningInternet);
+            // Taken once, because the route narrates in the same language and the
+            // comparison below has to recognise its own opening sentence.
+            string opening = ConnectionText.Get("openingInternet");
+            onStatus?.Invoke(opening);
 
             // The route narrates what it is doing and, when it cannot, why. Only the
             // second is worth carrying into the warning: the first is the sentence
@@ -116,7 +116,7 @@ public sealed class WebRunnerOriginResolver
             {
                 internet = await _internet(port, message =>
                 {
-                    if (!string.Equals(message, OpeningInternet, StringComparison.Ordinal))
+                    if (!string.Equals(message, opening, StringComparison.Ordinal))
                         reported = message;
                     onStatus?.Invoke(message);
                 });
@@ -124,7 +124,7 @@ public sealed class WebRunnerOriginResolver
             catch (Exception ex)
             {
                 SystemEventLogger.Warning(LogSource.UsbDetector, $"The internet tunnel could not be opened: {ex.Message}");
-                reported = $"De veilige verbinding via internet kon niet worden gestart: {ex.Message}";
+                reported = ConnectionText.Format("internetStartFailed", ex.Message);
             }
 
             if (!string.IsNullOrWhiteSpace(internet))
@@ -132,7 +132,7 @@ public sealed class WebRunnerOriginResolver
                 return new WebRunnerOrigin(internet.TrimEnd('/'), true, null);
             }
 
-            failed.Add("de veilige verbinding via internet");
+            failed.Add(ConnectionText.Get("routeInternet"));
 
             if (!string.IsNullOrWhiteSpace(reported))
                 return Insecure(lanAddress, failed, reported);
@@ -154,14 +154,16 @@ public sealed class WebRunnerOriginResolver
     private static WebRunnerOrigin Insecure(string lanAddress, List<string> failed, string? detail)
     {
         string reason = failed.Count == 0
-            ? "De veilige verbinding staat uit"
-            : $"Geen veilige verbinding: {string.Join(" en ", failed)} luk{(failed.Count > 1 ? "ten" : "te")} niet";
+            ? ConnectionText.Get("secureOff")
+            : ConnectionText.Format(
+                failed.Count > 1 ? "routeFailedMany" : "routeFailedOne",
+                string.Join(ConnectionText.Get("routeSeparator"), failed));
 
         string sentence = string.IsNullOrWhiteSpace(detail)
             ? ""
             : $" {detail.TrimEnd('.')}.";
 
         return new WebRunnerOrigin(lanAddress, false,
-            $"{reason}.{sentence} Camera, microfoon, bewegingssensoren en locatie werken daardoor niet.");
+            $"{reason}.{sentence} {ConnectionText.Get("restrictedApis")}");
     }
 }
