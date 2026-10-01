@@ -123,6 +123,16 @@ public class QuickTunnelTests
         ? "/c ping -n 10000 127.0.0.1 > nul"
         : "-c \"sleep 3600\"";
 
+    /// <summary>
+    /// Prints an address and then runs for hours. A connector that has to be
+    /// killed rather than waited for is what the replaced one is here: if the
+    /// tunnel leaves it running, it has to stay running long enough for the test
+    /// to notice.
+    /// </summary>
+    private static string PrintAndStall(string address) => OperatingSystem.IsWindows()
+        ? $"/c \"echo {address} 1>&2 & ping -n 10000 127.0.0.1 > nul\""
+        : $"-c \"echo {address} 1>&2; sleep 3600\"";
+
     /// <summary>Exits immediately without printing anything.</summary>
     private static string ExitSilently() => OperatingSystem.IsWindows()
         ? "/c exit 1"
@@ -134,6 +144,7 @@ public class QuickTunnelTests
 
         public int Launches;
         public QuickTunnel.IConnection? Last;
+        public List<QuickTunnel.IConnection> All { get; } = new();
         public QuickTunnel Tunnel { get; }
 
         public Harness(string arguments, int startTimeoutMs = 15_000)
@@ -151,6 +162,7 @@ public class QuickTunnelTests
             lock (this)
             {
                 Last = connection;
+                All.Add(connection);
                 Launches++;
             }
 
@@ -204,6 +216,43 @@ public class QuickTunnelTests
 
         await harness.Tunnel.StopAsync();
         Assert.True(await harness.IsGoneAsync(), "stopping should kill the connector");
+    }
+
+    [Fact]
+    public async Task Start_OnAnotherPortTakesDownTheConnectorItReplaces()
+    {
+        // The web server falls back to the next port when its first choice is
+        // already taken, and a session resolved after that asks for a port the
+        // running connector does not serve, so IsLive answers no and a second
+        // connector is started. The tunnel keeps a single connection, so the one
+        // it has just stopped keeping is unreachable from that moment on: it has
+        // to be taken down where it is replaced, because nothing else will ever
+        // reach it again.
+        var harness = new Harness(PrintAndStall(OtherAddress));
+
+        string? first = await harness.Tunnel.StartAsync(5055);
+        Assert.Equal(OtherAddress, first);
+        Assert.Equal(1, harness.Launches);
+
+        QuickTunnel.IConnection replaced = harness.All[0];
+        try
+        {
+            string? second = await harness.Tunnel.StartAsync(5056);
+            Assert.Equal(OtherAddress, second);
+            Assert.Equal(2, harness.Launches);
+
+            Assert.True(
+                await Task.WhenAny(replaced.Exited, Task.Delay(8_000)) == replaced.Exited,
+                "the connector for the port nobody asks for any more should have been killed");
+        }
+        finally
+        {
+            // The stand-in runs for hours, so a run that fails here would leave it
+            // behind for the rest of the day.
+            try { replaced.Kill(); } catch { /* already gone */ }
+            try { replaced.Dispose(); } catch { /* nothing left to release */ }
+            await harness.Tunnel.StopAsync();
+        }
     }
 
     [Fact]

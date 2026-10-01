@@ -155,11 +155,25 @@ public sealed partial class QuickTunnel : IDisposable
                 if (printed != null) found.TrySetResult(printed);
             });
 
+            IConnection? replaced;
             lock (_sync)
             {
+                replaced = _connection;
                 _connection = connection;
                 _address = null;
                 _port = port;
+            }
+
+            if (replaced != null && !ReferenceEquals(replaced, connection))
+            {
+                // IsLive answered no, so this is not the connector the field was
+                // holding. That field was the only reference to it, and from here
+                // on Dispose only ever sees the new one, so a connector serving a
+                // port nobody will ask for again would run until the next start
+                // replaced this one as well.
+                SystemEventLogger.Info(LogSource.UsbDetector,
+                    "Taking down the connector that was serving another port");
+                KillQuietly(replaced);
             }
 
             if (_disposed)
@@ -352,8 +366,18 @@ public sealed partial class QuickTunnel : IDisposable
             _address = null;
         }
 
-        try { connection?.Kill(); } catch { /* already gone */ }
-        try { connection?.Dispose(); } catch { /* nothing left to release */ }
+        if (connection != null) KillQuietly(connection);
+    }
+
+    /// <summary>
+    /// Kills a connector nobody will look at again. Failing to kill it cannot be
+    /// reported anywhere any more, so the failure is swallowed rather than left to
+    /// fault the caller that has already moved on.
+    /// </summary>
+    private static void KillQuietly(IConnection connection)
+    {
+        try { connection.Kill(); } catch { /* already gone */ }
+        try { connection.Dispose(); } catch { /* nothing left to release */ }
     }
 
     /// <summary>
