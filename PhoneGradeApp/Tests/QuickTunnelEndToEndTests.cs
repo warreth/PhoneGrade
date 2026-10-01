@@ -56,23 +56,9 @@ public class QuickTunnelEndToEndTests : IAsyncLifetime
         // reachable. The phone gets there only after a QR code has been scanned and
         // read, which is longer than this, so the delay is waited out rather than
         // reported as a failure.
-        HttpResponseMessage? response = null;
-        string body = "";
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(90);
-
-        while (response == null)
-        {
-            try
-            {
-                response = await client.GetAsync($"{address}/?sessionId=TUNNEL_E2E");
-                body = await response.Content.ReadAsStringAsync();
-            }
-            catch (Exception ex) when ((ex is HttpRequestException || ex is TaskCanceledException)
-                                       && DateTimeOffset.UtcNow < deadline)
-            {
-                await Task.Delay(2000);
-            }
-        }
+        using HttpResponseMessage response = await FetchWhenReadyAsync(
+            client, $"{address}/?sessionId=TUNNEL_E2E", TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(2));
+        string body = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         // The title carries a data-i18n attribute so the phone can rewrite it in
@@ -82,6 +68,56 @@ public class QuickTunnelEndToEndTests : IAsyncLifetime
 
         await tunnel.StopAsync();
     }
+
+    /// <summary>
+    /// Fetches until the page comes back, or until there is no time left to wait.
+    ///
+    /// The address is published before the route behind it is settled, so the first
+    /// attempts fail in two different ways: the name does not resolve or the
+    /// connection is refused, which arrive as exceptions, and Cloudflare answers
+    /// while it has nothing connected behind the name, which arrives as a response.
+    /// Both are the route still being built rather than a broken page, so both are
+    /// waited out. Past the deadline the answer is handed back as it is, so a page
+    /// that is genuinely wrong fails the test instead of spinning.
+    /// </summary>
+    internal static async Task<HttpResponseMessage> FetchWhenReadyAsync(
+        HttpClient client, string url, TimeSpan deadline, TimeSpan wait)
+    {
+        DateTimeOffset until = DateTimeOffset.UtcNow + deadline;
+
+        while (true)
+        {
+            HttpResponseMessage attempt;
+            try
+            {
+                attempt = await client.GetAsync(url);
+            }
+            catch (Exception ex) when ((ex is HttpRequestException || ex is TaskCanceledException)
+                                       && DateTimeOffset.UtcNow < until)
+            {
+                await Task.Delay(wait);
+                continue;
+            }
+
+            if (IsStillSettling(attempt.StatusCode) && DateTimeOffset.UtcNow < until)
+            {
+                attempt.Dispose();
+                await Task.Delay(wait);
+                continue;
+            }
+
+            return attempt;
+        }
+    }
+
+    /// <summary>
+    /// True while an answer says the route is not there yet.
+    ///
+    /// Only the edge's own 5xx counts: a page that answers 404 or 403 is the server
+    /// behind the tunnel speaking, which means the route is up and the page is wrong.
+    /// </summary>
+    internal static bool IsStillSettling(HttpStatusCode status) =>
+        (int)status >= 500 && (int)status <= 599;
 }
 
 /// <summary>
@@ -112,6 +148,81 @@ public sealed class ConnectorInstalledFactAttribute : FactAttribute
         catch
         {
             return false;
+        }
+    }
+}
+
+/// <summary>
+/// Covers the wait policy of the end-to-end fetch on its own, against answers that
+/// are handed over instead of waited for.
+///
+/// The real run only reaches that code when a connector is installed, and even
+/// then Cloudflare does not reliably repeat the moment where it answers for a
+/// tunnel that has nothing connected behind it, which is exactly the moment the
+/// policy has to get right.
+/// </summary>
+public class QuickTunnelReadinessTests
+{
+    [Fact]
+    public void AnEdgeErrorIsTheRouteStillBeingBuiltAndAPageIsNot()
+    {
+        Assert.True(QuickTunnelEndToEndTests.IsStillSettling((HttpStatusCode)530));
+        Assert.True(QuickTunnelEndToEndTests.IsStillSettling(HttpStatusCode.ServiceUnavailable));
+        Assert.False(QuickTunnelEndToEndTests.IsStillSettling(HttpStatusCode.OK));
+        Assert.False(QuickTunnelEndToEndTests.IsStillSettling(HttpStatusCode.NotFound));
+        Assert.False(QuickTunnelEndToEndTests.IsStillSettling(HttpStatusCode.Forbidden));
+    }
+
+    [Fact]
+    public async Task APageBehindAnEdgeErrorIsWaitedOutUntilItComesBack()
+    {
+        var handler = new SequenceHandler((HttpStatusCode)530, (HttpStatusCode)530, HttpStatusCode.OK);
+        using var client = new HttpClient(handler);
+
+        using HttpResponseMessage response = await QuickTunnelEndToEndTests.FetchWhenReadyAsync(
+            client, "https://example.test/", TimeSpan.FromSeconds(10), TimeSpan.FromMilliseconds(1));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(3, handler.Requests);
+    }
+
+    [Fact]
+    public async Task AnEdgeErrorThatNeverClearsIsHandedBackWhenThereIsNoTimeLeft()
+    {
+        // Giving up has to arrive as an answer rather than as a loop, so a page
+        // that is genuinely broken still fails instead of spinning forever.
+        var handler = new SequenceHandler((HttpStatusCode)530);
+        using var client = new HttpClient(handler);
+
+        using HttpResponseMessage response = await QuickTunnelEndToEndTests.FetchWhenReadyAsync(
+            client, "https://example.test/", TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(5));
+
+        Assert.Equal((HttpStatusCode)530, response.StatusCode);
+        Assert.True(handler.Requests >= 2,
+            $"The edge error should have been waited out, only {handler.Requests} request(s) were made.");
+    }
+
+    /// <summary>Hands out the answers it was given and counts what was asked.</summary>
+    private sealed class SequenceHandler : HttpMessageHandler
+    {
+        private readonly HttpStatusCode[] _answers;
+        private int _next;
+
+        public int Requests { get; private set; }
+
+        public SequenceHandler(params HttpStatusCode[] answers) => _answers = answers;
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests++;
+            HttpStatusCode answer = _answers[Math.Min(_next, _answers.Length - 1)];
+            _next++;
+
+            return Task.FromResult(new HttpResponseMessage(answer)
+            {
+                Content = new StringContent("")
+            });
         }
     }
 }
