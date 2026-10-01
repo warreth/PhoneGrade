@@ -291,8 +291,18 @@ public sealed partial class QuickTunnel : IDisposable
     [GeneratedRegex(@"\b(ERR|WRN|FAT)\b")]
     private static partial Regex FaultTag();
 
+    /// <summary>
+    /// The connector is asked for http2 rather than the quic it picks by default.
+    ///
+    /// quic rides on UDP, and a workshop network that drops UDP leaves cloudflared
+    /// retrying the edge handshake forever: it still prints an address, because
+    /// Cloudflare creates the name as soon as it is asked, but nothing is ever
+    /// connected behind it and every fetch comes back as a 530. http2 takes the
+    /// same route over TCP 443, which those networks do carry, and the difference
+    /// in latency does not matter for a page a phone opens once.
+    /// </summary>
     private static string Arguments(int port) =>
-        $"tunnel --url http://localhost:{port} --no-autoupdate";
+        $"tunnel --url http://localhost:{port} --no-autoupdate --protocol http2";
 
     private bool IsLive(int port)
     {

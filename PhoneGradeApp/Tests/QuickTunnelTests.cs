@@ -303,7 +303,7 @@ public class QuickTunnelTests
         var logged = SystemEventLogger.GetRecentLogs().Select(entry => entry.Message).ToArray();
 
         Assert.Contains(logged, message => message.Contains(
-            $"Starting the internet tunnel with {Shell} tunnel --url http://localhost:5056 --no-autoupdate",
+            $"Starting the internet tunnel with {Shell} tunnel --url http://localhost:5056 --no-autoupdate --protocol http2",
             StringComparison.Ordinal));
         Assert.Contains(logged, message => message.Contains(OtherAddress, StringComparison.Ordinal));
 
