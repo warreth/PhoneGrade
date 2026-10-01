@@ -133,6 +133,11 @@ public sealed partial class QuickTunnel : IDisposable
 
             onStatus?.Invoke(ConnectionText.Get("openingInternet"));
 
+            // Before another connector is added, take down the ones a run that is no
+            // longer there left behind. Nothing inside a process that was killed gets
+            // to tidy up after itself, so the tidying up happens here instead.
+            ConnectorLedger.ReapOrphans();
+
             // The path and the arguments are the first thing to check when a tunnel
             // will not come up, and neither of them was written anywhere before.
             string arguments = Arguments(port);
@@ -400,6 +405,10 @@ public sealed partial class QuickTunnel : IDisposable
 
         var process = Process.Start(start)
             ?? throw new InvalidOperationException($"Could not start {toolPath}");
+
+        // Noted before the first line is read: if this run goes down without
+        // disposing, this is the only thing a later one will have to go on.
+        ConnectorLedger.Record(process.Id);
 
         process.OutputDataReceived += (_, e) => { if (e.Data != null) onLine(e.Data); };
         process.ErrorDataReceived += (_, e) => { if (e.Data != null) onLine(e.Data); };
