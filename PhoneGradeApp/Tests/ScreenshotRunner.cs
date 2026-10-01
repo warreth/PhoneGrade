@@ -17,6 +17,9 @@ class ScreenshotRunner
     static void Main(string[] args)
     {
         string outDir = args.Length > 0 ? args[0] : "/tmp/shots";
+        // A second argument picks one section while iterating: "flow" runs only
+        // the workflow states, "lic" only the licensing screens.
+        string section = args.Length > 1 ? args[1] : "";
         Directory.CreateDirectory(outDir);
 
         AppBuilder.Configure<PhoneGrade.UI.App>()
@@ -26,27 +29,31 @@ class ScreenshotRunner
             {
                 var vm = BuildDemoViewModel();
 
-                vm.IsQualityPopupVisible = true;
-                Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-quality.png"));
-                vm.IsQualityPopupVisible = false;
-                vm.IsPaymentPopupVisible = true;
-                Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-payment.png"));
-                vm.IsPaymentPopupVisible = false;
-                Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-issues.png"));
-                Capture(new DataEditorWindow { DataContext = new DataEditorViewModel(vm.DeviceData) }, Path.Combine(outDir, "editor-dark.png"));
+                if (section is "" or "main")
+                {
+                    vm.IsQualityPopupVisible = true;
+                    Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-quality.png"));
+                    vm.IsQualityPopupVisible = false;
+                    vm.IsPaymentPopupVisible = true;
+                    Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-payment.png"));
+                    vm.IsPaymentPopupVisible = false;
+                    Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-issues.png"));
+                    Capture(new DataEditorWindow { DataContext = new DataEditorViewModel(vm.DeviceData) }, Path.Combine(outDir, "editor-dark.png"));
 
-                // The USB debugging guide, in both themes. This card used to be a
-                // light yellow block in an otherwise dark window, which no assertion
-                // about theme resources would have caught.
-                var idle = BuildDemoViewModel();
-                idle.WorkflowState = AppWorkflowState.Idle;
-                idle.ShowAdbWarning = true;
-                Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "usb-guide-dark.png"), 900, 900);
+                    // The USB debugging guide, in both themes. This card used to be a
+                    // light yellow block in an otherwise dark window, which no assertion
+                    // about theme resources would have caught.
+                    var idle = BuildDemoViewModel();
+                    idle.WorkflowState = AppWorkflowState.Idle;
+                    idle.ShowAdbWarning = true;
+                    Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "usb-guide-dark.png"), 900, 900);
 
-                idle.Theme = "Light";
-                Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "usb-guide-light.png"), 900, 900);
+                    idle.Theme = "Light";
+                    Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "usb-guide-light.png"), 900, 900);
+                }
 
-                CaptureLicensingStates(outDir);
+                if (section is "" or "lic") CaptureLicensingStates(outDir);
+                if (section is "" or "flow") CaptureWorkflowStates(outDir);
 
                 Console.WriteLine("done");
                 if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -136,6 +143,148 @@ class ScreenshotRunner
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
     }
 
+    // The three states an inspection walks through, plus the overlays that sit
+    // on top of them, all at the size the window actually opens at. The narrow
+    // shot is the minimum width: that is where a header bar stops fitting.
+    static void CaptureWorkflowStates(string outDir)
+    {
+        string settingsDir = Path.Combine(outDir, "flow-settings");
+        Directory.CreateDirectory(settingsDir);
+        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", settingsDir);
+        File.WriteAllText(Path.Combine(settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":true}""");
+
+        void Shot(MainWindowViewModel vm, string file, double width = 1050, double height = 740,
+                  AppWorkflowState? state = null)
+        {
+            vm.Theme = "Dark";
+            Action arrange = () =>
+            {
+                if (state is { } workflow) vm.WorkflowState = workflow;
+            };
+            Func<bool> still = () => state is null || vm.WorkflowState == state;
+
+            // The first window built for a view model whose state was set before
+            // the window existed comes out painted with the state the model had
+            // at construction, however often the frame is taken afterwards; the
+            // second window, built once the state has stood for a while, paints
+            // what is actually set. So the first one is spent here and only the
+            // second one is saved.
+            string warmup = Path.Combine(Path.GetTempPath(), "phonegrade-warmup.png");
+            if (state is not null)
+            {
+                Capture(new MainWindow { DataContext = vm }, warmup,
+                    width, height, arrange: arrange, stillWanted: still);
+            }
+
+            Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, file),
+                width, height, arrange: arrange, stillWanted: still);
+
+            try { File.Delete(warmup); } catch (IOException) { }
+        }
+
+        var idle = BuildDemoViewModel();
+        Shot(idle, "flow-idle-dark.png");
+        Shot(idle, "flow-idle-narrow.png", 850, 620);
+        idle.Theme = "Light";
+        Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "flow-idle-light.png"), 1050, 740);
+
+        var active = BuildDemoViewModel();
+        active.WorkflowState = AppWorkflowState.Active;
+        active.Progress = 62;
+        active.Status = "Batterij en beveiliging uitlezen...";
+        FillAudit(active);
+        Shot(active, "flow-active-dark.png", state: AppWorkflowState.Active);
+        Shot(active, "flow-active-narrow.png", 850, 620, state: AppWorkflowState.Active);
+
+        var summary = BuildDemoViewModel();
+        summary.WorkflowState = AppWorkflowState.Summary;
+        summary.Status = "Inspectie afgerond";
+        FillAudit(summary);
+        summary.FailedInteractiveTests.Add(new InteractiveTestResult
+        {
+            Name = "Touchscreen",
+            Status = TestStatus.Failed,
+            Notes = "Linkeronderhoek reageert niet, ongeveer 4 cm breed.",
+        });
+        summary.SkippedInteractiveTests.Add(new InteractiveTestResult
+        {
+            Name = "Nabijheidssensor",
+            Status = TestStatus.Skipped,
+            Notes = "De browser weigerde de toegang tot de sensor.",
+        });
+        Shot(summary, "flow-summary-dark.png", state: AppWorkflowState.Summary);
+        Shot(summary, "flow-summary-narrow.png", 850, 620, state: AppWorkflowState.Summary);
+
+        var clean = BuildDemoViewModel();
+        clean.WorkflowState = AppWorkflowState.Summary;
+        clean.Status = "Inspectie afgerond";
+        FillAudit(clean);
+        Shot(clean, "flow-summary-clean-dark.png", state: AppWorkflowState.Summary);
+
+        var settings = BuildDemoViewModel();
+        settings.IsSettingsDrawerOpen = true;
+        Shot(settings, "flow-settings-dark.png");
+
+        var logs = BuildDemoViewModel();
+        logs.IsLogsModalOpen = true;
+        Shot(logs, "flow-logs-dark.png");
+
+        var trouble = BuildDemoViewModel();
+        trouble.IsTroubleshootModalOpen = true;
+        Shot(trouble, "flow-troubleshoot-dark.png");
+
+        var quality = BuildDemoViewModel();
+        quality.IsQualityPopupVisible = true;
+        Shot(quality, "flow-quality-dark.png");
+
+        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
+    }
+
+    // Rows in the OEM audit: one part that matches, one that does not, one that
+    // nothing was read for. All three have to fit the same row without clipping.
+    static void FillAudit(MainWindowViewModel vm)
+    {
+        vm.ComponentChecks.Add(new ComponentStatus
+        {
+            Name = "Batterij",
+            SerialRead = "F2LXG0A3Q1G6",
+            SerialOriginal = "F2LXG0A3Q1G6",
+            Status = ComponentStatusType.Match,
+        });
+        vm.ComponentChecks.Add(new ComponentStatus
+        {
+            Name = "Scherm",
+            SerialRead = "C3X9P2LM4K1Q",
+            SerialOriginal = "C3X9P2LM4K8Z",
+            Status = ComponentStatusType.Mismatch,
+        });
+        vm.ComponentChecks.Add(new ComponentStatus
+        {
+            Name = "Camera achter",
+            SerialRead = "",
+            SerialOriginal = "DNL7H2M3P9R1",
+            Status = ComponentStatusType.Unknown,
+        });
+
+        foreach (ComponentStatus check in vm.ComponentChecks)
+            vm.DeviceData.ComponentChecks.Add(check);
+        vm.DeviceData.ComponentChecks.Add(new ComponentStatus
+        {
+            Name = "Scherm",
+            SerialRead = "C3X9P2LM4K1Q",
+            SerialOriginal = "C3X9P2LM4K8Z",
+            Status = ComponentStatusType.Mismatch,
+        });
+
+        vm.DefectiveComponents.Add(new ComponentStatus
+        {
+            Name = "Scherm",
+            SerialRead = "C3X9P2LM4K1Q",
+            SerialOriginal = "C3X9P2LM4K8Z",
+            Status = ComponentStatusType.Mismatch,
+        });
+    }
+
     // ReactiveCommand answers on the dispatcher, so the tick loop is what makes
     // the activation land before the shot is taken.
     static void ActivatePro(MainWindowViewModel vm, string key)
@@ -190,7 +339,17 @@ class ScreenshotRunner
         return vm;
     }
 
-    static void Capture(Window window, string file, double width = 760, double height = 820)
+    // The window that is currently on screen. The headless platform paints the
+    // window it considers foremost, and a second window shown next to the first
+    // one kept coming back as the frame of the first: every wide shot of the
+    // active and summary screens was byte for byte the idle screen. Taking the
+    // earlier window off the screen before the next one goes up makes the frame
+    // belong to the window that was asked for. Hiding, not closing, because
+    // closing runs the shutdown of the view model and several shots share one.
+    static Window? _onScreen;
+
+    static void Capture(Window window, string file, double width = 760, double height = 820,
+                        Action? arrange = null, Func<bool>? stillWanted = null)
     {
         try
         {
@@ -199,13 +358,60 @@ class ScreenshotRunner
             // did nothing and every picture came out at the XAML size.
             window.Width = width;
             window.Height = height;
+            if (_onScreen is not null && !ReferenceEquals(_onScreen, window)) _onScreen.IsVisible = false;
+            _onScreen = window;
             window.Show();
+
             // Two ticks: one to lay out at the new size, one to paint the frame.
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            using var shot = HeadlessWindowExtensions.CaptureRenderedFrame(window);
-            shot.Save(file);
-            Console.WriteLine($"saved {file}");
+
+            // The state the picture is meant to show is applied over and over
+            // until it survives a stretch of ticks untouched: the refresh the
+            // view model starts on construction walks back to Idle whenever it
+            // likes, and setting the state once is answered by that continuation
+            // landing a moment later. Only a state that is still standing after
+            // a run of ticks is the one the frame will actually paint.
+            for (int attempt = 0; attempt < 400; attempt++)
+            {
+                arrange?.Invoke();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                System.Threading.Thread.Sleep(5);
+                if (arrange is null) break;
+                if (stillWanted?.Invoke() != true) continue;
+
+                bool held = true;
+                for (int hold = 0; hold < 25; hold++)
+                {
+                    AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                    System.Threading.Thread.Sleep(4);
+                    if (stillWanted?.Invoke() != true) { held = false; break; }
+                }
+                if (held) break;
+            }
+            if (arrange is not null && stillWanted?.Invoke() == false)
+                Console.WriteLine($"warning: {file} never settled on the state it was meant to show");
+
+            for (int i = 0; i < 3; i++) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            if (arrange is not null && stillWanted is not null)
+                Console.WriteLine($"state for {Path.GetFileName(file)}: {(stillWanted() ? "as intended" : "lost again")} visible={window.IsVisible}");
+
+            // Which of the three screens the window itself is showing, so a frame
+            // that comes out wrong can be told apart from a state that never
+            // reached the visual tree.
+            if (window is MainWindow main)
+            {
+                var idlePanel = main.FindControl<Control>("IdleState");
+                var activePanel = main.FindControl<Control>("ActiveState");
+                var summaryPanel = main.FindControl<Control>("SummaryState");
+                Console.WriteLine($"    panels idle={idlePanel?.IsVisible} active={activePanel?.IsVisible} summary={summaryPanel?.IsVisible} bounds={main.Bounds.Width}x{main.Bounds.Height}");
+            }
+
+            using (var shot = HeadlessWindowExtensions.CaptureRenderedFrame(window))
+            {
+                shot.Save(file);
+                Console.WriteLine($"saved {file} (lum={AverageLuminance(file):F0})");
+            }
         }
         catch (Exception ex)
         {
@@ -214,6 +420,20 @@ class ScreenshotRunner
         finally
         {
             window.Hide();
+        }
+    }
+
+    /// <summary>Mean brightness of a saved frame, so a theme mix-up is visible in
+    /// the log rather than only in the picture.</summary>
+    static double AverageLuminance(string file)
+    {
+        try
+        {
+            return Tests.PngLuminance.Average(File.ReadAllBytes(file));
+        }
+        catch (Exception)
+        {
+            return -1;
         }
     }
 }
