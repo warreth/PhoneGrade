@@ -197,6 +197,72 @@ public class LoggingAndTroubleshootTests
     }
 
     [Fact]
+    public async Task TroubleshootService_ReportsOnTheTunnelConnector()
+    {
+        // A phone that cannot use the cable has no secure address without this, so
+        // the scan has to say whether the connector is there rather than leave the
+        // camera and microphone to fail later with no reason attached.
+        var report = await TroubleshootService.RunFullDiagnosticsAsync();
+
+        var check = report.Checks.FirstOrDefault(c => c.Category == "Connection");
+
+        Assert.NotNull(check);
+        Assert.True(check!.Title.Contains("cloudflared", StringComparison.OrdinalIgnoreCase),
+            $"The tunnel connector check was reported as '{check.Title}'.");
+    }
+
+    [Fact]
+    public void TroubleshootService_OffersTheConnectorInstallOnlyWhenThereIsNone()
+    {
+        // The two states the scanner can be in, held apart so a machine that has
+        // the connector cannot end up offering an install for it, and one that has
+        // not cannot end up with a check nobody can act on.
+        DiagnosticCheckItem missing = TroubleshootService.CheckTunnelConnector(null);
+
+        Assert.Equal("Connection", missing.Category);
+        Assert.Equal(DiagnosticSeverity.Warning, missing.Severity);
+        Assert.Equal("install_cloudflared", missing.FixActionKey);
+        Assert.True(missing.IsFixable);
+
+        DiagnosticCheckItem present = TroubleshootService.CheckTunnelConnector("/tools/cloudflared");
+
+        Assert.Equal(DiagnosticSeverity.Pass, present.Severity);
+        Assert.Null(present.FixActionKey);
+        Assert.False(present.IsFixable);
+    }
+
+    [Fact]
+    public async Task ToolInstallerService_InstallsTheTunnelConnectorOnRequest()
+    {
+        // The download only runs when nothing is installed, so a connector stood in
+        // for the real one keeps this off the network while still proving that the
+        // key the scanner sends reaches the installer instead of falling through
+        // to the answer an unknown key gets.
+        string local = Path.Combine(ToolRunner.ToolsDir, ToolInstallerService.CloudflaredExecutableName);
+        bool stoodIn = false;
+
+        if (!File.Exists(local) && string.IsNullOrWhiteSpace(ToolRunner.Resolve("cloudflared")))
+        {
+            Directory.CreateDirectory(ToolRunner.ToolsDir);
+            await File.WriteAllTextAsync(local, "stood in for a real connector");
+            stoodIn = true;
+        }
+
+        try
+        {
+            bool result = await ToolInstallerService.ExecuteFixAsync("install_cloudflared");
+            Assert.True(result, "The scan could not install the tunnel connector.");
+        }
+        finally
+        {
+            if (stoodIn)
+            {
+                try { File.Delete(local); } catch { /* something else claimed it */ }
+            }
+        }
+    }
+
+    [Fact]
     public async Task ToolInstallerService_VerifyLiveDownloadUrls()
     {
         // Un-faked, live HTTP HEAD request to ensure the Windows zip and CAB driver URLs exist and are valid.

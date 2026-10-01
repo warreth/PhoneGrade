@@ -21,6 +21,7 @@ public static class ToolInstallerService
         {
             "install_idevice_tools" => await InstallIdeviceToolsAsync(progress),
             "install_adb" => await InstallAdbAsync(progress),
+            "install_cloudflared" => await InstallCloudflaredAsync(progress),
             "fix_apple_service" or "install_apple_driver" => await FixAppleServiceAsync(progress),
             "start_usbmuxd" => await StartUsbmuxdAsync(progress),
             _ => false
@@ -280,18 +281,27 @@ public static class ToolInstallerService
     }
 
     /// <summary>
-    /// A usable tunnel connector: one already sitting in the tools directory, one
-    /// found on the system path, or one downloaded now. Null means the phone has to
-    /// do without a public https address, which is an ordinary fallback and not an
-    /// error worth reporting.
+    /// A connector already usable on this machine: one in the tools directory, or
+    /// one on the system path. Null means there is none and one has to be fetched.
     /// </summary>
-    public static async Task<string?> EnsureCloudflaredAsync()
+    public static string? FindCloudflared()
     {
         string installed = Path.Combine(ToolRunner.ToolsDir, CloudflaredExecutableName);
         if (File.Exists(installed)) return installed;
 
         string resolved = ToolRunner.Resolve("cloudflared");
-        if (!string.IsNullOrWhiteSpace(resolved) && File.Exists(resolved)) return resolved;
+        return !string.IsNullOrWhiteSpace(resolved) && File.Exists(resolved) ? resolved : null;
+    }
+
+    /// <summary>
+    /// A usable tunnel connector: one already on the machine, or one downloaded now.
+    /// Null means the phone has to do without a public https address, which is an
+    /// ordinary fallback and not an error worth reporting.
+    /// </summary>
+    public static async Task<string?> EnsureCloudflaredAsync()
+    {
+        string? found = FindCloudflared();
+        if (found != null) return found;
 
         // Two phones in a row must not start two downloads of the same binary.
         Task<string?> download;
@@ -311,6 +321,40 @@ public static class ToolInstallerService
                 if (download.IsCompleted) CloudflaredPending = null;
             }
         }
+    }
+
+    /// <summary>
+    /// Puts a connector on disk on request, from the scan screen.
+    ///
+    /// This is the same work the tunnel does when a phone asks for an address, with
+    /// one difference: the technician asked for it, so each step is reported back
+    /// instead of only being written to the log, and an already installed connector
+    /// counts as the answer rather than as something to fetch again.
+    /// </summary>
+    public static async Task<bool> InstallCloudflaredAsync(IProgress<(int Percent, string Message)>? progress = null)
+    {
+        SystemEventLogger.Info(LogSource.Desktop, "Starting tunnel connector installation...");
+        progress?.Report((10, "Looking for a tunnel connector already on this machine..."));
+
+        string? existing = FindCloudflared();
+        if (existing != null)
+        {
+            progress?.Report((100, $"Tunnel connector already available at: {existing}"));
+            SystemEventLogger.Info(LogSource.Desktop, $"Tunnel connector already installed: {existing}");
+            return true;
+        }
+
+        progress?.Report((20, "Downloading the tunnel connector..."));
+        string? downloaded = await DownloadCloudflaredAsync(progress);
+
+        if (downloaded == null)
+        {
+            progress?.Report((100, "Could not download the tunnel connector. Check the network connection."));
+            return false;
+        }
+
+        progress?.Report((100, "Tunnel connector installed successfully."));
+        return true;
     }
 
     private static async Task<string?> DownloadCloudflaredAsync(IProgress<(int Percent, string Message)>? progress = null)

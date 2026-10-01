@@ -104,6 +104,9 @@ public static class TroubleshootService
         await CheckIosToolsAsync(report);
         await CheckAndroidToolsAsync(report);
 
+        // Reaching the phone's browser rather than the phone itself.
+        report.Checks.Add(CheckTunnelConnector(ToolInstallerService.FindCloudflared()));
+
         // 2. Daemon & Service checks
         await CheckDaemonsAsync(report);
 
@@ -261,6 +264,41 @@ public static class TroubleshootService
                 FixActionKey = "install_adb"
             });
         }
+    }
+
+    /// <summary>
+    /// Reports whether this machine can give a phone a secure address.
+    ///
+    /// A machine without a connector still finds and grades devices over the cable,
+    /// so this is a warning and not a failure. What it costs is the camera,
+    /// microphone and location on a phone that has no cable route, because those
+    /// are handed out only on a secure origin, and that used to arrive as a step
+    /// that silently went missing rather than as a reason.
+    /// </summary>
+    public static DiagnosticCheckItem CheckTunnelConnector(string? connectorPath)
+    {
+        const string title = "Tunnel Connector (cloudflared)";
+
+        if (!string.IsNullOrWhiteSpace(connectorPath))
+        {
+            return new DiagnosticCheckItem
+            {
+                Category = "Connection",
+                Title = title,
+                Severity = DiagnosticSeverity.Pass,
+                Message = $"Available at: {connectorPath}"
+            };
+        }
+
+        return new DiagnosticCheckItem
+        {
+            Category = "Connection",
+            Title = title,
+            Severity = DiagnosticSeverity.Warning,
+            Message = "No tunnel connector found, so a phone without a cable route gets the plain network address.",
+            Resolution = "Install the tunnel connector, or place cloudflared in the 'idevice-tools' directory.",
+            FixActionKey = "install_cloudflared"
+        };
     }
 
     private static async Task CheckDaemonsAsync(TroubleshootReport report)
