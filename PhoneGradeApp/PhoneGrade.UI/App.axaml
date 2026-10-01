@@ -11,7 +11,6 @@
             </ResourceDictionary.MergedDictionaries>
             
             <!-- Converters -->
-            <converters:PlaceholderToFriendlyConverter x:Key="PlaceholderConverter"/>
             <converters:BatteryHealthConverter x:Key="BatteryConverter"/>
             <converters:BatteryLevelConverter x:Key="BatteryLevelConverter"/>
             <converters:ColorConverter x:Key="ColorConverter"/>
@@ -23,12 +22,22 @@
             <converters:ModelDisplayConverter x:Key="ModelDisplayConverter"/>
             <converters:ComponentStatusConverter x:Key="ComponentStatusConverter"/>
             <converters:DeviceConnectionTextConverter x:Key="DeviceConnectionTextConverter"/>
+            <converters:EqualsParameterConverter x:Key="SectionMatch"/>
+            <converters:QualityOptionLabelConverter x:Key="QualityOptionLabelConverter"/>
+            <converters:PaymentOptionLabelConverter x:Key="PaymentOptionLabelConverter"/>
             
             <!-- Severity brushes for the diagnostics dot (converter keys) -->
             <SolidColorBrush x:Key="SeverityOkBrush" Color="{DynamicResource SuccessColor}"/>
             <SolidColorBrush x:Key="SeverityWarningBrush" Color="{DynamicResource WarnColor}"/>
             <SolidColorBrush x:Key="SeverityErrorBrush" Color="{DynamicResource DangerColor}"/>
             <SolidColorBrush x:Key="ComponentUnknownBrush" Color="{DynamicResource CardBorderColor}"/>
+
+            <!-- Tinted fills for rows and cards that carry news, so no view has
+                 to spell out its own colour and every theme gets a readable one. -->
+            <SolidColorBrush x:Key="AccentTintBrush" Color="{DynamicResource AccentTint}"/>
+            <SolidColorBrush x:Key="SuccessTintBrush" Color="{DynamicResource SuccessTint}"/>
+            <SolidColorBrush x:Key="WarnTintBrush" Color="{DynamicResource WarnTint}"/>
+            <SolidColorBrush x:Key="DangerTintBrush" Color="{DynamicResource DangerTint}"/>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
                     <Color x:Key="AppBgColor">#141417</Color>
@@ -45,6 +54,12 @@
                     <Color x:Key="WarnColor">#F5A623</Color>
                     <Color x:Key="DangerColor">#F0564A</Color>
                     <Color x:Key="OverlayColor">#99101014</Color>
+                    <!-- Fills behind a row that carries news: barely there, so a
+                         list of them stays readable instead of glowing. -->
+                    <Color x:Key="AccentTint">#224F8CFF</Color>
+                    <Color x:Key="SuccessTint">#262FBF71</Color>
+                    <Color x:Key="WarnTint">#26F5A623</Color>
+                    <Color x:Key="DangerTint">#26F0564A</Color>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
                     <Color x:Key="AppBgColor">#EEF0F4</Color>
@@ -61,6 +76,10 @@
                     <Color x:Key="WarnColor">#C77E00</Color>
                     <Color x:Key="DangerColor">#DC3528</Color>
                     <Color x:Key="OverlayColor">#9910141A</Color>
+                    <Color x:Key="AccentTint">#E4EEFF</Color>
+                    <Color x:Key="SuccessTint">#E4F6EC</Color>
+                    <Color x:Key="WarnTint">#FDF1DC</Color>
+                    <Color x:Key="DangerTint">#FCE9E7</Color>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -338,6 +357,36 @@
             <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
         </Style>
 
+        <!--
+            The cross beside a failed or skipped row, which takes it out of the
+            inspection report. Kept quiet at rest so a list of failures does not
+            read as a row of crosses, and named in the tooltip, because on its
+            own a cross could as well mean "expand" as "remove".
+        -->
+        <Style Selector="Button.dismissTest">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="7,2"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Opacity" Value="0.45"/>
+            <Setter Property="Margin" Value="7,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.dismissTest:pointerover">
+            <Setter Property="Background" Value="{DynamicResource DangerColor}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+
         <!-- Inputs -->
         <Style Selector="TextBox">
             <Setter Property="Background" Value="{DynamicResource InputBgColor}"/>
@@ -410,10 +459,174 @@
             <Setter Property="LineHeight" Value="18"/>
             <Setter Property="Foreground" Value="{DynamicResource WarnColor}"/>
         </Style>
+        <!-- Its backing plate. The view used to spell out its own translucent
+             amber here, which is the same drift the card above it was measured
+             against: a colour no other screen knows about. -->
+        <Style Selector="Border.stepCaveatBox">
+            <Setter Property="Background" Value="{DynamicResource WarnTintBrush}"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,8"/>
+        </Style>
 
         <!-- Data validation errors must never disappear -->
         <Style Selector="DataValidationErrors &gt; TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource DangerColor}"/>
+        </Style>
+
+        <!-- ============ Application header ============ -->
+        <Style Selector="Border.topBar">
+            <Setter Property="Background" Value="{DynamicResource CardColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="20,0"/>
+        </Style>
+        <Style Selector="TextBlock.brand">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!--
+            A header action. It reads as a piece of text, answers as a button, and
+            is padded so that a longer label cannot stretch the column it sits in.
+        -->
+        <Style Selector="Button.headerBtn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.headerBtn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+        </Style>
+        <!-- The header button that is currently open stays lit, so the state of
+             the page behind it is readable from the bar itself. -->
+        <Style Selector="Button.headerBtn.on">
+            <Setter Property="Background" Value="{DynamicResource AccentTintBrush}"/>
+        </Style>
+        <Style Selector="Button.headerBtn.on Path.glyph">
+            <Setter Property="Fill" Value="{DynamicResource AccentColor}"/>
+        </Style>
+        <Style Selector="Path.glyph">
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="Width" Value="15"/>
+            <Setter Property="Height" Value="15"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ============ Settings: sections and the rows inside them ============ -->
+        <Style Selector="TextBlock.pageTitle">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="TextBlock.sectionTitle">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="TextBlock.fieldLabel">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+        <Style Selector="TextBlock.settingDesc">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="17"/>
+        </Style>
+        <Style Selector="Button.navItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.navItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+        </Style>
+        <Style Selector="Button.navItem.current">
+            <Setter Property="Background" Value="{DynamicResource AccentTintBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+        </Style>
+        <Style Selector="Button.navItem.current:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentTintBrush}"/>
+        </Style>
+        <Style Selector="Border.settingCard">
+            <Setter Property="Background" Value="{DynamicResource CardDeepColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+        <Style Selector="Border.actionBar">
+            <Setter Property="Background" Value="{DynamicResource CardColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="Padding" Value="20,14"/>
+        </Style>
+
+        <!-- ============ Report rows: a tint, never a solid block of colour ============ -->
+        <Style Selector="Border.reportRow">
+            <Setter Property="Background" Value="{DynamicResource CardDeepColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="12,9"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+        <Style Selector="Border.reportRow.bad">
+            <Setter Property="Background" Value="{DynamicResource DangerTintBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DangerColor}"/>
+        </Style>
+        <Style Selector="Border.reportRow.warn">
+            <Setter Property="Background" Value="{DynamicResource WarnTintBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource WarnColor}"/>
+        </Style>
+        <Style Selector="Border.reportRow.ok">
+            <Setter Property="Background" Value="{DynamicResource SuccessTintBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource SuccessColor}"/>
+        </Style>
+        <Style Selector="Border.chip">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="7,3"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Border.chip &gt; TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Border.chip.bad">
+            <Setter Property="Background" Value="{DynamicResource DangerColor}"/>
+        </Style>
+        <Style Selector="Border.chip.ok">
+            <Setter Property="Background" Value="{DynamicResource SuccessColor}"/>
+        </Style>
+        <Style Selector="Border.chip.warn">
+            <Setter Property="Background" Value="{DynamicResource WarnColor}"/>
+        </Style>
+        <Style Selector="TextBlock.emptyNote">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource SuccessColor}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
     </Application.Styles>
 </Application>

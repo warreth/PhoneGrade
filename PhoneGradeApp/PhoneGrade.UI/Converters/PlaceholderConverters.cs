@@ -2,43 +2,26 @@ using System;
 using System.Globalization;
 using Avalonia.Data.Converters;
 using PhoneGrade.Core;
+using PhoneGrade.UI.Services;
 
 namespace PhoneGrade.UI.Converters;
 
-/// <summary>Converts placeholder values to user-friendly fallback text in Dutch.</summary>
-public class PlaceholderToFriendlyConverter : IValueConverter
+/// <summary>
+/// Words for a value the phone did not report.
+///
+/// Every sentence these converters return lives in the string dictionaries in
+/// both languages, so an English operator reads English and a Dutch one reads
+/// Dutch. What the converter owns is the decision of which word fits the value,
+/// never the word itself.
+/// </summary>
+
+/// <summary>Show the current charge level as a subline under the battery condition.</summary>
+public class BatteryLevelConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return "Onbekend";
-        
-        return str switch
-        {
-            "NOCOLOR" => "Onbekend",
-            "NOBATT" => "Onbekend",
-            "NOQUALITY" => "In afwachting",
-            "" => "Onbekend",
-            _ => str
-        };
-    }
-
-    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotImplementedException();
-}
-
-/// <summary>Converts battery health placeholder to friendly text in Dutch.</summary>
-public class BatteryHealthConverter : IValueConverter
-{
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        if (value is not string str) return "Onbekend";
-        
-        return str switch
-        {
-            "NOBATT" => "Controleren...",
-            "" => "Onbekend",
-            _ => str
-        };
+        if (value is not int level || level <= 0) return "";
+        return string.Format(LocalizationManager.GetString("Value_BatteryLevel"), level);
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -46,30 +29,36 @@ public class BatteryHealthConverter : IValueConverter
 }
 
 /// <summary>Shows the current charge level as a subline under the battery condition.</summary>
-public class BatteryLevelConverter : IValueConverter
+public class BatteryHealthConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not int level || level <= 0) return "";
-        return $"Lading {level}%";
+        if (value is not string str) return LocalizationManager.GetString("Value_Unknown");
+
+        return str switch
+        {
+            "NOBATT" => LocalizationManager.GetString("Value_Checking"),
+            "" => LocalizationManager.GetString("Value_Unknown"),
+            _ => str,
+        };
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts color placeholder to friendly text in Dutch.</summary>
+/// <summary>Color placeholder: the phone never sent a colour rather than it being white.</summary>
 public class ColorConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return "Niet opgegeven";
-        
+        if (value is not string str) return LocalizationManager.GetString("Value_NotSet");
+
         return str switch
         {
-            "NOCOLOR" => "Niet opgegeven",
-            "" => "Niet opgegeven",
-            _ => str
+            "NOCOLOR" => LocalizationManager.GetString("Value_NotSet"),
+            "" => LocalizationManager.GetString("Value_NotSet"),
+            _ => str,
         };
     }
 
@@ -85,13 +74,13 @@ public class MemoryConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return "Niet opgegeven";
+        if (value is not string str) return LocalizationManager.GetString("Value_NotSet");
 
         return str switch
         {
-            "NOMEMORY" => "Niet opgegeven",
-            "" => "Niet opgegeven",
-            _ => str
+            "NOMEMORY" => LocalizationManager.GetString("Value_NotSet"),
+            "" => LocalizationManager.GetString("Value_NotSet"),
+            _ => str,
         };
     }
 
@@ -99,18 +88,18 @@ public class MemoryConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts quality placeholder to friendly text in Dutch.</summary>
+/// <summary>Grade placeholder: not graded yet rather than a bad grade.</summary>
 public class QualityConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return "Niet beoordeeld";
-        
+        if (value is not string str) return LocalizationManager.GetString("Value_NotGraded");
+
         return str switch
         {
-            "NOQUALITY" => "Niet beoordeeld",
-            "" => "Niet beoordeeld",
-            _ => str
+            "NOQUALITY" => LocalizationManager.GetString("Value_NotGraded"),
+            "" => LocalizationManager.GetString("Value_NotGraded"),
+            _ => str,
         };
     }
 
@@ -118,19 +107,19 @@ public class QualityConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts Activation Lock status to friendly Dutch text.</summary>
+/// <summary>Activation Lock status of the phone.</summary>
 public class ActivationLockConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus status) 
-            return "Onbekend";
-            
+        if (value is not PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus status)
+            return LocalizationManager.GetString("Value_Unknown");
+
         return status switch
         {
-            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked => "AAN (Gelocked)",
-            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked => "UIT (Vrij)",
-            _ => "Onbekend"
+            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked => LocalizationManager.GetString("ActivationLock_On"),
+            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked => LocalizationManager.GetString("ActivationLock_Off"),
+            _ => LocalizationManager.GetString("Value_Unknown"),
         };
     }
 
@@ -138,19 +127,19 @@ public class ActivationLockConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts Activation Lock status to brush color.</summary>
+/// <summary>Turns Activation Lock status into a colour that reads in both themes.</summary>
 public class ActivationLockBrushConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus status) 
+        if (value is not PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus status)
             return Avalonia.Media.Brushes.Gray;
-            
+
         return status switch
         {
             PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked => Avalonia.Media.Brushes.Red,
             PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked => Avalonia.Media.Brushes.Green,
-            _ => Avalonia.Media.Brushes.Gray
+            _ => Avalonia.Media.Brushes.Gray,
         };
     }
 
@@ -158,19 +147,19 @@ public class ActivationLockBrushConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Converts payment method placeholder to friendly Dutch text.</summary>
+/// <summary>Invoice method placeholder, and the two methods in the wording they are offered in.</summary>
 public class PayMethodConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str || string.IsNullOrWhiteSpace(str) || str == "NOPAY") 
-            return "Niet opgegeven";
-            
+        if (value is not string str || string.IsNullOrWhiteSpace(str) || str == "NOPAY")
+            return LocalizationManager.GetString("Value_NotSet");
+
         return str switch
         {
-            "Marge" => "Marge (0% BTW)",
-            "BTW" => "BTW (21%)",
-            _ => str
+            "Marge" => LocalizationManager.GetString("Payment_Marge"),
+            "BTW" => LocalizationManager.GetString("Payment_BTW"),
+            _ => str,
         };
     }
 
@@ -190,7 +179,7 @@ public class ModelDisplayConverter : IValueConverter
         if (value is DeviceData data)
             return Mappers.FormatDisplayModel(data.Model, data.ProductType);
 
-        if (value is not string model) return "Onbekend Toestel";
+        if (value is not string model) return LocalizationManager.GetString("Value_UnknownDevice");
         return Mappers.FormatDisplayModel(model);
     }
 

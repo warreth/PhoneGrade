@@ -3,111 +3,155 @@
         xmlns:vm="using:PhoneGrade.UI.ViewModels"
         x:Class="PhoneGrade.UI.Views.DataEditorWindow"
         x:DataType="vm:DataEditorViewModel"
-        Title="Gegevens bewerken"
-        Width="680" Height="820"
+        Title="{DynamicResource Editor_Title}"
+        Width="720" Height="760"
         MinWidth="540" MinHeight="600"
         CanResize="True"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
 
     <!-- Native chrome (close/min/max + resize work everywhere incl. Wayland). -->
-    <!-- Scroll wheel fix: single flat ScrollViewer, no nested scroll containers. -->
 
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <Border Classes="card" Margin="20" Padding="26">
-            <StackPanel Spacing="16">
-                <StackPanel Spacing="4" Margin="0,0,0,6">
-                    <TextBlock Text="Toestelgegevens" Classes="SectionHeader" FontSize="20"/>
-                    <TextBlock Classes="dim" Text="Controleer en pas aan - dit gaat zo op het label" FontSize="12"/>
-                </StackPanel>
+    <!--
+        Three rows: what is being edited, the fields, and the button that sends
+        it to the label. The button is a bar at the bottom instead of the last
+        thing in a long scroll, so it is on screen at any window height, and the
+        fields sit in two columns because eight single-column rows pushed it past
+        the bottom of a normal screen.
+    -->
+    <Grid RowDefinitions="Auto,*,Auto">
 
-                <!-- Field blocks reuse one implicit style: label above, input below -->
-                <StackPanel Spacing="7">
-                    <TextBlock Classes="TableHeader" Text="Identifier (IMEI / serienummer)"/>
-                    <TextBox Text="{Binding DeviceData.Identifier}"/>
-                </StackPanel>
-                <StackPanel Spacing="7">
-                    <TextBlock Classes="TableHeader" Text="Model"/>
-                    <TextBox Text="{Binding DeviceData.Model}"/>
-                </StackPanel>
-                <StackPanel Spacing="7">
-                    <TextBlock Classes="TableHeader" Text="Kleur"/>
-                    <TextBox Text="{Binding DeviceData.Color}"/>
-                </StackPanel>
-                <StackPanel Spacing="7">
-                    <TextBlock Classes="TableHeader" Text="Opslag"/>
-                    <TextBox Text="{Binding DeviceData.Storage}"/>
-                </StackPanel>
-                <StackPanel Spacing="7">
-                    <TextBlock Classes="TableHeader" Text="Geheugen"/>
-                    <TextBox Text="{Binding DeviceData.Memory}"/>
-                </StackPanel>
-                <StackPanel Spacing="7">
-                    <TextBlock Classes="TableHeader" Text="Batterij"/>
-                    <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
-                </StackPanel>
-                <StackPanel Spacing="7">
-                    <TextBlock Classes="TableHeader" Text="Kwaliteit"/>
-                    <TextBox Text="{Binding DeviceData.Quality, Mode=TwoWay}"/>
-                </StackPanel>
-                <StackPanel Spacing="7">
-                    <TextBlock Classes="TableHeader" Text="Betaalmethode"/>
-                    <TextBox Text="{Binding DeviceData.PayMethod, Mode=TwoWay}"/>
-                </StackPanel>
-
-                <!-- Extended Hardware & Battery Info -->
-                <Separator Margin="0,6"/>
-                <TextBlock Text="Hardware &amp; Batterij Metrics" Classes="SectionHeader"/>
-                
-                <Grid ColumnDefinitions="*,12,*,12,*" Margin="0,2">
-                    <StackPanel Grid.Column="0" Spacing="3">
-                        <TextBlock Classes="dim" Text="Laadcycli" FontSize="11"/>
-                        <TextBlock Text="{Binding DeviceData.BatteryCycleCount}" FontWeight="SemiBold"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" Spacing="3">
-                        <TextBlock Classes="dim" Text="Design mAh" FontSize="11"/>
-                        <TextBlock Text="{Binding DeviceData.BatteryDesignCapacity}" FontWeight="SemiBold"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="4" Spacing="3">
-                        <TextBlock Classes="dim" Text="Huidig mAh" FontSize="11"/>
-                        <TextBlock Text="{Binding DeviceData.BatteryCurrentCapacity}" FontWeight="SemiBold"/>
-                    </StackPanel>
-                </Grid>
-
-                <!-- OEM Component Verification Checks -->
-                <Separator Margin="0,6"/>
-                <TextBlock Text="OEM Component Audit" FontSize="15" FontWeight="SemiBold"/>
-                
-                <ItemsControl ItemsSource="{Binding DeviceData.ComponentChecks}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{DynamicResource CardDeepColor}"
-                                    CornerRadius="8" Padding="10" Margin="0,0,0,6"
-                                    BorderBrush="{DynamicResource CardBorderColor}" BorderThickness="1">
-                                <Grid ColumnDefinitions="200,*,*,90">
-                                    <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                    <StackPanel Grid.Column="1" Spacing="1">
-                                        <TextBlock Classes="dim" Text="Gelezen" FontSize="10"/>
-                                        <TextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2" Spacing="1">
-                                        <TextBlock Classes="dim" Text="Origineel" FontSize="10"/>
-                                        <TextBlock Text="{Binding SerialOriginal}" FontSize="11" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                    <Border Grid.Column="3" CornerRadius="4" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                            Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
-                                        <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                    </Border>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <Button Classes="cta" Content="Opslaan &amp; label openen"
-                        Command="{Binding SaveAndOpenLabelCommand}"
-                        HorizontalAlignment="Stretch" Margin="0,10,0,0" Height="46"/>
+        <Border Grid.Row="0" Classes="topBar" Padding="24,18">
+            <StackPanel Spacing="3">
+                <TextBlock Classes="pageTitle" Text="{DynamicResource Editor_Title}"/>
+                <TextBlock Classes="settingDesc" Text="{DynamicResource Editor_Lead}"/>
             </StackPanel>
         </Border>
-    </ScrollViewer>
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Margin="24,20">
+            <StackPanel Spacing="16" MaxWidth="640" HorizontalAlignment="Left">
+
+                <!-- What lands on the label -->
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_Identity}"/>
+
+                    <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto,Auto" >
+                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Identifier}"/>
+                            <TextBox Text="{Binding DeviceData.Identifier}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="2" Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Model}"/>
+                            <TextBox Text="{Binding DeviceData.Model}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Color}"/>
+                            <TextBox Text="{Binding DeviceData.Color}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="2" Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Storage}"/>
+                            <TextBox Text="{Binding DeviceData.Storage}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="0" Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Memory}"/>
+                            <TextBox Text="{Binding DeviceData.Memory}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="2" Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Battery}"/>
+                            <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <!-- The two choices, offered as choices rather than typed in -->
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_Grading}"/>
+
+                    <Grid ColumnDefinitions="*,16,*">
+                        <StackPanel Grid.Column="0" Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Quality}"/>
+                            <ComboBox ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding Quality, Mode=TwoWay}"
+                                      HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource QualityOptionLabelConverter}, ConverterParameter=Unset}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="6">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Payment}"/>
+                            <ComboBox ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding PayMethod, Mode=TwoWay}"
+                                      HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource PaymentOptionLabelConverter}, ConverterParameter=Unset}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Read-only numbers the phone reported -->
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_MetricsTitle}"/>
+
+                    <Grid ColumnDefinitions="*,16,*,16,*">
+                        <StackPanel Grid.Column="0" Spacing="3">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Cycles}"/>
+                            <TextBlock Text="{Binding DeviceData.BatteryCycleCount}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="3">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_DesignMah}"/>
+                            <TextBlock Text="{Binding DeviceData.BatteryDesignCapacity}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4" Spacing="3">
+                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_CurrentMah}"/>
+                            <TextBlock Text="{Binding DeviceData.BatteryCurrentCapacity}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <!-- OEM Component Verification Checks -->
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Active_OemTitle}"/>
+
+                    <ItemsControl ItemsSource="{Binding DeviceData.ComponentChecks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="reportRow" Padding="12,8">
+                                    <Grid ColumnDefinitions="160,*,*,Auto">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Grid.Column="1" Spacing="1" Margin="12,0">
+                                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColRead}" FontSize="10"/>
+                                            <TextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Spacing="1" Margin="12,0">
+                                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColFactory}" FontSize="10"/>
+                                            <TextBlock Text="{Binding SerialOriginal}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="3" Classes="chip"
+                                                Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
+                                            <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Classes="actionBar">
+            <Grid ColumnDefinitions="*,Auto" MaxWidth="640" HorizontalAlignment="Stretch">
+                <Button Grid.Column="1" Classes="cta" Content="{DynamicResource Editor_Save}"
+                        Command="{Binding SaveAndOpenLabelCommand}"
+                        Padding="24,12" MinWidth="200" HorizontalContentAlignment="Center"/>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>
