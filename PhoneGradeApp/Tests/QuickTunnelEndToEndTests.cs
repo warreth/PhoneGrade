@@ -75,7 +75,10 @@ public class QuickTunnelEndToEndTests : IAsyncLifetime
         }
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("<title>PhoneGrade Test Suite</title>", body);
+        // The title carries a data-i18n attribute so the phone can rewrite it in
+        // the reader's language, so the check is on the wording rather than on
+        // the exact markup around it.
+        Assert.Contains("PhoneGrade Test Suite</title>", body);
 
         await tunnel.StopAsync();
     }
