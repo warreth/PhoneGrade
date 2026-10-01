@@ -246,6 +246,18 @@ public class InteractiveTestResult
 
     [System.Text.Json.Serialization.JsonPropertyName("details")]
     public Dictionary<string, object>? Details { get; set; }
+
+    /// <summary>
+    /// Set by the operator when this row has to stay out of the inspection
+    /// report. Cleared again when a new run delivers the row, because a fresh
+    /// measurement overrules what was decided about the old one.
+    ///
+    /// It is deliberately off the wire. This row arrives from the phone, and a
+    /// phone able to set the flag itself could hide the very failure the report
+    /// exists to show.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool Excluded { get; set; }
 }
 
 /// <summary>Payload transmitted when mobile runner completes all tests.</summary>
