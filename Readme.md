@@ -120,22 +120,35 @@ links is the single source for what the paid plan costs.
 
 Most of the suite runs offline. A few tests talk to the real imei.info gateway
 and need a key of their own: CI reads `IMEI_INFO_API_KEY` from the repository
-secrets, a local run reads it from `PhoneGradeApp/Tests/.imei-info-key`, which
-git ignores. Without one, those tests report themselves as skipped.
+secrets, a local run reads the same variable or, failing that,
+`PhoneGradeApp/Tests/.imei-info-key`, which git ignores. Without one, those
+tests report themselves as skipped.
 Most of the suite runs offline. A few tests talk to the real imei.info gateway
 and need a key of their own: CI reads `IMEI_INFO_API_KEY` from the repository
-secrets, a local run reads it from `PhoneGradeApp/Tests/.imei-info-key`, which
-git ignores. Without one, those tests report themselves as skipped.
+secrets, a local run reads the same variable or, failing that,
+`PhoneGradeApp/Tests/.imei-info-key`, which git ignores. Without one, those
+tests report themselves as skipped.
+
+An account without credit has every check refused with `Request is too
+expensive.`, so the live tests expect that wording rather than a paid answer,
+and the one test that needs credit to say anything useful skips with the
+reason until the account carries some.
+An account without credit has every check refused with `Request is too
+expensive.`, so the live tests expect that wording rather than a paid answer,
+and the one test that needs credit to say anything useful skips with the
+reason until the account carries some.
 
 The sandbox IMEI numbers imei.info publishes for integration testing get their
 own tests as well. They run against a small server inside the test project that
-answers the way imei.info documents it: fixed device data for the three
-published numbers, HTTP 402 for every other one. That keeps the contract
-covered on a machine with an empty account balance.
+answers the way imei.info answers: fixed device data for the three published
+numbers, HTTP 402 for every other one, the gateway's own words when the key is
+not the one it knows, and the account balance behind the account route. That
+keeps the contract covered on a machine with an empty account balance.
 The sandbox IMEI numbers imei.info publishes for integration testing get their
 own tests as well. They run against a small server inside the test project that
-answers the way imei.info documents it: fixed device data for the three
-published numbers, HTTP 402 for every other one. That keeps the contract
-covered on a machine with an empty account balance.
+answers the way imei.info answers: fixed device data for the three published
+numbers, HTTP 402 for every other one, the gateway's own words when the key is
+not the one it knows, and the account balance behind the account route. That
+keeps the contract covered on a machine with an empty account balance.
 
 ## License
