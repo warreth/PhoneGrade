@@ -420,11 +420,7 @@
     <x:String x:Key="Settings_ImeiInfoKeyUnknownError">Onbekende fout</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeySaved">API sleutel opgeslagen</x:String>
 
-    <!-- IMEI Check Labels (Stap voorvoegsel, prijzen) -->
-    <x:String x:Key="Settings_ImeiCheck_Step1">Stap 1:</x:String>
-    <x:String x:Key="Settings_ImeiCheck_Step2">Stap 2:</x:String>
-    <x:String x:Key="Settings_ImeiCheck_Step3">Stap 3:</x:String>
-    <x:String x:Key="Settings_ImeiCheck_Step4">Stap 4:</x:String>
+    <!-- IMEI Check Labels (prijs per check) -->
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0.200</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0.420</x:String>

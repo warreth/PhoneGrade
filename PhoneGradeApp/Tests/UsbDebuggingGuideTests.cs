@@ -680,18 +680,27 @@ public class UsbDebuggingGuideTests : IDisposable
     /// The card holding the guide, found by the badge style rather than by a text
     /// match. Locating it by content means the test cannot tell a reordered guide
     /// from a missing one, and would break for the wrong reason on every copy edit.
+    ///
+    /// The frame around the whole guide is asked for by name, because the plan
+    /// panel the steps now sit in carries a border and padding of its own and is
+    /// the nearer of the two.
     /// </summary>
     private static Border? FindGuideCard(Visual root)
     {
         var badge = Descendants(root).OfType<Border>().FirstOrDefault(b => b.Classes.Contains("stepBadge"));
         if (badge is null) return null;
 
+        Border? framed = null;
         for (Visual? node = badge; node is not null; node = node.GetVisualParent())
         {
-            if (node is Border card && card.BorderThickness.Left >= 1 && card.Padding.Left > 0) return card;
+            if (node is not Border border || border.BorderThickness.Left < 1 || border.Padding.Left <= 0)
+                continue;
+
+            framed ??= border;
+            if (border.Classes.Contains("card")) return border;
         }
 
-        return null;
+        return framed;
     }
 
     private static IEnumerable<Visual> Descendants(Visual? root)

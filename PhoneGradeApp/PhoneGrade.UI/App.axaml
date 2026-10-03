@@ -460,10 +460,14 @@
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        <!-- The left margin is the badge column, so every line of text on any
+             screen starts at the same distance from its number. -->
         <Style Selector="TextBlock.stepBody">
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="LineHeight" Value="18"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Margin" Value="12,0,0,0"/>
         </Style>
         <!-- The one line of a how-to that people skip and then cannot work out -->
         <Style Selector="TextBlock.stepCaveat">
@@ -479,6 +483,48 @@
             <Setter Property="Background" Value="{DynamicResource WarnTintBrush}"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="10,8"/>
+        </Style>
+
+        <!--
+            A plan: a title, then numbered rows an operator follows from top to
+            bottom. The USB debugging how-to and the IMEI key setup are one
+            shape and used to be drawn two ways, badges in one and the words
+            "Step 1:" spelled out in the other. Both take these four classes
+            now, so the next screen with steps to give gets them instead of a
+            design of its own.
+
+            The frame is only a hairline, because it has to read as a block on
+            the card behind it in one screen and on a settings card in the
+            other, and a fill would match one of them.
+
+            The rail is the line the numbers stand on: one hairline down the
+            badge column with the badge sitting on it, so the eye is carried
+            from one step to the next. It is pulled through the row's padding by
+            a negative margin, which is why that margin has to stay the mirror
+            of the padding on stepItem.
+        -->
+        <Style Selector="Border.stepPlan">
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14,10"/>
+        </Style>
+        <Style Selector="TextBlock.stepPlanTitle">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style Selector="Border.stepItem">
+            <Setter Property="Padding" Value="0,6"/>
+        </Style>
+        <Style Selector="Border.stepRail">
+            <Setter Property="Width" Value="2"/>
+            <Setter Property="CornerRadius" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,-6,0,-6"/>
         </Style>
 
         <!-- Data validation errors must never disappear -->

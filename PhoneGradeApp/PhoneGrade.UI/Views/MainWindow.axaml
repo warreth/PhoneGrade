@@ -704,21 +704,60 @@
 
                                 <!-- Setup Guide -->
                                 <Border Classes="settingCard">
-                                    <StackPanel Spacing="10">
-                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoGuide}" FontWeight="SemiBold" FontSize="13"/>
-                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap" LineHeight="18">
-                                            <Run Text="{DynamicResource Settings_ImeiCheck_Step1} "/><Run Text="{DynamicResource Settings_ImeiInfoGuideUrl}" Foreground="{DynamicResource AccentColor}" TextDecorations="Underline" /><Run Text=" "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep1_Action}"/>
-                                        </TextBlock>
-                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap" LineHeight="18" Margin="20,0,0,0">
-                                            <Run Text="{DynamicResource Settings_ImeiCheck_Step2} "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep2}"/>
-                                        </TextBlock>
-                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap" LineHeight="18" Margin="20,0,0,0">
-                                            <Run Text="{DynamicResource Settings_ImeiCheck_Step3} "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep3}"/>
-                                        </TextBlock>
-                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap" LineHeight="18" Margin="20,0,0,0">
-                                            <Run Text="{DynamicResource Settings_ImeiCheck_Step4} "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep4}"/>
-                                        </TextBlock>
-                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                                    <StackPanel Spacing="12">
+                                        <Border Classes="stepPlan">
+                                            <StackPanel>
+                                                <TextBlock Classes="stepPlanTitle"
+                                                           Text="{DynamicResource Settings_ImeiInfoGuide}"/>
+
+                                                <Border Classes="stepItem">
+                                                    <Grid ColumnDefinitions="Auto,*">
+                                                        <Border Classes="stepRail"/>
+                                                        <Border Classes="stepBadge">
+                                                            <TextBlock Text="1"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="1" Classes="stepBody">
+                                                            <Run Text="{DynamicResource Settings_ImeiInfoGuideUrl}" Foreground="{DynamicResource AccentColor}" TextDecorations="Underline"/><Run Text=" "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep1_Action}"/>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </Border>
+
+                                                <Border Classes="stepItem">
+                                                    <Grid ColumnDefinitions="Auto,*">
+                                                        <Border Classes="stepRail"/>
+                                                        <Border Classes="stepBadge">
+                                                            <TextBlock Text="2"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="1" Classes="stepBody"
+                                                                   Text="{DynamicResource Settings_ImeiInfoGuideStep2}"/>
+                                                    </Grid>
+                                                </Border>
+
+                                                <Border Classes="stepItem">
+                                                    <Grid ColumnDefinitions="Auto,*">
+                                                        <Border Classes="stepRail"/>
+                                                        <Border Classes="stepBadge">
+                                                            <TextBlock Text="3"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="1" Classes="stepBody"
+                                                                   Text="{DynamicResource Settings_ImeiInfoGuideStep3}"/>
+                                                    </Grid>
+                                                </Border>
+
+                                                <Border Classes="stepItem">
+                                                    <Grid ColumnDefinitions="Auto,*">
+                                                        <Border Classes="stepRail"/>
+                                                        <Border Classes="stepBadge">
+                                                            <TextBlock Text="4"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="1" Classes="stepBody"
+                                                                   Text="{DynamicResource Settings_ImeiInfoGuideStep4}"/>
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
                                             <Button Classes="kioskSecondary" Content="{DynamicResource Settings_ImeiInfoOpenRegister}"
                                                     Command="{Binding OpenImeiRegisterCommand}" HorizontalAlignment="Left"/>
                                             <Button Classes="kioskSecondary" Content="{DynamicResource Settings_ImeiInfoOpenDashboard}"

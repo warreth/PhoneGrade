@@ -18,25 +18,31 @@
     <Border Classes="card" Padding="24" MaxWidth="640"
             HorizontalAlignment="Center" VerticalAlignment="Top">
         <StackPanel Spacing="12">
-            <TextBlock Text="{Binding ManufacturerPrefix}"
-                       FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"/>
+            <Border Classes="stepPlan">
+                <StackPanel>
+                    <TextBlock Classes="stepPlanTitle"
+                               Text="{Binding ManufacturerPrefix}"/>
 
-            <ItemsControl ItemsSource="{Binding Steps}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:AdbTutorialViewModel+StepItem">
-                        <Grid ColumnDefinitions="Auto,*" Margin="0,6,0,0">
-                            <Border Classes="stepBadge" Margin="0,0,12,0">
-                                <TextBlock Text="{Binding Index, StringFormat='{}{0}'}"/>
-                            </Border>
-                            <TextBlock Grid.Column="1" Classes="stepBody"
-                                       VerticalAlignment="Center"
-                                       Text="{Binding Value, Converter={StaticResource LocalizationConverter}}"/>
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Steps}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AdbTutorialViewModel+StepItem">
+                                <Border Classes="stepItem">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <Border Classes="stepRail"/>
+                                        <Border Classes="stepBadge">
+                                            <TextBlock Text="{Binding Index, StringFormat='{}{0}'}"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Classes="stepBody"
+                                                   Text="{Binding Value, Converter={StaticResource LocalizationConverter}}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
 
-            <Border Classes="stepCaveatBox" Margin="0,10,0,0">
+            <Border Classes="stepCaveatBox" Margin="0,2,0,0">
                 <TextBlock Classes="stepCaveat" Text="{DynamicResource AdbTutorial_Common_Caveat}"/>
             </Border>
         </StackPanel>

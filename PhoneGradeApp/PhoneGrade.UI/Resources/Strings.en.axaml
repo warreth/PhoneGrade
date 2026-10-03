@@ -412,11 +412,7 @@
     <x:String x:Key="Settings_ImeiInfoKeyUnknownError">Unknown error</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeySaved">API key saved</x:String>
 
-    <!-- IMEI Check Labels (Step prefix, pricing) -->
-    <x:String x:Key="Settings_ImeiCheck_Step1">Step 1:</x:String>
-    <x:String x:Key="Settings_ImeiCheck_Step2">Step 2:</x:String>
-    <x:String x:Key="Settings_ImeiCheck_Step3">Step 3:</x:String>
-    <x:String x:Key="Settings_ImeiCheck_Step4">Step 4:</x:String>
+    <!-- IMEI Check Labels (per check price) -->
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0.200</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0.420</x:String>
