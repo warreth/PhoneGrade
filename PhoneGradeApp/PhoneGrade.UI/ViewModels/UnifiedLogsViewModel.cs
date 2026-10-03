@@ -20,16 +20,15 @@ public class LogEventViewModel : ReactiveObject
     public LogLevel Level { get; }
     public LogSource Source { get; }
     public string Message { get; }
-    public string FormattedTime => Timestamp.ToLocalTime().ToString("HH:mm:ss.fff");
-    
-    public string LevelColor => Level switch 
-    {
-        LogLevel.Critical => "#DC143C",
-        LogLevel.Error => "#F0564A",
-        LogLevel.Warning => "#F5A623",
-        LogLevel.Debug => "#9B9BA6",
-        _ => "#4F8CFF"
-    };
+
+    // The display strings are computed once, here, from the immutable event.
+    // The list reads all four for every realized row and the filter reads the
+    // source word for every entry on every search, so formatting them per read
+    // is what made a full logbook slow to show and slow to search.
+    public string FormattedTime { get; }
+    public string LevelText { get; }
+    public string SourceText { get; }
+    public string LevelColor { get; }
 
     public LogEventViewModel(LogEvent e)
     {
@@ -37,13 +36,28 @@ public class LogEventViewModel : ReactiveObject
         Level = e.Level;
         Source = e.Source;
         Message = e.Message;
+        FormattedTime = e.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff");
+        LevelText = e.Level.ToString();
+        SourceText = e.Source.ToString();
+        LevelColor = e.Level switch
+        {
+            LogLevel.Critical => "#DC143C",
+            LogLevel.Error => "#F0564A",
+            LogLevel.Warning => "#F5A623",
+            LogLevel.Debug => "#9B9BA6",
+            _ => "#4F8CFF"
+        };
     }
 }
 
-public class UnifiedLogsViewModel : ReactiveObject
+public class UnifiedLogsViewModel : ReactiveObject, IDisposable
 {
     private readonly SourceList<LogEventViewModel> _logSource = new();
     private readonly ReadOnlyObservableCollection<LogEventViewModel> _filteredLogs;
+
+    // Set by Dispose so an event already posted to the dispatcher cannot add a
+    // row to a view model that has been torn down.
+    private volatile bool _disposed;
 
     public ReadOnlyObservableCollection<LogEventViewModel> Logs => _filteredLogs;
 
@@ -86,7 +100,7 @@ public class UnifiedLogsViewModel : ReactiveObject
 
                 if (string.IsNullOrWhiteSpace(query)) return true;
                 return log.Message.Contains(query, StringComparison.OrdinalIgnoreCase) || 
-                       log.Source.ToString().Contains(query, StringComparison.OrdinalIgnoreCase);
+                       log.SourceText.Contains(query, StringComparison.OrdinalIgnoreCase);
             }));
 
         _logSource.Connect()
@@ -106,7 +120,7 @@ public class UnifiedLogsViewModel : ReactiveObject
             var sb = new StringBuilder();
             foreach (var log in _filteredLogs)
             {
-                sb.AppendLine($"[{log.FormattedTime}] [{log.Level}] [{log.Source}] {log.Message}");
+                sb.AppendLine($"[{log.FormattedTime}] [{log.LevelText}] [{log.SourceText}] {log.Message}");
             }
             
             var text = sb.ToString();
@@ -132,7 +146,7 @@ public class UnifiedLogsViewModel : ReactiveObject
                 var sb = new StringBuilder();
                 foreach (var log in _logSource.Items)
                 {
-                    sb.AppendLine($"[{log.FormattedTime}] [{log.Level}] [{log.Source}] {log.Message}");
+                    sb.AppendLine($"[{log.FormattedTime}] [{log.LevelText}] [{log.SourceText}] {log.Message}");
                 }
                 
                 await System.IO.File.WriteAllTextAsync(exportPath, sb.ToString());
@@ -173,18 +187,38 @@ public class UnifiedLogsViewModel : ReactiveObject
         // Subscribe to real-time events
         SystemEventLogger.LogEventEmitted += OnSystemLogEmitted;
         
-        // Replay existing logs from ring buffer
+        // Replay existing logs from the ring buffer as one range, so a full
+        // buffer becomes a single change set instead of one change set per entry.
         var recentLogs = SystemEventLogger.GetRecentLogs();
-        foreach (var logEvent in recentLogs)
+        if (recentLogs.Count > 0)
         {
-            _logSource.Add(new LogEventViewModel(logEvent));
+            _logSource.AddRange(recentLogs.Select(logEvent => new LogEventViewModel(logEvent)));
         }
+    }
+
+    /// <summary>
+    /// Unhooks the static logger event.
+    ///
+    /// The event is the only thing outside this instance that holds on to it, so
+    /// a view model that stays subscribed keeps the whole pipeline alive, and
+    /// every view model ever built would go on handling log events for the life
+    /// of the process. Closing the window goes through
+    /// <see cref="MainWindowViewModel.Shutdown"/>, which calls this. The flag is
+    /// raised first so an event that is already on its way in cannot land after
+    /// this instance was told to let go.
+    /// </summary>
+    public void Dispose()
+    {
+        _disposed = true;
+        SystemEventLogger.LogEventEmitted -= OnSystemLogEmitted;
     }
 
     private void OnSystemLogEmitted(object? sender, LogEvent e)
     {
+        if (_disposed) return;
         Dispatcher.UIThread.Post(() =>
         {
+            if (_disposed) return;
             _logSource.Add(new LogEventViewModel(e));
             if (_logSource.Count > 5000)
             {

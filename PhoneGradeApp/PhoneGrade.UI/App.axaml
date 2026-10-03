@@ -687,5 +687,44 @@
             <Setter Property="Foreground" Value="{DynamicResource SuccessColor}"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
+
+        <!-- ============ Logbook viewer: rows that paint themselves, containers that do not ============ -->
+        <!--
+            The log list is a ListBox so that its panel virtualizes, but it is a
+            viewer: there is nothing to point at, pick or press. The ListBox and
+            its ListBoxItem containers arrive with theme chrome of their own -
+            a filled background, a border, 12,9 padding per row, a hover fill, a
+            pressed fill and a selection fill - all of which would sit behind or
+            beside the row card the template already draws. These rules take that
+            chrome off; the row template keeps its own card background, spacing
+            and colours, exactly as it had inside the ItemsControl it replaced.
+            Note on selection: Avalonia's SelectionMode is a flags enum whose
+            zero value is Single, so there is no SelectionMode="None" to ask for;
+            the tint rules below are what keep a click or a hover invisible.
+        -->
+        <Style Selector="ListBox.logList">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="ListBox.logList ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        </Style>
+        <!-- The three states in the item theme that paint the presenter behind the row. -->
+        <Style Selector="ListBox.logList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBox.logList ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBox.logList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
     </Application.Styles>
 </Application>

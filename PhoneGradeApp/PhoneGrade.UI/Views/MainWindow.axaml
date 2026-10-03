@@ -1111,24 +1111,32 @@
                     </Border>
 
                     <!-- Logs List -->
-                    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding LogsViewModel.Logs}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Background="{DynamicResource CardDeepColor}" CornerRadius="4" Padding="6,4" Margin="0,0,0,4">
-                                        <Grid ColumnDefinitions="80,65,85,*">
-                                            <TextBlock Grid.Column="0" Text="{Binding FormattedTime}" FontFamily="Consolas,Courier New" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
-                                            <Border Grid.Column="1" CornerRadius="3" Padding="4,1" Background="{Binding LevelColor}" HorizontalAlignment="Left">
-                                                <TextBlock Text="{Binding Level}" FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                            </Border>
-                                            <TextBlock Grid.Column="2" Margin="0,0,8,0" Text="{Binding Source}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding Message}" FontSize="11" TextWrapping="Wrap" FontFamily="Consolas,Courier New"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <!--
+                        A ListBox, not a ScrollViewer around an ItemsControl: the
+                        panel behind a ListBox virtualizes, so only the rows that
+                        fit on screen exist as elements and the rest stay as data.
+                        The ItemsControl realized every row of the buffer at
+                        once and re-measured all of them on each new entry.
+                    -->
+                    <ListBox Grid.Row="2" Classes="logList"
+                             ItemsSource="{Binding LogsViewModel.Logs}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:LogEventViewModel">
+                                <Border Background="{DynamicResource CardDeepColor}" CornerRadius="4" Padding="6,4" Margin="0,0,0,4">
+                                    <Grid ColumnDefinitions="80,65,85,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding FormattedTime}" FontFamily="Consolas,Courier New" FontSize="11" Foreground="{DynamicResource TextDimColor}"/>
+                                        <Border Grid.Column="1" CornerRadius="3" Padding="4,1" Background="{Binding LevelColor}" HorizontalAlignment="Left">
+                                            <TextBlock Text="{Binding LevelText}" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="2" Margin="0,0,8,0" Text="{Binding SourceText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextDimColor}" TextTrimming="CharacterEllipsis"/>
+                                        <!-- Six lines at most: one logged payload must not turn its row into a wall of text. -->
+                                        <TextBlock Grid.Column="3" Text="{Binding Message}" FontSize="11" TextWrapping="Wrap" MaxLines="6" FontFamily="Consolas,Courier New"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </Grid>
             </Border>
         </Panel>

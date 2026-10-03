@@ -1179,6 +1179,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         {
             SystemEventLogger.Warning(LogSource.UsbDetector, $"Could not stop USB monitoring: {ex.Message}");
         }
+
+        // Let go of the static log event, which otherwise keeps the log view model alive.
+        LogsViewModel.Dispose();
     }
 
     /// <summary>
