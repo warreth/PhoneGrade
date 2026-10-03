@@ -40,16 +40,38 @@ class ScreenshotRunner
                     Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-issues.png"));
                     Capture(new DataEditorWindow { DataContext = new DataEditorViewModel(vm.DeviceData) }, Path.Combine(outDir, "editor-dark.png"));
 
-                    // The USB debugging guide, in both themes. This card used to be a
-                    // light yellow block in an otherwise dark window, which no assertion
-                    // about theme resources would have caught.
-                    var idle = BuildDemoViewModel();
-                    idle.WorkflowState = AppWorkflowState.Idle;
-                    idle.ShowAdbWarning = true;
-                    Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "usb-guide-dark.png"), 900, 900);
+                    // The USB debugging overlay, in both themes. This card used to be
+                    // a light yellow block in an otherwise dark window, which no
+                    // assertion about theme resources would have caught. The model
+                    // comes from the native port, so these show what an operator sees
+                    // with a phone on the cable rather than a placeholder.
+                    var guide = BuildDemoViewModel();
+                    // The theme setter is the only thing that reaches the application:
+                    // a view model built from a settings file that already says Dark
+                    // never applies it, and the shot comes out in whatever the previous
+                    // picture left behind.
+                    guide.Theme = "Dark";
+                    guide.WorkflowState = AppWorkflowState.Idle;
+                    guide.ShowAdbWarning = true;
 
-                    idle.Theme = "Light";
-                    Capture(new MainWindow { DataContext = idle }, Path.Combine(outDir, "usb-guide-light.png"), 900, 900);
+                    guide.AdbTutorialViewModel.SetDevice("Honor", "HONOR 600 Lite");
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-dark.png"), 900, 900);
+
+                    guide.Theme = "Light";
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-light.png"), 900, 900);
+                    guide.Theme = "Dark";
+
+                    // The kiosk window size, where the old inline card ran off the
+                    // bottom of the idle screen.
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-kiosk.png"), 850, 620);
+
+                    // The two fallbacks: a phone whose brand has no menu table of its
+                    // own, and the generic pair for a phone nothing recognises.
+                    guide.AdbTutorialViewModel.SetDevice("Honor", "");
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-brand-only.png"), 900, 900);
+
+                    guide.AdbTutorialViewModel.SetDevice("", "");
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-generic.png"), 900, 900);
                 }
 
                 if (section is "" or "lic") CaptureLicensingStates(outDir);

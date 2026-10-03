@@ -165,62 +165,13 @@
 
 
                         <!--
-                            ADB unauthorized warning card.
-
-                            This appears only when the phone is connected but has not
-                            accepted this computer, so the phone itself is fine and
-                            nothing about it is broken. What is needed is a tap on the
-                            phone, which is why this is a numbered guide rather than a
-                            sentence: the previous text was English, told the operator
-                            to switch to MTP mode, which this tool never uses and which
-                            changes nothing about the adb state, and did not say the
-                            one thing that decides whether it works next time, which is
-                            ticking "Always allow from this computer".
+                            The USB debugging how-to is not here any more. As an
+                            inline card it pushed the rest of the idle screen down
+                            until it overflowed, and it was on screen whenever the
+                            view model happened to look idle, which is how an iPad
+                            ended up with a guide for Android. It is an overlay
+                            below, opened by one flag from the adb probe.
                         -->
-                        <Border Classes="card" IsVisible="{Binding ShowAdbWarning}"
-                                BorderBrush="{DynamicResource WarnColor}" BorderThickness="2"
-                                Padding="16" Margin="0,16,0,0">
-                            <StackPanel Spacing="12">
-
-                                <TextBlock TextWrapping="Wrap" LineHeight="20"
-                                           Foreground="{DynamicResource WarnColor}" FontWeight="SemiBold"
-                                           Text="{DynamicResource AdbGuide_Lead}"/>
-
-                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
-                                    <Border Grid.Column="0" Grid.Row="0" Classes="stepBadge" Margin="0,0,0,8">
-                                        <TextBlock Text="1"/>
-                                    </Border>
-                                    <TextBlock Grid.Column="1" Grid.Row="0" Classes="stepBody" Margin="10,0,0,8"
-                                               Text="{DynamicResource AdbGuide_Step1}"/>
-
-                                    <Border Grid.Column="0" Grid.Row="1" Classes="stepBadge" Margin="0,0,0,8">
-                                        <TextBlock Text="2"/>
-                                    </Border>
-                                    <TextBlock Grid.Column="1" Grid.Row="1" Classes="stepBody" Margin="10,0,0,8"
-                                               Text="{DynamicResource AdbGuide_Step2}"/>
-
-                                    <Border Grid.Column="0" Grid.Row="2" Classes="stepBadge" Margin="0,0,0,8">
-                                        <TextBlock Text="3"/>
-                                    </Border>
-                                    <TextBlock Grid.Column="1" Grid.Row="2" Classes="stepBody" Margin="10,0,0,8"
-                                               Text="{DynamicResource AdbGuide_Step3}"/>
-
-                                    <Border Grid.Column="0" Grid.Row="3" Classes="stepBadge">
-                                        <TextBlock Text="4"/>
-                                    </Border>
-                                    <TextBlock Grid.Column="1" Grid.Row="3" Classes="stepBody" Margin="10,0,0,0"
-                                               Text="{DynamicResource AdbGuide_Step4}"/>
-                                </Grid>
-
-                                <Border Classes="stepCaveatBox">
-                                    <TextBlock Classes="stepCaveat"
-                                               Text="{DynamicResource AdbGuide_Caveat}"/>
-                                </Border>
-
-                                <Button Classes="cta" Command="{Binding RetryAdbDetectionCommand}"
-                                        Content="{DynamicResource AdbGuide_Retry}" HorizontalAlignment="Left"/>
-                            </StackPanel>
-                        </Border>
 
                         <Button Classes="kioskSecondary" Command="{Binding RefreshDevicesCommand}" Content="{DynamicResource Btn_ScanManually}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                     </StackPanel>
@@ -607,6 +558,49 @@
             </Grid>
 
         <!--
+            ==================== USB DEBUGGING HOW-TO ====================
+            The same shape as the settings page below it: its own top bar over
+            the content area and nothing to scroll, so the whole how-to is on
+            screen at the size the kiosk opens at.
+
+            One flag opens it. A phone arriving over USB that adb cannot talk
+            to yet, and adb reporting a phone it does not trust, both set
+            ShowAdbWarning; a phone adb can talk to again, a phone being
+            unplugged, and the operator dismissing it take it away again.
+            Nothing else decides, which is what stops an iPad from bringing it
+            up - an iPad never gets past the vendor check and never sets the
+            flag at all.
+
+            It sits below the settings page in Z order on purpose: an operator
+            who opens Connection settings to fix something should not have the
+            answer covered up while they read it.
+        -->
+        <Panel x:Name="AdbGuideOverlay" Grid.Row="1"
+               IsVisible="{Binding ShowAdbWarning}" ZIndex="35"
+               Background="{DynamicResource AppBgColor}">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <Border Classes="topBar" Padding="24,16">
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Classes="pageTitle" Text="{DynamicResource AdbTutorial_Title}"/>
+                        <TextBlock Classes="settingDesc" Text="{DynamicResource AdbTutorial_Lead}"/>
+                    </StackPanel>
+                </Border>
+
+                <views:AdbTutorialView Grid.Row="1"
+                                       DataContext="{Binding AdbTutorialViewModel}"
+                                       Margin="24,20"/>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10"
+                            HorizontalAlignment="Center" Margin="0,0,0,24">
+                    <Button Classes="cta" Command="{Binding RetryAdbDetectionCommand}"
+                            Content="{DynamicResource AdbTutorial_RetryButton}"/>
+                    <Button Classes="kioskSecondary" Command="{Binding DismissAdbGuideCommand}"
+                            Content="{DynamicResource AdbTutorial_Close}"/>
+                </StackPanel>
+            </Grid>
+        </Panel>
+
+        <!--
             ==================== SETTINGS PAGE ====================
             A page, not a drawer: the topics are on the left, the chosen topic is
             on the right, and the header stays where it always is so the gear that
@@ -614,7 +608,8 @@
             long list of everything, which meant the daily options and the debug
             toggles sat in the same scroll and nothing could be found by place.
         -->
-        <Panel Grid.Row="1" IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="40"
+        <Panel x:Name="SettingsPanel" Grid.Row="1"
+               IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="40"
                Background="{DynamicResource AppBgColor}">
             <Grid RowDefinitions="Auto,*">
                 <Border Classes="topBar" Padding="24,16">

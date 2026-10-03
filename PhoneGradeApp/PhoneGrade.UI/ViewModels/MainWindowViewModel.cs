@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using PhoneGrade.Core;
 using PhoneGrade.Core.Diagnostics;
 using PhoneGrade.Core.Licensing;
+using PhoneGrade.Core.Usb;
 using PhoneGrade.UI.Models;
 using PhoneGrade.UI.Services;
 using PhoneGrade.UI.Web;
@@ -72,6 +73,10 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         && DismissedInteractiveTests.Count == 0;
     public UnifiedLogsViewModel LogsViewModel { get; } = new();
     public TroubleshootViewModel TroubleshootViewModel { get; } = new();
+
+    // USB Event Monitoring & ADB Tutorial
+    private readonly AdbDeviceDirector _adbDirector;
+    public AdbTutorialViewModel AdbTutorialViewModel { get; }
 
     private ClientTelemetry? _currentTelemetry;
     public ClientTelemetry? CurrentTelemetry
@@ -195,6 +200,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             _settings.Save();
             Services.LocalizationManager.SetLanguage(code);
             this.RaiseAndSetIfChanged(ref _language, value);
+            // The how-to holds a formatted heading and a list of keys rather
+            // than text, so neither re-reads itself when the dictionary swaps.
+            AdbTutorialViewModel?.RefreshLocalization();
         }
     }
     
@@ -545,11 +553,19 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private bool _showAdbWarning;
     public bool ShowAdbWarning { get => _showAdbWarning; set => this.RaiseAndSetIfChanged(ref _showAdbWarning, value); }
 
+    /// <summary>
+    /// Set when the operator closed the how-to without following it. The next
+    /// Android device to arrive on the cable clears it, so one dismissed phone
+    /// does not silence the guide for every phone after it.
+    /// </summary>
+    private bool _adbGuideDismissed;
+
     /// <summary>Result of the most recent device list probe, kept so the manual
     /// refresh can build its status text without spawning the tools again.</summary>
     private DeviceService.ConnectionState _lastDiagState = DeviceService.ConnectionState.NotFound;
-    
+
     public ReactiveCommand<Unit, Unit> RetryAdbDetectionCommand { get; }
+    public ReactiveCommand<Unit, Unit> DismissAdbGuideCommand { get; }
 
     public ReactiveCommand<Unit, Unit> OpenLabelCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenEditorCommand { get; }
@@ -612,14 +628,39 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         // Settings view model for the licensing card.
         _licensingViewModel = new LicensingViewModel(_trialGate, _licenseClient, RequestLicenseRefresh);
 
+        // USB event monitoring and the how-to it can ask for. The director owns
+        // the USB stream, the tutorial owns the wording, and this view model
+        // owns the one flag that decides whether the how-to is on screen - so
+        // a phone arriving over USB and the adb probe that finds the same phone
+        // both end at the same place.
+        _adbDirector = new AdbDeviceDirector();
+        AdbTutorialViewModel = new AdbTutorialViewModel(_adbDirector);
+
+        AdbTutorialViewModel.Requested += (_, _) =>
+            Dispatcher.UIThread.Post(() => { _adbGuideDismissed = false; ShowAdbWarning = true; });
+        AdbTutorialViewModel.Authorized += (_, _) =>
+            Dispatcher.UIThread.Post(() => ShowAdbWarning = false);
+        _adbDirector.AdbCleared += (_, _) =>
+            Dispatcher.UIThread.Post(() => ShowAdbWarning = false);
+
+        _adbDirector.Start();
+
         var canStart = this.WhenAnyValue(x => x.Busy, x => x.IsTrialLimitReached)
             .Select(t => !t.Item1 && !t.Item2);
         RefreshDevicesCommand = ReactiveCommand.CreateFromTask(RefreshDeviceListAsync);
         StartCommand = ReactiveCommand.CreateFromTask(() => RunFlowAsync(), canStart);
         RetestCommand = ReactiveCommand.CreateFromTask(RetestCurrentDeviceAsync, canStart);
         RetryAdbDetectionCommand = ReactiveCommand.CreateFromTask(async () => {
+            // Checking again is a fresh look at the cable, so a phone whose
+            // guide was dismissed is worth asking about once more.
+            _adbGuideDismissed = false;
             ShowAdbWarning = false;
             await RefreshDeviceListAsync();
+        });
+        DismissAdbGuideCommand = ReactiveCommand.Create(() =>
+        {
+            _adbGuideDismissed = true;
+            ShowAdbWarning = false;
         });
         SetQualityCommand = ReactiveCommand.Create<string>(q => _ = ContinueAfterQualityAsync(q));
         SetPaymentMethodCommand = ReactiveCommand.Create<string>(p => ContinueAfterPaymentAsync(p));
@@ -977,6 +1018,17 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         {
             SystemEventLogger.Warning(LogSource.UsbDetector, $"Could not close the tunnel: {ex.Message}");
         }
+
+        // Stop USB event monitoring
+        try
+        {
+            AdbTutorialViewModel?.Dispose();
+            _adbDirector?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Warning(LogSource.UsbDetector, $"Could not stop USB monitoring: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -1261,9 +1313,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>
-    /// Reads the device list and the adb state in one go, and shows or hides the
-    /// USB debugging warning card to match. Called from both refresh paths:
-    /// doing it only on the manual scan meant the card never appeared on
+    /// Reads the device list and the adb state in one go, and opens or closes
+    /// the USB debugging how-to to match. Called from both refresh paths:
+    /// doing it only on the manual scan meant the guide never appeared on
     /// auto-detect and never cleared once the cable was pulled.
     /// </summary>
     private async Task<(Dictionary<string, string> Devices, DeviceService.ConnectionState State)> GetDevicesWithAdbStateAsync()
@@ -1271,7 +1323,30 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         var (devices, diagState) = await DeviceService.GetConnectedDevicesWithStateAsync();
 
         bool unauthorized = diagState == DeviceService.ConnectionState.Unauthorized;
-        await Dispatcher.UIThread.InvokeAsync(() => ShowAdbWarning = unauthorized);
+        bool trusted = diagState == DeviceService.ConnectionState.Connected;
+
+        // A phone that was already on the cable when this process started never
+        // raises a connection event, so the how-to would open for it with no
+        // name at all. The OS is asked directly, off the UI thread, and only on
+        // the way in: when it had no name to give, asking again changes nothing.
+        if (unauthorized && !ShowAdbWarning && !_adbGuideDismissed
+            && AdbTutorialViewModel.Manufacturer.Length == 0)
+        {
+            (string brand, string model) = await Task.Run(() => _adbDirector.IdentifyConnectedDevice());
+            if (brand.Length > 0)
+                await Dispatcher.UIThread.InvokeAsync(() => AdbTutorialViewModel.SetDevice(brand, model));
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            // adb only has an opinion when it can see a phone: "unauthorized"
+            // turns the how-to on, and a phone it already trusts turns it off.
+            // Every other answer - no phone with debugging switched on yet, the
+            // tools missing - says nothing about a phone the USB events may
+            // have reported a second earlier, so the flag is left alone.
+            if (unauthorized || trusted)
+                ShowAdbWarning = unauthorized && !_adbGuideDismissed;
+        });
         _lastDiagState = diagState;
 
         return (devices, diagState);

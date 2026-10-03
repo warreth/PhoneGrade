@@ -168,13 +168,38 @@
     <x:String x:Key="Idle_Title">Sluit een toestel aan via USB</x:String>
     <x:String x:Key="Idle_Lead">Ondersteunt iPhone, iPad en Android toestellen. Zorg dat het scherm ontgrendeld is en bevestig 'Vertrouw deze computer'.</x:String>
     <x:String x:Key="Idle_DetectedDevices">Gedetecteerde apparaten:</x:String>
-    <x:String x:Key="AdbGuide_Lead">De telefoon is verbonden, maar vertrouwt deze computer nog niet. De telefoon zelf is prima; er moet een keer op de telefoon worden getikt.</x:String>
-    <x:String x:Key="AdbGuide_Step1">Ontgrendel het scherm en laat het aan. Een vergrendeld scherm toont de vraag niet.</x:String>
-    <x:String x:Key="AdbGuide_Step2">Open de melding &#8220;USB-debugging toestaan?&#8221; op de telefoon. Tik &#8220;Altijd toestaan vanaf deze computer&#8221; aan en daarna op OK.</x:String>
-    <x:String x:Key="AdbGuide_Step3">Staat die melding er niet? Ga naar Instellingen, &#8220;Over de telefoon&#8221; en tik zeven keer op &#8220;Build-nummer&#8221;.</x:String>
-    <x:String x:Key="AdbGuide_Step4">Kies daarna &#8220;Ontwikkelaarsopties&#8221; en zet &#8220;USB-debugging&#8221; aan. De melding verschijnt dan vanzelf opnieuw.</x:String>
-    <x:String x:Key="AdbGuide_Caveat">Zonder &#8220;Altijd toestaan&#8221; vraagt de telefoon het bij elke nieuwe kabel opnieuw en staat de pc steeds weer op &#8220;niet vertrouwd&#8221;.</x:String>
-    <x:String x:Key="AdbGuide_Retry">Opnieuw zoeken</x:String>
+    <!-- USB-foutopsporing uitleg. Alleen geopend door een Android-toestel op
+         de kabel waar adb nog niet mee kan praten, en door niets anders. -->
+    <x:String x:Key="AdbTutorial_Title">USB-foutopsporing inschakelen</x:String>
+    <x:String x:Key="AdbTutorial_Lead">De telefoon is verbonden, maar vertrouwt deze computer nog niet. De telefoon zelf is prima; er moet een keer op de telefoon worden getikt.</x:String>
+    <x:String x:Key="AdbTutorial_ManufacturerPrefix">Voor uw {0}:</x:String>
+    <x:String x:Key="AdbTutorial_DeviceWord">{0}-toestel</x:String>
+    <x:String x:Key="AdbTutorial_AndroidDevice">Android-toestel</x:String>
+    <x:String x:Key="AdbTutorial_Common_ScreenLock">Ontgrendel het scherm en laat het aan. Een vergrendeld scherm toont de vraag niet.</x:String>
+    <x:String x:Key="AdbTutorial_Common_Authorize">Open de melding "USB-foutopsporing toestaan?" op de telefoon, tik "Altijd toestaan vanaf deze computer" aan en daarna op OK.</x:String>
+    <!-- Twee eigen stappen per merk: waar dat merk de build-nummer verbergt,
+         en hoe het het ontwikkelaarmenu noemt. -->
+    <x:String x:Key="AdbTutorial_Samsung_Step1">Ga naar Instellingen &gt; Over de telefoon &gt; Software-informatie en tik zeven keer op "Build-nummer"</x:String>
+    <x:String x:Key="AdbTutorial_Samsung_Step2">Ga naar Instellingen &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Xiaomi_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "MIUI-versie" of "HyperOS-versie"</x:String>
+    <x:String x:Key="AdbTutorial_Xiaomi_Step2">Ga naar Instellingen &gt; Extra instellingen &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Google_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
+    <x:String x:Key="AdbTutorial_Google_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Motorola_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
+    <x:String x:Key="AdbTutorial_Motorola_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Sony_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
+    <x:String x:Key="AdbTutorial_Sony_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Huawei_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
+    <x:String x:Key="AdbTutorial_Huawei_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_OnePlus_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
+    <x:String x:Key="AdbTutorial_OnePlus_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <!-- Het paar voor een merk zonder eigen tabel, zodat een telefoon waar
+         niemand aan gedacht heeft toch iets kloppends te horen krijgt. -->
+    <x:String x:Key="AdbTutorial_Generic_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
+    <x:String x:Key="AdbTutorial_Generic_Step2">Open "Ontwikkelaarsopties" in de instellingen en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Common_Caveat">Na inschakelen, controleer de telefoon op de melding "USB-foutopsporing toestaan?" en tik "Altijd toestaan vanaf deze computer".</x:String>
+    <x:String x:Key="AdbTutorial_RetryButton">Opnieuw zoeken</x:String>
+    <x:String x:Key="AdbTutorial_Close">Sluiten</x:String>
 
     <!-- Inspection in progress -->
     <x:String x:Key="Active_SpecsTitle">HARDWARE SPECIFICATIES</x:String>
