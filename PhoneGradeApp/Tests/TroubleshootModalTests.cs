@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using PhoneGrade.Core;
 using PhoneGrade.UI.Services;
 using PhoneGrade.UI.ViewModels;
 using PhoneGrade.UI.Views;
@@ -125,6 +126,50 @@ public class TroubleshootModalTests : IDisposable
         Assert.Equal(LocalizationManager.GetString("Btn_Rescan"), starters[0].Content);
     }
 
+    /// <summary>
+    /// Three of the four severities are painted by the pill stylesheet and the
+    /// fourth has no colour of its own, so it has to ask for the neutral badge
+    /// by name. Without that it draws a loose word beside three badges, which
+    /// reads as something missing from the row rather than a fourth answer.
+    /// </summary>
+    [AvaloniaFact]
+    public void EverySeverity_WearsTheBadgeItIsGiven()
+    {
+        using var window = Opened();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        var panel = vm.TroubleshootViewModel;
+        vm.IsTroubleshootModalOpen = true;
+        Layout(window);
+
+        panel.PublishReport(new TroubleshootReport
+        {
+            OverallStatus = "Two checks.",
+            Checks =
+            {
+                new DiagnosticCheckItem
+                {
+                    Category = "Connection",
+                    Title = "Cloudflared Connector",
+                    Severity = DiagnosticSeverity.Info,
+                    Message = "not found",
+                },
+                new DiagnosticCheckItem
+                {
+                    Category = "Hardware",
+                    Title = "USB Device Enumeration",
+                    Severity = DiagnosticSeverity.Fail,
+                    Message = "nothing found",
+                },
+            },
+        });
+        Layout(window);
+
+        Assert.True(PillFor(window, "Fail").Classes.Contains("danger"),
+            "a failed check does not wear the badge it asks for");
+        Assert.True(PillFor(window, "Info").Classes.Contains("neutral"),
+            "an informational check is a loose word where the others wear a badge");
+    }
+
     [AvaloniaFact]
     public void FixAll_WaitsUntilThereIsSomethingToFix()
     {
@@ -194,6 +239,20 @@ public class TroubleshootModalTests : IDisposable
 
     private static TextBlock StatusLine(Visual root, TroubleshootViewModel panel) =>
         Descendants(Modal(root)).OfType<TextBlock>().First(block => block.Text == panel.OverallStatus);
+
+    /// <summary>The badge a check wears, found by the severity printed on it.</summary>
+    private static Border PillFor(Visual root, string severity)
+    {
+        var label = Descendants(root).OfType<TextBlock>()
+            .First(block => block.Classes.Contains("pillText") && block.Text == severity);
+
+        for (Visual? node = label; node is not null; node = node.GetVisualParent())
+        {
+            if (node is Border border && border.Classes.Contains("pill")) return border;
+        }
+
+        throw new InvalidOperationException($"the {severity} label is not inside a badge");
+    }
 
     /// <summary>Every button bound to a command, whether it is drawing or not.</summary>
     private static List<Button> Buttons(Visual root, System.Windows.Input.ICommand command) =>

@@ -1237,6 +1237,7 @@
                                                         Classes.success="{Binding IsPass}"
                                                         Classes.danger="{Binding IsFail}"
                                                         Classes.warn="{Binding IsWarning}"
+                                                        Classes.neutral="{Binding IsInfo}"
                                                         VerticalAlignment="Center">
                                                     <TextBlock Classes="pillText" Text="{Binding Severity}"/>
                                                 </Border>

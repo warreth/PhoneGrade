@@ -53,6 +53,13 @@ public class DiagnosticCheckViewModel : ReactiveObject
     public bool IsWarning => Severity == DiagnosticSeverity.Warning;
     public bool IsFail => Severity == DiagnosticSeverity.Fail;
 
+    /// <summary>
+    /// Neither good nor bad, and the one severity with no colour of its own,
+    /// which is why it has to ask for the neutral pill by name: the pill
+    /// stylesheet paints the other three and leaves anything else bare.
+    /// </summary>
+    public bool IsInfo => Severity == DiagnosticSeverity.Info;
+
     public ReactiveCommand<Unit, Unit>? FixCommand { get; }
 
     public DiagnosticCheckViewModel(DiagnosticCheckItem item, Func<string, Task> onFixRequested)
