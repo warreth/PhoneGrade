@@ -23,7 +23,7 @@ public class ImeiInfoSandboxTests : IDisposable
 {
     private readonly SandboxGateway _gateway = new();
     private readonly HttpClient _client;
-    private readonly string _apiKey = "sandbox-" + Guid.NewGuid().ToString("N");
+    private readonly string _apiKey = SandboxGateway.ApiKey;
 
     public ImeiInfoSandboxTests()
     {
@@ -110,6 +110,47 @@ public class ImeiInfoSandboxTests : IDisposable
             var sent = Assert.Single(_gateway.Requests, r => r.Query.Contains($"imei={imei}"));
             Assert.Equal(402, sent.StatusCode);
         }
+    }
+
+    // ------------------------------------------------------------------
+    // The account, and a key the sandbox does not know
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public async Task TheSandboxAccount_AnswersTheBalanceQuery()
+    {
+        var (success, balance, error) = await GetBalanceAsync(_apiKey, _client);
+
+        Assert.True(success, error);
+        Assert.Equal(0m, balance);
+
+        var sent = Assert.Single(_gateway.Requests, r => r.Path.Contains("/api/account/account/"));
+        Assert.Equal(200, sent.StatusCode);
+        Assert.Equal($"Bearer {_apiKey}", sent.Authorization);
+        Assert.Contains($"API_KEY={_apiKey}", sent.Query);
+    }
+
+    /// <summary>
+    /// dash.imei.info refuses a key it does not know on every route, and says so
+    /// in its own words, so the sandbox refuses it the same way: the balance
+    /// query reports the refusal and the check never leaves the service list.
+    /// </summary>
+    [Fact]
+    public async Task AKeyTheSandboxDoesNotKnow_IsRefusedBeforeAnythingRuns()
+    {
+        const string unknownKey = "not-the-sandbox-key";
+
+        var (success, _, balanceError) = await GetBalanceAsync(unknownKey, _client);
+
+        Assert.False(success);
+        Assert.Equal("Authentication credentials were not provided.", balanceError);
+
+        var result = await CheckAsync(SandboxGateway.AppleImei, ImeiCheckType.AppleCarrierLockFmi, unknownKey, _client);
+
+        Assert.False(result.Success);
+        Assert.Equal("Authentication credentials were not provided.", result.ErrorMessage);
+        Assert.DoesNotContain(_gateway.Requests, r => r.Path.Contains("/api-sync/check/"));
+        Assert.Contains(_gateway.Requests, r => r.StatusCode == 403 && r.Path.Contains("/api/service/services/"));
     }
 
     // ------------------------------------------------------------------

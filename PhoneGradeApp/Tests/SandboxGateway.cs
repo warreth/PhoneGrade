@@ -21,6 +21,8 @@ namespace Tests;
 /// It is a plain HTTP/1.1 server on the loopback interface: the service under
 /// test builds its request exactly as it would against the gateway, and the
 /// server records what actually arrived, headers and status code included.
+/// The key is checked too, because dash.imei.info refuses a request the right
+/// key did not come through on every route.
 /// </summary>
 internal sealed class SandboxGateway : IDisposable
 {
@@ -36,12 +38,23 @@ internal sealed class SandboxGateway : IDisposable
     /// <summary>A well formed IMEI that is not a sandbox number, so it hits the 402 branch.</summary>
     public const string ControlImei = "358742091234567";
 
+    /// <summary>
+    /// The one key this sandbox accepts. dash.imei.info answers any other key,
+    /// and a request without one, with a refusal on every route, so a fixture
+    /// that accepted every key could never show that refusal.
+    /// </summary>
+    public const string ApiKey = "sandbox-imei-info-key";
+
     private static readonly Encoding Wire = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _stop = new();
     private readonly List<RecordedRequest> _requests = new();
+    private readonly List<TcpClient> _open = new();
     private readonly Task _loop;
+
+    /// <summary>How long a client gets to send its request before it is dropped.</summary>
+    private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(10);
 
     public SandboxGateway()
     {
@@ -78,6 +91,24 @@ internal sealed class SandboxGateway : IDisposable
     {
         _stop.Cancel();
         _listener.Stop();
+
+        // A client that is still mid-request would otherwise hold the accept
+        // loop open until its own timeout.
+        lock (_open)
+        {
+            foreach (TcpClient client in _open.ToArray())
+            {
+                try
+                {
+                    client.Close();
+                }
+                catch (Exception)
+                {
+                    // Already gone.
+                }
+            }
+        }
+
         try
         {
             _loop.Wait(TimeSpan.FromSeconds(5));
@@ -100,12 +131,22 @@ internal sealed class SandboxGateway : IDisposable
             TcpClient client;
             try
             {
-                client = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
+                client = await _listener.AcceptTcpClientAsync(_stop.Token).ConfigureAwait(false);
             }
             catch (Exception ex) when (_stop.IsCancellationRequested
                                        || ex is SocketException or ObjectDisposedException or InvalidOperationException)
             {
                 return;
+            }
+
+            lock (_open)
+            {
+                if (_stop.IsCancellationRequested)
+                {
+                    client.Close();
+                    return;
+                }
+                _open.Add(client);
             }
 
             try
@@ -118,9 +159,20 @@ internal sealed class SandboxGateway : IDisposable
             }
             catch (ObjectDisposedException)
             {
+                // Disposed by Dispose while a request was in flight.
+            }
+            catch (OperationCanceledException)
+            {
+                // A client that never finished its request, or shutdown.
+            }
+            catch (Exception) when (_stop.IsCancellationRequested)
+            {
+                // Anything else that goes wrong while shutting down is noise.
             }
             finally
             {
+                lock (_open)
+                    _open.Remove(client);
                 client.Close();
             }
         }
@@ -131,7 +183,10 @@ internal sealed class SandboxGateway : IDisposable
         client.NoDelay = true;
         var stream = client.GetStream();
 
-        string head = await ReadHeadAsync(stream).ConfigureAwait(false);
+        using var read = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
+        read.CancelAfter(ReadTimeout);
+
+        string head = await ReadHeadAsync(stream, read.Token).ConfigureAwait(false);
         if (head.Length == 0)
             return;
 
@@ -167,11 +222,18 @@ internal sealed class SandboxGateway : IDisposable
 
     private (int Status, string Body) Route(string path, Dictionary<string, string> parameters, string authorization)
     {
-        if (path.Contains("/service/services/", StringComparison.Ordinal))
-            return (200, CatalogJson);
+        bool credentialsAccepted = CredentialsAccepted(authorization, parameters);
 
-        if (path.Contains("/account/account/", StringComparison.Ordinal))
-            return (200, AccountJson);
+        // Verified against dash.imei.info: an unknown key, and a request with no
+        // key at all, are refused on every route. The catalog and the account
+        // answer 403, the check paths 200 on api-sync and 401 on the queue path.
+        bool isCatalog = path.Contains("/service/services/", StringComparison.Ordinal);
+        bool isAccount = path.Contains("/account/account/", StringComparison.Ordinal);
+
+        if (isCatalog || isAccount)
+            return credentialsAccepted
+                ? (200, isCatalog ? CatalogJson : AccountJson)
+                : (403, CredentialsRefusedJson);
 
         bool isCheck = path.Contains("/api-sync/check/", StringComparison.Ordinal)
             || path.Contains("/api/check/", StringComparison.Ordinal);
@@ -179,14 +241,10 @@ internal sealed class SandboxGateway : IDisposable
         if (!isCheck)
             return (404, """{"detail":"Not found."}""");
 
-        // Same refusal the real gateway gives when the key does not come through:
-        // HTTP 200 on the api-sync path, HTTP 401 on the queue path.
-        if (string.IsNullOrWhiteSpace(authorization)
-            || !authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrWhiteSpace(parameters.GetValueOrDefault("API_KEY")))
+        if (!credentialsAccepted)
         {
             int code = path.Contains("/api-sync/check/", StringComparison.Ordinal) ? 200 : 401;
-            return (code, """{"detail":"Token is invalid."}""");
+            return (code, TokenRefusedJson);
         }
 
         string imei = parameters.GetValueOrDefault("imei") ?? "";
@@ -199,20 +257,36 @@ internal sealed class SandboxGateway : IDisposable
         };
     }
 
+    /// <summary>
+    /// The gateway takes the key from the query parameter and from the Bearer
+    /// header, and only accepts the pair when both carry the same known key.
+    /// </summary>
+    private static bool CredentialsAccepted(string authorization, Dictionary<string, string> parameters)
+    {
+        const string prefix = "Bearer ";
+        if (!authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        string bearer = authorization[prefix.Length..].Trim();
+        string? query = parameters.GetValueOrDefault("API_KEY");
+
+        return bearer == ApiKey && query == ApiKey;
+    }
+
     private void Record(RecordedRequest request)
     {
         lock (_requests)
             _requests.Add(request);
     }
 
-    private static async Task<string> ReadHeadAsync(NetworkStream stream)
+    private static async Task<string> ReadHeadAsync(NetworkStream stream, CancellationToken token)
     {
         var buffer = new byte[1024];
         var collected = new MemoryStream();
 
         while (collected.Length < 16 * 1024)
         {
-            int read = await stream.ReadAsync(buffer).ConfigureAwait(false);
+            int read = await stream.ReadAsync(buffer.AsMemory(), token).ConfigureAwait(false);
             if (read == 0)
                 break;
 
@@ -247,6 +321,7 @@ internal sealed class SandboxGateway : IDisposable
         400 => "Bad Request",
         401 => "Unauthorized",
         402 => "Payment Required",
+        403 => "Forbidden",
         404 => "Not Found",
         _ => "Error"
     };
@@ -335,6 +410,12 @@ internal sealed class SandboxGateway : IDisposable
       "message": "Your API balance is $0.00. Please recharge your account in the developer dashboard at dash.imei.info before executing queries."
     }
     """;
+
+    /// <summary>What a check answers when the key does not come through.</summary>
+    private const string TokenRefusedJson = """{"detail":"Token is invalid."}""";
+
+    /// <summary>What the catalog and the account answer to the same request.</summary>
+    private const string CredentialsRefusedJson = """{"detail":"Authentication credentials were not provided."}""";
 
     /// <summary>One request as the sandbox saw it.</summary>
     public sealed record RecordedRequest(string Path, string Query, string Authorization, int StatusCode);
