@@ -61,10 +61,11 @@ public enum ConnectionRoute
 /// <summary>
 /// Why the address that ended up in the QR code is not a secure one.
 ///
-/// An empty <c>Failed</c> list means no route was asked at all, which is
-/// the secure origin having been switched off on purpose. That still reads as a
-/// warning rather than as silence: the camera and motion steps are about to be
-/// unavailable and the operator is owed the reason before scanning.
+/// An empty <c>Failed</c> list means no route was asked at all: the cable
+/// route was switched off or does not apply, and so was the public tunnel.
+/// That still reads as a warning rather than as silence: the camera and
+/// motion steps are about to be unavailable and the operator is owed the
+/// reason before scanning.
 /// </summary>
 /// <param name="Failed">Every route that was tried and could not open an address.</param>
 /// <param name="Reason">

@@ -12,18 +12,21 @@ public sealed record WebRunnerOrigin(string Address, bool IsSecure, ConnectionWa
 /// Decides which address goes into the QR code.
 ///
 /// A browser hands out camera, microphone, motion, orientation, wake lock and
-/// geolocation only on a secure origin, and the three routes that can produce one
+/// geolocation only on a secure origin, and the routes that can produce one
 /// are not equally good, so they are tried in the order that costs the technician
 /// least:
 ///
-/// 1. Nothing, when the secure origin was switched off on purpose.
-/// 2. adb reverse, which needs no internet, nothing on the phone, and gives
+/// 1. adb reverse, which needs no internet, nothing on the phone, and gives
 ///    localhost, the one address every browser trusts. Android keeps this.
-/// 3. A public https address in front of the local server, which is the only route
+///    The switch that serves the phone over the USB cable only skips this
+///    route when it is off; the public https route below still gets its turn.
+/// 2. A public https address in front of the local server, which is the only route
 ///    an iPhone has. It needs internet on both ends and carries the results past
 ///    Cloudflare, so it is only opened for a phone that cannot use the cable.
-/// 4. The plain network address, which works for everything except the restricted
-///    APIs, and says so instead of failing quietly.
+/// 3. The plain network address, which works for everything except the restricted
+///    APIs. It is the last resort, and it says so instead of failing quietly:
+///    when no route was ever tried the window words that as the secure
+///    connection being switched off.
 ///
 /// Each route is asked on its own and its failure is recorded rather than thrown,
 /// so one broken route cannot hide the answer from the routes behind it.
@@ -71,14 +74,11 @@ public sealed class WebRunnerOriginResolver
     {
         if (string.IsNullOrWhiteSpace(lanAddress)) lanAddress = loopbackAddress;
 
-        if (!secureOriginEnabled)
-        {
-            return new WebRunnerOrigin(lanAddress, false, null);
-        }
-
         var failed = new List<ConnectionRoute>(2);
 
-        if (AdbReverseTunnel.SupportsReverse(sessionUdid))
+        // The switch only governs the cable route: off, the phone is never served
+        // through adb reverse, and the public route below still gets its turn.
+        if (secureOriginEnabled && AdbReverseTunnel.SupportsReverse(sessionUdid))
         {
             onStatus?.Invoke(new ConnectionNotice(ConnectionStep.OpeningUsb));
 

@@ -221,11 +221,78 @@ public class WebRunnerOriginResolverTests
     }
 
     [Fact]
-    public async Task SecureOriginSwitchedOff_GoesStraightToTheNetwork()
+    public async Task SecureOriginSwitchedOff_OpensThePublicTunnelInstead()
     {
+        // The switch only governs the cable route. The phone still needs a secure
+        // origin for the camera and motion steps, and the public tunnel is the
+        // route that can give it one without the cable.
         var routes = new Routes();
 
         WebRunnerOrigin origin = await Resolve(routes, PixelSerial, secureOrigin: false);
+
+        Assert.Equal(Internet, origin.Address);
+        Assert.True(origin.IsSecure);
+        Assert.Null(origin.Warning);
+        Assert.Equal(new[] { $"internet {Port}" }, routes.Calls);
+    }
+
+    [Fact]
+    public async Task SecureOriginAndTunnelBothSwitchedOff_SaySoInsteadOfFailingQuietly()
+    {
+        // Neither switch was left on, so nothing was attempted, and the operator
+        // still needs to know why the restricted steps are about to be missing.
+        // An empty route list is how that reads: the window words it as the
+        // switches rather than as a failure.
+        var routes = new Routes();
+
+        WebRunnerOrigin origin = await Resolve(
+            routes, PixelSerial, secureOrigin: false, publicTunnel: false);
+
+        Assert.Equal(Lan, origin.Address);
+        Assert.False(origin.IsSecure);
+        Assert.Empty(routes.Calls);
+
+        ConnectionWarning warning = Assert.IsType<ConnectionWarning>(origin.Warning);
+        Assert.Empty(warning.Failed);
+        Assert.Null(warning.Reason);
+    }
+
+    [Fact]
+    public async Task SecureOriginSwitchedOff_StillCarriesWhatTheTunnelSaid()
+    {
+        // Without the cable route there is no second chance, so when the public
+        // tunnel fails the connector's own complaint is the only thing that can
+        // tell the operator what went wrong.
+        var routes = new Routes
+        {
+            InternetAddress = null,
+            InternetMessages = new[]
+            {
+                OpeningInternet,
+                new ConnectionNotice(ConnectionStep.NoAddress, "ERRTunnel instance limited")
+            }
+        };
+
+        WebRunnerOrigin origin = await Resolve(routes, PixelSerial, secureOrigin: false);
+
+        Assert.Equal(Lan, origin.Address);
+        Assert.False(origin.IsSecure);
+        Assert.Equal(new[] { $"internet {Port}" }, routes.Calls);
+
+        ConnectionWarning warning = Assert.IsType<ConnectionWarning>(origin.Warning);
+        Assert.Equal(new[] { ConnectionRoute.Internet }, warning.Failed);
+        Assert.Equal(ConnectionStep.NoAddress, warning.Reason!.Step);
+        Assert.Contains("ERRTunnel instance limited", warning.Reason.Detail);
+    }
+
+    [Fact]
+    public async Task SecureOriginSwitchedOff_DemoSessionStillOpensNothing()
+    {
+        // Before a phone is plugged in nothing is served to anyone, whichever way
+        // the switches are set, and there is no warning to give the technician.
+        var routes = new Routes();
+
+        WebRunnerOrigin origin = await Resolve(routes, "DEMO", secureOrigin: false);
 
         Assert.Equal(Lan, origin.Address);
         Assert.False(origin.IsSecure);

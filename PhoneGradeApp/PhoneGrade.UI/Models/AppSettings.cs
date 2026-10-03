@@ -48,7 +48,10 @@ public class AppSettings
     /// microphone, motion and orientation access on a secure origin, and a plain
     /// http:// LAN address is not one, so over the network those four steps have
     /// nothing to run on. The tunnel needs the cable that is required anyway, so
-    /// this is the default. Turn it off to drop straight back to the LAN address.
+    /// this is the default. Off means the phone is not served through adb
+    /// reverse at all: the public https tunnel answers instead, and the LAN
+    /// address is only what is left when that tunnel is switched off or cannot
+    /// open.
     /// </summary>
     public bool UseSecureOrigin { get; set; } = true;
 

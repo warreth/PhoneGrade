@@ -24,6 +24,9 @@ jobs:
 
       - name: Run tests (xUnit + headless Avalonia)
         run: dotnet test PhoneGradeApp/Tests/Tests.csproj -c Release --no-build
+        env:
+          # Live imei.info facts read this; without the secret they skip.
+          IMEI_INFO_API_KEY: ${{ secrets.IMEI_INFO_API_KEY }}
 
       # The PWA modules have their own suite under wwwroot/tests. Nothing else
       # ran it, so it silently rotted whenever a module changed.
