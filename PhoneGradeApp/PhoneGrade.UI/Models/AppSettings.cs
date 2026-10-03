@@ -25,6 +25,7 @@ public class AppSettings
     public string? TemplatePath { get; set; }             // custom my.dymo override
     public bool EnableVerboseNetworkLogging { get; set; } = false; // Trace HTTP requests, CLI stdout/stderr, JSON payloads
     public bool IsDebugMode { get; set; } = false; // Global debug toggle for mobile PWA overlay and verbose tracing
+    public bool EnableUsbEventMonitoring { get; set; } = true; // Use native USB event monitoring instead of polling
 
     /// <summary>
     /// Encrypted trial payload (scan count plus license key) as Base64, written

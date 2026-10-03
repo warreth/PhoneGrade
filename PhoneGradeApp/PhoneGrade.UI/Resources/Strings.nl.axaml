@@ -48,6 +48,10 @@
     <x:String x:Key="Settings_LanguageDesc">Interface taal</x:String>
     <x:String x:Key="Settings_AutoDetect">Start automatisch bij insteken</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Zodra een toestel gedetecteerd wordt, draait het hele proces vanzelf</x:String>
+    <x:String x:Key="Settings_ManualScan">Handmatige scan</x:String>
+    <x:String x:Key="Settings_ManualScanDesc">Voer een eenmalige toestelscan uit met de legado polling-methode</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoring">USB-gebeurtenis monitoring</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoringDesc">Gebruik native OS USB-gebeurtenissen voor directe toesteldetectie (Windows WMI, macOS IOKit, Linux udev)</x:String>
     
     <!-- Troubleshoot -->
     <x:String x:Key="Troubleshoot_Title">APPARAAT DETECTIE &amp; DRIVER ASSISTENT</x:String>
