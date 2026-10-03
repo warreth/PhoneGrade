@@ -48,8 +48,6 @@
     <x:String x:Key="Settings_LanguageDesc">Interface language</x:String>
     <x:String x:Key="Settings_AutoDetect">Auto-detect on plug</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Start the process automatically when a device is detected</x:String>
-    <x:String x:Key="Settings_ManualScan">Manual scan</x:String>
-    <x:String x:Key="Settings_ManualScanDesc">Trigger a one-time device scan using the legacy polling method</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB event monitoring</x:String>
     <x:String x:Key="Settings_UsbEventMonitoringDesc">Use native OS USB events for instant device detection (Windows WMI, macOS IOKit, Linux udev)</x:String>
     

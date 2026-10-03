@@ -467,8 +467,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public ReactiveCommand<Unit, Unit> ManualScanCommand { get; }
-
     private bool _busy;
     public bool Busy
     {
@@ -809,27 +807,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         OpenImeiRegisterCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/register"));
         OpenImeiDashboardCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/"));
         OpenImeiCreditsCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/add-credits"));
-
-        // Manual scan command - uses legacy polling
-        ManualScanCommand = ReactiveCommand.CreateFromTask(async () =>
-        {
-            var (devices, state) = await PhoneGrade.Core.Legacy.DevicePollingService.ScanOnceAsync();
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                Devices = new ObservableCollection<KeyValuePair<string, string>>(devices);
-                if (Devices.Count > 0)
-                {
-                    string currentKey = SelectedDevice.Key ?? "";
-                    if (!devices.ContainsKey(currentKey))
-                        SelectedDevice = Devices[0];
-                }
-                else
-                {
-                    Devices.Clear();
-                    SelectedDevice = new KeyValuePair<string, string>("", "");
-                }
-            });
-        });
 
         // Introduction screen: shown until dismissed, and never again after that.
         IsIntroVisible = !_settings.IntroSeen;

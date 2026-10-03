@@ -173,7 +173,12 @@
                             below, opened by one flag from the adb probe.
                         -->
 
-                        <Button Classes="kioskSecondary" Command="{Binding ManualScanCommand}" Content="{DynamicResource Settings_ManualScan}" ToolTip.Tip="{DynamicResource Settings_ManualScanDesc}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                        <!--
+                            One scan button, not two. The legacy poll that used to sit
+                            beside this one did the same job through a different door
+                            and with none of what follows it: no status line, no adb
+                            gate, no going back to idle when the cable is empty.
+                        -->
                         <Button Classes="kioskSecondary" Command="{Binding RefreshDevicesCommand}" Content="{DynamicResource Btn_ScanManually}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Grid>
