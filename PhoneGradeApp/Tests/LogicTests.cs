@@ -141,6 +141,25 @@ public class ParsersTests
         /dev/block/dm-30 114982996 94844540  20007384  83% /data/user/0
         """;
 
+    /// <summary>
+    /// Verbatim `getprop` lines from the Honor X8b on the bench, cut down to the
+    /// ones identity depends on. The handset reports three spellings of its model
+    /// and only ro.config.marketing_name carries the name it is sold under.
+    /// </summary>
+    private const string HonorX8bGetprop = """
+        [ro.config.marketing_name]: [HONOR X8b]
+        [ro.product.brand]: [HONOR]
+        [ro.product.model]: [LLY-LX1]
+        [ro.product.product.brand]: [Honor]
+        [ro.product.product.model]: [magic]
+        [ro.product.vendor.model]: [Bengal for arm64]
+        [ro.build.fingerprint]: [HONOR/LLY-LX1EEA/HNLLY-Q:14/HONORLLY-L31/8.0.0.366C431E205R2P3:user/release-keys]
+        [ro.build.version.release]: [14]
+        [ro.serialno]: [AAUF6R3C19003414]
+        [ro.boot.flash.locked]: [1]
+        [ro.boot.verifiedbootstate]: [green]
+        """;
+
     [Fact]
     public void GetpropOutput_ReadsTheBracketedDump()
     {
@@ -304,6 +323,95 @@ public class ParsersTests
         Assert.Equal("Wit", data.Color);
         Assert.Equal("128GB", data.Storage);
         Assert.Equal("NOBATT", data.BatteryHealth);
+    }
+
+    [Fact]
+    public async Task AndroidCollector_ShowsTheNameAHonorX8bIsSoldUnder()
+    {
+        // The factory code identifies the handset, but the bench knows the phone
+        // as the name in ro.config.marketing_name. Driven end to end, so the
+        // reader and the display mapper are proved together and not per helper.
+        var reader = new AndroidDeviceReader("AAUF6R3C19003414", command =>
+            Task.FromResult(command == "getprop" ? HonorX8bGetprop : ""));
+        var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
+
+        Assert.Equal("Honor X8b", data.Model);
+        Assert.Equal("Android (Honor X8b)", data.ProductType);
+        Assert.Equal("AAUF6R3C19003414", data.Identifier);
+        Assert.Equal("Android 14", data.IosVersion);
+    }
+
+    [Fact]
+    public void PickModel_TakesTheNameThePhoneIsSoldUnder()
+    {
+        var props = AndroidDeviceReader.ParseGetpropOutput(HonorX8bGetprop);
+
+        Assert.Equal("HONOR X8b", AndroidDeviceReader.PickModel(props));
+    }
+
+    [Fact]
+    public void PickModel_TakesTheMarketNameBrandsReportElsewhere()
+    {
+        // Xiaomi and its brands do not set ro.config.marketing_name; they carry
+        // the shop name on their own key next to the factory code.
+        var props = AndroidDeviceReader.ParseGetpropOutput("""
+            [ro.product.marketname]: [Redmi Note 12 Pro]
+            [ro.product.model]: [2209116AG]
+            """);
+
+        Assert.Equal("Redmi Note 12 Pro", AndroidDeviceReader.PickModel(props));
+    }
+
+    [Fact]
+    public void PickModel_SkipsAMarketingNameThatIsEmpty()
+    {
+        var props = AndroidDeviceReader.ParseGetpropOutput("""
+            [ro.config.marketing_name]: []
+            [ro.product.model]: [CPH2449]
+            """);
+
+        Assert.Equal("CPH2449", AndroidDeviceReader.PickModel(props));
+    }
+
+    [Fact]
+    public void PickModel_KeepsTheFactoryCodeWhenNothingElseIsReported()
+    {
+        var props = AndroidDeviceReader.ParseGetpropOutput(Pixel8ProGetprop);
+
+        Assert.Equal("Pixel 8 Pro", AndroidDeviceReader.PickModel(props));
+    }
+
+    [Fact]
+    public void PickModel_DoesNotReadThePartitionSpellingsOfTheModel()
+    {
+        // The same handset answers "magic" and "Bengal for arm64" as its model on
+        // the other partitions. Those are build names, not names a bench would use.
+        var props = AndroidDeviceReader.ParseGetpropOutput("""
+            [ro.product.product.model]: [magic]
+            [ro.product.vendor.model]: [Bengal for arm64]
+            [ro.product.model]: [LLY-LX1]
+            """);
+
+        Assert.Equal("LLY-LX1", AndroidDeviceReader.PickModel(props));
+    }
+
+    [Fact]
+    public void PickModel_AnEmptyDumpGivesAnEmptyName()
+        => Assert.Equal("", AndroidDeviceReader.PickModel(AndroidDeviceReader.ParseGetpropOutput("")));
+
+    [Fact]
+    public async Task GetPropsAsync_ParsesTheWholeDumpInOneRead()
+    {
+        // The device list reads brand and name from one dump instead of one adb
+        // process per value, so it must land in the same lookup the parser builds.
+        var reader = new AndroidDeviceReader("AAUF6R3C19003414", command =>
+            Task.FromResult(command == "getprop" ? HonorX8bGetprop : "unrelated\n"));
+
+        var props = await reader.GetPropsAsync();
+
+        Assert.Equal("HONOR X8b", props["ro.config.marketing_name"]);
+        Assert.Equal("LLY-LX1", props["ro.product.model"]);
+        Assert.Equal("HONOR", props["ro.product.brand"]);
     }
 
     [Theory]
@@ -514,6 +622,7 @@ public class MappersTests
     [InlineData("nokia", "nokia", "Nokia")] // the model is nothing but the brand
     [InlineData("motorola mobility", "edge 30", "Motorola Mobility edge 30")]
     [InlineData("motorola", "moto g84", "Motorola moto g84")]
+    [InlineData("HONOR", "HONOR X8b", "Honor X8b")] // the marketing name repeats the brand
     [InlineData("", "Pixel 8 Pro", "Pixel 8 Pro")]
     [InlineData("google", "", "Google")]
     [InlineData("google", "   ", "Google")]

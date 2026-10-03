@@ -73,6 +73,10 @@ public sealed class AndroidDeviceReader
         catch { return ""; }
     }
 
+    /// <summary>The whole property dump as a lookup, for callers that need more than one value.</summary>
+    public async Task<Dictionary<string, string>> GetPropsAsync() =>
+        ParseGetpropOutput(await SafeAsync("getprop"));
+
     private async Task<string> SafeAsync(string command)
     {
         try { return await _shell(command); }
@@ -104,7 +108,7 @@ public sealed class AndroidDeviceReader
             Serial = _serial,
             HardwareSerial = First("ro.serialno", "ro.boot.serialno"),
             Brand = First("ro.product.brand"),
-            Model = First("ro.product.model"),
+            Model = PickModel(props),
             AndroidVersion = First("ro.build.version.release"),
 
             // Google publishes the retail values under ro.boot.hardware.*; the other
@@ -158,6 +162,30 @@ public sealed class AndroidDeviceReader
         }
 
         return props;
+    }
+
+    /// <summary>
+    /// The properties that carry the name a handset is sold under, best first.
+    /// <c>ro.product.model</c> only holds the factory code the factory prints on
+    /// the box, "LLY-LX1" for a Honor X8b, while the shop floor knows the phone
+    /// as "HONOR X8b". A dump that reports none of these falls back to that code,
+    /// because the code still says which handset it is where an empty field would not.
+    /// </summary>
+    public static readonly string[] MarketingNameProps =
+    {
+        "ro.config.marketing_name",     // Honor, Huawei
+        "ro.product.marketname",        // Xiaomi, POCO, Realme
+        "ro.product.vendor.marketname", // brands that keep it off the system partition
+    };
+
+    /// <summary>The name the handset is sold under, or its factory code when it reports none.</summary>
+    public static string PickModel(IReadOnlyDictionary<string, string> props)
+    {
+        foreach (string name in MarketingNameProps)
+            if (props.TryGetValue(name, out string? value) && value.Trim().Length > 0)
+                return value.Trim();
+
+        return props.TryGetValue("ro.product.model", out string? code) ? code.Trim() : "";
     }
 
     /// <summary>Device data the collector fills in from these facts.</summary>

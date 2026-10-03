@@ -86,9 +86,12 @@ public static class DeviceService
                 
                 if (!looksLikeiOS && await IsAndroidDeviceAsync(id))
                 {
-                    string model = await GetAndroidPropAsync(id, "ro.product.model");
-                    string brand = await GetAndroidPropAsync(id, "ro.product.brand");
-                    string display = Mappers.MapAndroidDisplayModel(brand, model);
+                    // One dump answers both the brand and the name the handset is
+                    // sold under; reading them one at a time meant two adb
+                    // processes per phone, and only the model code came out.
+                    var props = await AndroidDeviceReader.CreateDefault(id).GetPropsAsync();
+                    string brand = props.TryGetValue("ro.product.brand", out string? brandProp) ? brandProp : "";
+                    string display = Mappers.MapAndroidDisplayModel(brand, AndroidDeviceReader.PickModel(props));
                     devices[id] = string.IsNullOrWhiteSpace(display) ? $"Android Device ({id})" : $"{display} (Android)";
                     // Android device identified
                 }
@@ -143,20 +146,6 @@ public static class DeviceService
         catch
         {
             return false;
-        }
-    }
-
-    /// <summary>Reads an Android system property via adb shell getprop.</summary>
-    public static async Task<string> GetAndroidPropAsync(string serial, string propName)
-    {
-        try
-        {
-            var (output, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell getprop {propName}");
-            return output.Trim();
-        }
-        catch
-        {
-            return "";
         }
     }
 
