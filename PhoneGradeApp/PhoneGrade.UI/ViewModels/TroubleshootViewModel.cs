@@ -205,19 +205,7 @@ public class TroubleshootViewModel : ReactiveObject
         try
         {
             var report = await TroubleshootService.RunFullDiagnosticsAsync();
-            _rawReportText = report.ToFormattedText();
-            OverallStatus = report.OverallStatus;
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                Checks.Clear();
-                foreach (var check in report.Checks)
-                {
-                    Checks.Add(new DiagnosticCheckViewModel(check, ExecuteFixAsync));
-                }
-                HasFixableIssues = Checks.Any(c => c.IsFixable && c.Severity != DiagnosticSeverity.Pass);
-                HasResults = Checks.Count > 0;
-            });
+            await Dispatcher.UIThread.InvokeAsync(() => PublishReport(report));
         }
         catch (Exception ex)
         {
@@ -230,6 +218,28 @@ public class TroubleshootViewModel : ReactiveObject
             IsRunning = false;
             InstallStatusText = "";
         }
+    }
+
+    /// <summary>
+    /// Puts a finished report on the panel: the rows, the line at the top, the
+    /// note about what it found, and which of the buttons the operator now
+    /// gets. The scan hands its report over through this and nothing else, so
+    /// the panel can also be filled without one, which is the only way to
+    /// photograph or test the state it lands in.
+    /// </summary>
+    public void PublishReport(TroubleshootReport report)
+    {
+        _rawReportText = report.ToFormattedText();
+        OverallStatus = report.OverallStatus;
+
+        Checks.Clear();
+        foreach (var check in report.Checks)
+        {
+            Checks.Add(new DiagnosticCheckViewModel(check, ExecuteFixAsync));
+        }
+
+        HasFixableIssues = Checks.Any(c => c.IsFixable && c.Severity != DiagnosticSeverity.Pass);
+        HasResults = Checks.Count > 0;
     }
 
     private async Task ExecuteFixAsync(string actionKey)

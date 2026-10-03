@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using PhoneGrade.Core;
+using PhoneGrade.UI.ViewModels;
 using Xunit;
 
 namespace PhoneGrade.Tests;
@@ -290,5 +291,64 @@ public class LoggingAndTroubleshootTests
         Assert.True(res2.IsSuccessStatusCode, $"CAB driver URL failed with {(int)res2.StatusCode}");
         long size = res2.Content.Headers.ContentLength ?? 0;
         Assert.True(size > 50_000 && size < 200_000, $"CAB driver size {size} is outside expected 50KB-200KB range");
+    }
+
+    /// <summary>
+    /// The panel works out what to show from the report, and the scan was the
+    /// only thing that ever handed one over, from a thread a test cannot drive.
+    /// This is the handover itself: the rows, the line at the top, and the two
+    /// states the panel switches its buttons on.
+    /// </summary>
+    [Fact]
+    public void TroubleshootViewModel_PublishesAFinishedReportOnThePanel()
+    {
+        var vm = new TroubleshootViewModel();
+
+        vm.PublishReport(new TroubleshootReport
+        {
+            OverallStatus = "One failure to fix",
+            Checks =
+            {
+                new DiagnosticCheckItem
+                {
+                    Category = "ADB",
+                    Title = "adb",
+                    Severity = DiagnosticSeverity.Pass,
+                    Message = "found",
+                },
+                new DiagnosticCheckItem
+                {
+                    Category = "Driver",
+                    Title = "driver",
+                    Severity = DiagnosticSeverity.Fail,
+                    Message = "missing",
+                    FixActionKey = "install",
+                },
+            },
+        });
+
+        Assert.Equal(2, vm.Checks.Count);
+        Assert.Equal("One failure to fix", vm.OverallStatus);
+        Assert.True(vm.HasResults, "the panel does not know it has been scanned");
+        Assert.False(vm.AwaitingFirstScan);
+        Assert.True(vm.HasFixableIssues, "a failed check carrying a fix is not offered as fixable");
+    }
+
+    /// <summary>
+    /// A scan that found nothing has still been run, and the panel has to keep
+    /// saying so rather than go back to asking to be started.
+    /// </summary>
+    [Fact]
+    public void TroubleshootViewModel_PublishingAnEmptyReportLeavesThePanelWaiting()
+    {
+        var vm = new TroubleshootViewModel();
+
+        vm.PublishReport(new TroubleshootReport { OverallStatus = "Nothing out of order" });
+
+        Assert.Empty(vm.Checks);
+        Assert.Equal("Nothing out of order", vm.OverallStatus);
+        Assert.False(vm.HasResults, "an empty report is presented as results");
+        Assert.True(vm.AwaitingFirstScan);
+        Assert.False(vm.HasFixableIssues);
     }
 }
