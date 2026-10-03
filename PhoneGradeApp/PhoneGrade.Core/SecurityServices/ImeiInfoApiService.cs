@@ -411,10 +411,28 @@ public static class ImeiInfoApiService
         string? status = GetString(root, "status");
         result.Status = status;
 
-        if (TryGetInt(root, "id", out int requestId))
-            result.RequestId = requestId;
+        // Whether this body carries an id of its own, which is what tells an
+        // envelope apart from a payload that is only about the device.
+        int queueId = 0;
+        bool bodyCarriesId = false;
+        if (TryGetInt(root, "id", out int id))
+        {
+            queueId = id;
+            bodyCarriesId = true;
+        }
         else if (TryGetInt(root, "history_id", out int historyId))
-            result.RequestId = historyId;
+        {
+            queueId = historyId;
+            bodyCarriesId = true;
+        }
+
+        // An id only points at a queued search when the envelope says the check
+        // is running, or when the 202 itself announces the queue. A payload that
+        // carries an id and no state of its own is a finished answer, and reading
+        // its id as a history id would send the caller polling for an entry the
+        // gateway never queued.
+        if (bodyCarriesId && (!string.IsNullOrEmpty(status) || statusCode == HttpStatusCode.Accepted))
+            result.RequestId = queueId;
 
         bool hasResult = root.TryGetProperty("result", out var resultNode)
             && resultNode.ValueKind == JsonValueKind.Object;
@@ -429,26 +447,30 @@ public static class ImeiInfoApiService
             result.RawData = root.Clone();
         }
 
-        // A refusal arrives as a lone detail string, and on the api-sync path it
-        // arrives with HTTP 200. Read as anything else it looks like a check that
-        // has not finished yet, which would leave the caller waiting on an answer
-        // the gateway already gave.
-        if (!hasResult && string.IsNullOrEmpty(status) && result.RequestId is null
-            && TryGetDetail(root, out string detail))
-        {
-            result.Success = false;
-            result.ErrorMessage = detail;
-            return result;
-        }
+        // Only an HTTP 200 answer is read as a result or as a refusal. The 202
+        // means the check was queued, so a body that happens to look finished
+        // must not be reported as a finished check.
+        bool isOk = statusCode == HttpStatusCode.OK;
+        bool envelopeless = isOk && !hasResult && string.IsNullOrEmpty(status) && !bodyCarriesId;
 
         // A body without an envelope is a finished result. The official imei.info
         // SDKs read the absence of both a status and a history id that way, and
         // that is the shape the published sandbox numbers answer in.
-        if (!hasResult && string.IsNullOrEmpty(status) && result.RequestId is null
-            && LooksLikeResult(root))
+        if (envelopeless && LooksLikeResult(root))
         {
             ParseResultNode(result, root);
             result.Success = true;
+            return result;
+        }
+
+        // A refusal arrives as a lone detail string, and on the api-sync path it
+        // arrives with HTTP 200. Read as anything else it looks like a check that
+        // has not finished yet, which would leave the caller waiting on an answer
+        // the gateway already gave.
+        if (envelopeless && TryGetDetail(root, out string detail))
+        {
+            result.Success = false;
+            result.ErrorMessage = detail;
             return result;
         }
 
@@ -507,10 +529,18 @@ public static class ImeiInfoApiService
             result.Status = null;
             await ApplyEnvelopeAsync(result, pollBody, pollStatus, apiKey, client, mayPoll: false).ConfigureAwait(false);
 
+            // The recursive call has the final word: a finished check sets
+            // Success, and a refusal, a rejected status or an unreadable body
+            // sets ErrorMessage. Only an envelope that is still pending leaves
+            // both untouched, so the wording the gateway gave is never replaced
+            // by a guess made here.
+            if (result.Success || result.ErrorMessage is not null)
+                return result;
+
             var polled = (result.Status ?? "").Trim().ToLowerInvariant();
 
-            if (polled is "done" or "completed")
-                return result; // Success was set by the recursive call
+            if (polled is "pending" or "processing" or "running" or "in_progress")
+                continue;
 
             if (polled.Length == 0)
             {
@@ -519,12 +549,9 @@ public static class ImeiInfoApiService
                 return result;
             }
 
-            if (polled is not "pending" and not "processing" and not "running" and not "in_progress")
-            {
-                result.Success = false;
-                result.ErrorMessage = $"Check returned status: {result.Status}";
-                return result;
-            }
+            result.Success = false;
+            result.ErrorMessage = $"Check returned status: {result.Status}";
+            return result;
         }
 
         result.Success = false;

@@ -383,6 +383,95 @@ public class ImeiInfoApiServiceTests
     }
 
     [Fact]
+    public async Task CheckAsync_WhenTheHistoryEntryIsStillPending_KeepsPollingUntilDone()
+    {
+        int historyCalls = 0;
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Json(HttpStatusCode.Accepted, """
+            { "message": "Search is in progress", "history_id": 42, "ulid": "01J0TEST00000000000000042" }
+            """),
+            History = (_, _) => ++historyCalls < 3
+                ? Json(HttpStatusCode.OK, """{ "id": 42, "status": "Pending" }""")
+                : Done(AppleCleanResult(), id: 42)
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync(AppleImei, ImeiCheckType.AppleCarrierLockFmi, _apiKey, client);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.Equal(3, historyCalls);
+        Assert.Equal(42, result.RequestId);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenTheHistoryEntryRefuses_ReportsTheGatewayWording()
+    {
+        // Verified live: an account without credit is refused on every path, so
+        // the refusal can arrive from the history entry instead of the check.
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Json(HttpStatusCode.Accepted, """
+            { "message": "Search is in progress", "history_id": 42 }
+            """),
+            History = (_, _) => Json(HttpStatusCode.OK, """{ "detail": "Request is too expensive." }""")
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync(AppleImei, ImeiCheckType.BlacklistSimple, _apiKey, client);
+
+        Assert.False(result.Success);
+        Assert.Equal("Request is too expensive.", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenA202CarriesDeviceFields_DoesNotReadThemAsAResult()
+    {
+        // A 202 announces a queued search, so the fields around it are not the
+        // answer to the check.
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Json(HttpStatusCode.Accepted, """
+            { "imei": "353541326469521", "brand": "Apple", "model": "iPhone 12 Pro Max", "blacklist_status": "CLEAN" }
+            """)
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync(AppleImei, ImeiCheckType.AppleCarrierLockFmi, _apiKey, client);
+
+        Assert.False(result.Success);
+        Assert.Null(result.Manufacturer);
+        Assert.Null(result.IsBlacklisted);
+        Assert.DoesNotContain(stub.Requests, r => r.Path.Contains("/api/search_history/"));
+    }
+
+    [Fact]
+    public async Task CheckAsync_AnIdWithoutAStatus_IsNotAQueueId()
+    {
+        // The id of a finished payload must not be mistaken for a history id,
+        // which would cost five polls for an entry that was never queued.
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Json(HttpStatusCode.OK, """
+            { "id": 7, "message": "Search is in progress" }
+            """),
+            History = (_, _) => Done(AppleCleanResult(), id: 7)
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync(AppleImei, ImeiCheckType.AppleCarrierLockFmi, _apiKey, client);
+
+        Assert.False(result.Success);
+        Assert.Equal("Result is still pending", result.ErrorMessage);
+        Assert.Null(result.RequestId);
+        Assert.DoesNotContain(stub.Requests, r => r.Path.Contains("/api/search_history/"));
+    }
+
+    [Fact]
     public async Task CheckAsync_WhenTheGatewayRejectsTheCheck_FailsWithTheStatus()
     {
         var stub = new StubHandler
