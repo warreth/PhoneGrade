@@ -330,11 +330,114 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set { _settings.AutoFinishAfterTest = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _autoFinishAfterTest, value); }
     }
 
-    private string _imeiApiKey = "";
-    public string ImeiApiKey
+    // IMEI.info BYOK Settings
+    private string _imeiInfoApiKey = "";
+    public string ImeiInfoApiKey
     {
-        get => _imeiApiKey;
-        set { _settings.ImeiApiKey = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _imeiApiKey, value); }
+        get => _imeiInfoApiKey;
+        set { _settings.ImeiInfoApiKey = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _imeiInfoApiKey, value); }
+    }
+
+    private List<string> _selectedImeiChecks = new();
+    public List<string> SelectedImeiChecks
+    {
+        get => _selectedImeiChecks;
+        set { _settings.SelectedImeiChecks = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _selectedImeiChecks, value); }
+    }
+
+    private int _estimatedAppleDevices = 10;
+    public int EstimatedAppleDevices
+    {
+        get => _estimatedAppleDevices;
+        set { _settings.EstimatedAppleDevices = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _estimatedAppleDevices, value); UpdateCostCalculator(); }
+    }
+
+    private int _estimatedAndroidDevices = 10;
+    public int EstimatedAndroidDevices
+    {
+        get => _estimatedAndroidDevices;
+        set { _settings.EstimatedAndroidDevices = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _estimatedAndroidDevices, value); UpdateCostCalculator(); }
+    }
+
+    // IMEI.info individual check checkboxes (bound to SelectedImeiChecks list)
+    public bool ImeiCheckAppleCarrierLockFmi
+    {
+        get => SelectedImeiChecks.Contains("apple_carrier_lock_fmi");
+        set { UpdateCheckSelection("apple_carrier_lock_fmi", value); }
+    }
+
+    public bool ImeiCheckBlacklistSimple
+    {
+        get => SelectedImeiChecks.Contains("blacklist_simple");
+        set { UpdateCheckSelection("blacklist_simple", value); }
+    }
+
+    public bool ImeiCheckBlacklistPremium
+    {
+        get => SelectedImeiChecks.Contains("blacklist_premium");
+        set { UpdateCheckSelection("blacklist_premium", value); }
+    }
+
+    public bool ImeiCheckSamsungInfoKnox
+    {
+        get => SelectedImeiChecks.Contains("samsung_info_knox");
+        set { UpdateCheckSelection("samsung_info_knox", value); }
+    }
+
+    private void UpdateCheckSelection(string serviceCode, bool isChecked)
+    {
+        var list = new List<string>(SelectedImeiChecks);
+        if (isChecked && !list.Contains(serviceCode))
+            list.Add(serviceCode);
+        else if (!isChecked)
+            list.Remove(serviceCode);
+        SelectedImeiChecks = list;
+        UpdateCostCalculator();
+    }
+
+    // API Key test status
+    private string _imeiInfoApiKeyStatus = "";
+    public string ImeiInfoApiKeyStatus
+    {
+        get => _imeiInfoApiKeyStatus;
+        set => this.RaiseAndSetIfChanged(ref _imeiInfoApiKeyStatus, value);
+    }
+
+    private string _imeiInfoApiKeyStatusColor = "Transparent";
+    public string ImeiInfoApiKeyStatusColor
+    {
+        get => _imeiInfoApiKeyStatusColor;
+        set => this.RaiseAndSetIfChanged(ref _imeiInfoApiKeyStatusColor, value);
+    }
+
+    // Cost Calculator computed properties
+    private string _estimatedMonthlyCostDisplay = "";
+    public string EstimatedMonthlyCostDisplay
+    {
+        get => _estimatedMonthlyCostDisplay;
+        set => this.RaiseAndSetIfChanged(ref _estimatedMonthlyCostDisplay, value);
+    }
+
+    private string _estimatedPerDeviceDisplay = "";
+    public string EstimatedPerDeviceDisplay
+    {
+        get => _estimatedPerDeviceDisplay;
+        set => this.RaiseAndSetIfChanged(ref _estimatedPerDeviceDisplay, value);
+    }
+
+    private void UpdateCostCalculator()
+    {
+        var checks = new List<PhoneGrade.Core.SecurityServices.ImeiInfoApiService.ImeiCheckType>();
+        if (ImeiCheckAppleCarrierLockFmi) checks.Add(PhoneGrade.Core.SecurityServices.ImeiInfoApiService.ImeiCheckType.AppleCarrierLockFmi);
+        if (ImeiCheckBlacklistSimple) checks.Add(PhoneGrade.Core.SecurityServices.ImeiInfoApiService.ImeiCheckType.BlacklistSimple);
+        if (ImeiCheckBlacklistPremium) checks.Add(PhoneGrade.Core.SecurityServices.ImeiInfoApiService.ImeiCheckType.BlacklistPremium);
+        if (ImeiCheckSamsungInfoKnox) checks.Add(PhoneGrade.Core.SecurityServices.ImeiInfoApiService.ImeiCheckType.SamsungInfoKnox);
+
+        decimal monthlyCost = PhoneGrade.Core.SecurityServices.ImeiInfoApiService.CalculateEstimatedCost(EstimatedAppleDevices, EstimatedAndroidDevices, checks);
+        decimal perDeviceCost = (EstimatedAppleDevices + EstimatedAndroidDevices) > 0 ? monthlyCost / (EstimatedAppleDevices + EstimatedAndroidDevices) : 0;
+
+        EstimatedMonthlyCostDisplay = string.Format(LocalizationManager.GetString("Settings_ImeiInfoEstimatedMonthlyCost"), monthlyCost.ToString("F2"));
+        EstimatedPerDeviceDisplay = string.Format(LocalizationManager.GetString("Settings_ImeiInfoEstimatedPerDevice"), perDeviceCost.ToString("F4"));
     }
 
     private string _defaultQuality = "";
@@ -586,6 +689,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> OpenEditorCommand { get; }
     public ReactiveCommand<Unit, Unit> FinishInspectionCommand { get; }
 
+    // IMEI.info BYOK Commands
+    public ReactiveCommand<Unit, Unit> SaveImeiInfoApiKeyCommand { get; }
+    public ReactiveCommand<Unit, Unit> TestImeiInfoApiKeyCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenImeiRegisterCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenImeiDashboardCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenImeiCreditsCommand { get; }
+    public ReactiveCommand<Unit, Unit> NavigateToImeiSettingsCommand { get; }
+
     public event Action<DeviceData>? DataEditorRequested;
 
     public MainWindowViewModel(LemonSqueezyClient? licenseClient = null)
@@ -608,7 +719,10 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         _showSummaryScreenAfterTesting = _settings.ShowSummaryScreenAfterTesting;
         _requirePwaTest = _settings.RequirePwaTest;
         _autoFinishAfterTest = _settings.AutoFinishAfterTest;
-        _imeiApiKey = _settings.ImeiApiKey ?? "";
+        _imeiInfoApiKey = _settings.ImeiInfoApiKey ?? "";
+        _selectedImeiChecks = _settings.SelectedImeiChecks ?? new List<string>();
+        _estimatedAppleDevices = _settings.EstimatedAppleDevices > 0 ? _settings.EstimatedAppleDevices : 10;
+        _estimatedAndroidDevices = _settings.EstimatedAndroidDevices > 0 ? _settings.EstimatedAndroidDevices : 10;
         _defaultQuality = _settings.DefaultQuality;
         _defaultPaymentMethod = _settings.DefaultPaymentMethod;
         _enableUsbEventMonitoring = _settings.EnableUsbEventMonitoring;
@@ -617,6 +731,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         // Wire verbose logging flag from settings
         ToolRunner.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
         TestRunnerServer.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
+
+        // Initialize cost calculator
+        UpdateCostCalculator();
 
         _originResolver = new WebRunnerOriginResolver(
             (sessionUdid, port) => _adbTunnel.OpenAsync(sessionUdid, port),
@@ -686,6 +803,13 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         OpenEditorCommand = ReactiveCommand.Create(() => DataEditorRequested?.Invoke(DeviceData));
         FinishInspectionCommand = ReactiveCommand.CreateFromTask(FinishInspectionAsync);
 
+        // IMEI.info BYOK Commands
+        SaveImeiInfoApiKeyCommand = ReactiveCommand.CreateFromTask(SaveImeiInfoApiKeyAsync);
+        TestImeiInfoApiKeyCommand = ReactiveCommand.CreateFromTask(TestImeiInfoApiKeyAsync);
+        OpenImeiRegisterCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/register"));
+        OpenImeiDashboardCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/"));
+        OpenImeiCreditsCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/add-credits"));
+
         // Manual scan command - uses legacy polling
         ManualScanCommand = ReactiveCommand.CreateFromTask(async () =>
         {
@@ -711,6 +835,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         IsIntroVisible = !_settings.IntroSeen;
         DismissIntroCommand = ReactiveCommand.Create(DismissIntro);
         ShowIntroActivationCommand = ReactiveCommand.Create(() => { IsIntroActivationVisible = true; });
+        NavigateToImeiSettingsCommand = ReactiveCommand.Create(() =>
+        {
+            IsIntroVisible = false;
+            IsSettingsDrawerOpen = true;
+            SelectedSettingsSection = "ImeiApi";
+        });
 
         // License panel: opened from the status pill, or from settings.
         ToggleLicensePanelCommand = ReactiveCommand.Create(() => { IsLicensePanelOpen = !IsLicensePanelOpen; });
@@ -1723,6 +1853,48 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         catch (Exception ex)
         {
             Status = string.Format(LocalizationManager.GetString("Status_LabelFailed"), ex.Message);
+        }
+    }
+
+    // IMEI.info BYOK Command Implementations
+    private async Task SaveImeiInfoApiKeyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(ImeiInfoApiKey))
+        {
+            ImeiInfoApiKeyStatus = string.Format(LocalizationManager.GetString("Settings_ImeiInfoKeyInvalid") ?? "Invalid API Key: {0}", LocalizationManager.GetString("Settings_ImeiInfoKeyEmpty") ?? "Empty key");
+            ImeiInfoApiKeyStatusColor = "#ef4444"; // Red
+            return;
+        }
+
+        _settings.ImeiInfoApiKey = ImeiInfoApiKey;
+        _settings.Save();
+        ImeiInfoApiKeyStatus = LocalizationManager.GetString("Settings_ImeiInfoApiKeySaved") ?? "API key saved";
+        ImeiInfoApiKeyStatusColor = "#22c55e"; // Green
+    }
+
+    private async Task TestImeiInfoApiKeyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(ImeiInfoApiKey))
+        {
+            ImeiInfoApiKeyStatus = string.Format(LocalizationManager.GetString("Settings_ImeiInfoKeyInvalid") ?? "Invalid API Key: {0}", LocalizationManager.GetString("Settings_ImeiInfoKeyEmpty") ?? "Empty key");
+            ImeiInfoApiKeyStatusColor = "#ef4444";
+            return;
+        }
+
+        ImeiInfoApiKeyStatus = LocalizationManager.GetString("Settings_ImeiInfoKeyTesting") ?? "Testing API key...";
+        ImeiInfoApiKeyStatusColor = "#f59e0b"; // Amber
+
+        var (success, balance, error) = await PhoneGrade.Core.SecurityServices.ImeiInfoApiService.GetBalanceAsync(ImeiInfoApiKey);
+
+        if (success)
+        {
+            ImeiInfoApiKeyStatus = string.Format(LocalizationManager.GetString("Settings_ImeiInfoKeyValid") ?? "API Key Valid. Balance: {0} USD", balance.ToString("F2"));
+            ImeiInfoApiKeyStatusColor = "#22c55e"; // Green
+        }
+        else
+        {
+            ImeiInfoApiKeyStatus = string.Format(LocalizationManager.GetString("Settings_ImeiInfoKeyInvalid") ?? "Invalid API Key: {0}", error ?? LocalizationManager.GetString("Settings_ImeiInfoKeyUnknownError") ?? "Unknown error");
+            ImeiInfoApiKeyStatusColor = "#ef4444"; // Red
         }
     }
 

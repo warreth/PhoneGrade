@@ -89,7 +89,6 @@
     <x:String x:Key="Settings_AutoStartWebTest">Automatisch interactieve webtest starten</x:String>
     <x:String x:Key="Settings_RequirePwaTest">PWA Test Verplicht voor afronden</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTest">Automatisch afronden na test</x:String>
-    <x:String x:Key="Settings_ImeiApiKey">IMEI / FMI API Sleutel</x:String>
     <x:String x:Key="Settings_ShowSummary">Toon samenvatting voor label printen</x:String>
     <x:String x:Key="Settings_Advanced">Geavanceerde automatisering</x:String>
     <x:String x:Key="Settings_AutoActivate">Automatisch activeren (bypass)</x:String>
@@ -264,8 +263,6 @@
     <x:String x:Key="Settings_SecLicense">Licentie</x:String>
     <x:String x:Key="Settings_SecSupport">Hulp</x:String>
     <x:String x:Key="Settings_SecAdvanced">Geavanceerd</x:String>
-    <x:String x:Key="Settings_ApiKeyDesc">Leest de IMEI en de iCloud-status van een toestel. De sleutel blijft op deze computer.</x:String>
-    <x:String x:Key="Settings_ApiKeyWatermark">Sleutel van SickW of IMEIPro...</x:String>
     <x:String x:Key="Settings_QualityDesc">De klasse waar een inspectie mee begint. Een lege keuze vraagt bij elke inspectie.</x:String>
     <x:String x:Key="Settings_PaymentDesc">De factuurmethode waar een inspectie mee begint. Een lege keuze vraagt bij elke inspectie.</x:String>
     <x:String x:Key="Settings_QualityAsk">Elke keer vragen</x:String>
@@ -395,5 +392,62 @@
     <x:String x:Key="Troubleshoot_FixManual">De fix kon niet automatisch worden voltooid. Bekijk de stappen.</x:String>
     <x:String x:Key="Troubleshoot_FixError">Fout bij het toepassen van de fix: {0}</x:String>
     <x:String x:Key="Troubleshoot_Fixing">Bezig met fixen: {0}...</x:String>
+
+    <!-- IMEI API Instellingen -->
+    <x:String x:Key="Settings_ImeiInfoGuide">Setup Handleiding</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideUrl">https://dash.imei.info/register</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep1_Action">en maak een account aan</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep2">Klik op 'API Beheren' in de zijbalk en kopieer je API-sleutel (bijv., e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep3">Plak de API-sleutel in het invoerveld hierboven en klik op Opslaan.</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep4">Ga op de website naar 'Credits Toevoegen' om saldo toe te voegen.</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenRegister">Open Registratie Pagina</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenDashboard">Open imei.info Dashboard</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenCredits">Open Credits Toevoegen Pagina</x:String>
+    <x:String x:Key="Settings_ImeiInfoSaveKey">API Sleutel Opslaan</x:String>
+    <x:String x:Key="Settings_ImeiInfoTestKey">API Sleutel Testen</x:String>
+    <x:String x:Key="Settings_ImeiInfoChecks">Automatisch Uit Te Voeren Checks</x:String>
+    <x:String x:Key="Settings_ImeiInfoChecksDesc">Selecteer welke checks automatisch op elk toestel uitgevoerd moeten worden. Prijzen zijn per check in USD.</x:String>
+    <x:String x:Key="Settings_ImeiInfoCostCalculator">Kosten Calculator</x:String>
+    <x:String x:Key="Settings_ImeiInfoCostCalculatorDesc">Schat maandelijkse kosten op basis van toestelvolume.</x:String>
+    <x:String x:Key="Settings_ImeiInfoAppleDevices">Apple Toestellen / Maand</x:String>
+    <x:String x:Key="Settings_ImeiInfoAndroidDevices">Android Toestellen / Maand</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKey">API Sleutel</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeyDesc">Jouw imei.info API sleutel voor geautomatiseerde checks.</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedMonthlyCost">Geschatte Maandelijkse Kosten: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedPerDevice">Geschatte Kosten Per Toestel: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyInvalid">Ongeldige API Sleutel: {0}</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyValid">API Sleutel Geldig. Saldo: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyTesting">API Sleutel Testen...</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyEmpty">Lege sleutel</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyUnknownError">Onbekende fout</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeySaved">API sleutel opgeslagen</x:String>
+
+    <!-- IMEI Check Labels (Stap voorvoegsel, prijzen) -->
+    <x:String x:Key="Settings_ImeiCheck_Step1">Stap 1:</x:String>
+    <x:String x:Key="Settings_ImeiCheck_Step2">Stap 2:</x:String>
+    <x:String x:Key="Settings_ImeiCheck_Step3">Stap 3:</x:String>
+    <x:String x:Key="Settings_ImeiCheck_Step4">Stap 4:</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0.200</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0.420</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0.600</x:String>
+
+    <!-- IMEI check namen en beschrijvingen -->
+    <x:String x:Key="Settings_SecImeiApi">IMEI API Configuratie</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeyWatermark">Plak hier je API-sleutel (bijv. e0d7c26f-5cc7-5644-863c-8992083dfeac)</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmi">APPLE: Carrier &amp; Lock Status &amp; FMI</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - Geeft providernaam, SIM-lockstatus en Find My iPhone (FMI)-status voor Apple toestellen.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimple">BLACKLIST: Simpele Check</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - Geeft alleen de basis blackliststatus (schoon of geblacklist).</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremium">BLACKLIST: Premium Check</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Geeft gedetailleerde info: IMEI, Modelnaam, Fabrikant, Modelnummer, Geblacklist Door, Geblacklist Op, Blacklist Reden, Blacklist Status, Geblacklist Land, Algemene Lijst Status.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnox">GENERIC: Samsung Info Check &amp; Knox Info</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Geeft Samsung toestelinformatie inclusief model, serienummer, garantie en Knox garantie bit status.</x:String>
+
+    <!-- Introductiescherm: IMEI controles (BYOK) -->
+    <x:String x:Key="Intro_ImeiTitle">IMEI controles (BYOK)</x:String>
+    <x:String x:Key="Intro_ImeiBody">PhoneGrade controleert carrier lock, FMI, blacklist en Knox status via imei.info. Dit is een Bring Your Own Key systeem: maak een account aan bij imei.info, voeg credits toe en plak je eigen API-sleutel bij Instellingen. Elke check heeft een eigen prijs (van $0.200 tot $0.600) en je kiest zelf welke checks automatisch draaien.</x:String>
+    <x:String x:Key="Intro_ImeiConfigureButton">IMEI API instellen bij Instellingen</x:String>
+    <x:String x:Key="Settings_ImeiInfoWatermarkDefault">10</x:String>
 
 </ResourceDictionary>

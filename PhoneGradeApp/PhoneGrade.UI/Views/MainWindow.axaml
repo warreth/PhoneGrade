@@ -654,6 +654,10 @@
                                     Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Advanced}"
                                     Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Advanced"
                                     Content="{DynamicResource Settings_SecAdvanced}"/>
+                            <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=ImeiApi}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="ImeiApi"
+                                    Content="{DynamicResource Settings_SecImeiApi}"/>
                         </StackPanel>
                     </Border>
 
@@ -686,18 +690,145 @@
                                                   ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"/>
                                     </Grid>
                                 </Border>
+                            </StackPanel>
 
+                            <!-- ============ IMEI API Configuration: BYOK imei.info ============ -->
+                            <StackPanel Spacing="14"
+                                        IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=ImeiApi}">
+                                <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_SecImeiApi}"/>
+
+                                <!-- Setup Guide -->
                                 <Border Classes="settingCard">
-                                    <StackPanel Spacing="8">
-                                        <TextBlock Text="{DynamicResource Settings_ImeiApiKey}" FontWeight="SemiBold"/>
-                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ApiKeyDesc}"/>
-                                        <TextBox Text="{Binding ImeiApiKey}" PasswordChar="*"
-                                                 Watermark="{DynamicResource Settings_ApiKeyWatermark}"/>
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoGuide}" FontWeight="SemiBold" FontSize="13"/>
+                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap" LineHeight="18">
+                                            <Run Text="{DynamicResource Settings_ImeiCheck_Step1} "/><Run Text="{DynamicResource Settings_ImeiInfoGuideUrl}" Foreground="{DynamicResource AccentColor}" TextDecorations="Underline" /><Run Text=" "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep1_Action}"/>
+                                        </TextBlock>
+                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap" LineHeight="18" Margin="20,0,0,0">
+                                            <Run Text="{DynamicResource Settings_ImeiCheck_Step2} "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep2}"/>
+                                        </TextBlock>
+                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap" LineHeight="18" Margin="20,0,0,0">
+                                            <Run Text="{DynamicResource Settings_ImeiCheck_Step3} "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep3}"/>
+                                        </TextBlock>
+                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap" LineHeight="18" Margin="20,0,0,0">
+                                            <Run Text="{DynamicResource Settings_ImeiCheck_Step4} "/><Run Text="{DynamicResource Settings_ImeiInfoGuideStep4}"/>
+                                        </TextBlock>
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                                            <Button Classes="kioskSecondary" Content="{DynamicResource Settings_ImeiInfoOpenRegister}"
+                                                    Command="{Binding OpenImeiRegisterCommand}" HorizontalAlignment="Left"/>
+                                            <Button Classes="kioskSecondary" Content="{DynamicResource Settings_ImeiInfoOpenDashboard}"
+                                                    Command="{Binding OpenImeiDashboardCommand}" HorizontalAlignment="Left"/>
+                                            <Button Classes="kioskSecondary" Content="{DynamicResource Settings_ImeiInfoOpenCredits}"
+                                                    Command="{Binding OpenImeiCreditsCommand}" HorizontalAlignment="Left"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- API Key Input -->
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoApiKey}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ImeiInfoApiKeyDesc}"/>
+                                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                            <TextBox Grid.Column="0" Text="{Binding ImeiInfoApiKey}" PasswordChar="*"
+                                                     Watermark="{DynamicResource Settings_ImeiInfoApiKeyWatermark}"/>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                <Button Classes="cta" Content="{DynamicResource Settings_ImeiInfoSaveKey}"
+                                                        Command="{Binding SaveImeiInfoApiKeyCommand}"
+                                                        HorizontalAlignment="Left" Padding="16,8"/>
+                                                <Button Classes="kioskSecondary" Content="{DynamicResource Settings_ImeiInfoTestKey}"
+                                                        Command="{Binding TestImeiInfoApiKeyCommand}"
+                                                        HorizontalAlignment="Left" Padding="16,8"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock Text="{Binding ImeiInfoApiKeyStatus}" FontSize="12"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{Binding ImeiInfoApiKeyStatusColor}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Checks Selection -->
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoChecks}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ImeiInfoChecksDesc}"/>
+                                        
+                                        <!-- Apple Carrier Lock & FMI -->
+                                        <Border Background="{DynamicResource CardDeepColor}" CornerRadius="6" Padding="12" Margin="0,4,0,0">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding ImeiCheckAppleCarrierLockFmi}" VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
+                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_AppleCarrierLockFmi}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_AppleCarrierLockFmiDesc}" Classes="settingDesc" FontSize="11"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{DynamicResource Settings_ImeiCheck_AppleCarrierLockFmiPrice}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Blacklist Simple -->
+                                        <Border Background="{DynamicResource CardDeepColor}" CornerRadius="6" Padding="12" Margin="0,4,0,0">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding ImeiCheckBlacklistSimple}" VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
+                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_BlacklistSimple}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_BlacklistSimpleDesc}" Classes="settingDesc" FontSize="11"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{DynamicResource Settings_ImeiCheck_BlacklistSimplePrice}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Blacklist Premium -->
+                                        <Border Background="{DynamicResource CardDeepColor}" CornerRadius="6" Padding="12" Margin="0,4,0,0">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding ImeiCheckBlacklistPremium}" VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
+                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_BlacklistPremium}" FontWeight="SemiBold" ToolTip.Tip="{DynamicResource Settings_ImeiCheck_BlacklistPremiumDesc}"/>
+                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_BlacklistPremiumDesc}" Classes="settingDesc" FontSize="11"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{DynamicResource Settings_ImeiCheck_BlacklistPremiumPrice}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Samsung Info & Knox -->
+                                        <Border Background="{DynamicResource CardDeepColor}" CornerRadius="6" Padding="12" Margin="0,4,0,0">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding ImeiCheckSamsungInfoKnox}" VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
+                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_SamsungInfoKnox}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_SamsungInfoKnoxDesc}" Classes="settingDesc" FontSize="11"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{DynamicResource Settings_ImeiCheck_SamsungInfoKnoxPrice}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Cost Calculator -->
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoCostCalculator}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ImeiInfoCostCalculatorDesc}"/>
+                                        
+                                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4,0,0">
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" Margin="0,0,12,0">
+                                                <TextBlock Text="{DynamicResource Settings_ImeiInfoAppleDevices}" FontWeight="SemiBold" FontSize="12"/>
+                                                <TextBox Text="{Binding EstimatedAppleDevices}" Watermark="{DynamicResource Settings_ImeiInfoWatermarkDefault}" HorizontalAlignment="Stretch"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
+                                                <TextBlock Text="{DynamicResource Settings_ImeiInfoAndroidDevices}" FontWeight="SemiBold" FontSize="12"/>
+                                                <TextBox Text="{Binding EstimatedAndroidDevices}" Watermark="{DynamicResource Settings_ImeiInfoWatermarkDefault}" HorizontalAlignment="Stretch"/>
+                                            </StackPanel>
+                                            
+                                            <Border Grid.Row="1" Grid.ColumnSpan="2" Background="{DynamicResource CardDeepColor}" CornerRadius="6" Padding="16" Margin="0,8,0,0">
+                                                <StackPanel Spacing="6">
+                                                    <TextBlock Text="{Binding EstimatedMonthlyCostDisplay}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource AccentColor}"/>
+                                                    <TextBlock Text="{Binding EstimatedPerDeviceDisplay}" FontSize="12" Foreground="{DynamicResource TextDimColor}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
-
-                            <!-- ============ Workflow: what a normal inspection starts with ============ -->
                             <StackPanel Spacing="14"
                                         IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Workflow}">
                                 <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_SecWorkflow}"/>

@@ -89,7 +89,6 @@
     <x:String x:Key="Settings_AutoStartWebTest">Automatically start interactive web test</x:String>
     <x:String x:Key="Settings_RequirePwaTest">Require PWA Test before finishing</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTest">Automatically finish after test</x:String>
-    <x:String x:Key="Settings_ImeiApiKey">IMEI / FMI API Key</x:String>
     <x:String x:Key="Settings_ShowSummary">Show summary before printing label</x:String>
     <x:String x:Key="Settings_Advanced">Advanced automation</x:String>
     <x:String x:Key="Settings_AutoActivate">Auto-activate (bypass)</x:String>
@@ -264,8 +263,6 @@
     <x:String x:Key="Settings_SecLicense">License</x:String>
     <x:String x:Key="Settings_SecSupport">Support</x:String>
     <x:String x:Key="Settings_SecAdvanced">Advanced</x:String>
-    <x:String x:Key="Settings_ApiKeyDesc">Reads the IMEI and the iCloud status of a device. The key stays on this computer.</x:String>
-    <x:String x:Key="Settings_ApiKeyWatermark">SickW or IMEIPro key...</x:String>
     <x:String x:Key="Settings_QualityDesc">The grade an inspection starts with. An empty choice asks at every inspection.</x:String>
     <x:String x:Key="Settings_PaymentDesc">The invoice method an inspection starts with. An empty choice asks at every inspection.</x:String>
     <x:String x:Key="Settings_QualityAsk">Ask every time</x:String>
@@ -387,6 +384,63 @@
     <!-- What the phone could not find -->
     <x:String x:Key="Api_MissingDetails">The mandatory browser API '{0}' is missing on this device.</x:String>
     <x:String x:Key="Api_MissingNotes">The PWA could not find this required hardware API.</x:String>
+
+    <!-- IMEI API Settings -->
+    <x:String x:Key="Settings_ImeiInfoGuide">Setup Guide</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideUrl">https://dash.imei.info/register</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep1_Action">and create an account</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep2">Click 'API Manage' in the sidebar and copy your API key (e.g., e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep3">Paste the API key in the input field above and click Save.</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep4">Go to 'Add Credits' on the website to add funds to your account.</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenRegister">Open Registration Page</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenDashboard">Open imei.info Dashboard</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenCredits">Open Add Credits Page</x:String>
+    <x:String x:Key="Settings_ImeiInfoSaveKey">Save API Key</x:String>
+    <x:String x:Key="Settings_ImeiInfoTestKey">Test API Key</x:String>
+    <x:String x:Key="Settings_ImeiInfoChecks">Checks to Run Automatically</x:String>
+    <x:String x:Key="Settings_ImeiInfoChecksDesc">Select which checks to run on each device. Prices are per check in USD.</x:String>
+    <x:String x:Key="Settings_ImeiInfoCostCalculator">Cost Calculator</x:String>
+    <x:String x:Key="Settings_ImeiInfoCostCalculatorDesc">Estimate monthly cost based on device volume.</x:String>
+    <x:String x:Key="Settings_ImeiInfoAppleDevices">Apple Devices / Month</x:String>
+    <x:String x:Key="Settings_ImeiInfoAndroidDevices">Android Devices / Month</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKey">API Key</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeyDesc">Your imei.info API key for automated checks.</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedMonthlyCost">Estimated Monthly Cost: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedPerDevice">Estimated Cost Per Device: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyInvalid">Invalid API Key: {0}</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyValid">API Key Valid. Balance: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyTesting">Testing API key...</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyEmpty">Empty key</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyUnknownError">Unknown error</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeySaved">API key saved</x:String>
+
+    <!-- IMEI Check Labels (Step prefix, pricing) -->
+    <x:String x:Key="Settings_ImeiCheck_Step1">Step 1:</x:String>
+    <x:String x:Key="Settings_ImeiCheck_Step2">Step 2:</x:String>
+    <x:String x:Key="Settings_ImeiCheck_Step3">Step 3:</x:String>
+    <x:String x:Key="Settings_ImeiCheck_Step4">Step 4:</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0.200</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0.420</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0.600</x:String>
+
+    <!-- IMEI check names and descriptions -->
+    <x:String x:Key="Settings_SecImeiApi">IMEI API Configuration</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeyWatermark">Paste your API key here (e.g., e0d7c26f-5cc7-5644-863c-8992083dfeac)</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmi">APPLE: Carrier &amp; Lock Status &amp; FMI</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - Returns carrier name, SIM lock status, and Find My iPhone (FMI) status for Apple devices.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimple">BLACKLIST: Simple Check</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - Returns basic blacklist status (clean or blacklisted) only.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremium">BLACKLIST: Premium Check</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Returns detailed info: IMEI, Model Name, Manufacturer, Model Number, Blacklisted By, Blacklisted On, Blacklist Reason, Blacklist Status, Blacklisted Country, General List Status.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnox">GENERIC: Samsung Info Check &amp; Knox Info</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Returns Samsung device info including model, serial, warranty, and Knox warranty bit status.</x:String>
+
+    <!-- Introduction screen: IMEI checks (BYOK) -->
+    <x:String x:Key="Intro_ImeiTitle">IMEI checks (BYOK)</x:String>
+    <x:String x:Key="Intro_ImeiBody">PhoneGrade checks carrier lock, FMI, blacklist and Knox status through imei.info. This is a Bring Your Own Key system: create an account at imei.info, add credits, and paste your own API key in Settings. Every check has its own price (from $0.200 to $0.600), and you choose which checks run automatically.</x:String>
+    <x:String x:Key="Intro_ImeiConfigureButton">Configure IMEI API in Settings</x:String>
+    <x:String x:Key="Settings_ImeiInfoWatermarkDefault">10</x:String>
 
     <!-- System diagnostics -->
     <x:String x:Key="Troubleshoot_ScanError">Diagnostic error: {0}</x:String>

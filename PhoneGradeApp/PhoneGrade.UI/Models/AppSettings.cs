@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -15,8 +16,13 @@ public class AppSettings
     public bool ShowSummaryScreenAfterTesting { get; set; } = true;
     public bool RequirePwaTest { get; set; } = true;       // operator must complete PWA test before finishing
     public bool AutoFinishAfterTest { get; set; } = false; // automatically jump to summary screen after tests complete
-    public string ImeiApiKey { get; set; } = "";           // SickW / IMEIPro API key for real-time FMI check
-    public string ImeiApiProvider { get; set; } = "sickw"; // default API provider
+    
+    // IMEI.info BYOK API Configuration
+    public string ImeiInfoApiKey { get; set; } = "";       // API key from imei.info dashboard
+    public List<string> SelectedImeiChecks { get; set; } = new(); // Enabled check types (service codes)
+    public int EstimatedAppleDevices { get; set; } = 10;   // For cost calculator
+    public int EstimatedAndroidDevices { get; set; } = 10; // For cost calculator
+
     public bool RunDiagnostics { get; set; } = true;
     public bool Enable85PercentChecker { get; set; } = true;
     public bool OpenEditorBeforePrint { get; set; } = false;
