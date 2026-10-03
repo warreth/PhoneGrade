@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Management;
 using System.Runtime.Versioning;
 using PhoneGrade.Core.Diagnostics;
@@ -162,36 +163,17 @@ public sealed class WmiUsbMonitor : IUsbEventMonitor
         try
         {
             string pattern = $"%VID_{vendorId:X4}%";
-            string portable = "";
-            string best = "";
-            int bestScore = -1;
+            var nodes = new List<(string Name, string Id)>();
 
             using var searcher = new ManagementObjectSearcher(
                 $"SELECT Name, DeviceID FROM Win32_PnPEntity WHERE DeviceID LIKE '{pattern}'");
 
             foreach (ManagementBaseObject entry in searcher.Get())
             {
-                string name = entry["Name"]?.ToString() ?? "";
-                string id = entry["DeviceID"]?.ToString() ?? "";
-                if (name.Length == 0) continue;
-
-                // The portable-device node is the one Windows fills in from the
-                // phone itself, so it wins outright when it is there.
-                if (id.StartsWith("SWD\\WPDBUSENUM", StringComparison.OrdinalIgnoreCase))
-                {
-                    portable = name;
-                    continue;
-                }
-
-                int score = AndroidDeviceName.FromReportedText(name).Length;
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    best = name;
-                }
+                nodes.Add((entry["Name"]?.ToString() ?? "", entry["DeviceID"]?.ToString() ?? ""));
             }
 
-            return portable.Length > 0 ? portable : (bestScore > 0 ? best : "");
+            return PnpNamePicker.Pick(nodes);
         }
         catch (Exception ex)
         {

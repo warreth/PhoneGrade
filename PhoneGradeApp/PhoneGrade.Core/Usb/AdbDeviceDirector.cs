@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using PhoneGrade.Core.Diagnostics;
 
@@ -46,7 +47,10 @@ public sealed class AdbDeviceDirector : IDisposable
     private readonly IUsbEventMonitor _monitor;
     private readonly IAdbDeviceList _devices;
     private readonly Func<UsbDeviceInfo, string> _deviceName;
+    private readonly Func<IEnumerable<UsbDeviceInfo>> _connectedDevices;
     private readonly TimeSpan _enumerationDelay;
+    private readonly TimeSpan _nameRetryDelay;
+    private readonly int _nameAttempts;
     private readonly object _lock = new();
     private readonly HashSet<string> _seenDevices = new();
     private readonly HashSet<string> _raisedDevices = new();
@@ -67,19 +71,31 @@ public sealed class AdbDeviceDirector : IDisposable
         : this(UsbMonitorFactory.Instance, new AdbDeviceList(), null, TimeSpan.FromSeconds(1)) { }
 
     /// <summary>
-    /// Test seam: the phone, the adb answer and the OS-reported name are all
-    /// handed in, so the routing can be proven without hardware.
+    /// Test seam: the phone, the adb answer, the OS-reported name and the list
+    /// of connected devices are all handed in, so the routing and the naming
+    /// can both be proven without hardware.
+    ///
+    /// The naming budget is handed in too. <paramref name="nameAttempts"/> reads
+    /// are made when the OS answers with nothing, <paramref name="nameRetryDelay"/>
+    /// apart, which in production is the beat Windows takes to publish the
+    /// portable device node for a phone that has just arrived.
     /// </summary>
     public AdbDeviceDirector(
         IUsbEventMonitor monitor,
         IAdbDeviceList devices,
         Func<UsbDeviceInfo, string>? deviceName = null,
-        TimeSpan? enumerationDelay = null)
+        TimeSpan? enumerationDelay = null,
+        Func<IEnumerable<UsbDeviceInfo>>? connectedDevices = null,
+        int nameAttempts = 3,
+        TimeSpan? nameRetryDelay = null)
     {
         _monitor = monitor;
         _devices = devices;
         _deviceName = deviceName ?? ReadNameFromOs;
+        _connectedDevices = connectedDevices ?? EnumerateConnectedDevices;
         _enumerationDelay = enumerationDelay ?? TimeSpan.FromSeconds(1);
+        _nameAttempts = nameAttempts < 1 ? 1 : nameAttempts;
+        _nameRetryDelay = nameRetryDelay ?? TimeSpan.FromMilliseconds(400);
         _monitor.DeviceConnected += OnDeviceConnected;
         _monitor.DeviceDisconnected += OnDeviceDisconnected;
     }
@@ -128,13 +144,12 @@ public sealed class AdbDeviceDirector : IDisposable
     {
         try
         {
-            foreach (UsbDeviceInfo device in EnumerateConnectedDevices())
+            foreach (UsbDeviceInfo device in _connectedDevices())
             {
                 string manufacturer = AndroidBrandDetector.Detect(device);
                 if (manufacturer.Length == 0) continue;
 
-                string reported = _deviceName(device);
-                return (manufacturer, AndroidDeviceName.FromReportedText(reported));
+                return (manufacturer, ReadModelWhenPublished(device));
             }
         }
         catch (Exception ex)
@@ -143,6 +158,33 @@ public sealed class AdbDeviceDirector : IDisposable
         }
 
         return ("", "");
+    }
+
+    /// <summary>
+    /// The model of the phone on this cable, reading again for a beat before
+    /// giving up on it.
+    ///
+    /// Windows fills in the portable device node from the phone a moment after
+    /// the USB interface that identifies it, so the read that happens to run
+    /// first comes back with nothing at all. An answer that is present but is
+    /// not a model ("USB Composite Device") is believed straight away: the OS
+    /// has spoken and did not name the phone, and waiting would hold up the
+    /// how-to for a name that is not coming.
+    /// </summary>
+    private string ReadModelWhenPublished(UsbDeviceInfo device)
+    {
+        string reported = "";
+
+        for (int attempt = 0; attempt < _nameAttempts; attempt++)
+        {
+            reported = _deviceName(device);
+            if (reported.Length > 0) break;
+
+            if (attempt + 1 < _nameAttempts && _nameRetryDelay > TimeSpan.Zero)
+                Thread.Sleep(_nameRetryDelay);
+        }
+
+        return AndroidDeviceName.FromReportedText(reported);
     }
 
     private static IEnumerable<UsbDeviceInfo> EnumerateConnectedDevices()
@@ -270,8 +312,7 @@ public sealed class AdbDeviceDirector : IDisposable
             _raisedDevices.Add(deviceInfo.DeviceInstanceId);
         }
 
-        string reported = _deviceName(deviceInfo);
-        string model = AndroidDeviceName.FromReportedText(reported);
+        string model = ReadModelWhenPublished(deviceInfo);
 
         AdbRequired?.Invoke(this, new AdbRequiredEventArgs(manufacturer, model, deviceInfo));
     }

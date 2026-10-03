@@ -555,6 +555,68 @@ public class UsbDebuggingGuideTests : IDisposable
         Assert.False(vm.ShowAdbWarning);
     }
 
+    // ---- naming the phone when the card is already up ----
+
+    [AvaloniaFact]
+    public void TheCard_KeepsANameToFind_UntilTheModelIsThere()
+    {
+        // Two halves of the same thing: a phone nobody has named yet is worth
+        // asking about, a brand is not a model so it is still worth asking
+        // about, and the model is what ends the asking.
+        using var window = new MainWindow();
+        var card = ((MainWindowViewModel)window.DataContext!).AdbTutorialViewModel;
+
+        Assert.True(card.NeedsDeviceName);
+        Assert.True(card.TryBeginDeviceNameLookup());
+
+        card.SetDevice("Samsung", "");
+        Assert.True(card.NeedsDeviceName,
+            "the heading reads \"Samsung device\", which is a brand standing in for a model");
+
+        card.SetDevice("Samsung", "Galaxy A55");
+        Assert.False(card.NeedsDeviceName);
+        Assert.False(card.TryBeginDeviceNameLookup());
+    }
+
+    [AvaloniaFact]
+    public void TheCard_StopsAskingForAModel_TheOsDoesNotHave()
+    {
+        // A phone the OS only ever calls hardware would otherwise be asked
+        // about on every refresh for the rest of the session, and each ask is a
+        // walk through the PnP tree.
+        using var window = new MainWindow();
+        var card = ((MainWindowViewModel)window.DataContext!).AdbTutorialViewModel;
+        card.SetDevice("Samsung", "");
+
+        int attempts = 0;
+        while (card.TryBeginDeviceNameLookup()) attempts++;
+
+        Assert.Equal(3, attempts);
+        Assert.False(card.NeedsDeviceName);
+    }
+
+    [AvaloniaFact]
+    public async Task RefreshingWhileTheHowToIsOpen_StillGoesLookingForTheModel()
+    {
+        // The bug: the lookup only ran on the way in, before the card was on
+        // screen. The card that opens from a USB event is on screen before the
+        // OS has published the model, and it was never allowed to ask again, so
+        // it stayed on the brand for as long as the operator left it there.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        vm.DeviceProbe = () => Task.FromResult((
+            new Dictionary<string, string>(),
+            DeviceService.ConnectionState.Unauthorized));
+        vm.ShowAdbWarning = true;
+
+        for (int i = 0; i < 4; i++)
+            await vm.RefreshDevicesCommand.Execute();
+
+        Assert.False(vm.AdbTutorialViewModel.NeedsDeviceName,
+            "four refreshes with the how-to open and the card never got to ask for the model");
+    }
+
     private static double Luminance(ISolidColorBrush? brush)
     {
         Assert.NotNull(brush);

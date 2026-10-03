@@ -16,9 +16,10 @@ namespace PhoneGrade.UI.ViewModels;
 /// instructions for an unnamed Android device and is narrowed down once a phone
 /// is actually identified, because the two ways it opens - a USB connection
 /// event, and adb reporting a phone it does not trust - do not always arrive
-/// together. The phone that was already on the cable before this process
-/// started never produces a connection event at all, which is why
-/// <see cref="IdentifyIfUnknown"/> exists.
+/// together, and neither of them waits for the OS to have finished naming the
+/// phone. The card takes what is known when it opens and is narrowed down
+/// afterwards, one attempt at a time, through
+/// <see cref="TryBeginDeviceNameLookup"/>.
 ///
 /// The visibility of the card is not decided here. That belongs to
 /// ShowAdbWarning in the main window view model, so the guide and the adb probe
@@ -31,6 +32,8 @@ public class AdbTutorialViewModel : ReactiveObject, IDisposable
     private readonly string[] _genericSteps;
 
     private string _manufacturer = "";
+    private string _model = "";
+    private int _nameLookups;
     private string _deviceIdentity = "";
     private string _manufacturerPrefix = "";
     private StepItem[] _steps;
@@ -109,6 +112,7 @@ public class AdbTutorialViewModel : ReactiveObject, IDisposable
         string model = modelName?.Trim() ?? "";
 
         Manufacturer = brand;
+        _model = model;
         DeviceIdentity = IdentityFor(brand, model);
         ManufacturerPrefix = string.Format(
             LocalizationManager.GetString("AdbTutorial_ManufacturerPrefix"), DeviceIdentity);
@@ -116,16 +120,31 @@ public class AdbTutorialViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>
-    /// Names the phone when the guide opened without one. The phone was
-    /// probably already plugged in when this process started, in which case no
-    /// connection event ever fires for it and the OS is asked directly instead.
+    /// How often the card will ask the OS for a model it has not published yet.
+    /// Three is a few refreshes' worth of the beat Windows takes to fill in the
+    /// portable device node, and it is what stops a phone the OS will only ever
+    /// call hardware from being walked through the PnP tree on every refresh
+    /// for the rest of the session.
     /// </summary>
-    public void IdentifyIfUnknown()
-    {
-        if (Manufacturer.Length > 0) return;
+    private const int MaxNameLookups = 3;
 
-        (string manufacturer, string model) = _director.IdentifyConnectedDevice();
-        if (manufacturer.Length > 0) SetDevice(manufacturer, model);
+    /// <summary>
+    /// True while the card still has a name to find: either nothing named the
+    /// phone at all, or only the brand did. A brand is not a model, and the
+    /// heading reads "Samsung device" until the OS publishes "Galaxy A55".
+    /// </summary>
+    public bool NeedsDeviceName => _nameLookups < MaxNameLookups && _model.Length == 0;
+
+    /// <summary>
+    /// Claims one attempt at naming the phone, for the refresh to carry out.
+    /// False when there is nothing left to find or the card has asked as often
+    /// as it means to.
+    /// </summary>
+    public bool TryBeginDeviceNameLookup()
+    {
+        if (!NeedsDeviceName) return false;
+        _nameLookups++;
+        return true;
     }
 
     /// <summary>

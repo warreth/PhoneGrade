@@ -249,6 +249,57 @@ public class AdbDeviceDirectorTests
     }
 
     [Fact]
+    public void TheModelIsReadAgain_WhileTheOsIsStillPublishingIt()
+    {
+        // Windows fills in the portable device node from the phone a beat after
+        // the USB interface that identifies it, so the read that happens to run
+        // first answers with nothing. One read means a heading that stays on the
+        // brand for the rest of the session over a phone whose model is on the
+        // screen the OS shows for it.
+        int reads = 0;
+        var monitor = new FakeMonitor();
+        var adb = new FakeAdbList(new AdbDeviceListState(Ran: true, false, true));
+        using var director = new AdbDeviceDirector(
+            monitor, adb,
+            deviceName: _ => ++reads < 3 ? "" : "HONOR 600 Lite (LNA-NX1)",
+            enumerationDelay: TimeSpan.Zero,
+            connectedDevices: () => new[] { Android(0x339B, "usb1") },
+            nameAttempts: 4,
+            nameRetryDelay: TimeSpan.Zero);
+
+        var (brand, model) = director.IdentifyConnectedDevice();
+
+        Assert.Equal("Honor", brand);
+        Assert.Equal("HONOR 600 Lite", model);
+        Assert.True(reads >= 3, $"the phone was only asked {reads} time(s)");
+    }
+
+    [Fact]
+    public void ANameThatIsNotAModel_IsReadOnceAndBelieved()
+    {
+        // The other half of the same rule. "USB Composite Device" is the OS
+        // having spoken and not named the phone, which is a finished answer;
+        // waiting on it would hold the how-to open for a phone that will never
+        // be called anything but hardware.
+        int reads = 0;
+        var monitor = new FakeMonitor();
+        var adb = new FakeAdbList(new AdbDeviceListState(Ran: true, false, true));
+        using var director = new AdbDeviceDirector(
+            monitor, adb,
+            deviceName: _ => { reads++; return "USB Composite Device"; },
+            enumerationDelay: TimeSpan.Zero,
+            connectedDevices: () => new[] { Android(SamsungVid, "usb1") },
+            nameAttempts: 4,
+            nameRetryDelay: TimeSpan.Zero);
+
+        var (brand, model) = director.IdentifyConnectedDevice();
+
+        Assert.Equal("Samsung", brand);
+        Assert.Equal("", model);
+        Assert.Equal(1, reads);
+    }
+
+    [Fact]
     public async Task AnIPad_NeverAsks_AndNeverEvenReachesAdb()
     {
         // Two claims in one test. The overlay is not only silent for an iPad,

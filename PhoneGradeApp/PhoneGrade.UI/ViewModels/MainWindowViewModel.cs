@@ -1483,17 +1483,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
         bool unauthorized = diagState == DeviceService.ConnectionState.Unauthorized;
 
-        // A phone that was already on the cable when this process started never
-        // raises a connection event, so the how-to would open for it with no
-        // name at all. The OS is asked directly, off the UI thread, and only on
-        // the way in: when it had no name to give, asking again changes nothing.
-        if (unauthorized && !ShowAdbWarning && !_adbGuideDismissed
-            && AdbTutorialViewModel.Manufacturer.Length == 0)
-        {
-            (string brand, string model) = await Task.Run(() => _adbDirector.IdentifyConnectedDevice());
-            if (brand.Length > 0)
-                await OnUiThreadAsync(() => AdbTutorialViewModel.SetDevice(brand, model));
-        }
+        // The card goes up with whatever is known at that moment. Naming it is a
+        // second, slower thing: the walk through the PnP tree takes a beat, and
+        // several when the OS has not published the model yet, so the how-to is
+        // worth showing before that answer arrives rather than after it.
+        if (unauthorized && !_adbGuideDismissed && AdbTutorialViewModel.TryBeginDeviceNameLookup())
+            _ = NameThePhoneAsync();
 
         await OnUiThreadAsync(() =>
         {
@@ -1513,6 +1508,27 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         _lastDiagState = diagState;
 
         return (devices, diagState);
+    }
+
+    /// <summary>
+    /// Asks the OS what is on the cable and points the how-to at it. Runs on its
+    /// own: a phone already on the cable has no connection event to be named by,
+    /// and one that just arrived is named by the OS a beat after the interface
+    /// that identified it, so the card is opened first and narrowed down when the
+    /// answer gets in.
+    /// </summary>
+    private async Task NameThePhoneAsync()
+    {
+        try
+        {
+            (string brand, string model) = await Task.Run(() => _adbDirector.IdentifyConnectedDevice());
+            if (brand.Length > 0)
+                await OnUiThreadAsync(() => AdbTutorialViewModel.SetDevice(brand, model));
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Debug(LogSource.UsbDetector, $"Naming the phone failed: {ex.Message}");
+        }
     }
 
     /// <summary>
