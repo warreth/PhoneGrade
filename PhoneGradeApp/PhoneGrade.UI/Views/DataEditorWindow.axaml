@@ -15,9 +15,14 @@
     <!--
         Three rows: what is being edited, the fields, and the button that sends
         it to the label. The button is a bar at the bottom instead of the last
-        thing in a long scroll, so it is on screen at any window height, and the
-        fields sit in two columns because eight single-column rows pushed it past
-        the bottom of a normal screen.
+        thing in a long scroll, so it is on screen at any window height.
+
+        The form is a stack of cards rather than four headings over bare
+        labels, and it stretches: a left aligned panel inside a scroller is
+        measured as wide as its content, which put both columns of every field
+        in the left third of the window and left the rest of it empty. The
+        stack caps at 900 so a maximised window does not turn each field into
+        a text box a metre wide.
     -->
     <Grid RowDefinitions="Auto,*,Auto">
 
@@ -29,125 +34,138 @@
         </Border>
 
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Margin="24,20">
-            <StackPanel Spacing="16" MaxWidth="640" HorizontalAlignment="Left">
+            <StackPanel Spacing="16" MaxWidth="900">
 
                 <!-- What lands on the label -->
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_Identity}"/>
+                <Border Classes="card" Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_Identity}"/>
 
-                    <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto,Auto" >
-                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Identifier}"/>
-                            <TextBox Text="{Binding DeviceData.Identifier}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Row="0" Grid.Column="2" Spacing="6">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Model}"/>
-                            <TextBox Text="{Binding DeviceData.Model}"/>
-                        </StackPanel>
+                        <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto,Auto" >
+                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Identifier}"/>
+                                <TextBox Text="{Binding DeviceData.Identifier}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="2" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Model}"/>
+                                <TextBox Text="{Binding DeviceData.Model}"/>
+                            </StackPanel>
 
-                        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="6">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Color}"/>
-                            <TextBox Text="{Binding DeviceData.Color}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Row="1" Grid.Column="2" Spacing="6">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Storage}"/>
-                            <TextBox Text="{Binding DeviceData.Storage}"/>
-                        </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="0" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Color}"/>
+                                <TextBox Text="{Binding DeviceData.Color}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="2" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Storage}"/>
+                                <TextBox Text="{Binding DeviceData.Storage}"/>
+                            </StackPanel>
 
-                        <StackPanel Grid.Row="2" Grid.Column="0" Spacing="6">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Memory}"/>
-                            <TextBox Text="{Binding DeviceData.Memory}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Row="2" Grid.Column="2" Spacing="6">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Battery}"/>
-                            <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="0" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Memory}"/>
+                                <TextBox Text="{Binding DeviceData.Memory}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="2" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Battery}"/>
+                                <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
                 <!-- The two choices, offered as choices rather than typed in -->
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_Grading}"/>
+                <Border Classes="card" Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_Grading}"/>
 
-                    <Grid ColumnDefinitions="*,16,*">
-                        <StackPanel Grid.Column="0" Spacing="6">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Quality}"/>
-                            <ComboBox ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding Quality, Mode=TwoWay}"
-                                      HorizontalAlignment="Stretch">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Converter={StaticResource QualityOptionLabelConverter}, ConverterParameter=Unset}"/>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Spacing="6">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Payment}"/>
-                            <ComboBox ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding PayMethod, Mode=TwoWay}"
-                                      HorizontalAlignment="Stretch">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Converter={StaticResource PaymentOptionLabelConverter}, ConverterParameter=Unset}"/>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
+                        <Grid ColumnDefinitions="*,16,*">
+                            <StackPanel Grid.Column="0" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Quality}"/>
+                                <ComboBox ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding Quality, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Converter={StaticResource QualityOptionLabelConverter}, ConverterParameter=Unset}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Spacing="6">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Payment}"/>
+                                <ComboBox ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding PayMethod, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Converter={StaticResource PaymentOptionLabelConverter}, ConverterParameter=Unset}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
                 <!-- Read-only numbers the phone reported -->
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_MetricsTitle}"/>
+                <Border Classes="card" Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_MetricsTitle}"/>
 
-                    <Grid ColumnDefinitions="*,16,*,16,*">
-                        <StackPanel Grid.Column="0" Spacing="3">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Cycles}"/>
-                            <TextBlock Text="{Binding DeviceData.BatteryCycleCount}" FontWeight="SemiBold"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Spacing="3">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_DesignMah}"/>
-                            <TextBlock Text="{Binding DeviceData.BatteryDesignCapacity}" FontWeight="SemiBold"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="4" Spacing="3">
-                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_CurrentMah}"/>
-                            <TextBlock Text="{Binding DeviceData.BatteryCurrentCapacity}" FontWeight="SemiBold"/>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
+                        <Grid ColumnDefinitions="*,16,*,16,*">
+                            <StackPanel Grid.Column="0" Spacing="3">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Cycles}"/>
+                                <TextBlock Text="{Binding DeviceData.BatteryCycleCount}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Spacing="3">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_DesignMah}"/>
+                                <TextBlock Text="{Binding DeviceData.BatteryDesignCapacity}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4" Spacing="3">
+                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_CurrentMah}"/>
+                                <TextBlock Text="{Binding DeviceData.BatteryCurrentCapacity}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-                <!-- OEM Component Verification Checks -->
-                <StackPanel Spacing="10">
-                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Active_OemTitle}"/>
+                <!--
+                    OEM Component Verification Checks. An audit with nothing in
+                    it is not a section, it is the rest of the window left
+                    empty under a heading.
+                -->
+                <Border Classes="card" Padding="16"
+                        IsVisible="{Binding DeviceData.ComponentChecks.Count}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="sectionTitle" Text="{DynamicResource Active_OemTitle}"/>
 
-                    <ItemsControl ItemsSource="{Binding DeviceData.ComponentChecks}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Classes="reportRow" Padding="12,8">
-                                    <Grid ColumnDefinitions="160,*,*,Auto">
-                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                        <StackPanel Grid.Column="1" Spacing="1" Margin="12,0">
-                                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColRead}" FontSize="10"/>
-                                            <TextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" Spacing="1" Margin="12,0">
-                                            <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColFactory}" FontSize="10"/>
-                                            <TextBlock Text="{Binding SerialOriginal}" FontSize="11" TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
-                                        <Border Grid.Column="3" Classes="chip"
-                                                Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
-                                            <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}"/>
-                                        </Border>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
+                        <ItemsControl ItemsSource="{Binding DeviceData.ComponentChecks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="reportRow" Padding="12,8">
+                                        <Grid ColumnDefinitions="160,*,*,Auto">
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <StackPanel Grid.Column="1" Spacing="1" Margin="12,0">
+                                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColRead}" FontSize="10"/>
+                                                <TextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Spacing="1" Margin="12,0">
+                                                <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColFactory}" FontSize="10"/>
+                                                <TextBlock Text="{Binding SerialOriginal}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <Border Grid.Column="3" Classes="chip"
+                                                    Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
+                                                <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 
         <Border Grid.Row="2" Classes="actionBar">
-            <Grid ColumnDefinitions="*,Auto" MaxWidth="640" HorizontalAlignment="Stretch">
+            <Grid ColumnDefinitions="*,Auto" MaxWidth="900" HorizontalAlignment="Stretch">
                 <Button Grid.Column="1" Classes="cta" Content="{DynamicResource Editor_Save}"
                         Command="{Binding SaveAndOpenLabelCommand}"
                         Padding="24,12" MinWidth="200" HorizontalContentAlignment="Center"/>

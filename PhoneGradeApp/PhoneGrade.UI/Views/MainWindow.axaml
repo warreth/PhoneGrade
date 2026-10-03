@@ -433,8 +433,11 @@
                         </Border>
                     </Grid>
 
-                    <!-- The report: deviations only, and the only thing that scrolls -->
-                    <Border Grid.Row="1" Classes="card" Margin="24,0" Padding="16,12">
+                    <!-- The report: deviations only, and the only thing that scrolls.
+                         It is top aligned because the row it sits in is sized to
+                         what is left over: a short report used to stretch to the
+                         footer and present a card with nothing in its lower half. -->
+                    <Border Grid.Row="1" Classes="card" Margin="24,0" Padding="16,12" VerticalAlignment="Top">
                         <Grid RowDefinitions="Auto,*">
                             <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
                                 <TextBlock Classes="cardTitle" Text="{DynamicResource Summary_ReportTitle}" FontSize="12" VerticalAlignment="Center"/>
