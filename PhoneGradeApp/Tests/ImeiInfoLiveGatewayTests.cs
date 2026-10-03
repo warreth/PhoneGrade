@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using PhoneGrade.Core.SecurityServices;
 using Xunit;
@@ -103,6 +107,21 @@ public class ImeiInfoLiveGatewayTests
 
         Assert.True(success, error);
         Assert.True(balance >= 0, $"the gateway reported a balance of {balance}");
+
+        // The same figure, read straight from the gateway's own body: the app
+        // must not disagree with the dashboard about what the account holds.
+        using var raw = new HttpClient();
+        using var response = await raw.GetAsync(
+            $"{BaseUrl}/api/account/account/?API_KEY={Uri.EscapeDataString(Key)}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        JsonElement field = doc.RootElement.GetProperty("balance");
+        decimal reported = field.ValueKind == JsonValueKind.String
+            ? decimal.Parse(field.GetString() ?? "", CultureInfo.InvariantCulture)
+            : field.GetDecimal();
+
+        Assert.Equal(reported, balance);
     }
 
     /// <summary>
