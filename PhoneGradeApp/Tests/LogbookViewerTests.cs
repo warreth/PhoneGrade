@@ -85,6 +85,13 @@ public class LogbookViewerTests : IDisposable
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        // The ticks schedule the render pass; this run executes it. A render
+        // still queued when a test ends is executed by the NEXT test's session
+        // setup, whose locator has not registered the font manager yet, so the
+        // next test is then blamed for this test's pending work. Every test
+        // that shows a window ends through here, with the queue dry while this
+        // test's own application is still the one on duty.
+        Dispatcher.UIThread.RunJobs();
     }
 
     /// <summary>The log list of the shown window, or null when the view does not have one.</summary>

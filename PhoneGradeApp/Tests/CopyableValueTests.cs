@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using PhoneGrade.Core;
 using PhoneGrade.Tests;
@@ -328,6 +329,16 @@ public class CopyableValueTests
             $"only {summaryWritten} of them carry text, so there is nothing to select for the operator");
 
         Assert.Contains(summaryValues, s => s.Text == identifier);
+
+        // The ticks above schedule a render pass on the dispatcher, and a pass
+        // still queued when this test ends is executed by the NEXT test's
+        // session setup, whose locator has not registered the font manager
+        // yet - which fails that test for this test's pending work. Run the
+        // queue dry here, while this test's own application is the one on
+        // duty and every service it needs is registered.
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
     }
 
     /// <summary>The window and everything under it, in tree order.</summary>
