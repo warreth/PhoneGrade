@@ -60,12 +60,12 @@
                     <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                             ClipToBounds="True" Margin="16,0" MaxWidth="460">
                         <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasDevice}">
-                            <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}"
-                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"
-                                       MaxWidth="170" TextTrimming="CharacterEllipsis"/>
+                            <SelectableTextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}"
+                                                 FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"
+                                                 MaxWidth="170" TextTrimming="CharacterEllipsis"/>
                             <Border Width="1" Height="13" Background="{DynamicResource CardBorderColor}" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="12"
-                                       VerticalAlignment="Center" MaxWidth="130" TextTrimming="CharacterEllipsis"/>
+                            <SelectableTextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="12"
+                                                 VerticalAlignment="Center" MaxWidth="130" TextTrimming="CharacterEllipsis"/>
                             <Border Width="1" Height="13" Background="{DynamicResource CardBorderColor}" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding Status}" Classes="dim" FontSize="12" VerticalAlignment="Center"
                                        MaxWidth="180" TextTrimming="CharacterEllipsis"/>
@@ -212,29 +212,29 @@
                                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0,2,0,0">
                                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="1" Margin="0,0,6,8">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Model}" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="12"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="1" Margin="0,0,6,8">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Serial}" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="12"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="0" Grid.Column="2" Spacing="1" Margin="0,0,0,8">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Storage}" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData.Storage}" FontWeight="Bold" FontSize="12"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.Storage}" FontWeight="Bold" FontSize="12"/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="1" Grid.Column="0" Spacing="1" Margin="0,0,6,0">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Color}" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" FontWeight="SemiBold" FontSize="12"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" FontWeight="SemiBold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="1" Margin="0,0,6,0">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Battery}" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="SemiBold" FontSize="12"/>
-                                            <TextBlock Text="{Binding DeviceData.BatteryLevel, Converter={StaticResource BatteryLevelConverter}}" Classes="dim" FontSize="10"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="SemiBold" FontSize="12"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.BatteryLevel, Converter={StaticResource BatteryLevelConverter}}" Classes="dim" FontSize="10"/>
                                         </StackPanel>
                                         <StackPanel Grid.Row="1" Grid.Column="2" Spacing="1">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Grade}" FontSize="10"/>
-                                            <TextBlock Text="{Binding SelectedGradeDisplay}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentColor}"/>
+                                            <SelectableTextBlock Text="{Binding SelectedGradeDisplay}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentColor}"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
@@ -247,22 +247,22 @@
                                     <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto" Margin="0,2,0,0">
                                         <StackPanel Grid.Column="0" Spacing="1" Margin="0,0,6,0">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Imei}" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.Identifier}" FontWeight="SemiBold" FontSize="12" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Spacing="1" Margin="0,0,6,0">
                                             <StackPanel Orientation="Horizontal" Spacing="3">
                                                 <TextBlock Classes="dim" Text="{DynamicResource Spec_FindMy}" FontSize="10"/>
                                                 <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="3,1">
-                                                    <TextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
+                                                    <SelectableTextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
                                                 </Border>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}}" 
+                                            <SelectableTextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}}" 
                                                        Foreground="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockBrushConverter}}"
                                                        FontWeight="Bold" FontSize="12"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="2" Spacing="1">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Blacklist}" FontSize="10"/>
-                                            <TextBlock Text="{DynamicResource Spec_NotChecked}" Classes="dim" FontSize="12"/>
+                                            <SelectableTextBlock Text="{DynamicResource Spec_NotChecked}" Classes="dim" FontSize="12"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
@@ -286,14 +286,14 @@
                                                         report, so the eye does not have to learn the table twice.
                                                     -->
                                                     <Grid ColumnDefinitions="210,*,*,Auto">
-                                                        <TextBlock Grid.Column="0" Margin="0,0,10,0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                        <SelectableTextBlock Grid.Column="0" Margin="0,0,10,0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                         <StackPanel Grid.Column="1" Margin="0,0,10,0" Spacing="1">
                                                             <TextBlock Classes="dim" Text="{DynamicResource Active_ColFactory}" FontSize="9" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{Binding SerialOriginal}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                            <SelectableTextBlock Text="{Binding SerialOriginal}" FontSize="10" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="2" Margin="0,0,10,0" Spacing="1">
                                                             <TextBlock Classes="dim" Text="{DynamicResource Active_ColRead}" FontSize="9" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{Binding SerialRead}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                            <SelectableTextBlock Text="{Binding SerialRead}" FontSize="10" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                         <Border Grid.Column="3" CornerRadius="3" Padding="5,2" HorizontalAlignment="Right" VerticalAlignment="Center"
                                                                 Background="{Binding Status, Converter={x:Static vm:ComponentStatusToBrushConverter.Instance}}">
@@ -354,23 +354,23 @@
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
                                     <TextBlock Text="{DynamicResource Summary_Title}" Classes="cardTitle" FontSize="11"/>
-                                    <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontSize="18" FontWeight="Bold"/>
+                                    <SelectableTextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontSize="18" FontWeight="Bold"/>
                                     <StackPanel Orientation="Horizontal" Spacing="14">
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <TextBlock Text="{DynamicResource Summary_Imei}" Classes="dim" FontSize="11"/>
-                                            <TextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="11"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.Identifier}" Classes="dim" FontSize="11"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <TextBlock Text="{DynamicResource Summary_Storage}" Classes="dim" FontSize="11"/>
-                                            <TextBlock Text="{Binding DeviceData.Storage}" Classes="dim" FontSize="11"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.Storage}" Classes="dim" FontSize="11"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <TextBlock Text="{DynamicResource Summary_Memory}" Classes="dim" FontSize="11"/>
-                                            <TextBlock Text="{Binding DeviceData.Memory, Converter={StaticResource MemoryConverter}}" Classes="dim" FontSize="11"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.Memory, Converter={StaticResource MemoryConverter}}" Classes="dim" FontSize="11"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Spacing="4">
                                             <TextBlock Text="{DynamicResource Summary_Color}" Classes="dim" FontSize="11"/>
-                                            <TextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" Classes="dim" FontSize="11"/>
+                                            <SelectableTextBlock Text="{Binding DeviceData.Color, Converter={StaticResource ColorConverter}}" Classes="dim" FontSize="11"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </StackPanel>
@@ -382,10 +382,10 @@
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <TextBlock Text="{DynamicResource Summary_Fmi}" FontSize="9" Classes="dim"/>
                                                 <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="2,0">
-                                                    <TextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
+                                                    <SelectableTextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
                                                 </Border>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}, FallbackValue='Onbekend'}"
+                                            <SelectableTextBlock Text="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockConverter}, FallbackValue='Onbekend'}"
                                                        Foreground="{Binding DeviceData.ActivationLock, Converter={StaticResource ActivationLockBrushConverter}}"
                                                        FontWeight="Bold" FontSize="11"/>
                                         </StackPanel>
@@ -404,19 +404,19 @@
                             <Grid ColumnDefinitions="*,*,*,*">
                                 <StackPanel Grid.Column="0" Spacing="2">
                                     <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_BatteryHealth}"/>
-                                    <TextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="Bold" FontSize="12"/>
+                                    <SelectableTextBlock Text="{Binding DeviceData.BatteryHealth, Converter={StaticResource BatteryConverter}}" FontWeight="Bold" FontSize="12"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Spacing="2">
                                     <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_InvoiceMethod}"/>
-                                    <TextBlock Text="{Binding SelectedInvoiceMethodDisplay}" FontWeight="Bold" FontSize="12"/>
+                                    <SelectableTextBlock Text="{Binding SelectedInvoiceMethodDisplay}" FontWeight="Bold" FontSize="12"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Spacing="2">
                                     <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_SimLock}"/>
-                                    <TextBlock Text="{DynamicResource Summary_SimLockFree}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource SuccessColor}"/>
+                                    <SelectableTextBlock Text="{DynamicResource Summary_SimLockFree}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource SuccessColor}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="3" Spacing="2">
                                     <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_HardwareTests}"/>
-                                    <TextBlock Text="{Binding InteractiveTestSummary}" FontWeight="Bold" FontSize="12"
+                                    <SelectableTextBlock Text="{Binding InteractiveTestSummary}" FontWeight="Bold" FontSize="12"
                                                Foreground="{DynamicResource SuccessColor}" TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </Grid>
@@ -440,15 +440,15 @@
                                             <DataTemplate>
                                                 <Border Classes="reportRow bad">
                                                     <Grid ColumnDefinitions="170,*,*,Auto">
-                                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11"
+                                                        <SelectableTextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="SemiBold" FontSize="11"
                                                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                         <StackPanel Grid.Column="1" Spacing="1" Margin="12,0">
                                                             <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColFactory}" FontSize="9"/>
-                                                            <TextBlock Text="{Binding SerialOriginal}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                                            <SelectableTextBlock Text="{Binding SerialOriginal}" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="2" Spacing="1" Margin="12,0">
                                                             <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_ColRead}" FontSize="9"/>
-                                                            <TextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                                            <SelectableTextBlock Text="{Binding SerialRead}" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                         <Border Grid.Column="3" Classes="chip bad">
                                                             <TextBlock Text="{Binding Status, Converter={StaticResource ComponentStatusConverter}}"/>

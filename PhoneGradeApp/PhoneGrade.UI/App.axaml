@@ -102,6 +102,18 @@
         <Style Selector="TextBlock.dim">
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
         </Style>
+        <!--
+            A read-out the operator can select is a SelectableTextBlock, and a
+            type selector matches only the type it names unless it is written
+            as :is, so TextBlock.dim above does not reach it. Without this line
+            the selectable values would come out at full brightness beside the
+            dim label they belong to. The plain TextBlock rule needs no twin
+            because Foreground is inherited from the window and reaches every
+            descendant either way.
+        -->
+        <Style Selector="SelectableTextBlock.dim">
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
 
         <!-- Cards: the single container style used everywhere -->
         <Style Selector="Border.card">
