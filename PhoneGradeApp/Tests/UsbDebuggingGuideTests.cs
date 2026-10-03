@@ -1,9 +1,11 @@
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using PhoneGrade.Core;
 using PhoneGrade.UI.ViewModels;
 using PhoneGrade.UI.Views;
 using Xunit;
@@ -484,6 +486,73 @@ public class UsbDebuggingGuideTests : IDisposable
         // theme and was chosen by copying a bootstrap warning.
         var background = card.Background as ISolidColorBrush;
         Assert.NotEqual(Color.Parse("#FFF3CD"), background!.Color);
+    }
+
+    // ---- what the button inside it does ----
+
+    [AvaloniaFact]
+    public async Task SearchingAgain_KeepsTheHowToOnScreen_WhenTheProbeHasNoAnswer()
+    {
+        // The bug this is here for: "Opnieuw zoeken" closed the how-to before
+        // it asked, and a probe that came back with nothing to say about the
+        // phone left it closed. An operator tapping the button that promises
+        // another look was put back on the idle screen, mid-instructions, with
+        // the phone still on the cable still showing the prompt.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        vm.DeviceProbe = () => Task.FromResult((
+            new Dictionary<string, string>(),
+            DeviceService.ConnectionState.NotFound));
+        vm.ShowAdbWarning = true;
+
+        await vm.RetryAdbDetectionCommand.Execute();
+
+        Assert.True(vm.ShowAdbWarning,
+            "the how-to went away on an answer that said nothing about the phone");
+    }
+
+    [AvaloniaFact]
+    public async Task SearchingAgain_ReopensAHowToThatWasDismissed()
+    {
+        // The other half of that button: a phone whose how-to was closed is
+        // worth asking about once more, so the dismissal is what it gives up.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        // Named up front so the refresh does not go off and ask the OS for a
+        // name; that lookup belongs to the guide opening, not to this button.
+        vm.AdbTutorialViewModel.SetDevice("Samsung", "Galaxy A55");
+        vm.DeviceProbe = () => Task.FromResult((
+            new Dictionary<string, string>(),
+            DeviceService.ConnectionState.Unauthorized));
+
+        await vm.DismissAdbGuideCommand.Execute();
+        Assert.False(vm.ShowAdbWarning);
+
+        await vm.RetryAdbDetectionCommand.Execute();
+
+        Assert.True(vm.ShowAdbWarning);
+    }
+
+    [AvaloniaFact]
+    public async Task SearchingAgain_TakesTheHowToOff_WhenThePhoneIsTrusted()
+    {
+        // Looking again is also how the how-to ends when the operator tapped
+        // Allow on the phone in the meantime: adb can talk to it, so there is
+        // nothing left to tell them.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        vm.AdbTutorialViewModel.SetDevice("Samsung", "Galaxy A55");
+        vm.DeviceProbe = () => Task.FromResult((
+            new Dictionary<string, string>(),
+            DeviceService.ConnectionState.Connected));
+        vm.ShowAdbWarning = true;
+
+        await vm.RetryAdbDetectionCommand.Execute();
+
+        Assert.False(vm.ShowAdbWarning);
     }
 
     private static double Luminance(ISolidColorBrush? brush)

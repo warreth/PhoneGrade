@@ -519,9 +519,12 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         Assert.Contains("RetryAdbDetectionCommand", content);
 
         // The card is bound to the unauthorized state and nothing else, so it is
-        // never on screen for a phone that has already been trusted.
+        // never on screen for a phone that has already been trusted. The rule
+        // itself is AdbGuidePolicy.Decide, tested as a table in
+        // AdbGuidePolicyTests; what is checked here is that the view model goes
+        // through it rather than writing the flag from whichever probe answered.
         var viewModel = RepoPath.Read("PhoneGradeApp", "PhoneGrade.UI", "ViewModels", "MainWindowViewModel.cs");
-        Assert.Contains("ShowAdbWarning = unauthorized", viewModel);
+        Assert.Contains("AdbGuidePolicy.Decide", viewModel);
 
         // The guide's own styles belong in the shared stylesheet with the rest of
         // them. A card that carries its own inline styling is the thing that

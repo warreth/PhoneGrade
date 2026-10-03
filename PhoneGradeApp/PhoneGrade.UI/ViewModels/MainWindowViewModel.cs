@@ -786,9 +786,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         RetestCommand = ReactiveCommand.CreateFromTask(RetestCurrentDeviceAsync, canStart);
         RetryAdbDetectionCommand = ReactiveCommand.CreateFromTask(async () => {
             // Checking again is a fresh look at the cable, so a phone whose
-            // guide was dismissed is worth asking about once more.
+            // guide was dismissed is worth asking about once more. The guide is
+            // deliberately not closed first: it may only go away on an answer
+            // that says the phone is fine, and closing it here is what used to
+            // leave an operator off the how-to the moment the probe came back
+            // with nothing to say about the phone at all.
             _adbGuideDismissed = false;
-            ShowAdbWarning = false;
             await RefreshDeviceListAsync();
         });
         DismissAdbGuideCommand = ReactiveCommand.Create(() =>
@@ -1460,6 +1463,13 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>
+    /// Where a device refresh gets its answer. Production leaves this null and
+    /// reads the cable; a test hands one over so the how-to can be proven
+    /// without an adb binary or a phone that declines to trust this computer.
+    /// </summary>
+    public Func<Task<(Dictionary<string, string> Devices, DeviceService.ConnectionState State)>>? DeviceProbe { get; set; }
+
+    /// <summary>
     /// Reads the device list and the adb state in one go, and opens or closes
     /// the USB debugging how-to to match. Called from both refresh paths:
     /// doing it only on the manual scan meant the guide never appeared on
@@ -1467,10 +1477,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// </summary>
     private async Task<(Dictionary<string, string> Devices, DeviceService.ConnectionState State)> GetDevicesWithAdbStateAsync()
     {
-        var (devices, diagState) = await DeviceService.GetConnectedDevicesWithStateAsync();
+        var (devices, diagState) = DeviceProbe is null
+            ? await DeviceService.GetConnectedDevicesWithStateAsync()
+            : await DeviceProbe();
 
         bool unauthorized = diagState == DeviceService.ConnectionState.Unauthorized;
-        bool trusted = diagState == DeviceService.ConnectionState.Connected;
 
         // A phone that was already on the cable when this process started never
         // raises a connection event, so the how-to would open for it with no
@@ -1481,22 +1492,44 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         {
             (string brand, string model) = await Task.Run(() => _adbDirector.IdentifyConnectedDevice());
             if (brand.Length > 0)
-                await Dispatcher.UIThread.InvokeAsync(() => AdbTutorialViewModel.SetDevice(brand, model));
+                await OnUiThreadAsync(() => AdbTutorialViewModel.SetDevice(brand, model));
         }
 
-        await Dispatcher.UIThread.InvokeAsync(() =>
+        await OnUiThreadAsync(() =>
         {
-            // adb only has an opinion when it can see a phone: "unauthorized"
-            // turns the how-to on, and a phone it already trusts turns it off.
-            // Every other answer - no phone with debugging switched on yet, the
-            // tools missing - says nothing about a phone the USB events may
-            // have reported a second earlier, so the flag is left alone.
-            if (unauthorized || trusted)
-                ShowAdbWarning = unauthorized && !_adbGuideDismissed;
+            // One rule, in one place, for every answer the probe can give. See
+            // AdbGuidePolicy: only a phone that does not trust this computer
+            // opens the how-to and only a phone adb can talk to closes it.
+            switch (AdbGuidePolicy.Decide(diagState, _adbGuideDismissed))
+            {
+                case AdbGuideDecision.Show:
+                    ShowAdbWarning = true;
+                    break;
+                case AdbGuideDecision.Hide:
+                    ShowAdbWarning = false;
+                    break;
+            }
         });
         _lastDiagState = diagState;
 
         return (devices, diagState);
+    }
+
+    /// <summary>
+    /// Puts UI work on the UI thread, and where the caller is already on it,
+    /// does it here. Posting to a queue the caller is itself holding waits for
+    /// nobody to empty it: a test that awaits a refresh would never come back,
+    /// and in the app it is a needless hop before the same statement runs.
+    /// </summary>
+    private static async Task OnUiThreadAsync(Action action)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(action);
     }
 
     /// <summary>True when a device list refresh surfaced exactly one usable device.</summary>
@@ -1507,7 +1540,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             var (devices, _) = await GetDevicesWithAdbStateAsync();
             if (devices.Count == 0)
             {
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                await OnUiThreadAsync(() =>
                 {
                     Devices.Clear();
                     SelectedDevice = new KeyValuePair<string, string>("", "");
@@ -1515,7 +1548,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
                 return 0;
             }
 
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            await OnUiThreadAsync(() =>
             {
                 Devices = new ObservableCollection<KeyValuePair<string, string>>(devices);
                 // auto-select the single/first device if available

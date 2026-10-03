@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using PhoneGrade.Core.Licensing;
+using PhoneGrade.Core.Usb;
 
 namespace PhoneGrade.Core;
 
@@ -487,42 +488,21 @@ public static class DeviceService
         try
         {
             var (adbOut, adbErr, adbExit) = await ToolRunner.ExecuteAsync("adb", "devices");
-            if (adbExit == 0 && !string.IsNullOrWhiteSpace(adbOut))
+
+            // Read through the same parser the USB event stream uses, so a phone
+            // sitting on the RSA prompt cannot be "authorizing" for the how-to
+            // and "nothing found" for the status line a second later.
+            var (adbState, androidDevices) = AdbDeviceList.Parse(adbOut, adbExit);
+
+            if (adbState.Ran)
             {
-                var lines = adbOut.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                                  .Select(l => l.Trim())
-                                  .Where(l => !l.StartsWith("List of devices") && l.Length > 0)
-                                  .ToList();
-
-                var androidDevices = new List<string>();
-                bool hasUnauthorized = false;
-
-                foreach (var line in lines)
-                {
-                    var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length >= 2)
-                    {
-                        string serial = parts[0];
-                        string state = parts[1];
-                        if (state.Equals("device", StringComparison.OrdinalIgnoreCase))
-                        {
-                            androidDevices.Add(serial);
-                        }
-                        else if (state.Equals("unauthorized", StringComparison.OrdinalIgnoreCase))
-                        {
-                            hasUnauthorized = true;
-                            // Unauthorized Android device detected
-                        }
-                    }
-                }
-
-                if (androidDevices.Count > 0)
+                if (adbState.AnyAuthorized)
                 {
                     // Discovered Android devices (logging suppressed)
-                    return (androidDevices.ToArray(), adbOut, ConnectionState.Connected);
+                    return (androidDevices, adbOut, ConnectionState.Connected);
                 }
 
-                if (hasUnauthorized)
+                if (adbState.AnyUnauthorized)
                 {
                     return ([], adbOut, ConnectionState.Unauthorized);
                 }

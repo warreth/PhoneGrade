@@ -28,11 +28,26 @@ public sealed class AdbDeviceList : IAdbDeviceList
     public async Task<AdbDeviceListState> ReadAsync()
     {
         var (stdout, _, exitCode) = await ToolRunner.ExecuteAsync("adb", "devices");
+        return Parse(stdout, exitCode).State;
+    }
 
+    /// <summary>
+    /// Reads raw `adb devices` output. One parser for both readers: the
+    /// director opens the how-to from this list and the device probe writes
+    /// the status line from it, and two parsers over one list is how the screen
+    /// ended up describing a phone it could not see.
+    ///
+    /// `authorizing` sits beside `unauthorized` on purpose. It is the state a
+    /// phone is in while it shows the RSA prompt, which is the one moment the
+    /// how-to has something to offer, and it used to fall past both branches to
+    /// an empty bench.
+    /// </summary>
+    public static (AdbDeviceListState State, string[] Trusted) Parse(string stdout, int exitCode)
+    {
         if (exitCode != 0 || string.IsNullOrWhiteSpace(stdout))
-            return new AdbDeviceListState(Ran: false, AnyAuthorized: false, AnyUnauthorized: false);
+            return (new AdbDeviceListState(Ran: false, AnyAuthorized: false, AnyUnauthorized: false), []);
 
-        bool anyAuthorized = false;
+        var trusted = new List<string>();
         bool anyUnauthorized = false;
 
         foreach (string raw in stdout.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
@@ -43,10 +58,17 @@ public sealed class AdbDeviceList : IAdbDeviceList
             string[] parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2) continue;
 
-            if (parts[1].Equals("device", StringComparison.OrdinalIgnoreCase)) anyAuthorized = true;
-            else if (parts[1].Equals("unauthorized", StringComparison.OrdinalIgnoreCase)) anyUnauthorized = true;
+            if (parts[1].Equals("device", StringComparison.OrdinalIgnoreCase))
+            {
+                trusted.Add(parts[0]);
+            }
+            else if (parts[1].Equals("unauthorized", StringComparison.OrdinalIgnoreCase)
+                     || parts[1].Equals("authorizing", StringComparison.OrdinalIgnoreCase))
+            {
+                anyUnauthorized = true;
+            }
         }
 
-        return new AdbDeviceListState(Ran: true, anyAuthorized, anyUnauthorized);
+        return (new AdbDeviceListState(Ran: true, trusted.Count > 0, anyUnauthorized), trusted.ToArray());
     }
 }
