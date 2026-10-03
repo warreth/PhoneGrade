@@ -1857,19 +1857,20 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     }
 
     // IMEI.info BYOK Command Implementations
-    private async Task SaveImeiInfoApiKeyAsync()
+    private Task SaveImeiInfoApiKeyAsync()
     {
         if (string.IsNullOrWhiteSpace(ImeiInfoApiKey))
         {
             ImeiInfoApiKeyStatus = string.Format(LocalizationManager.GetString("Settings_ImeiInfoKeyInvalid") ?? "Invalid API Key: {0}", LocalizationManager.GetString("Settings_ImeiInfoKeyEmpty") ?? "Empty key");
             ImeiInfoApiKeyStatusColor = "#ef4444"; // Red
-            return;
+            return Task.CompletedTask;
         }
 
         _settings.ImeiInfoApiKey = ImeiInfoApiKey;
         _settings.Save();
         ImeiInfoApiKeyStatus = LocalizationManager.GetString("Settings_ImeiInfoApiKeySaved") ?? "API key saved";
         ImeiInfoApiKeyStatusColor = "#22c55e"; // Green
+        return Task.CompletedTask;
     }
 
     private async Task TestImeiInfoApiKeyAsync()
