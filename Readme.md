@@ -112,4 +112,30 @@ Pro license is activated. Activation validates the key against Lemon Squeezy and
 only accepts keys sold for this product; the pricing page behind the application
 links is the single source for what the paid plan costs.
 
+## Running the tests
+## Running the tests
+
+    dotnet test PhoneGradeApp/Tests/Tests.csproj
+    dotnet test PhoneGradeApp/Tests/Tests.csproj
+
+Most of the suite runs offline. A few tests talk to the real imei.info gateway
+and need a key of their own: CI reads `IMEI_INFO_API_KEY` from the repository
+secrets, a local run reads it from `PhoneGradeApp/Tests/.imei-info-key`, which
+git ignores. Without one, those tests report themselves as skipped.
+Most of the suite runs offline. A few tests talk to the real imei.info gateway
+and need a key of their own: CI reads `IMEI_INFO_API_KEY` from the repository
+secrets, a local run reads it from `PhoneGradeApp/Tests/.imei-info-key`, which
+git ignores. Without one, those tests report themselves as skipped.
+
+The sandbox IMEI numbers imei.info publishes for integration testing get their
+own tests as well. They run against a small server inside the test project that
+answers the way imei.info documents it: fixed device data for the three
+published numbers, HTTP 402 for every other one. That keeps the contract
+covered on a machine with an empty account balance.
+The sandbox IMEI numbers imei.info publishes for integration testing get their
+own tests as well. They run against a small server inside the test project that
+answers the way imei.info documents it: fixed device data for the three
+published numbers, HTTP 402 for every other one. That keeps the contract
+covered on a machine with an empty account balance.
+
 ## License
