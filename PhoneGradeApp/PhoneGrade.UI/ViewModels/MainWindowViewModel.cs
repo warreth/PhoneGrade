@@ -691,9 +691,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     // IMEI.info BYOK Commands
     public ReactiveCommand<Unit, Unit> SaveImeiInfoApiKeyCommand { get; }
     public ReactiveCommand<Unit, Unit> TestImeiInfoApiKeyCommand { get; }
-    public ReactiveCommand<Unit, Unit> OpenImeiRegisterCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenImeiDashboardCommand { get; }
-    public ReactiveCommand<Unit, Unit> OpenImeiCreditsCommand { get; }
     public ReactiveCommand<Unit, Unit> NavigateToImeiSettingsCommand { get; }
 
     public event Action<DeviceData>? DataEditorRequested;
@@ -810,9 +808,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         // IMEI.info BYOK Commands
         SaveImeiInfoApiKeyCommand = ReactiveCommand.CreateFromTask(SaveImeiInfoApiKeyAsync);
         TestImeiInfoApiKeyCommand = ReactiveCommand.CreateFromTask(TestImeiInfoApiKeyAsync);
-        OpenImeiRegisterCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/register"));
         OpenImeiDashboardCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/"));
-        OpenImeiCreditsCommand = ReactiveCommand.Create(() => PhoneGrade.UI.Services.PricingLink.Open("https://dash.imei.info/add-credits"));
 
         // Introduction screen: shown until dismissed, and never again after that.
         IsIntroVisible = !_settings.IntroSeen;

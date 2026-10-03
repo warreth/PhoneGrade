@@ -385,14 +385,14 @@
 
     <!-- IMEI API Settings -->
     <x:String x:Key="Settings_ImeiInfoGuide">Setup Guide</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideUrl">https://dash.imei.info/register</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideStep1_Action">and create an account</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep1">Create an account on imei.info</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep2">Click 'API Manage' in the sidebar and copy your API key (e.g., e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep3">Paste the API key in the input field above and click Save.</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep4">Go to 'Add Credits' on the website to add funds to your account.</x:String>
-    <x:String x:Key="Settings_ImeiInfoOpenRegister">Open Registration Page</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhyTitle">Why this needs your own key</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhy">IMEI checks run against your own imei.info account, so the key you paste below is yours and stays in this machine's settings file. PhoneGrade does not come with one.</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhyCredits">Each check is charged to the balance of that account at the price listed next to it, so add credits before the first one runs.</x:String>
     <x:String x:Key="Settings_ImeiInfoOpenDashboard">Open imei.info Dashboard</x:String>
-    <x:String x:Key="Settings_ImeiInfoOpenCredits">Open Add Credits Page</x:String>
     <x:String x:Key="Settings_ImeiInfoSaveKey">Save API Key</x:String>
     <x:String x:Key="Settings_ImeiInfoTestKey">Test API Key</x:String>
     <x:String x:Key="Settings_ImeiInfoChecks">Checks to Run Automatically</x:String>

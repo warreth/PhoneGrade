@@ -393,14 +393,14 @@
 
     <!-- IMEI API Instellingen -->
     <x:String x:Key="Settings_ImeiInfoGuide">Setup Handleiding</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideUrl">https://dash.imei.info/register</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideStep1_Action">en maak een account aan</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep1">Maak een account aan op imei.info</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep2">Klik op 'API Beheren' in de zijbalk en kopieer je API-sleutel (bijv., e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep3">Plak de API-sleutel in het invoerveld hierboven en klik op Opslaan.</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep4">Ga op de website naar 'Credits Toevoegen' om saldo toe te voegen.</x:String>
-    <x:String x:Key="Settings_ImeiInfoOpenRegister">Open Registratie Pagina</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhyTitle">Waarom je hier je eigen sleutel nodig hebt</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhy">IMEI-checks lopen via je eigen imei.info-account, dus de sleutel die je hieronder plakt is van jou en blijft in het instellingenbestand van deze computer staan. PhoneGrade levert er geen mee.</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhyCredits">Elke check wordt van het saldo van dat account afgeschreven tegen de prijs die erbij staat, dus voeg credits toe voordat de eerste check draait.</x:String>
     <x:String x:Key="Settings_ImeiInfoOpenDashboard">Open imei.info Dashboard</x:String>
-    <x:String x:Key="Settings_ImeiInfoOpenCredits">Open Credits Toevoegen Pagina</x:String>
     <x:String x:Key="Settings_ImeiInfoSaveKey">API Sleutel Opslaan</x:String>
     <x:String x:Key="Settings_ImeiInfoTestKey">API Sleutel Testen</x:String>
     <x:String x:Key="Settings_ImeiInfoChecks">Automatisch Uit Te Voeren Checks</x:String>
