@@ -248,7 +248,11 @@
                             <Border Classes="card" Padding="10,8">
                                 <StackPanel Spacing="10">
                                     <TextBlock Classes="cardTitle" Text="{DynamicResource Active_SpecsTitle}" FontSize="11"/>
-                                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto" Margin="0,2,0,0">
+                                    <!-- Two rows: what the phone is, and how it did. Storage is
+                                         here because it is one of the things that decides a
+                                         grade; memory is not, and the third row it used to
+                                         occupy is gone rather than left empty. -->
+                                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0,2,0,0">
                                         <StackPanel Grid.Row="0" Grid.Column="0" Spacing="1" Margin="0,0,6,8">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Model}" FontSize="10"/>
                                             <TextBlock Text="{Binding DeviceData, Converter={StaticResource ModelDisplayConverter}}" FontWeight="Bold" FontSize="12"/>
@@ -274,11 +278,6 @@
                                         <StackPanel Grid.Row="1" Grid.Column="2" Spacing="1">
                                             <TextBlock Classes="dim" Text="{DynamicResource Spec_Grade}" FontSize="10"/>
                                             <TextBlock Text="{Binding SelectedGradeDisplay}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AccentColor}"/>
-                                        </StackPanel>
-
-                                        <StackPanel Grid.Row="2" Grid.Column="0" Spacing="1">
-                                            <TextBlock Classes="dim" Text="{DynamicResource Spec_Memory}" FontSize="10"/>
-                                            <TextBlock Text="{Binding DeviceData.Memory, Converter={StaticResource MemoryConverter}}" FontWeight="SemiBold" FontSize="12"/>
                                         </StackPanel>
                                     </Grid>
                                 </StackPanel>
