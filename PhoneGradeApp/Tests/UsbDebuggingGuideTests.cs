@@ -10,16 +10,19 @@ using Xunit;
 
 namespace Tests;
 
-// ============ The USB debugging guide ============
-
-// This card appears only when the phone is connected but has not accepted this
-// computer. Nothing is wrong with the phone; what is missing is a tap on the
-// phone, and that tap has to happen in the right order or nothing changes.
+// ============ The USB debugging overlay ============
 //
-// So this is tested against the rendered card rather than against the source
-// file. A source grep cannot tell whether the card is reachable, whether the
+// This overlay appears only when an Android phone is on the cable and adb does
+// not trust this computer. Nothing is wrong with the phone; what is missing is a
+// tap on the phone, and that tap has to happen in the right order or nothing
+// changes.
+//
+// So it is tested against the rendered overlay rather than against the source
+// file. A source grep cannot tell whether the overlay is reachable, whether the
 // binding fires, or whether a style selector ever matched anything, and those
-// are exactly the three ways this card has been useless.
+// are exactly the ways this overlay has been useless: it used to be an inline
+// card that overflowed the idle screen, it used to be open for an iPad, and it
+// used to greet an operator with "Voor uw -toestel:" and no steps at all.
 
 public class UsbDebuggingGuideTests : IDisposable
 {
@@ -28,25 +31,30 @@ public class UsbDebuggingGuideTests : IDisposable
 
     public UsbDebuggingGuideTests()
     {
-        // The guide uses DynamicResource colours, so the theme has to be loaded
+        // The overlay uses DynamicResource colours, so the theme has to be loaded
         // from a known state rather than left over from whichever test ran before.
         Directory.CreateDirectory(_settingsDir);
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
         File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark"}""");
     }
 
-    [AvaloniaFact]
-    public void TheGuide_IsVisible_WhenThePhoneDoesNotTrustThisComputer()
-    {
-        var card = ShowGuideCard();
+    // ---- when it is on screen at all ----
 
-        Assert.True(card.IsEffectivelyVisible,
-            "the card is bound to ShowAdbWarning, so a false here means the operator " +
+    [AvaloniaFact]
+    public void TheOverlay_IsVisible_WhenThePhoneDoesNotTrustThisComputer()
+    {
+        var window = ShowOverlay();
+        var overlay = FindOverlay(window);
+
+        Assert.NotNull(overlay);
+        Assert.True(overlay!.IsEffectivelyVisible,
+            "the overlay is bound to ShowAdbWarning, so a false here means the operator " +
             "is never shown the steps that would fix it");
+        Assert.NotNull(FindGuideCard(window));
     }
 
     [AvaloniaFact]
-    public void TheGuide_IsHidden_WhenThePhoneIsTrusted()
+    public void TheOverlay_IsHidden_WhenThePhoneIsTrusted()
     {
         using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
@@ -58,24 +66,52 @@ public class UsbDebuggingGuideTests : IDisposable
         window.Height = 1000;
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
-        var card = FindGuideCard(window);
-        Assert.False(card.IsEffectivelyVisible, "a phone that is already trusted has nothing to be told");
+        var overlay = FindOverlay(window);
+        Assert.NotNull(overlay);
+        Assert.False(overlay!.IsVisible,
+            "a phone that is already trusted has nothing to be told");
     }
 
     [AvaloniaFact]
-    public void TheGuide_SaysThePhoneItselfIsFine()
+    public void TheOverlay_SitsBelowTheSettingsPage_WhenSettingsIsOpen()
     {
-        // The card appears when the computer is not trusted. Read as a defect
-        // report it is alarming, and the operator goes off to swap the cable
-        // instead of tapping the phone.
+        // An operator who opens Connection settings to fix something should not
+        // have the answer covered up while they read the settings.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        vm.ShowAdbWarning = true;
+
+        window.Show();
+        window.Width = 900;
+        window.Height = 1000;
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var overlay = FindOverlay(window);
+        var settings = Descendants(window).OfType<Panel>()
+            .FirstOrDefault(p => p.Name == "SettingsPanel");
+
+        Assert.NotNull(overlay);
+        Assert.NotNull(settings);
+        Assert.True(overlay!.ZIndex < settings!.ZIndex,
+            $"the how-to is at ZIndex {overlay.ZIndex} and settings at {settings.ZIndex}");
+    }
+
+    // ---- what it says ----
+
+    [AvaloniaFact]
+    public void TheOverlay_SaysThePhoneItselfIsFine()
+    {
+        // It reads as a defect report otherwise, and the operator goes off to
+        // swap the cable instead of tapping the phone.
         Assert.Contains("telefoon zelf is prima", GuideText());
     }
 
     [AvaloniaFact]
-    public void TheGuide_IsInDutch_LikeTheRestOfTheApp()
+    public void TheOverlay_IsInDutch_LikeTheRestOfTheApp()
     {
-        // The card was the only English string left in an otherwise Dutch window,
-        // which reads on screen as a half-finished product.
+        // The overlay was the only English string left in an otherwise Dutch
+        // window, which reads on screen as a half-finished product.
         var text = GuideText();
         foreach (var english in new[] { "Android device connected", "Retry ADB Detection", "USB Debugging is turned ON" })
         {
@@ -83,10 +119,11 @@ public class UsbDebuggingGuideTests : IDisposable
         }
 
         Assert.Contains("Opnieuw zoeken", text);
+        Assert.Contains("Sluiten", text);
     }
 
     [AvaloniaFact]
-    public void TheGuide_DoesNotAskForMtpMode()
+    public void TheOverlay_DoesNotAskForMtpMode()
     {
         // Measured on the real Pixel: with USB debugging on, adb connects whatever
         // the USB mode is set to. Switching to File Transfer changes nothing about
@@ -97,39 +134,158 @@ public class UsbDebuggingGuideTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void TheGuide_NamesTheScreenLock_WhichIsWhyNoPromptAppears()
+    public void TheOverlay_NamesTheScreenLock_WhichIsWhyNoPromptAppears()
     {
-        // This is the most common reason for "nothing happens": the prompt is on a
+        // The most common reason for "nothing happens": the prompt is on a
         // screen nobody is looking at, because the phone went to sleep in the
         // seconds between the cable going in and the keypress.
         Assert.Contains("Ontgrendel het scherm", GuideText());
     }
 
     [AvaloniaFact]
-    public void TheGuide_TellsTheOperatorToTickAlwaysAllow()
+    public void TheOverlay_TellsTheOperatorToTickAlwaysAllow()
     {
         // Without this tick the phone asks again on every new cable and the pc
-        // lands back on unauthorized every time, which is the same card over and
-        // over with no way out. It is the one line that decides whether it sticks.
+        // lands back on unauthorized every time, which is the same overlay over
+        // and over with no way out. It is the one line that decides whether it sticks.
         Assert.Contains("Altijd toestaan vanaf deze computer", GuideText());
     }
 
     [AvaloniaFact]
-    public void TheGuide_CoversTheCaseWhereNoPromptAppearsAtAll()
+    public void TheOverlay_CoversTheCaseWhereNoPromptAppearsAtAll()
     {
         // If developer options was never switched on, or the prompt scrolled past,
         // there is nothing to tap. The path to the setting is the fallback that
-        // makes the guide work for a phone nobody has set up before.
-        Assert.Contains("Build-nummer", GuideText());
-        Assert.Contains("zeven keer", GuideText());
-        Assert.Contains("USB-debugging", GuideText());
+        // makes the overlay work for a phone nobody has set up before.
+        var text = GuideText();
+        Assert.Contains("Build-nummer", text);
+        Assert.Contains("zeven keer", text);
+        Assert.Contains("USB-foutopsporing", text);
+    }
+
+    // ---- what it names the phone ----
+
+    [AvaloniaFact]
+    public void TheOverlay_NamesThePhone_BeforeItStartsInstructing()
+    {
+        // An operator holding three phones wants to be told which one is on the
+        // cable, not left guessing from a generic "Android device". The model is
+        // read off the native port, so it is there to show and it is shown first.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        vm.AdbTutorialViewModel.SetDevice("Honor", "HONOR 600 Lite");
+        vm.ShowAdbWarning = true;
+
+        window.Show();
+        window.Width = 900;
+        window.Height = 1400;
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var text = GuideText(window);
+        var name = text.IndexOf("HONOR 600 Lite", StringComparison.Ordinal);
+        Assert.True(name >= 0, $"the model never reached the screen:\n{text}");
+        Assert.True(name < text.IndexOf("Ontgrendel het scherm", StringComparison.Ordinal),
+            "the phone is named after the instructions rather than before them");
+        Assert.Contains("Voor uw HONOR 600 Lite:", text);
     }
 
     [AvaloniaFact]
-    public void TheGuide_IsNumbered_AndTheBadgesActuallyResolve()
+    public void TheOverlay_FallsBackToTheBrand_WhenTheModelIsUnknown()
     {
-        var window = ShowGuideCard();
+        // Windows often has no better answer than the hardware. "Voor uw -toestel"
+        // was what came out then, which tells an operator nothing about which of
+        // the phones on the bench this is.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        vm.AdbTutorialViewModel.SetDevice("Samsung", "");
+        vm.ShowAdbWarning = true;
+
+        window.Show();
+        window.Width = 900;
+        window.Height = 1400;
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var text = GuideText(window);
+        Assert.Contains("Voor uw Samsung-toestel:", text);
+        Assert.DoesNotContain("Voor uw -", text);
+        Assert.DoesNotContain("Voor uw :", text);
+
+        // And the steps that came with the brand are Samsung's, not the generic
+        // pair: the extra hop through Software information is the part a generic
+        // instruction would have made the operator hunt for.
+        Assert.Contains("Software-informatie", text);
+    }
+
+    [AvaloniaFact]
+    public void TheOverlay_FallsBackToAndroid_WhenNothingWasReported()
+    {
+        // The heading is built from the model, so an empty model has to have
+        // something to put in it. It used to come out as "Voor uw -toestel:",
+        // which tells an operator nothing at all.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        vm.AdbTutorialViewModel.SetDevice("", "");
+        vm.ShowAdbWarning = true;
+
+        window.Show();
+        window.Width = 900;
+        window.Height = 1400;
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var text = GuideText(window);
+        Assert.Contains("Voor uw Android-toestel:", text);
+        Assert.DoesNotContain("Voor uw -", text);
+        Assert.DoesNotContain("Voor uw :", text);
+
+        // And the steps under it are the generic pair, because nothing named a
+        // manufacturer to look up.
+        Assert.Contains("Build-nummer", text);
+        Assert.DoesNotContain("Software-informatie", text);
+    }
+
+    [AvaloniaFact]
+    public void TheOverlay_GivesGenericSteps_ForABrandNobodyWroteAPathFor()
+    {
+        // Honor, ZTE, Poco and the rest have no table of their own. The wrong
+        // answer is a manufacturer's menu they do not have; the right answer is
+        // the stock Android path, which every one of them has.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.Theme = "Dark";
+        vm.AdbTutorialViewModel.SetDevice("Honor", "");
+        vm.ShowAdbWarning = true;
+
+        window.Show();
+        window.Width = 900;
+        window.Height = 1400;
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var text = GuideText(window);
+        Assert.Contains("Voor uw Honor-toestel:", text);
+        Assert.Contains("Build-nummer", text);
+        Assert.Contains("Over de telefoon", text);
+
+        // A generic fallback that named a specific vendor's menu would be worse
+        // than no fallback at all.
+        Assert.DoesNotContain("Software-informatie", text);
+        Assert.DoesNotContain("MIUI-versie", text);
+    }
+
+    // ---- how it is laid out ----
+
+    [AvaloniaFact]
+    public void TheOverlay_IsNumbered_AndTheBadgesActuallyResolve()
+    {
+        var window = ShowOverlay();
         var card = FindGuideCard(window);
+        Assert.NotNull(card);
 
         // Four numbered steps, in order. An unordered list of four actions reads as
         // one long instruction, and people skip half of it.
@@ -169,10 +325,11 @@ public class UsbDebuggingGuideTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void TheGuide_StepsRunDownwards_EachNumberBesideItsOwnLine()
+    public void TheOverlay_StepsRunDownwards_EachNumberBesideItsOwnLine()
     {
-        var window = ShowGuideCard();
+        var window = ShowOverlay();
         var card = FindGuideCard(window);
+        Assert.NotNull(card);
 
         var rows = Descendants(card).OfType<Border>()
             .Where(b => b.Classes.Contains("stepBadge"))
@@ -205,36 +362,83 @@ public class UsbDebuggingGuideTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void TheGuide_FitsOnAWindowWithoutScrolling()
+    public void TheOverlay_HasNoScrollbar_OfItsOwn()
     {
-        // A how-to that runs off the bottom is how-to that gets half read. Measured
-        // rather than assumed, because the card only shows on a window size nobody
-        // chose.
-        var window = ShowGuideCard();
-        var card = FindGuideCard(window);
+        // The overlay replaced an inline card that pushed the rest of the screen
+        // down. Scrolling was offered as the answer, which is not an answer: an
+        // operator reading a how-to off a kiosk will not drag a panel to find the
+        // last line. It either fits or the layout is wrong.
+        var window = ShowOverlay();
+        var overlay = FindOverlay(window);
+        Assert.NotNull(overlay);
 
-        var bottom = card.TranslatePoint(new Point(0, card.Bounds.Height), window)!.Value.Y;
-        Assert.True(bottom <= window.ClientSize.Height,
-            $"the guide ends at {bottom:F0} on a {window.ClientSize.Height:F0} window: the last step is off screen");
-
-        // Every step is inside it too, not just the padding.
-        foreach (var badge in Descendants(card).OfType<Border>().Where(b => b.Classes.Contains("stepBadge")))
-        {
-            var top = badge.TranslatePoint(new Point(0, 0), window)!.Value.Y;
-            Assert.True(top > 0 && top < window.ClientSize.Height, $"a step badge sits at {top:F0}");
-        }
+        Assert.Empty(Descendants(overlay).OfType<ScrollViewer>());
     }
 
     [AvaloniaFact]
-    public void TheGuide_UsesThemeColours_NotAHardcodedLightCard()
+    public void TheOverlay_FitsOnAWindowWithoutScrolling()
+    {
+        // A how-to that runs off the bottom is how-to that gets half read.
+        // Two sizes rather than one: the full desktop, and the 850x620 window
+        // the kiosk actually opens at, which is where the old inline card
+        // overflowed.
+        foreach (var (width, height) in new[] { (900, 1400), (850, 620) })
+        {
+            using var window = new MainWindow();
+            var vm = (MainWindowViewModel)window.DataContext!;
+            vm.Theme = "Dark";
+            vm.AdbTutorialViewModel.SetDevice("Honor", "HONOR 600 Lite");
+            vm.ShowAdbWarning = true;
+
+            window.Show();
+            window.Width = width;
+            window.Height = height;
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            var overlay = FindOverlay(window);
+            var card = FindGuideCard(window);
+            Assert.NotNull(overlay);
+            Assert.NotNull(card);
+
+            // Everything, not just the card: the top bar says what this is and
+            // the buttons are how it gets dismissed, so an overlay that only
+            // keeps the card on screen has still failed.
+            var bottom = overlay!.TranslatePoint(new Point(0, overlay.Bounds.Height), window)!.Value.Y;
+            Assert.True(bottom <= window.ClientSize.Height,
+                $"the how-to ends at {bottom:F0} on a {width}x{height} window: the last line is off screen");
+
+            // The card has to fit inside the overlay rather than be clipped by
+            // it. A card whose last line runs past the overlay's own edge is the
+            // scrolling failure in its other shape: the operator still cannot
+            // read the end of the how-to, whatever is around it.
+            var cardBottom = card!.TranslatePoint(new Point(0, card.Bounds.Height), overlay)!.Value.Y;
+            Assert.True(cardBottom <= overlay.Bounds.Height + 1,
+                $"the card ends at {cardBottom:F0} inside an overlay {overlay.Bounds.Height:F0} tall " +
+                $"on a {width}x{height} window");
+
+            foreach (var badge in Descendants(card).OfType<Border>().Where(b => b.Classes.Contains("stepBadge")))
+            {
+                var top = badge.TranslatePoint(new Point(0, 0), window)!.Value.Y;
+                Assert.True(top > 0 && top < window.ClientSize.Height,
+                    $"a step badge sits at {top:F0} on a {width}x{height} window");
+            }
+        }
+    }
+
+    // ---- colour ----
+
+    [AvaloniaFact]
+    public void TheOverlay_UsesThemeColours_NotAHardcodedLightCard()
     {
         // The old card painted itself #FFF3CD with #856404 text, which is a light
         // yellow card in an app that ships a dark theme and asks for one by
         // default. A source grep cannot see that; the rendered pixels can.
-        var window = ShowGuideCard();
+        var window = ShowOverlay();
         var card = FindGuideCard(window);
+        Assert.NotNull(card);
 
-        var background = card.Background as ISolidColorBrush;
+        var background = card!.Background as ISolidColorBrush;
         Assert.NotNull(background);
 
         // The page behind the card is dark, so a card this bright would be a block
@@ -253,7 +457,7 @@ public class UsbDebuggingGuideTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void TheGuide_FollowsTheLightThemeToo()
+    public void TheOverlay_FollowsTheLightThemeToo()
     {
         // The dark case only proves the card is not glaring white. The light case is
         // what proves the card is reading the theme at all: a card that hardcoded
@@ -299,13 +503,14 @@ public class UsbDebuggingGuideTests : IDisposable
 
     // ---- helpers ----
 
-    /// <summary>Every TextBlock in the card, in the order they are laid out.</summary>
-    private static string GuideText()
+    /// <summary>The whole overlay, in the order it lays out.</summary>
+    private static string GuideText() => GuideText(ShowOverlay());
+
+    private static string GuideText(Window window)
     {
-        var window = ShowGuideCard();
-        var card = FindGuideCard(window);
-        Assert.NotNull(card);
-        return Flatten(card!);
+        var overlay = FindOverlay(window);
+        Assert.NotNull(overlay);
+        return Flatten(overlay!);
     }
 
     /// <summary>The number inside a step badge.</summary>
@@ -315,7 +520,8 @@ public class UsbDebuggingGuideTests : IDisposable
         return text.Trim();
     }
 
-    private static MainWindow ShowGuideCard()
+    /// <summary>An overlay in its "phone needs attention" state, on a known theme.</summary>
+    private static MainWindow ShowOverlay()
     {
         using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
@@ -324,13 +530,20 @@ public class UsbDebuggingGuideTests : IDisposable
 
         window.Show();
         window.Width = 900;
-        // Tall enough that the whole card is inside the viewport. A card that only
-        // fits on a large monitor is a card most operators never finish reading.
+        // Tall enough that the whole overlay is inside the viewport, which is
+        // where the other sizes come in below.
         window.Height = 1400;
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         return window;
     }
+
+    /// <summary>
+    /// The overlay itself, by the name it carries in the markup rather than by a
+    /// text match, so a copy edit cannot make the overlay stop being found.
+    /// </summary>
+    private static Panel? FindOverlay(Visual root) =>
+        Descendants(root).OfType<Panel>().FirstOrDefault(p => p.Name == "AdbGuideOverlay");
 
     /// <summary>
     /// The card holding the guide, found by the badge style rather than by a text
@@ -360,7 +573,7 @@ public class UsbDebuggingGuideTests : IDisposable
         }
     }
 
-    /// <summary>The card's visible words, one TextBlock per line.</summary>
+    /// <summary>The overlay's words, one TextBlock per line.</summary>
     private static string Flatten(Visual root)
     {
         var lines = Descendants(root).OfType<TextBlock>().Select(t => t.Text ?? "");

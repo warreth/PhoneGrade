@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhoneGrade.UI.ViewModels"
+             xmlns:converters="using:PhoneGrade.UI.Converters"
+             x:Class="PhoneGrade.UI.Views.AdbTutorialView"
+             x:DataType="vm:AdbTutorialViewModel"
+             x:CompileBindings="True">
+
+    <!--
+        The how-to itself. The frame around it - the top bar, the two buttons
+        and the flag that decides whether any of this is on screen - lives in
+        MainWindow, beside the settings page it sits next to when open.
+
+        Nothing here scrolls. Four lines, a caveat and a heading have to fit the
+        smallest window the kiosk opens at, because an operator who has to drag
+        a panel to find the last line will not drag it.
+    -->
+    <Border Classes="card" Padding="24" MaxWidth="640"
+            HorizontalAlignment="Center" VerticalAlignment="Top">
+        <StackPanel Spacing="12">
+            <TextBlock Text="{Binding ManufacturerPrefix}"
+                       FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"/>
+
+            <ItemsControl ItemsSource="{Binding Steps}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AdbTutorialViewModel+StepItem">
+                        <Grid ColumnDefinitions="Auto,*" Margin="0,6,0,0">
+                            <Border Classes="stepBadge" Margin="0,0,12,0">
+                                <TextBlock Text="{Binding Index, StringFormat='{}{0}'}"/>
+                            </Border>
+                            <TextBlock Grid.Column="1" Classes="stepBody"
+                                       VerticalAlignment="Center"
+                                       Text="{Binding Value, Converter={StaticResource LocalizationConverter}}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Classes="stepCaveatBox" Margin="0,10,0,0">
+                <TextBlock Classes="stepCaveat" Text="{DynamicResource AdbTutorial_Common_Caveat}"/>
+            </Border>
+        </StackPanel>
+    </Border>
+</UserControl>

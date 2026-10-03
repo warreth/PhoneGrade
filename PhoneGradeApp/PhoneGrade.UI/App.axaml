@@ -25,6 +25,7 @@
             <converters:EqualsParameterConverter x:Key="SectionMatch"/>
             <converters:QualityOptionLabelConverter x:Key="QualityOptionLabelConverter"/>
             <converters:PaymentOptionLabelConverter x:Key="PaymentOptionLabelConverter"/>
+            <converters:LocalizationConverter x:Key="LocalizationConverter"/>
             
             <!-- Severity brushes for the diagnostics dot (converter keys) -->
             <SolidColorBrush x:Key="SeverityOkBrush" Color="{DynamicResource SuccessColor}"/>

@@ -168,13 +168,38 @@
     <x:String x:Key="Idle_Title">Connect a device by USB</x:String>
     <x:String x:Key="Idle_Lead">Supports iPhone, iPad and Android devices. Keep the screen unlocked and confirm "Trust this computer".</x:String>
     <x:String x:Key="Idle_DetectedDevices">Detected devices:</x:String>
-    <x:String x:Key="AdbGuide_Lead">The phone is connected but does not trust this computer yet. The phone itself is fine; one tap on the phone is needed.</x:String>
-    <x:String x:Key="AdbGuide_Step1">Unlock the screen and leave it on. A locked screen does not show the question.</x:String>
-    <x:String x:Key="AdbGuide_Step2">Open the "Allow USB debugging?" notification on the phone. Tap "Always allow from this computer" and then OK.</x:String>
-    <x:String x:Key="AdbGuide_Step3">No notification? Go to Settings, "About phone" and tap "Build number" seven times.</x:String>
-    <x:String x:Key="AdbGuide_Step4">Then open "Developer options" and turn "USB debugging" on. The notification appears again by itself.</x:String>
-    <x:String x:Key="AdbGuide_Caveat">Without "Always allow" the phone asks again on every new cable, and the pc goes back to "not trusted" every time.</x:String>
-    <x:String x:Key="AdbGuide_Retry">Search again</x:String>
+    <!-- USB debugging how-to. Opened by an Android device on the cable that adb
+         cannot talk to yet, and by nothing else. -->
+    <x:String x:Key="AdbTutorial_Title">Enable USB Debugging</x:String>
+    <x:String x:Key="AdbTutorial_Lead">The phone is connected but does not trust this computer yet. The phone itself is fine; one tap on the phone is needed.</x:String>
+    <x:String x:Key="AdbTutorial_ManufacturerPrefix">For your {0}:</x:String>
+    <x:String x:Key="AdbTutorial_DeviceWord">{0} device</x:String>
+    <x:String x:Key="AdbTutorial_AndroidDevice">Android device</x:String>
+    <x:String x:Key="AdbTutorial_Common_ScreenLock">Unlock the screen and leave it on. A locked screen does not show the question.</x:String>
+    <x:String x:Key="AdbTutorial_Common_Authorize">Open the "Allow USB debugging?" prompt on the phone, tap "Always allow from this computer" and then OK.</x:String>
+    <!-- Two steps of their own per brand: where that brand hides the build
+         number, and what it calls the developer menu. -->
+    <x:String x:Key="AdbTutorial_Samsung_Step1">In Settings > About phone > Software information, tap "Build number" seven times</x:String>
+    <x:String x:Key="AdbTutorial_Samsung_Step2">In Settings > Developer options, turn "USB debugging" on and confirm</x:String>
+    <x:String x:Key="AdbTutorial_Xiaomi_Step1">In Settings > About phone, tap "MIUI version" or "HyperOS version" seven times</x:String>
+    <x:String x:Key="AdbTutorial_Xiaomi_Step2">In Settings > Additional settings > Developer options, turn "USB debugging" on and confirm</x:String>
+    <x:String x:Key="AdbTutorial_Google_Step1">In Settings > About phone, tap "Build number" seven times</x:String>
+    <x:String x:Key="AdbTutorial_Google_Step2">In Settings > System > Developer options, turn "USB debugging" on and confirm</x:String>
+    <x:String x:Key="AdbTutorial_Motorola_Step1">In Settings > About phone, tap "Build number" seven times</x:String>
+    <x:String x:Key="AdbTutorial_Motorola_Step2">In Settings > System > Developer options, turn "USB debugging" on and confirm</x:String>
+    <x:String x:Key="AdbTutorial_Sony_Step1">In Settings > About phone, tap "Build number" seven times</x:String>
+    <x:String x:Key="AdbTutorial_Sony_Step2">In Settings > System > Developer options, turn "USB debugging" on and confirm</x:String>
+    <x:String x:Key="AdbTutorial_Huawei_Step1">In Settings > About phone, tap "Build number" seven times</x:String>
+    <x:String x:Key="AdbTutorial_Huawei_Step2">In Settings > System > Developer options, turn "USB debugging" on and confirm</x:String>
+    <x:String x:Key="AdbTutorial_OnePlus_Step1">In Settings > About phone, tap "Build number" seven times</x:String>
+    <x:String x:Key="AdbTutorial_OnePlus_Step2">In Settings > System > Developer options, turn "USB debugging" on and confirm</x:String>
+    <!-- The pair for a brand with no table of its own, so a phone nobody
+         anticipated still gets told something true. -->
+    <x:String x:Key="AdbTutorial_Generic_Step1">In Settings > About phone, tap "Build number" seven times</x:String>
+    <x:String x:Key="AdbTutorial_Generic_Step2">Open "Developer options" in Settings and turn "USB debugging" on</x:String>
+    <x:String x:Key="AdbTutorial_Common_Caveat">After enabling, check the phone for the "Allow USB debugging?" prompt and tap "Always allow from this computer".</x:String>
+    <x:String x:Key="AdbTutorial_RetryButton">Search again</x:String>
+    <x:String x:Key="AdbTutorial_Close">Close</x:String>
 
     <!-- Inspection in progress -->
     <x:String x:Key="Active_SpecsTitle">HARDWARE SPECIFICATIONS</x:String>
