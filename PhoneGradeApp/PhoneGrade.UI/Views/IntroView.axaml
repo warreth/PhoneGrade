@@ -58,6 +58,17 @@
                     </Border>
                 </Grid>
 
+                <!-- IMEI Checks Section -->
+                <Border Classes="card" Padding="16" Background="{DynamicResource CardDeepColor}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="{DynamicResource Intro_ImeiTitle}" FontWeight="Bold" FontSize="15" Foreground="{DynamicResource AccentColor}"/>
+                        <TextBlock Text="{DynamicResource Intro_ImeiBody}" Classes="dim" FontSize="12" TextWrapping="Wrap" LineHeight="18"/>
+                        <Button Classes="kioskSecondary" Content="{DynamicResource Intro_ImeiConfigureButton}"
+                                Command="{Binding NavigateToImeiSettingsCommand}"
+                                HorizontalAlignment="Left" Margin="0,8,0,0" Padding="16,8"/>
+                    </StackPanel>
+                </Border>
+
                 <StackPanel Spacing="10">
                     <Button Classes="cta" Content="{DynamicResource Intro_StartFree}"
                             Command="{Binding DismissIntroCommand}"
