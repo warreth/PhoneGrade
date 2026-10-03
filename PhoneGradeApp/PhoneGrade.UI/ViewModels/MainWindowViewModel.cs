@@ -260,9 +260,10 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private bool _useSecureOrigin = true;
 
     /// <summary>
-    /// Whether a secure origin is wanted at all. It comes from the adb reverse
-    /// tunnel for Android and from the public tunnel address for everything else,
-    /// and turning it off falls straight back to the LAN address.
+    /// Whether the phone is served over the cable, through the adb reverse
+    /// tunnel Android keeps. Turning it off skips that route and the public
+    /// https tunnel answers instead; the LAN address is only what is left when
+    /// the tunnel is switched off as well.
     /// </summary>
     public bool UseSecureOrigin
     {
@@ -739,10 +740,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
         // A connector that dies takes the address behind an already printed QR code
         // with it, so the session is worked out again instead of leaving it pointing
-        // at nothing.
+        // at nothing. The tunnel can hold the live address with the cable switch on
+        // (as the fallback) or off (as the route), so the tunnel switch alone decides
+        // whether a resolve is due.
         _quickTunnel.AddressLost += () => Dispatcher.UIThread.Post(() =>
         {
-            if (UseSecureOrigin && UsePublicTunnel) RefreshWebRunnerAddress();
+            if (UsePublicTunnel) RefreshWebRunnerAddress();
         });
 
         // Licensing gate wired to the live settings instance so every Save() carries the token.
