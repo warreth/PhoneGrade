@@ -37,7 +37,7 @@ class ScreenshotRunner
                     vm.IsPaymentPopupVisible = true;
                     Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-payment.png"));
                     vm.IsPaymentPopupVisible = false;
-                    Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-issues.png"));
+                    Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-idle.png"));
                     Capture(new DataEditorWindow { DataContext = new DataEditorViewModel(vm.DeviceData) }, Path.Combine(outDir, "editor-dark.png"));
 
                     // The USB debugging overlay, in both themes. This card used to be
@@ -76,6 +76,7 @@ class ScreenshotRunner
 
                 if (section is "" or "lic") CaptureLicensingStates(outDir);
                 if (section is "" or "flow") CaptureWorkflowStates(outDir);
+                if (section is "" or "settings") CaptureSettingsSections(outDir);
 
                 Console.WriteLine("done");
                 if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -161,6 +162,33 @@ class ScreenshotRunner
         drawer.IsSettingsDrawerOpen = true;
         // Tall enough that the whole drawer is in frame, licensing row included.
         Shot(drawer, "settings-drawer-dark.png", 900, 1400);
+
+        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
+    }
+
+    // Every topic in the settings drawer. The drawer keeps one pane and swaps
+    // what is inside it, so a section nobody photographs is a section that can
+    // lose its layout without anything on screen saying so.
+    static void CaptureSettingsSections(string outDir)
+    {
+        string settingsDir = Path.Combine(outDir, "settings-shots");
+        Directory.CreateDirectory(settingsDir);
+        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", settingsDir);
+        File.WriteAllText(Path.Combine(settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":true}""");
+
+        string[] sections = { "General", "Workflow", "Connection", "License", "Support", "Advanced", "ImeiApi" };
+        foreach (string section in sections)
+        {
+            var vm = BuildDemoViewModel();
+            vm.Theme = "Dark";
+            vm.IsSettingsDrawerOpen = true;
+            vm.SelectedSettingsSection = section;
+
+            // Tall enough that the whole pane is in the frame rather than the
+            // half of it the window happens to show.
+            Capture(new MainWindow { DataContext = vm },
+                Path.Combine(outDir, $"settings-{section.ToLowerInvariant()}-dark.png"), 1050, 1500);
+        }
 
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
     }
@@ -255,12 +283,76 @@ class ScreenshotRunner
         trouble.IsTroubleshootModalOpen = true;
         Shot(trouble, "flow-troubleshoot-dark.png");
 
+        // The same panel once there is something in it, which is the half that
+        // never appears otherwise: the rows it lists, the pill each one wears,
+        // what the line at the top says afterwards, and the buttons that follow
+        // from it. The report is written rather than scanned for, because a
+        // scan runs the platform's own tools and would never finish on the
+        // thread that has to sit there waiting for it, and because what it
+        // finds depends on the machine doing the capturing. The panel is
+        // filled through the same method the scan fills it with.
+        var scanned = BuildDemoViewModel();
+        scanned.TroubleshootViewModel.PublishReport(SampleReport());
+        scanned.IsTroubleshootModalOpen = true;
+        Shot(scanned, "flow-troubleshoot-results-dark.png");
+
         var quality = BuildDemoViewModel();
         quality.IsQualityPopupVisible = true;
         Shot(quality, "flow-quality-dark.png");
 
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
     }
+
+    // A report the way the diagnostics service writes one: its categories, its
+    // plain English, and one row of every severity, so all four pills and both
+    // resolutions are in the frame. The two rows that can be repaired are what
+    // put the repair button at the top of the panel on screen.
+    static TroubleshootReport SampleReport() => new()
+    {
+        OverallStatus = "iOS detection ready. Android detection unavailable (see checks).",
+        Checks =
+        {
+            new DiagnosticCheckItem
+            {
+                Category = "iOS",
+                Title = "idevice_id Executable",
+                Severity = DiagnosticSeverity.Pass,
+                Message = "Available at: C:\\Program Files\\PhoneGrade\\idevice-tools\\idevice_id.exe (Version: 1.3.17)",
+            },
+            new DiagnosticCheckItem
+            {
+                Category = "Android",
+                Title = "adb Executable",
+                Severity = DiagnosticSeverity.Pass,
+                Message = "Available at: C:\\Program Files\\PhoneGrade\\platform-tools\\adb.exe (Version: Android Debug Bridge version 34.0.4)",
+            },
+            new DiagnosticCheckItem
+            {
+                Category = "Service",
+                Title = "Apple Mobile Device Service",
+                Severity = DiagnosticSeverity.Warning,
+                Message = "Installed but not running, so phones plugged in over USB will not be seen.",
+                Resolution = "Start Apple Mobile Device Service from services.msc, then plug the phone in again.",
+                FixActionKey = "start_applemobiledevice",
+            },
+            new DiagnosticCheckItem
+            {
+                Category = "Hardware",
+                Title = "USB Device Enumeration",
+                Severity = DiagnosticSeverity.Fail,
+                Message = "No Apple USB device was found in the system device tree.",
+                Resolution = "Rescan the bus; if the phone is plugged in, try another cable and another port.",
+                FixActionKey = "rescan_usb",
+            },
+            new DiagnosticCheckItem
+            {
+                Category = "Connection",
+                Title = "Cloudflared Connector",
+                Severity = DiagnosticSeverity.Info,
+                Message = "Quick tunnel connector not found. The phone's browser cannot be reached until it is installed.",
+            },
+        },
+    };
 
     // Rows in the OEM audit: one part that matches, one that does not, one that
     // nothing was read for. All three have to fit the same row without clipping.
