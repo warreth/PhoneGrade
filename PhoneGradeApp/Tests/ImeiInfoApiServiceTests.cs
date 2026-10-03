@@ -422,6 +422,41 @@ public class ImeiInfoApiServiceTests
         Assert.Single(stub.Requests, r => r.Path.Contains("/service/services/"));
     }
 
+    [Fact]
+    public async Task CheckAsync_WithAnEnvelopelessSandboxPayload_ReadsItAsAFinishedResult()
+    {
+        // The official SDKs call a body without a status and without a history id
+        // a completed check, and the published sandbox numbers answer flat.
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Json(HttpStatusCode.OK, """
+            {
+              "imei": "353541326469521",
+              "brand": "Apple",
+              "model": "iPhone 12 Pro Max",
+              "tac": "35354132",
+              "blacklist_status": "CLEAN",
+              "carrier_lock": false,
+              "original_carrier": "T-Mobile Polska",
+              "purchase_country": "Poland",
+              "specifications": { "cpu": "Apple A14 Bionic", "ram_gb": 6, "storage_gb": 128, "screen_size": "6.7 inches" }
+            }
+            """)
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync(AppleImei, ImeiCheckType.AppleCarrierLockFmi, _apiKey, client);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.Equal("Apple", result.Manufacturer);
+        Assert.Equal("iPhone 12 Pro Max", result.ModelName);
+        Assert.Equal("T-Mobile Polska", result.CarrierName);
+        Assert.Equal("Unlocked", result.SimLockStatus);
+        Assert.Equal(false, result.IsBlacklisted);
+        Assert.NotNull(result.RawData);
+    }
+
     // ------------------------------------------------------------------
     // Failure states
     // ------------------------------------------------------------------
@@ -547,6 +582,24 @@ public class ImeiInfoApiServiceTests
 
         Assert.False(result.Success);
         Assert.StartsWith("Network error:", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenAnOutOfCreditRefusalArrivesOverHttp200_ReportsTheGatewayWording()
+    {
+        // Verified live against dash.imei.info: an account without credit gets
+        // this body with HTTP 200 on the api-sync path.
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Json(HttpStatusCode.OK, """{ "detail": "Request is too expensive." }""")
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync(AppleImei, ImeiCheckType.BlacklistSimple, _apiKey, client);
+
+        Assert.False(result.Success);
+        Assert.Equal("Request is too expensive.", result.ErrorMessage);
     }
 
     // ------------------------------------------------------------------

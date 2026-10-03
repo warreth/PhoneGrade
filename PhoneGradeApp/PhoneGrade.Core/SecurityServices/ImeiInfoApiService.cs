@@ -429,6 +429,29 @@ public static class ImeiInfoApiService
             result.RawData = root.Clone();
         }
 
+        // A refusal arrives as a lone detail string, and on the api-sync path it
+        // arrives with HTTP 200. Read as anything else it looks like a check that
+        // has not finished yet, which would leave the caller waiting on an answer
+        // the gateway already gave.
+        if (!hasResult && string.IsNullOrEmpty(status) && result.RequestId is null
+            && TryGetDetail(root, out string detail))
+        {
+            result.Success = false;
+            result.ErrorMessage = detail;
+            return result;
+        }
+
+        // A body without an envelope is a finished result. The official imei.info
+        // SDKs read the absence of both a status and a history id that way, and
+        // that is the shape the published sandbox numbers answer in.
+        if (!hasResult && string.IsNullOrEmpty(status) && result.RequestId is null
+            && LooksLikeResult(root))
+        {
+            ParseResultNode(result, root);
+            result.Success = true;
+            return result;
+        }
+
         var normalized = (status ?? "").Trim().ToLowerInvariant();
 
         bool queued = statusCode == HttpStatusCode.Accepted
@@ -816,6 +839,44 @@ public static class ImeiInfoApiService
         value = 0;
         return false;
     }
+
+    /// <summary>Reads the plain detail string a refusal is wrapped in.</summary>
+    private static bool TryGetDetail(JsonElement root, out string detail)
+    {
+        detail = "";
+        if (root.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty("detail", out var value)
+            || value.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        detail = value.GetString() ?? "";
+        return detail.Length > 0;
+    }
+
+    /// <summary>
+    /// True when the object carries device fields, which is what a finished
+    /// result looks like once the envelope around it is stripped away.
+    /// </summary>
+    private static bool LooksLikeResult(JsonElement root)
+    {
+        foreach (string property in ResultFieldNames)
+        {
+            if (root.TryGetProperty(property, out _))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static readonly HashSet<string> ResultFieldNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "imei", "brand", "model", "model_name", "manufacturer", "model_number",
+        "blacklist_status", "blacklisted", "carrier_lock", "original_carrier",
+        "purchase_country", "sim_lock", "fmi_status", "knox_status",
+        "warranty_status", "specifications"
+    };
 
     /// <summary>
     /// The gateway answers a bad token with HTTP 200 and a detail envelope on
