@@ -180,6 +180,16 @@
                             gate, no going back to idle when the cable is empty.
                         -->
                         <Button Classes="kioskSecondary" Command="{Binding RefreshDevicesCommand}" Content="{DynamicResource Btn_ScanManually}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+
+                        <!--
+                            The diagnostics used to be reachable only through
+                            settings, the last place an operator looks when the
+                            screen in front of them is the one that will not
+                            find their phone.
+                        -->
+                        <Button Classes="kioskSecondary" Command="{Binding OpenTroubleshootModalCommand}"
+                                Content="{DynamicResource Btn_Troubleshoot}"
+                                HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
 
@@ -1158,41 +1168,82 @@
                         </Button>
                     </Grid>
 
+                    <!--
+                        The sentence and the buttons that answer it are stacked
+                        rather than set side by side. In the row of
+                        *,Auto,8,Auto this used to be, the sentence was cut
+                        off exactly where the buttons start, so the one line
+                        telling an operator what to do never got to its end.
+                    -->
                     <Border Grid.Row="1" Classes="card" Background="{DynamicResource CardDeepColor}" Padding="12" Margin="0,0,0,10">
-                        <Grid ColumnDefinitions="*,Auto,8,Auto">
-                            <TextBlock Grid.Column="0" Text="{Binding TroubleshootViewModel.OverallStatus}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Classes="cta" Content="{DynamicResource Btn_FixAll}" Command="{Binding TroubleshootViewModel.FixAllCommand}"/>
-                            <Button Grid.Column="3" Content="{DynamicResource Btn_Rescan}" Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"/>
-                        </Grid>
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="{Binding TroubleshootViewModel.OverallStatus}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+
+                            <!-- What it is doing while it works, which used to
+                                 be written into properties nothing read. -->
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        IsVisible="{Binding TroubleshootViewModel.InstallStatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <TextBlock Classes="dim" FontSize="12"
+                                           Text="{Binding TroubleshootViewModel.InstallStatusText}"/>
+                                <ProgressBar IsVisible="{Binding TroubleshootViewModel.IsBusy}"
+                                            IsIndeterminate="{Binding TroubleshootViewModel.IsRunning}"
+                                            Value="{Binding TroubleshootViewModel.InstallProgress}"
+                                            Maximum="100" Width="160" Height="4" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Classes="kioskSecondary" Content="{DynamicResource Btn_FixAll}"
+                                        Command="{Binding TroubleshootViewModel.FixAllCommand}"
+                                        IsVisible="{Binding TroubleshootViewModel.HasFixableIssues}"/>
+                                <Button Classes="cta" Content="{DynamicResource Btn_RunDiagnostics}"
+                                        Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"
+                                        IsVisible="{Binding TroubleshootViewModel.AwaitingFirstScan}"/>
+                                <Button Classes="cta" Content="{DynamicResource Btn_Rescan}"
+                                        Command="{Binding TroubleshootViewModel.RunDiagnosticsCommand}"
+                                        IsVisible="{Binding TroubleshootViewModel.HasResults}"/>
+                            </StackPanel>
+                        </StackPanel>
                     </Border>
 
-                    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding TroubleshootViewModel.Checks}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="12" Margin="0,0,0,8">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0" Spacing="4">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <TextBlock Text="{Binding Category}" Classes="dim" FontSize="11" FontWeight="Bold"/>
-                                                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="13"/>
+                    <Grid Grid.Row="2">
+                        <!-- Before the first scan this is a promise of what it
+                             will look for, not an empty list. -->
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                    MaxWidth="460" Spacing="8"
+                                    IsVisible="{Binding TroubleshootViewModel.AwaitingFirstScan}">
+                            <TextBlock Classes="dim" Text="{DynamicResource Troubleshoot_Desc}"
+                                       TextWrapping="Wrap" TextAlignment="Center" LineHeight="20"/>
+                        </StackPanel>
+
+                        <ScrollViewer IsVisible="{Binding TroubleshootViewModel.HasResults}"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding TroubleshootViewModel.Checks}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="12" Margin="0,0,0,8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel Grid.Column="0" Spacing="4">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="{Binding Category}" Classes="dim" FontSize="11" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="13"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Message}" FontSize="12" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding Resolution}" FontSize="11" Foreground="{DynamicResource WarnColor}" TextWrapping="Wrap" IsVisible="{Binding Resolution, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding Message}" FontSize="12" TextWrapping="Wrap"/>
-                                                <TextBlock Text="{Binding Resolution}" FontSize="11" Foreground="{DynamicResource WarnColor}" TextWrapping="Wrap" IsVisible="{Binding Resolution, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                            </StackPanel>
-                                            <Border Grid.Column="1" Classes="pill" 
-                                                    Classes.success="{Binding IsPass}"
-                                                    Classes.danger="{Binding IsFail}"
-                                                    Classes.warn="{Binding IsWarning}"
-                                                    VerticalAlignment="Center">
-                                                <TextBlock Classes="pillText" Text="{Binding Severity}"/>
-                                            </Border>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                                                <Border Grid.Column="1" Classes="pill" 
+                                                        Classes.success="{Binding IsPass}"
+                                                        Classes.danger="{Binding IsFail}"
+                                                        Classes.warn="{Binding IsWarning}"
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock Classes="pillText" Text="{Binding Severity}"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
                 </Grid>
             </Border>
         </Panel>

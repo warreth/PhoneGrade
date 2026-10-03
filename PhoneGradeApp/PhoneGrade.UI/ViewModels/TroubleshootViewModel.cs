@@ -87,15 +87,26 @@ public class TroubleshootViewModel : ReactiveObject
     public bool IsRunning
     {
         get => _isRunning;
-        set => this.RaiseAndSetIfChanged(ref _isRunning, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isRunning, value);
+            this.RaisePropertyChanged(nameof(IsBusy));
+        }
     }
 
     private bool _isInstalling;
     public bool IsInstalling
     {
         get => _isInstalling;
-        set => this.RaiseAndSetIfChanged(ref _isInstalling, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isInstalling, value);
+            this.RaisePropertyChanged(nameof(IsBusy));
+        }
     }
+
+    /// <summary>Whether the panel is working on something at this moment.</summary>
+    public bool IsBusy => _isRunning || _isInstalling;
 
     private int _installProgress;
     public int InstallProgress
@@ -124,6 +135,23 @@ public class TroubleshootViewModel : ReactiveObject
         get => _hasFixableIssues;
         set => this.RaiseAndSetIfChanged(ref _hasFixableIssues, value);
     }
+
+    private bool _hasResults;
+
+    /// <summary>True once a scan has put something in <see cref="Checks"/>.</summary>
+    public bool HasResults
+    {
+        get => _hasResults;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _hasResults, value);
+            this.RaisePropertyChanged(nameof(AwaitingFirstScan));
+        }
+    }
+
+    /// <summary>The other side of <see cref="HasResults"/>, for what the panel
+    /// shows before anything has been scanned.</summary>
+    public bool AwaitingFirstScan => !_hasResults;
 
     private string _rawReportText = "";
 
@@ -188,6 +216,7 @@ public class TroubleshootViewModel : ReactiveObject
                     Checks.Add(new DiagnosticCheckViewModel(check, ExecuteFixAsync));
                 }
                 HasFixableIssues = Checks.Any(c => c.IsFixable && c.Severity != DiagnosticSeverity.Pass);
+                HasResults = Checks.Count > 0;
             });
         }
         catch (Exception ex)
