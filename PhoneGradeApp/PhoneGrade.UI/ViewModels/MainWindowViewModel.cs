@@ -351,6 +351,21 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set { _settings.DefaultPaymentMethod = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _defaultPaymentMethod, value); }
     }
 
+    private bool _enableUsbEventMonitoring;
+    public bool EnableUsbEventMonitoring
+    {
+        get => _enableUsbEventMonitoring;
+        set 
+        { 
+            _settings.EnableUsbEventMonitoring = value; 
+            _settings.Save(); 
+            this.RaiseAndSetIfChanged(ref _enableUsbEventMonitoring, value); 
+            if (value) _adbDirector?.Start(); else _adbDirector?.Stop();
+        }
+    }
+
+    public ReactiveCommand<Unit, Unit> ManualScanCommand { get; }
+
     private bool _busy;
     public bool Busy
     {
@@ -596,6 +611,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         _imeiApiKey = _settings.ImeiApiKey ?? "";
         _defaultQuality = _settings.DefaultQuality;
         _defaultPaymentMethod = _settings.DefaultPaymentMethod;
+        _enableUsbEventMonitoring = _settings.EnableUsbEventMonitoring;
         LabelService.ConfiguredTemplatePath = _settings.TemplatePath;
         
         // Wire verbose logging flag from settings
@@ -669,6 +685,27 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
         OpenEditorCommand = ReactiveCommand.Create(() => DataEditorRequested?.Invoke(DeviceData));
         FinishInspectionCommand = ReactiveCommand.CreateFromTask(FinishInspectionAsync);
+
+        // Manual scan command - uses legacy polling
+        ManualScanCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            var (devices, state) = await PhoneGrade.Core.Legacy.DevicePollingService.ScanOnceAsync();
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                Devices = new ObservableCollection<KeyValuePair<string, string>>(devices);
+                if (Devices.Count > 0)
+                {
+                    string currentKey = SelectedDevice.Key ?? "";
+                    if (!devices.ContainsKey(currentKey))
+                        SelectedDevice = Devices[0];
+                }
+                else
+                {
+                    Devices.Clear();
+                    SelectedDevice = new KeyValuePair<string, string>("", "");
+                }
+            });
+        });
 
         // Introduction screen: shown until dismissed, and never again after that.
         IsIntroVisible = !_settings.IntroSeen;

@@ -173,6 +173,7 @@
                             below, opened by one flag from the adb probe.
                         -->
 
+                        <Button Classes="kioskSecondary" Command="{Binding ManualScanCommand}" Content="{DynamicResource Settings_ManualScan}" ToolTip.Tip="{DynamicResource Settings_ManualScanDesc}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                         <Button Classes="kioskSecondary" Command="{Binding RefreshDevicesCommand}" Content="{DynamicResource Btn_ScanManually}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Grid>
@@ -739,6 +740,13 @@
                                     <StackPanel Spacing="6">
                                         <CheckBox Content="{DynamicResource Settings_AutoDetect}" IsChecked="{Binding AutoDetectOnPlug}"/>
                                         <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_AutoDetectDesc}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_UsbEventMonitoring}" IsChecked="{Binding EnableUsbEventMonitoring}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_UsbEventMonitoringDesc}"/>
                                     </StackPanel>
                                 </Border>
 
