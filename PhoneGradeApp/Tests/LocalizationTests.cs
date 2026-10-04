@@ -55,6 +55,57 @@ public class LocalizationTests
         }
     }
 
+    /// <summary>
+    /// No em dash, no en dash and no emoji in the wording an operator reads.
+    ///
+    /// The rule is written down for everything this project produces, and a
+    /// character that arrives by paste rather than by decision is the kind of
+    /// fault nobody reports: it draws, it just does not belong. Measured on
+    /// both dictionaries instead of on one screen, because a character in
+    /// either language is a character on screen.
+    ///
+    /// The tick and the cross are left out on purpose. They are drawn as button
+    /// glyphs rather than written into a sentence, and the views already hold
+    /// them to their own list.
+    /// </summary>
+    [Fact]
+    public void NeitherLanguageCarriesADashOrAnEmoji()
+    {
+        foreach (string file in Files)
+        {
+            // Loaded through the document rather than read as bytes, because a
+            // character written as an entity reaches the screen all the same.
+            string wording = string.Concat(
+                XDocument.Load(RepoPath.Get("PhoneGradeApp", "PhoneGrade.UI", "Resources", file))
+                    .Descendants()
+                    .Select(node => node.Value));
+            var found = new List<string>();
+
+            for (int i = 0; i < wording.Length; i++)
+            {
+                int code = wording[i];
+
+                // Everything written above the first plane is a surrogate pair,
+                // and the pictographs all live up there.
+                if (char.IsHighSurrogate(wording[i]) && i + 1 < wording.Length && char.IsLowSurrogate(wording[i + 1]))
+                {
+                    code = char.ConvertToUtf32(wording[i], wording[i + 1]);
+                    i++;
+                }
+
+                // En dash, em dash, the emoji variation selector, the warning
+                // sign, the cross and the tick.
+                if (code is 0x2013 or 0x2014 or 0xFE0F or 0x26A0 or 0x274C or 0x2705 or > 0xFFFF)
+                {
+                    found.Add($"U+{code:X4}");
+                }
+            }
+
+            Assert.True(found.Count == 0,
+                $"{file} writes {string.Join(", ", found.Distinct())} into wording an operator reads");
+        }
+    }
+
     private static string Value(string file, string key) =>
         XDocument.Load(RepoPath.Get("PhoneGradeApp", "PhoneGrade.UI", "Resources", file))
             .Descendants()
