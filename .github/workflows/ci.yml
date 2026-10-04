@@ -8,6 +8,11 @@ on:
 jobs:
   build:
     strategy:
+      # Every system finishes even when one of them fails. Fail-fast is on by
+      # default, so one red test step cancelled the other two and a run only
+      # ever named the first system to break, which costs a push per system to
+      # find out what the others were doing.
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
