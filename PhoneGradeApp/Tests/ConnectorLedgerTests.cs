@@ -120,10 +120,15 @@ public class ConnectorLedgerTests
     /// <summary>A process that has finished, and the id and start time it had.</summary>
     private static (int Pid, long StartTicks) DepartedRun()
     {
+        // The start time can only be read while the process is still there. A
+        // Windows process object keeps answering long after the process has gone,
+        // but on Unix .NET forgets it the moment it sees the exit and refuses with
+        // an error that reads nothing like "this run has left". So the run is given
+        // a moment in which it can be measured before it departs.
         var start = new ProcessStartInfo
         {
             FileName = OperatingSystem.IsWindows() ? "cmd.exe" : "sh",
-            Arguments = OperatingSystem.IsWindows() ? "/c exit 0" : "-c \"exit 0\"",
+            Arguments = OperatingSystem.IsWindows() ? "/c exit 0" : "-c \"sleep 1; exit 0\"",
             UseShellExecute = false,
             CreateNoWindow = true
         };
