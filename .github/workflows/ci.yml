@@ -23,10 +23,59 @@ jobs:
         run: dotnet build PhoneGradeApp/PhoneGrade.sln -c Release
 
       - name: Run tests (xUnit + headless Avalonia)
-        run: dotnet test PhoneGradeApp/Tests/Tests.csproj -c Release --no-build
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet test PhoneGradeApp/Tests/Tests.csproj -c Release --no-build 2>&1 | tee "$RUNNER_TEMP/tests.out"
         env:
           # Live imei.info facts read this; without the secret they skip.
           IMEI_INFO_API_KEY: ${{ secrets.IMEI_INFO_API_KEY }}
+
+      # A job log can only be downloaded by someone with admin rights on the
+      # repository, so a red test step is invisible from the outside: nobody
+      # can tell which tests broke. The run summary and the annotations on a
+      # check run are both readable without a token, so the failures are
+      # repeated there. One annotation carries the lot, because GitHub only
+      # keeps a handful per step.
+      - name: Report the tests that failed
+        if: failure()
+        shell: bash
+        run: |
+          if [ ! -f "$RUNNER_TEMP/tests.out" ]; then
+            echo "::error::the test step produced no output at all"
+            exit 0
+          fi
+          awk '
+            /^[ \t]*Failed / {
+              line = $0
+              sub(/^[ \t]+/, "", line)
+              sub(/ \[[0-9.]+ ms\].*$/, "", line)
+              names = names (names == "" ? "" : "; ") line
+              next
+            }
+            /Error Message:/ { em = 1; next }
+            em {
+              if ($0 ~ /Stack Trace:/) { em = 0; next }
+              text = $0
+              sub(/^[ \t]+/, "", text)
+              if (text != "") msgs = msgs (msgs == "" ? "" : " | ") text
+            }
+            END { print names; print msgs }
+          ' "$RUNNER_TEMP/tests.out" > "$RUNNER_TEMP/failures.txt"
+          {
+            echo "## Tests that failed"
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/failures.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          first=$(head -1 "$RUNNER_TEMP/failures.txt")
+          detail=$(tail -n +2 "$RUNNER_TEMP/failures.txt")
+          if [ -z "$first" ]; then
+            echo "::error::tests failed, but no failing test name could be read out of the output"
+          else
+            echo "::error::$first${detail:+ :: $detail}"
+          fi
 
       # The PWA modules have their own suite under wwwroot/tests. Nothing else
       # ran it, so it silently rotted whenever a module changed.
