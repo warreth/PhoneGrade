@@ -104,6 +104,8 @@ public class LayoutTests : IDisposable
         Assert.NotNull(close);
         Assert.True(close!.Bounds.Right <= window.Bounds.Width + 0.5,
             $"the settings close button is off the edge: right={close.Bounds.Right}");
+        HeadlessRender.Drain();
+
     }
 
     [AvaloniaFact]
@@ -136,6 +138,8 @@ public class LayoutTests : IDisposable
             Assert.True(panel.Bounds.Width > 200,
                 $"{state.name} collapsed to {panel.Bounds.Width} wide at the minimum size");
         }
+        HeadlessRender.Drain();
+
     }
 
     public void Dispose()

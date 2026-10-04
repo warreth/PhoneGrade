@@ -66,6 +66,8 @@ public class DeviceDropdownTests : IDisposable
 
         Assert.False(HasError(dropdown), ErrorText(dropdown));
         Assert.Equal(vm.SelectedDevice, dropdown.SelectedItem);
+        HeadlessRender.Drain();
+
     }
 
     [AvaloniaFact]
@@ -92,6 +94,8 @@ public class DeviceDropdownTests : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         Assert.False(HasError(dropdown), ErrorText(dropdown));
+        HeadlessRender.Drain();
+
     }
 
     [AvaloniaFact]
@@ -121,6 +125,8 @@ public class DeviceDropdownTests : IDisposable
 
         Assert.Equal("TEST-TWO", vm.SelectedDevice.Key);
         Assert.False(HasError(dropdown), ErrorText(dropdown));
+        HeadlessRender.Drain();
+
     }
 
     public void Dispose()

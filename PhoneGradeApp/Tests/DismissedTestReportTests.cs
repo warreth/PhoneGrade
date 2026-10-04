@@ -244,6 +244,8 @@ public class DismissedTestReportTests
 
         Assert.DoesNotContain(row, vm.FailedInteractiveTests);
         Assert.Same(row, Assert.Single(vm.DismissedInteractiveTests));
+        HeadlessRender.Drain();
+
     }
 
     /// <summary>
@@ -275,5 +277,7 @@ public class DismissedTestReportTests
         vm.RestoreDismissedTestsCommand.Execute().Subscribe();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Assert.False(line.IsVisible);
+        HeadlessRender.Drain();
+
     }
 }
