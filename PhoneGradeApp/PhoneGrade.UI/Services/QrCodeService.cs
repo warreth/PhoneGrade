@@ -112,6 +112,13 @@ public static class QrCodeService
     public static bool IsSecureAddress(string? baseUrl)
     {
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)) return false;
+
+        // Only an address that went out over http or https is in question.
+        // Uri takes a rooted path for a file path on Linux and refuses it on
+        // Windows, and a file address counts as a loopback host, so leaving the
+        // answer to Uri alone makes this depend on the system the desk runs on.
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return false;
+
         return uri.Scheme == Uri.UriSchemeHttps || uri.IsLoopback;
     }
 

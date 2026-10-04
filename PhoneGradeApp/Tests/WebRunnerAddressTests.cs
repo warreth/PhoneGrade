@@ -95,6 +95,7 @@ public class WebRunnerAddressTests
     [InlineData("http://192.168.0.216:5055", false)]
     [InlineData("http://phonegrade.local:5055", false)]
     [InlineData("http://127.0.0.1.nip.io:5055", false)]
+    [InlineData("file:///tmp/x", false)]
     [InlineData("/?sessionId=X", false)]
     [InlineData("", false)]
     [InlineData(null, false)]
