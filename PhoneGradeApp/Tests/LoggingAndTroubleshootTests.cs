@@ -132,7 +132,8 @@ public class LoggingAndTroubleshootTests
         Assert.NotNull(report);
         Assert.NotEmpty(report.OsDescription);
         Assert.NotEmpty(report.Architecture);
-        Assert.NotEmpty(report.OverallStatus);
+        Assert.False(string.IsNullOrEmpty(report.OverallStatusKey),
+            "The scan decided nothing about what the machine can do.");
         Assert.NotEmpty(report.Checks);
 
         // Should check iOS, Android, Service and Hardware categories
@@ -160,7 +161,7 @@ public class LoggingAndTroubleshootTests
     {
         // On this test machine without idevice_id, ensure it is NOT reported as Pass!
         var report = await TroubleshootService.RunFullDiagnosticsAsync();
-        var ideviceCheck = report.Checks.FirstOrDefault(c => c.Title.Contains("idevice_id"));
+        var ideviceCheck = report.Checks.FirstOrDefault(c => c.TitleKey == "Diag_TitleIdeviceIdMissing");
         
         Assert.NotNull(ideviceCheck);
         // Must be Fail because idevice_id is not present, never Pass with an error message
@@ -208,8 +209,8 @@ public class LoggingAndTroubleshootTests
         var check = report.Checks.FirstOrDefault(c => c.Category == "Connection");
 
         Assert.NotNull(check);
-        Assert.True(check!.Title.Contains("cloudflared", StringComparison.OrdinalIgnoreCase),
-            $"The tunnel connector check was reported as '{check.Title}'.");
+        Assert.True(check!.TitleKey == "Diag_TitleTunnel",
+            $"The Connection check was reported as '{check.TitleKey}'.");
     }
 
     [Fact]

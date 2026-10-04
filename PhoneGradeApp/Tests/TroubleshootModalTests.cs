@@ -164,9 +164,9 @@ public class TroubleshootModalTests : IDisposable
         });
         Layout(window);
 
-        Assert.True(PillFor(window, "Fail").Classes.Contains("danger"),
+        Assert.True(PillFor(window, panel.Checks[1].SeverityLabel).Classes.Contains("danger"),
             "a failed check does not wear the badge it asks for");
-        Assert.True(PillFor(window, "Info").Classes.Contains("neutral"),
+        Assert.True(PillFor(window, panel.Checks[0].SeverityLabel).Classes.Contains("neutral"),
             "an informational check is a loose word where the others wear a badge");
     }
 
@@ -240,18 +240,18 @@ public class TroubleshootModalTests : IDisposable
     private static TextBlock StatusLine(Visual root, TroubleshootViewModel panel) =>
         Descendants(Modal(root)).OfType<TextBlock>().First(block => block.Text == panel.OverallStatus);
 
-    /// <summary>The badge a check wears, found by the severity printed on it.</summary>
-    private static Border PillFor(Visual root, string severity)
+    /// <summary>The badge a check wears, found by the label printed on it.</summary>
+    private static Border PillFor(Visual root, string label)
     {
-        var label = Descendants(root).OfType<TextBlock>()
-            .First(block => block.Classes.Contains("pillText") && block.Text == severity);
+        var text = Descendants(root).OfType<TextBlock>()
+            .First(block => block.Classes.Contains("pillText") && block.Text == label);
 
-        for (Visual? node = label; node is not null; node = node.GetVisualParent())
+        for (Visual? node = text; node is not null; node = node.GetVisualParent())
         {
             if (node is Border border && border.Classes.Contains("pill")) return border;
         }
 
-        throw new InvalidOperationException($"the {severity} label is not inside a badge");
+        throw new InvalidOperationException($"the '{label}' label is not inside a badge");
     }
 
     /// <summary>Every button bound to a command, whether it is drawing or not.</summary>

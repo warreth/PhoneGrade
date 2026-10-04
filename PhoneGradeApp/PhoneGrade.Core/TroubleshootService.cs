@@ -16,13 +16,27 @@ public enum DiagnosticSeverity
     Info
 }
 
+/// <summary>
+/// One line of the diagnostics.
+///
+/// The words are keyed rather than written out: this assembly knows nothing
+/// about the language files, so it hands over a key plus the values to fill in
+/// and the view model puts the sentence together when the report arrives.
+/// Category stays a plain identifier because it is also how the report decides
+/// whether iOS and Android are ready.
+/// </summary>
 public class DiagnosticCheckItem
 {
     public string Category { get; set; } = "";
     public string Title { get; set; } = "";
+    public string? TitleKey { get; set; }
     public DiagnosticSeverity Severity { get; set; } = DiagnosticSeverity.Info;
     public string Message { get; set; } = "";
+    public string? MessageKey { get; set; }
+    public string[] MessageArgs { get; set; } = Array.Empty<string>();
     public string? Resolution { get; set; }
+    public string? ResolutionKey { get; set; }
+    public string[] ResolutionArgs { get; set; } = Array.Empty<string>();
     public string? FixActionKey { get; set; }
     public bool IsFixable => !string.IsNullOrEmpty(FixActionKey);
 }
@@ -36,6 +50,7 @@ public class TroubleshootReport
     public List<DiagnosticCheckItem> Checks { get; set; } = new();
     public List<string> RawUsbDevices { get; set; } = new();
     public string OverallStatus { get; set; } = "";
+    public string? OverallStatusKey { get; set; }
     public bool CanDetectIos { get; set; }
     public bool CanDetectAndroid { get; set; }
 
@@ -122,22 +137,22 @@ public static class TroubleshootService
 
         if (report.CanDetectIos && report.CanDetectAndroid)
         {
-            report.OverallStatus = "All diagnostic checks passed. System ready to detect iOS and Android devices.";
+            report.OverallStatusKey = "Diag_StatusAllOk";
         }
         else if (report.CanDetectIos)
         {
-            report.OverallStatus = "iOS detection ready. Android detection unavailable (see checks).";
+            report.OverallStatusKey = "Diag_StatusIosOnly";
         }
         else if (report.CanDetectAndroid)
         {
-            report.OverallStatus = "Android detection ready. iOS detection unavailable (see checks).";
+            report.OverallStatusKey = "Diag_StatusAndroidOnly";
         }
         else
         {
-            report.OverallStatus = "Critical drivers or tools missing. Unable to detect devices.";
+            report.OverallStatusKey = "Diag_StatusNone";
         }
 
-        SystemEventLogger.Info(LogSource.Diagnostic, $"Diagnostic scan completed: {report.OverallStatus}");
+        SystemEventLogger.Info(LogSource.Diagnostic, $"Diagnostic scan completed: {report.OverallStatusKey}");
 
         return report;
     }
@@ -162,34 +177,37 @@ public static class TroubleshootService
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "iOS",
-                Title = "idevice_id Executable",
+                TitleKey = "Diag_TitleIdeviceIdFound",
                 Severity = DiagnosticSeverity.Pass,
-                Message = $"Available at: {ideviceIdPath} (Version: {stdout.Trim()})"
+                MessageKey = "Diag_MsgAvailableVersion",
+                MessageArgs = new[] { ideviceIdPath, stdout.Trim() }
             });
         }
         else
         {
-            string resolution;
+            string resolutionKey;
             if (OperatingSystem.IsWindows())
             {
-                resolution = "Place idevice_id.exe into the 'idevice-tools' directory or install libimobiledevice for Windows.";
+                resolutionKey = "Diag_ResolveIdeviceWin";
             }
             else if (OperatingSystem.IsMacOS())
             {
-                resolution = "Run: 'brew install libimobiledevice' in Terminal.";
+                resolutionKey = "Diag_ResolveIdeviceMac";
             }
             else
             {
-                resolution = "Run: 'sudo apt-get install libimobiledevice-utils' in Terminal.";
+                resolutionKey = "Diag_ResolveIdeviceLinux";
             }
 
+            bool detailIsOutput = stderr.StartsWith("ERROR:");
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "iOS",
-                Title = "idevice_id Missing",
+                TitleKey = "Diag_TitleIdeviceIdMissing",
                 Severity = DiagnosticSeverity.Fail,
-                Message = $"Could not execute idevice_id. Resolved path: {ideviceIdPath}. Details: {(stderr.StartsWith("ERROR:") ? stderr : $"Exit code {exitCode}")}",
-                Resolution = resolution,
+                MessageKey = detailIsOutput ? "Diag_MsgIdeviceIdFailed" : "Diag_MsgIdeviceIdExitCode",
+                MessageArgs = new[] { ideviceIdPath, detailIsOutput ? stderr : exitCode.ToString() },
+                ResolutionKey = resolutionKey,
                 FixActionKey = "install_idevice_tools"
             });
         }
@@ -204,20 +222,23 @@ public static class TroubleshootService
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "iOS",
-                Title = "ideviceinfo Executable",
+                TitleKey = "Diag_TitleIdeviceinfoFound",
                 Severity = DiagnosticSeverity.Pass,
-                Message = $"Available at: {ideviceInfoPath}"
+                MessageKey = "Diag_MsgAvailable",
+                MessageArgs = new[] { ideviceInfoPath }
             });
         }
         else
         {
+            bool detailIsOutput = infoErr.StartsWith("ERROR:");
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "iOS",
-                Title = "ideviceinfo Missing",
+                TitleKey = "Diag_TitleIdeviceinfoMissing",
                 Severity = DiagnosticSeverity.Warning,
-                Message = $"Could not execute ideviceinfo at: {ideviceInfoPath}. Details: {(infoErr.StartsWith("ERROR:") ? infoErr : $"Exit code {infoCode}")}",
-                Resolution = "Ensure the complete libimobiledevice suite is installed."
+                MessageKey = detailIsOutput ? "Diag_MsgIdeviceinfoFailed" : "Diag_MsgIdeviceinfoExitCode",
+                MessageArgs = new[] { ideviceInfoPath, detailIsOutput ? infoErr : infoCode.ToString() },
+                ResolutionKey = "Diag_ResolveIdeviceinfo"
             });
         }
     }
@@ -233,34 +254,36 @@ public static class TroubleshootService
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "Android",
-                Title = "Android Debug Bridge (adb)",
+                TitleKey = "Diag_TitleAdbFound",
                 Severity = DiagnosticSeverity.Pass,
-                Message = $"Available at: {adbPath} ({firstLine})"
+                MessageKey = "Diag_MsgAvailableWith",
+                MessageArgs = new[] { adbPath, firstLine }
             });
         }
         else
         {
-            string resolution;
+            string resolutionKey;
             if (OperatingSystem.IsWindows())
             {
-                resolution = "Install Android SDK Platform-Tools or copy adb.exe to idevice-tools directory.";
+                resolutionKey = "Diag_ResolveAdbWin";
             }
             else if (OperatingSystem.IsMacOS())
             {
-                resolution = "Run: 'brew install android-platform-tools' in Terminal.";
+                resolutionKey = "Diag_ResolveAdbMac";
             }
             else
             {
-                resolution = "Run: 'sudo apt-get install adb' in Terminal.";
+                resolutionKey = "Diag_ResolveAdbLinux";
             }
 
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "Android",
-                Title = "adb Executable Missing",
+                TitleKey = "Diag_TitleAdbMissing",
                 Severity = DiagnosticSeverity.Warning,
-                Message = $"Could not execute adb. Resolved path: {adbPath}",
-                Resolution = resolution,
+                MessageKey = "Diag_MsgAdbFailed",
+                MessageArgs = new[] { adbPath },
+                ResolutionKey = resolutionKey,
                 FixActionKey = "install_adb"
             });
         }
@@ -277,26 +300,25 @@ public static class TroubleshootService
     /// </summary>
     public static DiagnosticCheckItem CheckTunnelConnector(string? connectorPath)
     {
-        const string title = "Tunnel Connector (cloudflared)";
-
         if (!string.IsNullOrWhiteSpace(connectorPath))
         {
             return new DiagnosticCheckItem
             {
                 Category = "Connection",
-                Title = title,
+                TitleKey = "Diag_TitleTunnel",
                 Severity = DiagnosticSeverity.Pass,
-                Message = $"Available at: {connectorPath}"
+                MessageKey = "Diag_MsgAvailable",
+                MessageArgs = new[] { connectorPath }
             };
         }
 
         return new DiagnosticCheckItem
         {
             Category = "Connection",
-            Title = title,
+            TitleKey = "Diag_TitleTunnel",
             Severity = DiagnosticSeverity.Warning,
-            Message = "No tunnel connector found, so a phone without a cable route gets the plain network address.",
-            Resolution = "Install the tunnel connector, or place cloudflared in the 'idevice-tools' directory.",
+            MessageKey = "Diag_MsgNoTunnel",
+            ResolutionKey = "Diag_ResolveTunnel",
             FixActionKey = "install_cloudflared"
         };
     }
@@ -314,29 +336,26 @@ public static class TroubleshootService
 
                 if (isAmdsRunning || isUsbmuxdRunning)
                 {
-                    string activeService = isAmdsRunning ? "Apple Mobile Device Service" : "Portable usbmuxd daemon";
                     report.Checks.Add(new DiagnosticCheckItem
                     {
                         Category = "Service",
-                        Title = "Apple Multiplexing Service",
+                        TitleKey = "Diag_TitleAppleMultiplexing",
                         Severity = DiagnosticSeverity.Pass,
-                        Message = $"{activeService} is active and listening for iOS devices."
+                        MessageKey = isAmdsRunning ? "Diag_MsgServiceActiveAmds" : "Diag_MsgServiceActivePortable"
                     });
                 }
                 else
                 {
                     string localUsbmuxd = Path.Combine(ToolRunner.ToolsDir, "usbmuxd.exe");
-                    string res = File.Exists(localUsbmuxd)
-                        ? "Click Fix to start the portable usbmuxd background daemon."
-                        : "Click Fix to automatically download the lightweight Apple driver and usbmuxd daemon.";
-
                     report.Checks.Add(new DiagnosticCheckItem
                     {
                         Category = "Service",
-                        Title = "Apple USB Service",
+                        TitleKey = "Diag_TitleAppleUsbService",
                         Severity = DiagnosticSeverity.Warning,
-                        Message = "Neither Apple Mobile Device Service nor usbmuxd daemon is currently active.",
-                        Resolution = res,
+                        MessageKey = "Diag_MsgNoService",
+                        ResolutionKey = File.Exists(localUsbmuxd)
+                            ? "Diag_ResolveUsbmuxdPortable"
+                            : "Diag_ResolveAppleService",
                         FixActionKey = File.Exists(localUsbmuxd) ? "start_usbmuxd" : "fix_apple_service"
                     });
                 }
@@ -346,9 +365,10 @@ public static class TroubleshootService
                 report.Checks.Add(new DiagnosticCheckItem
                 {
                     Category = "Service",
-                    Title = "Apple Driver Query",
+                    TitleKey = "Diag_TitleAppleDriverQuery",
                     Severity = DiagnosticSeverity.Info,
-                    Message = $"Could not query service status: {ex.Message}"
+                    MessageKey = "Diag_MsgServiceQueryFailed",
+                    MessageArgs = new[] { ex.Message }
                 });
             }
         }
@@ -364,24 +384,23 @@ public static class TroubleshootService
                 report.Checks.Add(new DiagnosticCheckItem
                 {
                     Category = "Service",
-                    Title = "usbmuxd Daemon",
+                    TitleKey = "Diag_TitleUsbmuxdFound",
                     Severity = DiagnosticSeverity.Pass,
-                    Message = $"usbmuxd is active (Socket: {socketExists}, Process PID: {psOut.Trim()})"
+                    MessageKey = socketExists ? "Diag_MsgUsbmuxdSocket" : "Diag_MsgUsbmuxdProcess",
+                    MessageArgs = socketExists ? Array.Empty<string>() : new[] { psOut.Trim() }
                 });
             }
             else
             {
-                string res = OperatingSystem.IsMacOS()
-                    ? "Ensure usbmuxd is running or restart the computer."
-                    : "Run: 'sudo systemctl start usbmuxd' or 'sudo usbmuxd -f -v'.";
-
                 report.Checks.Add(new DiagnosticCheckItem
                 {
                     Category = "Service",
-                    Title = "usbmuxd Not Running",
+                    TitleKey = "Diag_TitleUsbmuxdStopped",
                     Severity = DiagnosticSeverity.Fail,
-                    Message = "usbmuxd daemon socket was not found. iOS USB multiplexing is inactive.",
-                    Resolution = res,
+                    MessageKey = "Diag_MsgUsbmuxdStopped",
+                    ResolutionKey = OperatingSystem.IsMacOS()
+                        ? "Diag_ResolveUsbmuxdMac"
+                        : "Diag_ResolveUsbmuxdLinux",
                     FixActionKey = "start_usbmuxd"
                 });
             }
@@ -454,9 +473,10 @@ public static class TroubleshootService
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "Hardware",
-                Title = "USB Bus Scan",
+                TitleKey = "Diag_TitleUsbBusScan",
                 Severity = DiagnosticSeverity.Info,
-                Message = $"USB scan exception: {ex.Message}"
+                MessageKey = "Diag_MsgUsbScanFailed",
+                MessageArgs = new[] { ex.Message }
             });
         }
 
@@ -465,9 +485,10 @@ public static class TroubleshootService
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "Hardware",
-                Title = "Physical USB Detection",
+                TitleKey = "Diag_TitleUsbDetection",
                 Severity = DiagnosticSeverity.Pass,
-                Message = $"Found {report.RawUsbDevices.Count} mobile device(s) on USB bus."
+                MessageKey = "Diag_MsgDevicesFound",
+                MessageArgs = new[] { report.RawUsbDevices.Count.ToString() }
             });
         }
         else
@@ -475,10 +496,10 @@ public static class TroubleshootService
             report.Checks.Add(new DiagnosticCheckItem
             {
                 Category = "Hardware",
-                Title = "Physical USB Detection",
+                TitleKey = "Diag_TitleUsbDetection",
                 Severity = DiagnosticSeverity.Warning,
-                Message = "No phone detected on physical USB bus.",
-                Resolution = "Check physical USB cable, try a different USB port directly on the computer (avoid hubs), unlock device screen, and tap 'Trust' if prompted."
+                MessageKey = "Diag_MsgNoUsbDevice",
+                ResolutionKey = "Diag_ResolveUsbCable"
             });
         }
     }

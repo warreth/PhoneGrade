@@ -19,6 +19,22 @@ public class DiagnosticCheckViewModel : ReactiveObject
     private readonly Func<string, Task> _onFixRequested;
 
     public string Category => _item.Category;
+
+    /// <summary>
+    /// The category as the operator reads it. The value itself stays an
+    /// identifier, because the scan decides from it whether iOS and Android
+    /// are ready, and that decision has to hold whatever language is on.
+    /// </summary>
+    public string CategoryLabel => _item.Category switch
+    {
+        "iOS" => LocalizationManager.GetString("Diag_CategoryIOS"),
+        "Android" => LocalizationManager.GetString("Diag_CategoryAndroid"),
+        "Connection" => LocalizationManager.GetString("Diag_CategoryConnection"),
+        "Service" => LocalizationManager.GetString("Diag_CategoryService"),
+        "Hardware" => LocalizationManager.GetString("Diag_CategoryHardware"),
+        _ => _item.Category
+    };
+
     public string Title => _item.Title;
     public DiagnosticSeverity Severity => _item.Severity;
     public string Message => _item.Message;
@@ -34,12 +50,15 @@ public class DiagnosticCheckViewModel : ReactiveObject
         _ => "#3498DB"                           // Info Blue
     };
 
+    /// <summary>
+    /// What the pill spells out, in the language in use.
+    /// </summary>
     public string SeverityLabel => Severity switch
     {
-        DiagnosticSeverity.Pass => "OK",
-        DiagnosticSeverity.Warning => "WARN",
-        DiagnosticSeverity.Fail => "MISSING",
-        _ => "INFO"
+        DiagnosticSeverity.Pass => LocalizationManager.GetString("Diag_SeverityPass"),
+        DiagnosticSeverity.Warning => LocalizationManager.GetString("Diag_SeverityWarning"),
+        DiagnosticSeverity.Fail => LocalizationManager.GetString("Diag_SeverityFail"),
+        _ => LocalizationManager.GetString("Diag_SeverityInfo")
     };
 
     private bool _isFixing;
@@ -236,6 +255,8 @@ public class TroubleshootViewModel : ReactiveObject
     /// </summary>
     public void PublishReport(TroubleshootReport report)
     {
+        Localise(report);
+
         _rawReportText = report.ToFormattedText();
         OverallStatus = report.OverallStatus;
 
@@ -247,6 +268,47 @@ public class TroubleshootViewModel : ReactiveObject
 
         HasFixableIssues = Checks.Any(c => c.IsFixable && c.Severity != DiagnosticSeverity.Pass);
         HasResults = Checks.Count > 0;
+    }
+
+    /// <summary>
+    /// Puts the operator's language onto the report.
+    ///
+    /// The scan runs in Core, which cannot reach the language files, so it
+    /// hands over a key with the values to fill in and the sentence is put
+    /// together here. A key nobody defined leaves whatever the item already
+    /// carries alone, so a wording mistake reads as English on a Dutch screen
+    /// rather than as a key drawn in the row.
+    /// </summary>
+    private static void Localise(TroubleshootReport report)
+    {
+        report.OverallStatus = Wording(report.OverallStatusKey, report.OverallStatus, Array.Empty<string>());
+
+        foreach (var check in report.Checks)
+        {
+            check.Title = Wording(check.TitleKey, check.Title, Array.Empty<string>());
+            check.Message = Wording(check.MessageKey, check.Message, check.MessageArgs);
+
+            if (check.ResolutionKey is not null)
+            {
+                check.Resolution = Wording(check.ResolutionKey, check.Resolution ?? "", check.ResolutionArgs);
+            }
+        }
+    }
+
+    private static string Wording(string? key, string alreadyThere, string[] args)
+    {
+        if (key is null)
+        {
+            return alreadyThere;
+        }
+
+        string template = LocalizationManager.GetString(key);
+        if (template == key)
+        {
+            return alreadyThere;
+        }
+
+        return args.Length == 0 ? template : string.Format(template, args);
     }
 
     private async Task ExecuteFixAsync(string actionKey)

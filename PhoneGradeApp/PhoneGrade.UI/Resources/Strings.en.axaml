@@ -444,5 +444,71 @@
     <x:String x:Key="Troubleshoot_FixError">Error applying the fix: {0}</x:String>
     <x:String x:Key="Troubleshoot_Fixing">Fixing: {0}...</x:String>
 
+    <!-- What each check says on the diagnostics panel -->
+    <x:String x:Key="Diag_StatusAllOk">All diagnostic checks passed. System ready to detect iOS and Android devices.</x:String>
+    <x:String x:Key="Diag_StatusIosOnly">iOS detection ready. Android detection unavailable (see checks).</x:String>
+    <x:String x:Key="Diag_StatusAndroidOnly">Android detection ready. iOS detection unavailable (see checks).</x:String>
+    <x:String x:Key="Diag_StatusNone">Critical drivers or tools missing. Unable to detect devices.</x:String>
+
+    <x:String x:Key="Diag_SeverityPass">Pass</x:String>
+    <x:String x:Key="Diag_SeverityWarning">Warning</x:String>
+    <x:String x:Key="Diag_SeverityFail">Fail</x:String>
+    <x:String x:Key="Diag_SeverityInfo">Info</x:String>
+
+    <x:String x:Key="Diag_CategoryIOS">iOS</x:String>
+    <x:String x:Key="Diag_CategoryAndroid">Android</x:String>
+    <x:String x:Key="Diag_CategoryConnection">Connection</x:String>
+    <x:String x:Key="Diag_CategoryService">Service</x:String>
+    <x:String x:Key="Diag_CategoryHardware">Hardware</x:String>
+
+    <x:String x:Key="Diag_TitleIdeviceIdFound">idevice_id Executable</x:String>
+    <x:String x:Key="Diag_TitleIdeviceIdMissing">idevice_id Missing</x:String>
+    <x:String x:Key="Diag_TitleIdeviceinfoFound">ideviceinfo Executable</x:String>
+    <x:String x:Key="Diag_TitleIdeviceinfoMissing">ideviceinfo Missing</x:String>
+    <x:String x:Key="Diag_TitleAdbFound">Android Debug Bridge (adb)</x:String>
+    <x:String x:Key="Diag_TitleAdbMissing">adb Executable Missing</x:String>
+    <x:String x:Key="Diag_TitleTunnel">Tunnel Connector (cloudflared)</x:String>
+    <x:String x:Key="Diag_TitleAppleMultiplexing">Apple Multiplexing Service</x:String>
+    <x:String x:Key="Diag_TitleAppleUsbService">Apple USB Service</x:String>
+    <x:String x:Key="Diag_TitleAppleDriverQuery">Apple Driver Query</x:String>
+    <x:String x:Key="Diag_TitleUsbmuxdFound">usbmuxd Daemon</x:String>
+    <x:String x:Key="Diag_TitleUsbmuxdStopped">usbmuxd Not Running</x:String>
+    <x:String x:Key="Diag_TitleUsbBusScan">USB Bus Scan</x:String>
+    <x:String x:Key="Diag_TitleUsbDetection">Physical USB Detection</x:String>
+
+    <x:String x:Key="Diag_MsgAvailableVersion">Available at: {0} (Version: {1})</x:String>
+    <x:String x:Key="Diag_MsgAvailable">Available at: {0}</x:String>
+    <x:String x:Key="Diag_MsgAvailableWith">Available at: {0} ({1})</x:String>
+    <x:String x:Key="Diag_MsgIdeviceIdFailed">Could not execute idevice_id. Resolved path: {0}. Details: {1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceIdExitCode">Could not execute idevice_id. Resolved path: {0}. Exit code: {1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceinfoFailed">Could not execute ideviceinfo at: {0}. Details: {1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceinfoExitCode">Could not execute ideviceinfo at: {0}. Exit code: {1}</x:String>
+    <x:String x:Key="Diag_MsgAdbFailed">Could not execute adb. Resolved path: {0}</x:String>
+    <x:String x:Key="Diag_MsgNoTunnel">No tunnel connector found, so a phone without a cable route gets the plain network address.</x:String>
+    <x:String x:Key="Diag_MsgServiceActiveAmds">Apple Mobile Device Service is active and listening for iOS devices.</x:String>
+    <x:String x:Key="Diag_MsgServiceActivePortable">The portable usbmuxd daemon is active and listening for iOS devices.</x:String>
+    <x:String x:Key="Diag_MsgNoService">Neither Apple Mobile Device Service nor usbmuxd daemon is currently active.</x:String>
+    <x:String x:Key="Diag_MsgServiceQueryFailed">Could not query service status: {0}</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdSocket">usbmuxd is active: its socket was found at /var/run/usbmuxd.</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdProcess">usbmuxd is running as process {0}.</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdStopped">usbmuxd daemon socket was not found. iOS USB multiplexing is inactive.</x:String>
+    <x:String x:Key="Diag_MsgUsbScanFailed">USB scan exception: {0}</x:String>
+    <x:String x:Key="Diag_MsgDevicesFound">Found {0} mobile device(s) on USB bus.</x:String>
+    <x:String x:Key="Diag_MsgNoUsbDevice">No phone detected on physical USB bus.</x:String>
+
+    <x:String x:Key="Diag_ResolveIdeviceWin">Place idevice_id.exe into the 'idevice-tools' directory or install libimobiledevice for Windows.</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceMac">Run: 'brew install libimobiledevice' in Terminal.</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceLinux">Run: 'sudo apt-get install libimobiledevice-utils' in Terminal.</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceinfo">Ensure the complete libimobiledevice suite is installed.</x:String>
+    <x:String x:Key="Diag_ResolveAdbWin">Install Android SDK Platform-Tools or copy adb.exe to the idevice-tools directory.</x:String>
+    <x:String x:Key="Diag_ResolveAdbMac">Run: 'brew install android-platform-tools' in Terminal.</x:String>
+    <x:String x:Key="Diag_ResolveAdbLinux">Run: 'sudo apt-get install adb' in Terminal.</x:String>
+    <x:String x:Key="Diag_ResolveTunnel">Install the tunnel connector, or place cloudflared in the 'idevice-tools' directory.</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdPortable">Start the portable usbmuxd background daemon.</x:String>
+    <x:String x:Key="Diag_ResolveAppleService">Download and install the lightweight Apple driver and the usbmuxd daemon.</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdMac">Make sure usbmuxd is running, or restart the computer.</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdLinux">Run: 'sudo systemctl start usbmuxd' or 'sudo usbmuxd -f -v'.</x:String>
+    <x:String x:Key="Diag_ResolveUsbCable">Check the USB cable, try another USB port directly on the computer (not a hub), unlock the phone and tap 'Trust' if asked.</x:String>
+
 </ResourceDictionary>
 

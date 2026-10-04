@@ -391,6 +391,72 @@
     <x:String x:Key="Troubleshoot_FixError">Fout bij het toepassen van de fix: {0}</x:String>
     <x:String x:Key="Troubleshoot_Fixing">Bezig met fixen: {0}...</x:String>
 
+    <!-- Wat elke controle op het diagnosepaneel zegt -->
+    <x:String x:Key="Diag_StatusAllOk">Alle controles geslaagd. Het systeem is klaar om iOS- en Android-toestellen te herkennen.</x:String>
+    <x:String x:Key="Diag_StatusIosOnly">iOS-herkenning gereed. Android niet beschikbaar (zie de controles).</x:String>
+    <x:String x:Key="Diag_StatusAndroidOnly">Android-herkenning gereed. iOS niet beschikbaar (zie de controles).</x:String>
+    <x:String x:Key="Diag_StatusNone">Kritieke drivers of tools ontbreken. Toestellen kunnen niet worden herkend.</x:String>
+
+    <x:String x:Key="Diag_SeverityPass">Geslaagd</x:String>
+    <x:String x:Key="Diag_SeverityWarning">Waarschuwing</x:String>
+    <x:String x:Key="Diag_SeverityFail">Fout</x:String>
+    <x:String x:Key="Diag_SeverityInfo">Info</x:String>
+
+    <x:String x:Key="Diag_CategoryIOS">iOS</x:String>
+    <x:String x:Key="Diag_CategoryAndroid">Android</x:String>
+    <x:String x:Key="Diag_CategoryConnection">Verbinding</x:String>
+    <x:String x:Key="Diag_CategoryService">Dienst</x:String>
+    <x:String x:Key="Diag_CategoryHardware">Hardware</x:String>
+
+    <x:String x:Key="Diag_TitleIdeviceIdFound">idevice_id aanwezig</x:String>
+    <x:String x:Key="Diag_TitleIdeviceIdMissing">idevice_id ontbreekt</x:String>
+    <x:String x:Key="Diag_TitleIdeviceinfoFound">ideviceinfo aanwezig</x:String>
+    <x:String x:Key="Diag_TitleIdeviceinfoMissing">ideviceinfo ontbreekt</x:String>
+    <x:String x:Key="Diag_TitleAdbFound">Android Debug Bridge (adb)</x:String>
+    <x:String x:Key="Diag_TitleAdbMissing">adb ontbreekt</x:String>
+    <x:String x:Key="Diag_TitleTunnel">Tunnelverbinding (cloudflared)</x:String>
+    <x:String x:Key="Diag_TitleAppleMultiplexing">Apple multiplexingdienst</x:String>
+    <x:String x:Key="Diag_TitleAppleUsbService">Apple USB-dienst</x:String>
+    <x:String x:Key="Diag_TitleAppleDriverQuery">Apple driver opvragen</x:String>
+    <x:String x:Key="Diag_TitleUsbmuxdFound">usbmuxd-dienst</x:String>
+    <x:String x:Key="Diag_TitleUsbmuxdStopped">usbmuxd draait niet</x:String>
+    <x:String x:Key="Diag_TitleUsbBusScan">USB-bus scannen</x:String>
+    <x:String x:Key="Diag_TitleUsbDetection">Fysieke USB-herkenning</x:String>
+
+    <x:String x:Key="Diag_MsgAvailableVersion">Beschikbaar op: {0} (versie: {1})</x:String>
+    <x:String x:Key="Diag_MsgAvailable">Beschikbaar op: {0}</x:String>
+    <x:String x:Key="Diag_MsgAvailableWith">Beschikbaar op: {0} ({1})</x:String>
+    <x:String x:Key="Diag_MsgIdeviceIdFailed">Kon idevice_id niet uitvoeren. Gevonden pad: {0}. Details: {1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceIdExitCode">Kon idevice_id niet uitvoeren. Gevonden pad: {0}. Uitvoercode: {1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceinfoFailed">Kon ideviceinfo niet uitvoeren op {0}. Details: {1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceinfoExitCode">Kon ideviceinfo niet uitvoeren op {0}. Uitvoercode: {1}</x:String>
+    <x:String x:Key="Diag_MsgAdbFailed">Kon adb niet uitvoeren. Gevonden pad: {0}</x:String>
+    <x:String x:Key="Diag_MsgNoTunnel">Geen tunnelverbinding gevonden, dus een toestel zonder kabelroute krijgt het gewone netwerkadres.</x:String>
+    <x:String x:Key="Diag_MsgServiceActiveAmds">De Apple Mobile Device Service is actief en luistert naar iOS-toestellen.</x:String>
+    <x:String x:Key="Diag_MsgServiceActivePortable">De draagbare usbmuxd-dienst is actief en luistert naar iOS-toestellen.</x:String>
+    <x:String x:Key="Diag_MsgNoService">Noch de Apple Mobile Device Service, noch de usbmuxd-dienst is actief.</x:String>
+    <x:String x:Key="Diag_MsgServiceQueryFailed">Kon de dienststatus niet opvragen: {0}</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdSocket">usbmuxd is actief: de socket is gevonden in /var/run/usbmuxd.</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdProcess">usbmuxd draait als proces {0}.</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdStopped">De usbmuxd-socket is niet gevonden. De iOS-USB-multiplexing is uit.</x:String>
+    <x:String x:Key="Diag_MsgUsbScanFailed">Fout bij het scannen van de USB-bus: {0}</x:String>
+    <x:String x:Key="Diag_MsgDevicesFound">{0} mobiele toestel(len) gevonden op de USB-bus.</x:String>
+    <x:String x:Key="Diag_MsgNoUsbDevice">Geen telefoon gevonden op de fysieke USB-bus.</x:String>
+
+    <x:String x:Key="Diag_ResolveIdeviceWin">Plaats idevice_id.exe in de map 'idevice-tools' of installeer libimobiledevice voor Windows.</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceMac">Voer in Terminal 'brew install libimobiledevice' uit.</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceLinux">Voer in de terminal 'sudo apt-get install libimobiledevice-utils' uit.</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceinfo">Zorg dat de complete libimobiledevice-suite is geinstalleerd.</x:String>
+    <x:String x:Key="Diag_ResolveAdbWin">Installeer Android SDK Platform-Tools of kopieer adb.exe naar de map idevice-tools.</x:String>
+    <x:String x:Key="Diag_ResolveAdbMac">Voer in Terminal 'brew install android-platform-tools' uit.</x:String>
+    <x:String x:Key="Diag_ResolveAdbLinux">Voer in de terminal 'sudo apt-get install adb' uit.</x:String>
+    <x:String x:Key="Diag_ResolveTunnel">Installeer de tunnelverbinding, of plaats cloudflared in de map 'idevice-tools'.</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdPortable">Start de draagbare usbmuxd-dienst op de achtergrond.</x:String>
+    <x:String x:Key="Diag_ResolveAppleService">Download en installeer de lichte Apple-driver en de usbmuxd-dienst.</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdMac">Zorg dat usbmuxd draait, of start de computer opnieuw op.</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdLinux">Voer 'sudo systemctl start usbmuxd' of 'sudo usbmuxd -f -v' uit.</x:String>
+    <x:String x:Key="Diag_ResolveUsbCable">Controleer de USB-kabel, probeer een andere USB-poort direct op de computer (geen hub), ontgrendel de telefoon en tik op 'Vertrouwen' als dat wordt gevraagd.</x:String>
+
     <!-- IMEI API Instellingen -->
     <x:String x:Key="Settings_ImeiInfoGuide">Setup Handleiding</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep1">Maak een account aan op imei.info</x:String>

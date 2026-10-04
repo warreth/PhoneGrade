@@ -303,53 +303,69 @@ class ScreenshotRunner
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
     }
 
-    // A report the way the diagnostics service writes one: its categories, its
-    // plain English, and one row of every severity, so all four pills and both
-    // resolutions are in the frame. The two rows that can be repaired are what
-    // put the repair button at the top of the panel on screen.
+    // A report the way the diagnostics service writes one: keyed rather than
+    // written out, one row of every severity so all four pills are in the
+    // frame, a row for each category, and resolutions on the rows that can be
+    // repaired, which is what puts the repair button at the top of the panel.
     static TroubleshootReport SampleReport() => new()
     {
-        OverallStatus = "iOS detection ready. Android detection unavailable (see checks).",
+        OverallStatusKey = "Diag_StatusAndroidOnly",
         Checks =
         {
             new DiagnosticCheckItem
             {
                 Category = "iOS",
-                Title = "idevice_id Executable",
+                TitleKey = "Diag_TitleIdeviceinfoFound",
                 Severity = DiagnosticSeverity.Pass,
-                Message = "Available at: C:\\Program Files\\PhoneGrade\\idevice-tools\\idevice_id.exe (Version: 1.3.17)",
+                MessageKey = "Diag_MsgAvailable",
+                MessageArgs = new[] { "C:\\Program Files\\PhoneGrade\\idevice-tools\\ideviceinfo.exe" },
+            },
+            new DiagnosticCheckItem
+            {
+                Category = "iOS",
+                TitleKey = "Diag_TitleIdeviceIdMissing",
+                Severity = DiagnosticSeverity.Fail,
+                MessageKey = "Diag_MsgIdeviceIdExitCode",
+                MessageArgs = new[] { "C:\\Program Files\\PhoneGrade\\idevice-tools\\idevice_id.exe", "9009" },
+                ResolutionKey = "Diag_ResolveIdeviceWin",
+                FixActionKey = "install_idevice_tools",
             },
             new DiagnosticCheckItem
             {
                 Category = "Android",
-                Title = "adb Executable",
-                Severity = DiagnosticSeverity.Pass,
-                Message = "Available at: C:\\Program Files\\PhoneGrade\\platform-tools\\adb.exe (Version: Android Debug Bridge version 34.0.4)",
-            },
-            new DiagnosticCheckItem
-            {
-                Category = "Service",
-                Title = "Apple Mobile Device Service",
+                TitleKey = "Diag_TitleAdbMissing",
                 Severity = DiagnosticSeverity.Warning,
-                Message = "Installed but not running, so phones plugged in over USB will not be seen.",
-                Resolution = "Start Apple Mobile Device Service from services.msc, then plug the phone in again.",
-                FixActionKey = "start_applemobiledevice",
-            },
-            new DiagnosticCheckItem
-            {
-                Category = "Hardware",
-                Title = "USB Device Enumeration",
-                Severity = DiagnosticSeverity.Fail,
-                Message = "No Apple USB device was found in the system device tree.",
-                Resolution = "Rescan the bus; if the phone is plugged in, try another cable and another port.",
-                FixActionKey = "rescan_usb",
+                MessageKey = "Diag_MsgAdbFailed",
+                MessageArgs = new[] { "C:\\Program Files\\PhoneGrade\\platform-tools\\adb.exe" },
+                ResolutionKey = "Diag_ResolveAdbWin",
+                FixActionKey = "install_adb",
             },
             new DiagnosticCheckItem
             {
                 Category = "Connection",
-                Title = "Cloudflared Connector",
+                TitleKey = "Diag_TitleTunnel",
+                Severity = DiagnosticSeverity.Pass,
+                MessageKey = "Diag_MsgAvailable",
+                MessageArgs = new[] { "C:\\Program Files\\PhoneGrade\\idevice-tools\\cloudflared.exe" },
+            },
+            new DiagnosticCheckItem
+            {
+                Category = "Service",
+                TitleKey = "Diag_TitleAppleDriverQuery",
                 Severity = DiagnosticSeverity.Info,
-                Message = "Quick tunnel connector not found. The phone's browser cannot be reached until it is installed.",
+                MessageKey = "Diag_MsgServiceQueryFailed",
+                // The reason is the operating system's own words, so it follows the
+                // machine rather than the app language: a Dutch Windows reports
+                // error 1062 as this.
+                MessageArgs = new[] { "De dienst is niet gestart." },
+            },
+            new DiagnosticCheckItem
+            {
+                Category = "Hardware",
+                TitleKey = "Diag_TitleUsbDetection",
+                Severity = DiagnosticSeverity.Warning,
+                MessageKey = "Diag_MsgNoUsbDevice",
+                ResolutionKey = "Diag_ResolveUsbCable",
             },
         },
     };

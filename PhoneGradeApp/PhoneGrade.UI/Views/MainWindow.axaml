@@ -1227,7 +1227,7 @@
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <StackPanel Grid.Column="0" Spacing="4">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <TextBlock Text="{Binding Category}" Classes="dim" FontSize="11" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding CategoryLabel}" Classes="dim" FontSize="11" FontWeight="Bold"/>
                                                         <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="13"/>
                                                     </StackPanel>
                                                     <TextBlock Text="{Binding Message}" FontSize="12" TextWrapping="Wrap"/>
@@ -1239,7 +1239,7 @@
                                                         Classes.warn="{Binding IsWarning}"
                                                         Classes.neutral="{Binding IsInfo}"
                                                         VerticalAlignment="Center">
-                                                    <TextBlock Classes="pillText" Text="{Binding Severity}"/>
+                                                    <TextBlock Classes="pillText" Text="{Binding SeverityLabel}"/>
                                                 </Border>
                                             </Grid>
                                         </Border>
