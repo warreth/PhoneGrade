@@ -38,7 +38,7 @@
     <!-- Status Messages -->
     <x:String x:Key="Status_Ready">Plug in an iPhone/iPad to start...</x:String>
     <x:String x:Key="Status_NoDevice">No device found. Try cable/port or unlock device and tap Trust.</x:String>
-    <x:String x:Key="Status_ToolsMissing">USB tools missing: neither libimobiledevice nor adb is installed or found in PATH. Open the Troubleshoot tab for installation instructions.</x:String>
+    <x:String x:Key="Status_ToolsMissing">No USB tools: run diagnostics</x:String>
     
     <!-- Settings -->
     <x:String x:Key="Settings_Title">SETTINGS</x:String>

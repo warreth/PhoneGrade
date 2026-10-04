@@ -55,6 +55,37 @@ public class LocalizationTests
         }
     }
 
+    private static string Value(string file, string key) =>
+        XDocument.Load(RepoPath.Get("PhoneGradeApp", "PhoneGrade.UI", "Resources", file))
+            .Descendants()
+            .Attributes()
+            .Where(attribute => attribute.Name.LocalName == "Key" && attribute.Value == key)
+            .Select(attribute => attribute.Parent!.Value)
+            .First();
+
+    /// <summary>
+    /// The line that says why no phone is being found is drawn in a pill about
+    /// 180 pixels wide, which at this font size is roughly thirty two
+    /// characters: everything past that is cut off with an ellipsis, so an
+    /// instruction written after the first sentence never reaches the operator.
+    /// It has to fit inside the pill and it has to name the button that opens
+    /// the diagnostics, which used to be a tab that does not exist.
+    /// </summary>
+    [Fact]
+    public void TheMissingToolsStatusFitsItsPillAndPointsAtTheDiagnostics()
+    {
+        const int budget = 32;
+
+        foreach (string file in Files)
+        {
+            string status = Value(file, "Status_ToolsMissing");
+
+            Assert.True(status.Length <= budget,
+                $"{file} writes {status.Length} characters where the pill shows about {budget}: {status}");
+            Assert.Contains("diagnos", status.ToLowerInvariant());
+        }
+    }
+
     /// <summary>
     /// Wording belongs in the string dictionaries, not in the views.
     ///

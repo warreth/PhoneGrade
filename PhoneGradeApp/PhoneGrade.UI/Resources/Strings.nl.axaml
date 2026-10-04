@@ -38,7 +38,7 @@
     <!-- Status Messages -->
     <x:String x:Key="Status_Ready">Plug een iPhone/iPad in om te starten...</x:String>
     <x:String x:Key="Status_NoDevice">Geen toestel gevonden. Kabel/poort proberen of toestel ontgrendelen en 'Vertrouwen' tikken.</x:String>
-    <x:String x:Key="Status_ToolsMissing">USB tools ontbreken: noch libimobiledevice noch adb is geinstalleerd of vindbaar in PATH. Open de Troubleshoot tab voor installatie-instructies.</x:String>
+    <x:String x:Key="Status_ToolsMissing">Geen USB-tools: diagnose starten</x:String>
     
     <!-- Settings -->
     <x:String x:Key="Settings_Title">INSTELLINGEN</x:String>
