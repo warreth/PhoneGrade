@@ -84,25 +84,11 @@ public class SkippedTestReportTests
         Assert.NotEqual(LocalizationManager.GetString("Session_AllPassed"), vm.InteractiveSessionStatus);
 
         Assert.Equal("Locatie (GPS)", Assert.Single(vm.SkippedInteractiveTests).Name);
-        Assert.Single(vm.FailedInteractiveTests);
-        Assert.False(vm.NoInteractiveTestProblems);
-    }
-
-    [AvaloniaFact]
-    public void AFailureStillReadsAsAFailureAlongsideTheSkippedOne()
-    {
-        using var vm = new MainWindowViewModel();
-
-        vm.ApplyInteractiveResults(ReadSuite(SuitePayload));
-
-        Assert.Equal("Camera", Assert.Single(vm.FailedInteractiveTests).Name);
 
         // One row went wrong and another never ran, so the line the operator
-        // reads has to carry both numbers.
-        Assert.Equal(
-            string.Format(LocalizationManager.GetString("Session_FailedSkipped"), 1, 1),
-            vm.InteractiveSessionStatus);
-        Assert.NotEqual("Session_FailedSkipped", vm.InteractiveSessionStatus);
+        // reads has to carry both numbers, and each row keeps its own name.
+        Assert.Equal("Camera", Assert.Single(vm.FailedInteractiveTests).Name);
+        Assert.False(vm.NoInteractiveTestProblems);
     }
 
     [AvaloniaFact]

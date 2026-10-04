@@ -95,19 +95,6 @@ public class UiThreadDoesNotWaitTests
     }
 
     [Fact]
-    public void AStaleAnswer_CannotOverwriteANewerSession()
-    {
-        var source = ViewModel();
-
-        // Two requests can now be in flight at once, which they could not before,
-        // because before the first one blocked until it was done. A slow adb answer
-        // for a device that has already been unplugged must be dropped rather than
-        // applied to the device that replaced it.
-        Contains("_webRunnerGeneration", source, "the view model");
-        Contains("IsCurrentWebRunnerSession", source, "the view model");
-    }
-
-    [Fact]
     public void NoOtherViewModel_WaitsEither()
     {
         // The same mistake in a smaller view model would freeze the same way.

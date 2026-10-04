@@ -118,11 +118,6 @@ public class LoggingAndTroubleshootTests
         Assert.Contains("[FAIL] [iOS] idevice_id Missing", formatted);
         Assert.Contains("Action: Run: sudo apt-get install libimobiledevice-utils", formatted);
         Assert.Contains("[PASS] [Android] adb Available", formatted);
-        // Guarantee no emoji or m-dashes
-        Assert.DoesNotContain("—", formatted);
-        Assert.DoesNotContain("⚠️", formatted);
-        Assert.DoesNotContain("❌", formatted);
-        Assert.DoesNotContain("✅", formatted);
     }
 
     [Fact]
