@@ -72,6 +72,8 @@ public class UsbDebuggingGuideTests : IDisposable
         Assert.NotNull(overlay);
         Assert.False(overlay!.IsVisible,
             "a phone that is already trusted has nothing to be told");
+        HeadlessRender.Drain();
+
     }
 
     [AvaloniaFact]
@@ -97,6 +99,8 @@ public class UsbDebuggingGuideTests : IDisposable
         Assert.NotNull(settings);
         Assert.True(overlay!.ZIndex < settings!.ZIndex,
             $"the how-to is at ZIndex {overlay.ZIndex} and settings at {settings.ZIndex}");
+        HeadlessRender.Drain();
+
     }
 
     // ---- what it says ----
@@ -191,6 +195,8 @@ public class UsbDebuggingGuideTests : IDisposable
         Assert.True(name < text.IndexOf("Ontgrendel het scherm", StringComparison.Ordinal),
             "the phone is named after the instructions rather than before them");
         Assert.Contains("Voor uw HONOR 600 Lite:", text);
+        HeadlessRender.Drain();
+
     }
 
     [AvaloniaFact]
@@ -220,6 +226,8 @@ public class UsbDebuggingGuideTests : IDisposable
         // pair: the extra hop through Software information is the part a generic
         // instruction would have made the operator hunt for.
         Assert.Contains("Software-informatie", text);
+        HeadlessRender.Drain();
+
     }
 
     [AvaloniaFact]
@@ -249,6 +257,8 @@ public class UsbDebuggingGuideTests : IDisposable
         // manufacturer to look up.
         Assert.Contains("Build-nummer", text);
         Assert.DoesNotContain("Software-informatie", text);
+        HeadlessRender.Drain();
+
     }
 
     [AvaloniaFact]
@@ -278,6 +288,8 @@ public class UsbDebuggingGuideTests : IDisposable
         // than no fallback at all.
         Assert.DoesNotContain("Software-informatie", text);
         Assert.DoesNotContain("MIUI-versie", text);
+        HeadlessRender.Drain();
+
     }
 
     // ---- how it is laid out ----
@@ -426,6 +438,8 @@ public class UsbDebuggingGuideTests : IDisposable
                     $"a step badge sits at {top:F0} on a {width}x{height} window");
             }
         }
+        HeadlessRender.Drain();
+
     }
 
     // ---- colour ----
@@ -486,6 +500,8 @@ public class UsbDebuggingGuideTests : IDisposable
         // theme and was chosen by copying a bootstrap warning.
         var background = card.Background as ISolidColorBrush;
         Assert.NotEqual(Color.Parse("#FFF3CD"), background!.Color);
+        HeadlessRender.Drain();
+
     }
 
     // ---- what the button inside it does ----
@@ -615,6 +631,8 @@ public class UsbDebuggingGuideTests : IDisposable
 
         Assert.False(vm.AdbTutorialViewModel.NeedsDeviceName,
             "four refreshes with the how-to open and the card never got to ask for the model");
+        HeadlessRender.Drain();
+
     }
 
     private static double Luminance(ISolidColorBrush? brush)

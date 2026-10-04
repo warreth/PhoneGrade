@@ -186,6 +186,8 @@ public class TroubleshootModalTests : IDisposable
         panel.HasFixableIssues = true;
         Layout(window);
         Assert.True(fixAll.IsEffectivelyVisible, "the fix button did not appear once there was something to fix");
+        HeadlessRender.Drain();
+
     }
 
     public void Dispose()

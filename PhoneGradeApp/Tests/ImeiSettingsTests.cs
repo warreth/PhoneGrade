@@ -86,6 +86,8 @@ public class ImeiSettingsTests : IDisposable
         Assert.Single(buttons, button => ReferenceEquals(button.Command, vm.OpenImeiDashboardCommand));
         Assert.Single(buttons, button => ReferenceEquals(button.Command, vm.SaveImeiInfoApiKeyCommand));
         Assert.Single(buttons, button => ReferenceEquals(button.Command, vm.TestImeiInfoApiKeyCommand));
+        HeadlessRender.Drain();
+
     }
 
     public void Dispose()

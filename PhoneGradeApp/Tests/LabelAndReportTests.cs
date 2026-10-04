@@ -131,6 +131,8 @@ public class LabelAndReportTests : IDisposable
         }
 
         window.Close();
+        HeadlessRender.Drain();
+
     }
 
     public void Dispose()

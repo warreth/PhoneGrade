@@ -85,6 +85,8 @@ public class IdleScreenTests : IDisposable
 
         Assert.Single(start);
         Assert.Equal(LocalizationManager.GetString("Btn_StartInspection"), start[0].Content);
+        HeadlessRender.Drain();
+
     }
 
     public void Dispose()

@@ -96,6 +96,8 @@ public class StepPlanTests : IDisposable
                    vm.SelectedSettingsSection = "ImeiApi";
                }))
             AssertRailsRunTheirWholeRow(imei);
+        HeadlessRender.Drain();
+
     }
 
     public void Dispose()
