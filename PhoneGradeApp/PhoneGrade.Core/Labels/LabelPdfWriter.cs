@@ -20,6 +20,12 @@ public static class LabelPdfWriter
     /// <summary>Writes one label, the size the layout says.</summary>
     public static void Write(string path, LabelFields fields, LabelLayout? layout = null)
     {
+        // Done here rather than left to the caller. Setting the licence up is one
+        // line but it is the one line that has to happen before the document is
+        // drawn, and a writer that throws without it is a writer every caller has
+        // to remember to prepare first.
+        ReportFonts.Ensure();
+
         LabelLayout size = layout ?? LabelLayout.Address;
         string text = size.TextLine(fields);
         string? barcode = LabelBarcode.Encode(fields.Identifier, out _);
@@ -43,19 +49,27 @@ public static class LabelPdfWriter
 
                     if (barcode is not null)
                     {
+                        // No fixed height on this item, deliberately. Pinning the
+                        // band to a height and then putting the caption inside it
+                        // hands the layout engine two requirements that cannot both
+                        // be met, and QuestPDF answers that by quietly dropping
+                        // everything after it: the label comes out with bars on it
+                        // and no text at all, which reads as a blank label rather
+                        // than as a fault. Let the band take the height its bars and
+                        // its caption actually need.
                         column.Item()
-                            .Height(size.BarcodeYmm + size.BarcodeHeightMm)
                             .PaddingTop(size.BarcodeYmm)
                             .Element(container => Barcode(container, barcode, size, family));
                     }
 
-                    // The rest of the paper, with the text centred in it rather
-                    // than pinned to an offset from the barcode. An offset is a
-                    // measurement that has to stay true for every stock size, and
-                    // a stock size it does not stay true for pushes the text off
-                    // the bottom of the label.
+                    // The rest of the paper, with the text centred in it and no
+                    // height of its own. A height here is what fought with the
+                    // barcode band in the first place: two items that both think
+                    // they own the paper is a layout the engine cannot always
+                    // satisfy, and it answers by dropping the text rather than by
+                    // complaining.
                     column.Item()
-                        .PaddingTop(Math.Max(0f, size.TextYmm - size.BarcodeYmm - size.BarcodeHeightMm))
+                        .PaddingTop(Math.Max(1f, size.TextYmm - size.BarcodeYmm - size.BarcodeHeightMm))
                         .AlignCenter().AlignMiddle()
                         .Element(container => TextLine(container, text, size, family));
                 });
@@ -98,16 +112,15 @@ public static class LabelPdfWriter
 
         container.Column(column =>
         {
-            column.Item().Row(row =>
-            {
-                row.Spacing(0);
-                foreach (bool isBar in elements)
-                {
-                    row.ConstantItem(isBar ? narrow * 3f : narrow)
-                        .Height(barHeight)
-                        .Element(bar => bar.Background(isBar ? Colors.Black : Colors.Transparent));
-                }
-            });
+            // The physical size is set rather than left to fill the column. Left to
+            // fill, the image is stretched across the whole band and a barcode comes
+            // out as a black rectangle, which scans as nothing and looks like a
+            // printer fault rather than a drawing one.
+            column.Item().Height(barHeight).AlignCenter()
+                .Element(box => box
+                    .Width(BarWidthMm(elements, narrow))
+                    .Height(barHeight)
+                    .Image(Bars(elements, narrow, barHeight)));
 
             // The value under the bars. A barcode nobody can read back is worse
             // than no barcode, because the operator believes it was scanned.
@@ -116,13 +129,48 @@ public static class LabelPdfWriter
         });
     }
 
+    /// <summary>How wide the drawn code is on the paper, in millimetres.</summary>
+    private static float BarWidthMm(IReadOnlyList<bool> elements, float narrowMm)
+    {
+        float units = 0;
+        foreach (bool isBar in elements) units += isBar ? 3 : 1;
+        return units * narrowMm;
+    }
+
+    /// <summary>
+    /// The bars as one picture.
+    ///
+    /// Painted rather than laid out, and that is the whole point. Laid out as a
+    /// hundred and sixty-nine separate boxes, the label's words sat on a knife
+    /// edge: making the code a third of a millimetre narrower was enough for the
+    /// layout engine to decide the caption under it did not fit, and it then
+    /// printed the barcode and nothing else, with every word still in the file.
+    /// An image has one width and takes it, so there is nothing left to negotiate.
+    ///
+    /// Four dots to the millimetre, which is what a 300 dpi head can hold. The
+    /// bitmap is handed over with its physical size, so the printer scales it to
+    /// the label rather than deciding for itself how wide each bar is.
+    /// </summary>
+    private static byte[] Bars(IReadOnlyList<bool> elements, float narrowMm, float heightMm)
+    {
+        const float DotsPerMm = 4f;
+        int narrow = Math.Max(1, (int)MathF.Round(narrowMm * DotsPerMm));
+        int high = Math.Max(1, (int)MathF.Round(heightMm * DotsPerMm));
+
+        int width = 0;
+        foreach (bool isBar in elements) width += isBar ? narrow * 3 : narrow;
+
+        return PngWriter.Barcode(elements, width, high);
+    }
+
     /// <summary>
     /// The width of one narrow element, in millimetres, chosen so a barcode of
     /// this many elements fills the label and no more.
     ///
-    /// It is never narrower than the smallest a thermal head can print, because a
-    /// barcode whose bars are below the head's resolution scans as nothing at all,
-    /// which looks identical to a barcode that works.
+    /// The floor is the narrowest a 300 dpi head holds, about three dots. Fifteen
+    /// digits of Code39 is 339 units, which is 95mm at a comfortable width, so an
+    /// 89mm label is given the narrowest code that still scans rather than a code
+    /// that runs off the side of the paper.
     /// </summary>
     private static float NarrowBarWidth(IReadOnlyList<bool> elements, LabelLayout size)
     {
@@ -131,17 +179,34 @@ public static class LabelPdfWriter
         foreach (bool isBar in elements) units += isBar ? 3 : 1;
 
         float fitted = units > 0 ? available / units : available;
-        return Math.Max(fitted, MinimumNarrowMm);
+        return Math.Max(fitted, NarrowestNarrowMm);
     }
 
-    /// <summary>About a third of a millimetre, the narrowest a label head prints.</summary>
-    private const float MinimumNarrowMm = 0.28f;
+    /// <summary>
+    /// The narrowest Code39 is read at, about three dots on a 300 dpi head. Below
+    /// this a scanner stops reading the code, which looks exactly like a label with
+    /// no barcode on it.
+    /// </summary>
+    private const float NarrowestNarrowMm = 0.19f;
 
-    /// <summary>The one line of specifications under the barcode.</summary>
+    /// <summary>
+    /// The specification line under the barcode.
+    ///
+    /// Scaled to whatever room the stock has rather than set at a size chosen for
+    /// the widest one, and allowed to wrap rather than be cut off. A 9 point line
+    /// is a comfortable read on a 106mm label and does not fit across an 89mm one,
+    /// where a fixed size is cut off after "128GB" and the half that goes missing
+    /// is the half carrying the grade, the battery and the payment method.
+    ///
+    /// Wrapping costs a second line on the narrow stocks, which is the lesser of
+    /// the two faults: the label is a different shape, and everything on it is
+    /// still readable. A label that is cut off is a label that lies.
+    /// </summary>
     private static void TextLine(IContainer container, string text, LabelLayout layout, string? family)
     {
         container.PaddingHorizontal(layout.MarginMm)
             .AlignCenter().AlignMiddle()
+            .ScaleToFit()
             .Text(text)
             .FontFamily(family ?? "Helvetica")
             .FontSize(9)

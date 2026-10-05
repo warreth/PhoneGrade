@@ -18,6 +18,11 @@ public static class ReportPdfWriter
 {
     public static void Write(string path, DeviceData data, ReportWording wording)
     {
+        // Same reason as the label writer: preparing the font manager, which also
+        // sets the licence up, belongs to the thing that draws rather than to every
+        // caller remembering to do it first.
+        ReportFonts.Ensure();
+
         string? family = ReportFonts.Resolve();
 
         Document.Create(document =>
