@@ -33,6 +33,11 @@ public static class DymoTemplate
             ["PAYM"] = f => f.PayMethod,
             ["STORAGE"] = f => f.Storage,
             ["MEMORY"] = f => f.Memory,
+            ["CYCLES"] = f => f.BatteryCycles,
+            ["FAULTS"] = f => f.Faults.Summary,
+            ["LOCKS"] = f => f.Faults.LockLine,
+            ["DETAIL"] = f => LabelLayout.DetailLine(f),
+            ["SPEC"] = f => LabelLayout.TextLine(f),
         };
 
     /// <summary>

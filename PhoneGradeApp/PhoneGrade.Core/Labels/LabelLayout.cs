@@ -10,19 +10,19 @@ namespace PhoneGrade.Core;
 /// </summary>
 /// <param name="WidthMm">Label stock width. 106mm is a DYMO address label (30252).</param>
 /// <param name="HeightMm">Label stock height.</param>
-/// <param name="BarcodeHeightMm">Height of the barcode band.</param>
+/// <param name="BarcodeHeightMm">Height of the barcode band, caption included.</param>
 /// <param name="BarcodeYmm">Where the barcode band starts, from the top.</param>
-/// <param name="TextYmm">Where the text line starts, from the top.</param>
-/// <param name="TextHeightMm">Height of the text line.</param>
+/// <param name="TextYmm">Where the text block starts, from the top.</param>
+/// <param name="TextHeightMm">Height reserved for the text block.</param>
 /// <param name="MarginMm">Inset on the left and right.</param>
 public sealed record LabelLayout(
     float WidthMm = 106f,
     float HeightMm = 57f,
-    float BarcodeHeightMm = 18f,
-    float BarcodeYmm = 6f,
-    float TextYmm = 30f,
-    float TextHeightMm = 9f,
-    float MarginMm = 6f)
+    float BarcodeHeightMm = 14f,
+    float BarcodeYmm = 5f,
+    float TextYmm = 22f,
+    float TextHeightMm = 26f,
+    float MarginMm = 4f)
 {
     /// <summary>A DYMO address label, which is what the shipped template describes.</summary>
     public static LabelLayout Address { get; } = new();
@@ -36,8 +36,8 @@ public sealed record LabelLayout(
         {
             ["106x57"] = Address,
             ["159x57"] = WideAddress,
-            ["89x36"] = new(WidthMm: 89f, HeightMm: 36f, BarcodeHeightMm: 11f, BarcodeYmm: 4f,
-                TextYmm: 19f, TextHeightMm: 7f, MarginMm: 4f),
+            ["89x36"] = new(WidthMm: 89f, HeightMm: 36f, BarcodeHeightMm: 10f, BarcodeYmm: 3f,
+                TextYmm: 14f, TextHeightMm: 18f, MarginMm: 3f),
         };
 
     /// <summary>The name the settings file stores this layout under.</summary>
@@ -45,9 +45,34 @@ public sealed record LabelLayout(
         .FirstOrDefault(pair => pair.Value == this).Key
         ?? $"{WidthMm:0}x{HeightMm:0}";
 
-    /// <summary>The single line of text under the barcode, in the order the template uses.</summary>
-    public string TextLine(LabelFields fields) =>
+    /// <summary>The first line: what the device is and what it is worth.</summary>
+    public static string TextLine(LabelFields fields) =>
         $"{fields.Model} {fields.Storage} {fields.Color} {fields.Grade} {fields.Battery} {fields.PayMethod}";
+
+    /// <summary>
+    /// The second line: the charge count and the faults that are not locks.
+    ///
+    /// Its own line because it is the line a shop reads first. The first line says
+    /// what the phone is; this one says what is wrong with it, and it is empty on a
+    /// clean phone so its presence is itself the news. The locks are not repeated
+    /// here because they get a line of their own, set larger.
+    /// </summary>
+    public static string DetailLine(LabelFields fields)
+    {
+        string faults = fields.Faults.FaultsOnly;
+        string cycles = fields.BatteryCycles == DevicePlaceholders.BatteryCycles
+            ? ""
+            : fields.BatteryCycles + " CYCLES";
+
+        return string.Join(" ", new[] { cycles, faults }.Where(part => part.Length > 0));
+    }
+
+    /// <summary>The third line: the locks, on their own and never shared.</summary>
+    public static string LockLine(LabelFields fields) => fields.Faults.LockLine;
+
+    /// <summary>How many text lines this label carries.</summary>
+    public static int Lines(LabelFields fields) =>
+        1 + (DetailLine(fields).Length > 0 ? 1 : 0) + (LockLine(fields).Length > 0 ? 1 : 0);
 
     /// <summary>
     /// The .dymo values, keyed by the sentinels the template carries, so the PDF
@@ -63,5 +88,10 @@ public sealed record LabelLayout(
         ["PAYM"] = fields.PayMethod,
         ["STORAGE"] = fields.Storage,
         ["MEMORY"] = fields.Memory,
+        ["CYCLES"] = fields.BatteryCycles,
+        ["FAULTS"] = fields.Faults.Summary,
+        ["LOCKS"] = fields.Faults.LockLine,
+        ["DETAIL"] = LabelLayout.DetailLine(fields),
+        ["SPEC"] = LabelLayout.TextLine(fields),
     };
 }

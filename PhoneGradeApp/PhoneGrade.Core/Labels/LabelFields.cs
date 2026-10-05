@@ -42,6 +42,19 @@ public sealed record LabelFields
     /// <summary>True when the battery is under the threshold and carries the marker.</summary>
     public bool BatteryIsLow { get; init; }
 
+    /// <summary>
+    /// What is wrong with the phone, in the codes that fit on the paper.
+    ///
+    /// A label is a shop tag. It is read by whoever takes the phone next, and the
+    /// one thing they cannot do is open the report, so a non-OEM screen or a failed
+    /// test or an active lock has to be on the paper or it is not on the label at
+    /// all.
+    /// </summary>
+    public required LabelFaults Faults { get; init; }
+
+    /// <summary>How many times the battery has been charged, or the placeholder.</summary>
+    public required string BatteryCycles { get; init; }
+
     /// <summary>True when a value is still a placeholder and must not reach a label.</summary>
     public bool IsComplete =>
         Identifier != DevicePlaceholders.Identifier
@@ -64,7 +77,11 @@ public sealed record LabelFields
     /// The setting is off for shops that grade every battery as it stands; without
     /// the switch the marker is on the label whether the operator wants it or not.
     /// </param>
-    public static LabelFields From(DeviceData data, bool flagLowBattery = true)
+    /// <param name="faults">What is wrong with the phone, for the label to carry.</param>
+    public static LabelFields From(
+        DeviceData data,
+        bool flagLowBattery = true,
+        LabelFaults? faults = null)
     {
         (string battery, bool low) = BatteryField(data.BatteryHealth, flagLowBattery);
         return new LabelFields
@@ -78,8 +95,21 @@ public sealed record LabelFields
             Model = Clean(data.Model, DevicePlaceholders.Model),
             PayMethod = Clean(data.PayMethod, DevicePlaceholders.PayMethod),
             Storage = Clean(data.Storage, DevicePlaceholders.Storage),
+            BatteryCycles = Cycles(data.BatteryCycleCount),
+            Faults = faults ?? LabelFaultReader.From(data),
         };
     }
+
+    /// <summary>
+    /// The charge count, or the placeholder.
+    ///
+    /// A percentage on its own is the number most likely to mislead on a label: a
+    /// battery at 90 percent after nine hundred charges is worse than one at 80
+    /// percent after fifty, and the percentage cannot tell you which is which.
+    /// </summary>
+    private static string Cycles(int? count) =>
+        count is > 0 ? count.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                     : DevicePlaceholders.BatteryCycles;
 
     /// <summary>
     /// Formats the battery condition. Android reports a percentage when the
@@ -119,6 +149,7 @@ public static class DevicePlaceholders
     public const string Grade = "NOQUALITY";
     public const string PayMethod = "NOPAY";
     public const string Storage = "NOSTORAGE";
+    public const string BatteryCycles = "NOCYCLES";
 }
 
 /// <summary>The marks that go on a label, in the glyphs DYMO printers have to offer.</summary>

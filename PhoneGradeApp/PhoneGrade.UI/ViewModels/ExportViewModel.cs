@@ -394,10 +394,8 @@ public class ExportViewModel : ReactiveObject
             _stock = value;
             this.RaisePropertyChanged();
             this.RaisePropertyChanged(nameof(Layout));
-            this.RaisePropertyChanged(nameof(SheetWidth));
             this.RaisePropertyChanged(nameof(SheetHeight));
-            this.RaisePropertyChanged(nameof(LabelTextLine));
-            this.RaisePropertyChanged(nameof(Label));
+            RaiseLabelChanged();
         }
     }
 
@@ -459,7 +457,20 @@ public class ExportViewModel : ReactiveObject
     public LabelFields Label => LabelFields.From(_main.DeviceData, _main.Enable85PercentChecker);
 
     /// <summary>The one line of text under the barcode, as it will print.</summary>
-    public string LabelTextLine => Layout.TextLine(Label);
+    /// <summary>The first line of the preview: what the device is and what it is worth.</summary>
+    public string LabelTextLine => LabelLayout.TextLine(Label);
+
+    /// <summary>The second line: the charge count and the faults, empty on a clean phone.</summary>
+    public string LabelDetailLine => LabelLayout.DetailLine(Label);
+
+    /// <summary>The third line: the locks, on their own and never shared.</summary>
+    public string LabelLockLine => LabelLayout.LockLine(Label);
+
+    /// <summary>Whether the fault line has anything to say, so the preview can leave it out.</summary>
+    public bool HasLabelDetail => LabelDetailLine.Length > 0;
+
+    /// <summary>Whether the locks line has anything to say.</summary>
+    public bool HasLabelLocks => LabelLockLine.Length > 0;
 
     /// <summary>
     /// Opens the panel for the device currently on screen. Anything from a previous
@@ -475,14 +486,31 @@ public class ExportViewModel : ReactiveObject
         Printers.Clear();
         IsOpen = true;
         this.RaisePropertyChanged(nameof(HasResults));
-        this.RaisePropertyChanged(nameof(LabelTextLine));
-        this.RaisePropertyChanged(nameof(Label));
-        this.RaisePropertyChanged(nameof(SheetWidth));
+        RaiseLabelChanged();
         this.RaisePropertyChanged(nameof(SheetHeight));
 
         // Printers are looked for without being waited on. The panel is useful
         // with no printer found, because most of what it does is writing files.
         _ = DetectPrintersAsync();
+    }
+
+    /// <summary>
+    /// Tells the preview that everything drawn on it may have changed.
+    ///
+    /// One place, because the preview has three text lines and the faults among
+    /// them appear and disappear as an inspection goes on. A line that is not
+    /// announced leaves the previous phone's fault on the sheet, which is the one
+    /// thing a preview must never do.
+    /// </summary>
+    private void RaiseLabelChanged()
+    {
+        this.RaisePropertyChanged(nameof(Label));
+        this.RaisePropertyChanged(nameof(LabelTextLine));
+        this.RaisePropertyChanged(nameof(LabelDetailLine));
+        this.RaisePropertyChanged(nameof(LabelLockLine));
+        this.RaisePropertyChanged(nameof(HasLabelDetail));
+        this.RaisePropertyChanged(nameof(HasLabelLocks));
+        this.RaisePropertyChanged(nameof(SheetWidth));
     }
 
     public void Close() => IsOpen = false;

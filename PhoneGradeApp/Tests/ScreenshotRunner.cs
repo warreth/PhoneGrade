@@ -99,6 +99,15 @@ class ScreenshotRunner
                     bare.Theme = "Dark";
                     bare.DeviceData = new DeviceData();
                     CaptureExport(bare, outDir, "export-dark-placeholder.png");
+
+                    // The label with faults on it, which is the label the preview
+                    // exists for. Photographed on its own because the point of it is
+                    // the sheet: whether the faults are on the preview is the whole
+                    // question, and it is lost in a shot of the whole panel.
+                    var faulty = BuildDemoViewModel();
+                    faulty.Theme = "Dark";
+                    faulty.DeviceData = FaultyPhone();
+                    CaptureExport(faulty, outDir, "export-dark-faults.png", 1050, 820);
                     // The two fallbacks: a phone whose brand has no menu table of its
                     // own, and the generic pair for a phone nothing recognises.
                     guide.AdbTutorialViewModel.SetDevice("Honor", "");
@@ -147,6 +156,45 @@ class ScreenshotRunner
         Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, file), width, height, arrange, still);
         try { File.Delete(warmup); } catch (IOException) { }
     }
+
+    // A phone with something wrong on it, which is the case the label's second and
+    // third lines exist for. Every kind of fault at once, because the question a
+    // screenshot answers is whether they all fit on the paper together and an
+    // operator will meet a phone that has all of them.
+    static PhoneGrade.Core.DeviceData FaultyPhone() => new()
+    {
+        Identifier = "356938035643809",
+        Model = "iPhone 13 Pro",
+        Color = "Graphite",
+        Storage = "256GB",
+        Memory = "6GB",
+        BatteryHealth = "78",
+        BatteryCycleCount = 612,
+        Quality = "C",
+        PayMethod = "Btw",
+        FactoryResetProtection = PhoneGrade.Core.SecurityServices.FrpLockService.FrpLockStatus.Locked,
+        ActivationLock = PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked,
+        ComponentChecks =
+        [
+            new PhoneGrade.Core.ComponentStatus
+            {
+                Name = "Batterij", SerialRead = "L9", SerialOriginal = "K1",
+                Status = PhoneGrade.Core.ComponentStatusType.Mismatch,
+            },
+        ],
+        InteractiveTests = new PhoneGrade.Core.InteractiveTestSuiteResult
+        {
+            SessionId = "S",
+            Tests =
+            [
+                new PhoneGrade.Core.InteractiveTestResult
+                {
+                    Id = "camera", Name = "Camera achter",
+                    Status = PhoneGrade.Core.TestStatus.Failed,
+                },
+            ],
+        },
+    };
 
     // The files the export panel lists after a one click export, written for real
     // into a scratch folder so the photographed rows are the rows an operator

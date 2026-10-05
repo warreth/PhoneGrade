@@ -27,8 +27,7 @@ public static class LabelPdfWriter
         ReportFonts.Ensure();
 
         LabelLayout size = layout ?? LabelLayout.Address;
-        string text = size.TextLine(fields);
-        string? barcode = LabelBarcode.Encode(fields.Identifier, out _);
+                string? barcode = LabelBarcode.Encode(fields.Identifier, out _);
 
         Document.Create(document =>
         {
@@ -62,16 +61,36 @@ public static class LabelPdfWriter
                             .Element(container => Barcode(container, barcode, size, family));
                     }
 
-                    // The rest of the paper, with the text centred in it and no
-                    // height of its own. A height here is what fought with the
-                    // barcode band in the first place: two items that both think
-                    // they own the paper is a layout the engine cannot always
-                    // satisfy, and it answers by dropping the text rather than by
-                    // complaining.
+                    // The rest of the paper: the specification, what is wrong, and
+                    // the locks on their own line. No height is set on any of them,
+                    // because an item that believes it owns a fixed slice of the
+                    // paper is what fought with the barcode band in the first
+                    // place: two items that both think they own it is a layout the
+                    // engine cannot always satisfy, and it answers by dropping the
+                    // text rather than by complaining.
+                    // Every line of the text block is set at one size, worked out
+                    // from the longest of them. Sized line by line the block reads
+                    // as three different pieces of paper; one size makes it read as
+                    // one label.
+                    string spec = LabelLayout.TextLine(fields);
+                    string detail = LabelLayout.DetailLine(fields);
+                    string locks = LabelLayout.LockLine(fields);
+
+                    float body = BlockSize(spec, detail, size);
+                    float lockSize = FittedSize(locks, size, body * 1.35f, body);
+
                     column.Item()
                         .PaddingTop(Math.Max(1f, size.TextYmm - size.BarcodeYmm - size.BarcodeHeightMm))
                         .AlignCenter().AlignMiddle()
-                        .Element(container => TextLine(container, text, size, family));
+                        .Element(container => TextLine(container, spec, size, body, family));
+
+                    if (detail.Length > 0)
+                        column.Item().AlignCenter().AlignMiddle()
+                            .Element(container => Detail(container, detail, size, body, family));
+
+                    if (locks.Length > 0)
+                        column.Item().AlignCenter().AlignMiddle()
+                            .Element(container => Detail(container, locks, size, lockSize, family));
                 });
             });
         }).GeneratePdf(path);
@@ -192,25 +211,83 @@ public static class LabelPdfWriter
     /// <summary>
     /// The specification line under the barcode.
     ///
-    /// Scaled to whatever room the stock has rather than set at a size chosen for
-    /// the widest one, and allowed to wrap rather than be cut off. A 9 point line
-    /// is a comfortable read on a 106mm label and does not fit across an 89mm one,
-    /// where a fixed size is cut off after "128GB" and the half that goes missing
-    /// is the half carrying the grade, the battery and the payment method.
-    ///
-    /// Wrapping costs a second line on the narrow stocks, which is the lesser of
-    /// the two faults: the label is a different shape, and everything on it is
-    /// still readable. A label that is cut off is a label that lies.
+    /// Set to a size that fits the stock on one line, measured rather than guessed.
+    /// A fixed 9 point line is a comfortable read on a 106mm label and overflows it,
+    /// and an overflowing line wraps: two lines take the room the fault line needs,
+    /// so the faults are squeezed to nothing at the bottom of the label. The faults
+    /// going missing is worse than the specification being set a size smaller.
     /// </summary>
-    private static void TextLine(IContainer container, string text, LabelLayout layout, string? family)
+    private static void TextLine(IContainer container, string text, LabelLayout layout, float points, string? family)
     {
         container.PaddingHorizontal(layout.MarginMm)
             .AlignCenter().AlignMiddle()
             .ScaleToFit()
             .Text(text)
             .FontFamily(family ?? "Helvetica")
-            .FontSize(9)
+            .FontSize(points)
             .SemiBold()
             .FontColor(Colors.Black);
     }
+
+    /// <summary>
+    /// The lines below the specification: the charge count, the faults, the locks.
+    ///
+    /// The locks are set larger than everything else on the label, because they are
+    /// the one fault that costs a shop the sale and the one an operator reads last
+    /// if it is the same size as the rest. A FRP-locked phone that the next owner
+    /// activates wipes itself, and this line is the last place that could have said
+    /// so.
+    /// </summary>
+    private static void Detail(
+        IContainer container, string text, LabelLayout layout, float points, string? family)
+    {
+        container.PaddingHorizontal(layout.MarginMm)
+            .AlignCenter().AlignMiddle()
+            .ScaleToFit()
+            .Text(text)
+            .FontFamily(family ?? "Helvetica")
+            .FontSize(points)
+            .SemiBold()
+            .FontColor(Colors.Black);
+    }
+
+    /// <summary>
+    /// The largest size at which this text still fits across the stock on one line.
+    /// </summary>
+    private static float FittedSize(string text, LabelLayout layout, float largest, float smallest)
+    {
+        if (text.Length == 0) return smallest;
+
+        float available = layout.WidthMm - (2 * layout.MarginMm);
+        float perPoint = available / (text.Length * AdvanceMmPerPoint);
+
+        return Math.Clamp(perPoint, smallest, largest);
+    }
+
+    /// <summary>
+    /// The one size the whole text block is set at, taken from its longest line.
+    /// </summary>
+    /// <remarks>
+    /// A line is allowed to wrap: forty characters of specification do not fit
+    /// across a 106mm label at a size anybody can read, and the original template
+    /// had DYMO shrink the same line until it did. Set per line, the block reads as
+    /// three different pieces of paper. Set once from the longest line, it reads as
+    /// one label with a wrapped first line.
+    /// </remarks>
+    private static float BlockSize(string first, string second, LabelLayout layout)
+    {
+        int longest = Math.Max(first.Length, second.Length);
+        if (longest == 0) return 8f;
+
+        float available = layout.WidthMm - (2 * layout.MarginMm);
+        float perPoint = available / (longest * AdvanceMmPerPoint);
+
+        // Half the width, so the longest line fills it and wraps rather than
+        // filling it exactly: a line measured to land on the edge is a line that
+        // overflows by a hair on the next machine.
+        return Math.Clamp(perPoint * 0.5f, 5f, 9f);
+    }
+
+    /// <summary>How wide one character is per point of type, in millimetres.</summary>
+    private const float AdvanceMmPerPoint = 0.35f;
 }
