@@ -74,6 +74,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public UnifiedLogsViewModel LogsViewModel { get; } = new();
     public TroubleshootViewModel TroubleshootViewModel { get; } = new();
 
+    /// <summary>
+    /// The export panel. Owned here because it needs the device on screen, the
+    /// settings and the battery threshold, and because the summary screen is where
+    /// it is opened from. Declared nullable and set in the constructor so that the
+    /// compiler is forced to say when it is missing.
+    /// </summary>
+    public ExportViewModel? ExportViewModel { get; private set; }
+
     // USB Event Monitoring & ADB Tutorial
     private readonly AdbDeviceDirector _adbDirector;
     public AdbTutorialViewModel AdbTutorialViewModel { get; }
@@ -301,6 +309,50 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     {
         get => _openEditorBeforePrint;
         set { _settings.OpenEditorBeforePrint = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _openEditorBeforePrint, value); }
+    }
+
+    /// <summary>
+    /// The label template the export writes from, as the settings hold it. Empty
+    /// means the template that came with the app, which is the right default and
+    /// the reason a fresh install can print a label with nothing set up.
+    /// </summary>
+    public string LabelTemplatePath
+    {
+        get => _settings.TemplatePath ?? "";
+        set
+        {
+            string chosen = value ?? "";
+            if (_settings.TemplatePath == chosen) return;
+            _settings.TemplatePath = chosen.Length > 0 ? chosen : null;
+            _settings.Save();
+            this.RaiseAndSetIfChanged(ref _labelTemplatePath, chosen);
+        }
+    }
+
+    private string _labelTemplatePath = "";
+
+    /// <summary>
+    /// Whether the label that was written can be printed at all. False means no
+    /// printer is known, which is worth saying on the summary screen rather than
+    /// finding out at the till.
+    /// </summary>
+    public bool HasPrinter => PrintService.ListQueues().Count > 0;
+
+    /// <summary>
+    /// Whether the export panel is open. The panel is a full overlay rather than a
+    /// window, because the summary screen underneath it is where the operator came
+    /// from and where they go back to, and a separate window would put two
+    /// windows on top of each other with no visual order between them.
+    /// </summary>
+    public bool IsExportOpen
+    {
+        get => ExportViewModel?.IsOpen ?? false;
+        set
+        {
+            if (ExportViewModel is null) return;
+            if (value) ExportViewModel.Open();
+            else ExportViewModel.Close();
+        }
     }
 
     private bool _autoStartWebTest;
@@ -684,9 +736,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> RetryAdbDetectionCommand { get; }
     public ReactiveCommand<Unit, Unit> DismissAdbGuideCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> OpenLabelCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenEditorCommand { get; }
     public ReactiveCommand<Unit, Unit> FinishInspectionCommand { get; }
+
+    /// <summary>Opens the export panel. One screen for the label, the report and the numbers.</summary>
+    public ReactiveCommand<Unit, Unit> OpenExportCommand { get; }
 
     // IMEI.info BYOK Commands
     public ReactiveCommand<Unit, Unit> SaveImeiInfoApiKeyCommand { get; }
@@ -723,7 +777,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         _defaultQuality = _settings.DefaultQuality;
         _defaultPaymentMethod = _settings.DefaultPaymentMethod;
         _enableUsbEventMonitoring = _settings.EnableUsbEventMonitoring;
-        LabelService.ConfiguredTemplatePath = _settings.TemplatePath;
+        _labelTemplatePath = _settings.TemplatePath ?? "";
         
         // Wire verbose logging flag from settings
         ToolRunner.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
@@ -801,9 +855,20 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         SetPaymentMethodCommand = ReactiveCommand.Create<string>(p => ContinueAfterPaymentAsync(p));
         DismissInteractiveTestCommand = ReactiveCommand.Create<InteractiveTestResult>(DismissInteractiveTest);
         RestoreDismissedTestsCommand = ReactiveCommand.Create(RestoreDismissedTests);
-        OpenLabelCommand = ReactiveCommand.Create(OpenLabel);
         OpenEditorCommand = ReactiveCommand.Create(() => DataEditorRequested?.Invoke(DeviceData));
         FinishInspectionCommand = ReactiveCommand.CreateFromTask(FinishInspectionAsync);
+
+        ExportViewModel = new ExportViewModel(this);
+        _labelTemplatePath = _settings.TemplatePath ?? "";
+        OpenExportCommand = ReactiveCommand.Create(ExportViewModel.Open);
+
+        // The panel's own flag is what the overlay binds to, and the panel raises it
+        // on itself. Passing it through a property here without forwarding the change
+        // meant the button set the flag and nothing on screen moved, which is why the
+        // overlay was only ever visible in a screenshot taken before the window
+        // existed.
+        ExportViewModel.WhenAnyValue(panel => panel.IsOpen)
+            .Subscribe(_ => this.RaisePropertyChanged(nameof(IsExportOpen)));
 
         // IMEI.info BYOK Commands
         SaveImeiInfoApiKeyCommand = ReactiveCommand.CreateFromTask(SaveImeiInfoApiKeyAsync);
@@ -1834,9 +1899,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
         if (!ShowSummaryScreenAfterTesting)
         {
-            FinishLabel();
+            FinishInspectionAndShow();
         }
-        
+
         return Task.CompletedTask;
     }
 
@@ -1867,16 +1932,32 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private void FinishLabel()
+    /// <summary>
+    /// Records the inspection and shows the report.
+    ///
+    /// It used to write the label and open whatever application the system had
+    /// registered for a .dymo file, which meant the flow ended in either the DYMO
+    /// editor or an error dialog depending on what was installed on the operator's
+    /// machine. It now records the inspection and puts the operator in front of the
+    /// export panel, which is the same screen the summary screen's button opens and
+    /// which works the same whether or not DYMO software is present.
+    /// </summary>
+    private void FinishInspectionAndShow()
     {
         try
         {
             Status = LocalizationManager.GetString("Status_LabelGenerating");
-            string path = LabelService.GenerateLabel(DeviceData);
             AuditLogService.ExportAuditLog(DeviceData);
-            Status = LabelService.OpenLabelFile(path);
             Progress = 100;
             WorkflowState = AppWorkflowState.Summary;
+
+            if (!ShowSummaryScreenAfterTesting)
+            {
+                // With no report screen there is nowhere for the operator to read
+                // what was found, so the export panel opens in its place rather
+                // than the label being written to a file nobody is shown.
+                ExportViewModel?.Open();
+            }
         }
         catch (Exception ex)
         {
@@ -1927,11 +2008,4 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private void OpenLabel()
-    {
-        if (File.Exists(LabelService.OutputPath))
-            Status = LabelService.OpenLabelFile();
-        else
-            Status = LocalizationManager.GetString("Status_NoLabel");
     }
-}
