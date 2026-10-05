@@ -10,12 +10,22 @@ namespace PhoneGrade.Core.Licensing;
 /// instance lowering the scan count inside a copied token) fails verification
 /// instead of producing a plausible value.
 ///
-/// The key is derived with PBKDF2 (Rfc2898DeriveBytes) from the machine name, the
-/// user name and a hardcoded salt baked into the binary. This is deliberate
-/// tamper resistance for an published source tree, not secrecy: anyone can read the
-/// source, but editing settings.json or sys_cache.dat without the key yields a
-/// token that decrypts to nothing, and the store then falls back to the other
-/// location.
+/// The key is derived with PBKDF2 (Rfc2898DeriveBytes) from the machine fingerprint
+/// and a hardcoded salt baked into the binary. This is deliberate tamper resistance
+/// for an published source tree, not secrecy: anyone can read the source, but editing
+/// settings.json or sys_cache.dat without the key yields a token that decrypts to
+/// nothing, and the store then falls back to the other location.
+///
+/// The fingerprint replaced a computer name plus user name here. A name is editable
+/// without leaving the machine, so a token keyed on one could be moved to another
+/// computer by renaming it, and it said nothing the app could act on. There are no
+/// stored tokens in the wild to migrate, so the old material is gone rather than
+/// kept as a second way in; a token from the previous build simply stops decrypting
+/// and the free tier starts again at zero.
+///
+/// A machine with no readable fingerprint falls back to the name pair, because the
+/// ten free scans must not depend on the operating system handing out a machine id.
+/// Such a machine cannot activate, so nothing rides on this except the free count.
 ///
 /// Payload layout before Base64: version (1 byte) | nonce (12) | GCM tag (16) | ciphertext.
 /// </summary>
@@ -107,16 +117,18 @@ public static class TrialStateCipher
         TrialState.FromJson(TryDecrypt(token));
 
     /// <summary>
-    /// PBKDF2 over MachineName + UserName with the hardcoded salt. Combining
-    /// both means a copied profile (same user, new machine) or a renamed account
-    /// on the same machine invalidates every stored token, so the count cannot
-    /// be carried over to another installation.
+    /// PBKDF2 over the machine fingerprint with the hardcoded salt. Keying on the
+    /// machine rather than on the account means a profile copied to another
+    /// computer (or a token carried over by hand) decrypts to nothing there, so
+    /// the free scan count cannot travel between machines.
     /// </summary>
     private static byte[] DeriveKey()
     {
-        string material = $"{Environment.MachineName}|{Environment.UserName}";
         using var deriveBytes = new Rfc2898DeriveBytes(
-            material, Encoding.UTF8.GetBytes(Salt), Iterations, HashAlgorithmName.SHA256);
+            MachineFingerprint.Current.CipherMaterial,
+            Encoding.UTF8.GetBytes(Salt),
+            Iterations,
+            HashAlgorithmName.SHA256);
         return deriveBytes.GetBytes(KeySize);
     }
 }
