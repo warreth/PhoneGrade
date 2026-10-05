@@ -404,14 +404,26 @@ public class AdbDeviceDirectorTests
         using var director = NewDirector(monitor, adb);
 
         int count = 0;
-        director.AdbRequired += (_, _) => System.Threading.Interlocked.Increment(ref count);
+        var raised = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        director.AdbRequired += (_, _) =>
+        {
+            System.Threading.Interlocked.Increment(ref count);
+            raised.TrySetResult(true);
+        };
 
         UsbDeviceInfo phone = Android(SamsungVid, "usb1");
         monitor.Connect(phone);
-        await Task.Delay(300);
-        monitor.Connect(phone);
-        await Task.Delay(300);
 
+        // Wait for the first request rather than for a fixed span. Naming the phone
+        // reads the PnP node on Windows, which takes longer than any constant here
+        // can promise on a busy machine.
+        Assert.True(await Within(raised.Task), "the director stayed silent for an Android phone");
+
+        monitor.Connect(phone);
+
+        // Give the replayed event the same room the first one was given. A second
+        // request that arrives is the failure, not a slow first one.
+        await Task.Delay(500);
         Assert.Equal(1, count);
     }
 

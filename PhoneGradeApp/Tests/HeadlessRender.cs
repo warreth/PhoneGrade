@@ -16,6 +16,12 @@ namespace Tests;
 /// </summary>
 public static class HeadlessRender
 {
+    /// <summary>
+    /// Runs the render timer dry. The drain also runs after every test through
+    /// <see cref="DrainTheRenderQueueAfterEveryTestAttribute"/>, so a test calls
+    /// this only when it needs the queue settled mid-test, such as before taking
+    /// the measurement it is about to assert on.
+    /// </summary>
     public static void Drain()
     {
         Dispatcher.UIThread.RunJobs();

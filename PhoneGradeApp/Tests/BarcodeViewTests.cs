@@ -148,11 +148,8 @@ Assert.Equal(400, bars.Sum(width => narrow * width), 1);
         {
             withValue.Show();
             without.Show();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
-            double painted = AverageLuminance(withValue);
-            double blank = AverageLuminance(without);
+            var (painted, blank) = MeasureBoth(withValue, without);
 
             // A barcode is black on white, so it darkens the frame. Nothing drawn
             // leaves the two identical, which is what the run of characters used
@@ -162,15 +159,50 @@ Assert.Equal(400, bars.Sum(width => narrow * width), 1);
         }
         finally
         {
+            // Closing a window queues its last render pass, so the queue is drained
+            // while this test's application is still the one on duty. A pass left
+            // behind runs during the next test's setup and fails it for this one's
+            // window.
             withValue.Close();
             without.Close();
+            Tests.HeadlessRender.Drain();
         }
+    }
+
+    /// <summary>
+    /// The mean brightness of what a window is currently showing.
+    ///
+    /// The two windows are captured in one go, one after the other and with nothing
+    /// in between, because that is what makes the comparison mean anything. Read
+    /// separately they race the layout of each other: one window's pass can land
+    /// between the other window's paint and its capture, and a barcode that has
+    /// not been painted yet measures the same as a barcode that is not drawn.
+    /// </summary>
+    private static (double Painted, double Blank) MeasureBoth(Window withValue, Window without)
+    {
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            Tests.HeadlessRender.Drain();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+            double painted = AverageLuminance(withValue);
+            double blank = AverageLuminance(without);
+
+            // A barcode is black on white and darkens its sheet by a wide margin,
+            // so a difference this size cannot come from a partial paint. Anything
+            // smaller is treated as not yet painted and the pair is taken again.
+            if (painted < blank - 5) return (painted, blank);
+        }
+
+        return (AverageLuminance(withValue), AverageLuminance(without));
     }
 
     /// <summary>The mean brightness of what a window is currently showing.</summary>
     private static double AverageLuminance(Window window)
     {
         using var frame = HeadlessWindowExtensions.CaptureRenderedFrame(window);
+        Assert.NotNull(frame);
+
         using var png = new MemoryStream();
         frame.Save(png);
         return PngLuminance.Average(png.ToArray());
