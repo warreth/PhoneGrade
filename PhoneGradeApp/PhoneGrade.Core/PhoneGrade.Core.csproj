@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="QuestPDF" Version="2026.9.1" />
     <!-- Both packages ship a net8.0 assembly and compile on every OS; the WMI and
          service controller calls they expose are guarded by OperatingSystem.IsWindows()
          at runtime, so the library keeps building cross-platform. -->
