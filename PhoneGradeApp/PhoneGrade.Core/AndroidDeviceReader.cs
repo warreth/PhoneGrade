@@ -38,6 +38,35 @@ public sealed record AndroidDeviceFacts
     public string VbmetaDeviceState { get; init; } = "";
     public string VerifiedBootState { get; init; } = "";
     public string WarrantyBit { get; init; } = "";
+
+    /// <summary>Primary IMEI from service call iphonesubinfo 1.</summary>
+    public string Imei1 { get; init; } = "";
+
+    /// <summary>Secondary IMEI from service call iphonesubinfo 2 (dual SIM / eSIM).</summary>
+    public string Imei2 { get; init; } = "";
+
+    /// <summary>Battery cycle count, null when the handset reports none.</summary>
+    public int? BatteryCycleCount { get; init; }
+
+    /// <summary>Battery voltage in millivolts from dumpsys battery.</summary>
+    public int BatteryVoltage { get; init; } = 0;
+
+    /// <summary>Battery temperature in tenths of a degree Celsius from dumpsys battery.</summary>
+    public int BatteryTemperature { get; init; } = 0;
+
+    /// <summary>Wi-Fi MAC address from /sys/class/net/wlan0/address.</summary>
+    public string WifiMacAddress { get; init; } = "";
+
+    /// <summary>Bluetooth MAC address from settings get secure bluetooth_address.</summary>
+    public string BluetoothMacAddress { get; init; } = "";
+
+    /// <summary>
+    /// The reads the handset refused, named after the value rather than the
+    /// command. A closed sysfs or a blocked settings provider answers with an
+    /// error and nothing on stdout, which without this is indistinguishable from
+    /// a handset that simply has nothing to report.
+    /// </summary>
+    public IReadOnlyList<string> Withheld { get; init; } = [];
 }
 
 /// <summary>
@@ -50,8 +79,16 @@ public sealed class AndroidDeviceReader
     /// <summary>Runs one shell command on the device and returns its stdout.</summary>
     public delegate Task<string> ShellRunner(string command);
 
+    /// <summary>
+    /// Runs one shell command and reports whether the handset allowed it. The
+    /// refusal is what tells a closed sysfs entry apart from an absent value, so
+    /// the reader gets both halves of the answer rather than only stdout.
+    /// </summary>
+    public delegate Task<(string Stdout, bool Refused)> GuardedShellRunner(string command);
+
     private readonly string _serial;
     private readonly ShellRunner _shell;
+    private readonly GuardedShellRunner? _guardedShell;
 
     public AndroidDeviceReader(string serial, ShellRunner shell)
     {
@@ -59,11 +96,19 @@ public sealed class AndroidDeviceReader
         _shell = shell;
     }
 
-    /// <summary>The production reader: every command goes through adb.</summary>
-    public static AndroidDeviceReader CreateDefault(string serial) => new(serial, async command =>
+    public AndroidDeviceReader(string serial, GuardedShellRunner guardedShell)
     {
-        var (stdout, _, _) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell {command}");
-        return stdout;
+        _serial = serial;
+        _shell = command => guardedShell(command).ContinueWith(t => t.Result.Stdout);
+        _guardedShell = guardedShell;
+    }
+
+    /// <summary>The production reader: every command goes through adb.</summary>
+    public static AndroidDeviceReader CreateDefault(string serial) => new(serial, async (string command) =>
+    {
+        var (stdout, _, exitCode) = await ToolRunner.ExecuteAsync("adb", $"-s {serial} shell {command}");
+        bool refused = exitCode != 0 || IsRefusal(stdout);
+        return (stdout, refused);
     });
 
     /// <summary>Reads a single property. Kept because callers outside the collector want one value.</summary>
@@ -98,10 +143,32 @@ public sealed class AndroidDeviceReader
             return "";
         }
 
+        // Reads the shell is often refused. Each one is asked through the guarded
+        // runner so a refusal is remembered by name instead of turning into an
+        // empty field that looks like the handset had nothing to say.
+        var withheld = new List<string>();
+
+        async Task<(string Value, bool Refused)> Ask(string command, string value)
+        {
+            if (_guardedShell is null) return (await SafeAsync(command), false);
+
+            var (stdout, refused) = await _guardedShell(command);
+            if (refused) withheld.Add(value);
+            return (stdout, refused);
+        }
+
         string df = await SafeAsync("df -k /data");
         string battery = await SafeAsync("dumpsys battery");
-        string chargeFull = await SafeAsync("cat /sys/class/power_supply/battery/charge_full");
-        string chargeFullDesign = await SafeAsync("cat /sys/class/power_supply/battery/charge_full_design");
+        var (chargeFull, chargeFullRefused) = await Ask("cat /sys/class/power_supply/battery/charge_full", "charge_full");
+        var (chargeFullDesign, chargeFullDesignRefused) = await Ask("cat /sys/class/power_supply/battery/charge_full_design", "charge_full_design");
+
+        // The IMEI needs a privileged read that Android took away from the shell
+        // in version 10, so an empty answer here is expected rather than odd.
+        string imei1Raw = await SafeAsync("service call iphonesubinfo 1");
+        string imei2Raw = await SafeAsync("service call iphonesubinfo 2");
+
+        var (wifiRaw, wifiRefused) = await Ask("cat /sys/class/net/wlan0/address 2>/dev/null", "wlan0_address");
+        var (btRaw, btRefused) = await Ask("settings get secure bluetooth_address 2>/dev/null", "bluetooth_address");
 
         return new AndroidDeviceFacts
         {
@@ -130,7 +197,59 @@ public sealed class AndroidDeviceReader
             VbmetaDeviceState = First("ro.boot.vbmeta.device_state"),
             VerifiedBootState = First("ro.boot.verifiedbootstate"),
             WarrantyBit = First("ro.boot.warranty_bit", "ro.warranty_bit"),
+
+            Imei1 = Parsers.ParseAndroidImei(imei1Raw),
+            Imei2 = Parsers.ParseAndroidImei(imei2Raw),
+
+            BatteryCycleCount = Parsers.ParseAndroidBatteryCycleCount(battery),
+            BatteryVoltage = Parsers.ParseAndroidBatteryVoltage(battery),
+            BatteryTemperature = Parsers.ParseAndroidBatteryTemperature(battery),
+
+            WifiMacAddress = ReadMac(wifiRaw, wifiRefused),
+            BluetoothMacAddress = ReadMac(btRaw, btRefused),
+
+            Withheld = withheld,
         };
+    }
+
+    /// <summary>
+    /// True when the answer is a MAC address and nothing else. A blocked read
+    /// leaves the word null behind, and a stack trace can arrive on the same
+    /// stream, so both are kept out of the field rather than reported as an
+    /// address a grader would then compare.
+    /// </summary>
+    public static bool IsMacAddress(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+
+        string text = value.Trim();
+        if (text.Equals("null", StringComparison.OrdinalIgnoreCase)) return false;
+
+        var parts = text.Split(':');
+        if (parts.Length != 6) return false;
+
+        return parts.All(p => p.Length == 2 && p.All(Uri.IsHexDigit));
+    }
+
+    /// <summary>The address to store, or empty when the handset did not give one.</summary>
+    private static string ReadMac(string raw, bool refused) =>
+        refused || !IsMacAddress(raw) ? "" : raw.Trim().ToUpperInvariant();
+
+    /// <summary>
+    /// True when the shell answered with a refusal rather than with a value.
+    /// Some builds write the refusal to stdout instead of stderr, so the wording
+    /// is checked as well as the exit code.
+    /// </summary>
+    private static bool IsRefusal(string? stdout)
+    {
+        if (string.IsNullOrWhiteSpace(stdout)) return true;
+
+        string text = stdout.Trim();
+        return text.StartsWith("Permission denied", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("SecurityException", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Exception occurred while executing", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("cat:", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -194,14 +313,20 @@ public sealed class AndroidDeviceReader
         string displayModel = Mappers.MapAndroidDisplayModel(facts.Brand, facts.Model);
         string serial = string.IsNullOrWhiteSpace(facts.HardwareSerial) ? facts.Serial : facts.HardwareSerial;
 
+        // Prefer IMEI1 as the primary identifier, fall back to serial
+        string primaryIdentifier = !string.IsNullOrWhiteSpace(facts.Imei1) ? facts.Imei1 : serial;
+
         var data = new DeviceData
         {
             DeviceId = facts.Serial,
             ProductType = $"Android ({displayModel})",
             Model = string.IsNullOrWhiteSpace(displayModel) ? "Android Device" : displayModel,
-            Identifier = serial,
+            Identifier = primaryIdentifier,
             MotherboardSerialNumber = serial,
             IosVersion = string.IsNullOrWhiteSpace(facts.AndroidVersion) ? "Android" : $"Android {facts.AndroidVersion}",
+            Imei2 = facts.Imei2,
+            WifiMacAddress = facts.WifiMacAddress,
+            BluetoothMacAddress = facts.BluetoothMacAddress,
         };
 
         data.Color = Mappers.MapAndroidColor(facts.Color);
@@ -218,6 +343,13 @@ public sealed class AndroidDeviceReader
         data.BatteryHealth = condition > 0
             ? $"{condition}%"
             : Parsers.ParseAndroidBatteryStatus(facts.DumpsysBattery);
+
+        // Extended battery metrics from dumpsys
+        data.BatteryCycleCount = facts.BatteryCycleCount;
+        data.BatteryVoltage = facts.BatteryVoltage;
+        data.BatteryTemperature = facts.BatteryTemperature;
+
+        data.WithheldReads.AddRange(facts.Withheld);
 
         return data;
     }

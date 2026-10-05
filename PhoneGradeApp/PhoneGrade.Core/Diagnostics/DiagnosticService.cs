@@ -52,13 +52,13 @@ public static partial class DiagnosticService
             return issues;
         }
 
-        // 2. Battery sensor sanity — a device that can't read battery health has a Tigris/battery issue
+        // 2. Battery sensor sanity - a device that can't read battery health has a Tigris/battery issue
         var data = await DeviceService.GetDeviceDataAsync(udid);
         if (data.BatteryHealth == "NOBATT")
             issues.Add(new DiagnosticIssue
             {
                 Title = "Batterijgegevens niet leesbaar",
-                Explanation = "De batterij-SFI/sensor reageert niet op lockdown-vragen — signaal van een defecte batterij, Tigris-IC of flex.",
+                Explanation = "De batterij-SFI/sensor reageert niet op lockdown-vragen - signaal van een defecte batterij, Tigris-IC of flex.",
                 Fix = "Controleer batterijconnector; test met bekend-goede batterij; Tigris-IC bij laadproblemen.",
                 Level = Severity.Warning,
             });
@@ -66,7 +66,7 @@ public static partial class DiagnosticService
             issues.Add(new DiagnosticIssue
             {
                 Title = $"Batterijconditie laag ({health}%)",
-                Explanation = "Maximale capaciteit is onder 80% — onder Apple's service-drempel.",
+                Explanation = "Maximale capaciteit is onder 80% - onder Apple's service-drempel.",
                 Fix = "Batterij vervangen of als 'C-kwaliteit' labelen.",
                 Level = Severity.Warning,
             });
@@ -106,35 +106,76 @@ public static partial class DiagnosticService
             });
         }
 
-        if (data.ComponentChecks != null)
+        if (data.FactoryResetProtection == SecurityServices.FrpLockService.FrpLockStatus.Locked)
         {
-            foreach (var check in data.ComponentChecks)
+            issues.Add(new DiagnosticIssue
             {
-                if (check.Status == ComponentStatusType.Mismatch)
+                Title = "Fabrieksresetbeveiliging actief",
+                Explanation = "Het toestel vraagt om de accounts van de vorige eigenaar na een herstel naar fabrieksinstellingen. Zonder die accounts is het toestel niet bruikbaar.",
+                Fix = "Reken dit toestel als onbruikbaar voor de koper. Vraag de eerdere eigenaar om de accounts te verwijderen.",
+                Level = Severity.Error
+            });
+        }
+
+        if (data.ComponentChecks != null)
+            issues.AddRange(ComponentFindings(data.ComponentChecks));
+
+        // 4. Panic logs - the main hardware-evidence source
+        issues.AddRange(await AnalyzePanicLogsAsync(udid));
+        return issues;
+    }
+
+    /// <summary>
+    /// What the component audit found, as operator facing findings.
+    ///
+    /// Three verdicts have to reach the operator: a serial that does not match
+    /// the factory record, a part that cannot be verified as original, and a check
+    /// that failed. The last one is what Android produces, because Android reports
+    /// no part serials and only says whether the phone is intact. Leaving it out
+    /// meant a rooted phone, an open bootloader or a tripped warranty fuse was
+    /// written into the export and shown nowhere else.
+    /// </summary>
+    public static List<DiagnosticIssue> ComponentFindings(IReadOnlyList<ComponentStatus>? checks)
+    {
+        var issues = new List<DiagnosticIssue>();
+        if (checks is null) return issues;
+
+        foreach (var check in checks)
+        {
+            if (check.Status == ComponentStatusType.Mismatch)
+            {
+                issues.Add(new DiagnosticIssue
                 {
-                    issues.Add(new DiagnosticIssue
-                    {
-                        Title = $"Vervangen onderdeel: {check.Name}",
-                        Explanation = $"Het serienummer komt niet overeen met het fabrieksorigineel. Gelezen: {check.SerialRead}, Origineel: {check.SerialOriginal}.",
-                        Fix = "Houd hier rekening mee in de grading. Mogelijk third-party reparatie.",
-                        Level = Severity.Warning
-                    });
-                }
-                else if (check.Status == ComponentStatusType.Untrusted)
+                    Title = $"Vervangen onderdeel: {check.Name}",
+                    Explanation = $"Het serienummer komt niet overeen met het fabrieksorigineel. Gelezen: {check.SerialRead}, Origineel: {check.SerialOriginal}.",
+                    Fix = "Houd hier rekening mee in de grading. Mogelijk third-party reparatie.",
+                    Level = Severity.Warning
+                });
+            }
+            else if (check.Status == ComponentStatusType.Untrusted)
+            {
+                issues.Add(new DiagnosticIssue
                 {
-                    issues.Add(new DiagnosticIssue
-                    {
-                        Title = $"Niet-origineel onderdeel: {check.Name}",
-                        Explanation = "Apple AST2-diagnostiek meldt dat dit onderdeel niet als origineel geverifieerd kan worden.",
-                        Fix = "Registreer als third-party reparatie in het systeem.",
-                        Level = Severity.Warning
-                    });
-                }
+                    Title = $"Niet-origineel onderdeel: {check.Name}",
+                    Explanation = "Apple AST2-diagnostiek meldt dat dit onderdeel niet als origineel geverifieerd kan worden.",
+                    Fix = "Registreer als third-party reparatie in het systeem.",
+                    Level = Severity.Warning
+                });
+            }
+            else if (check.Status == ComponentStatusType.Failed)
+            {
+                issues.Add(new DiagnosticIssue
+                {
+                    Title = $"Systeem niet in fabrieksstaat: {check.Name}",
+                    Explanation = string.IsNullOrWhiteSpace(check.Details)
+                        ? $"De controle op {check.Name} is niet door de handset in orde gemeld."
+                        : check.Details,
+                    Fix = "Behandel als niet-origineel. Reparatie of custom ROM is mogelijk geweest.",
+                    Level = Severity.Error
+                });
             }
         }
 
-        // 4. Panic logs — the main hardware-evidence source
-        issues.AddRange(await AnalyzePanicLogsAsync(udid));
         return issues;
     }
 

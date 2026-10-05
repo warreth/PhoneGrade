@@ -112,11 +112,67 @@ Pro license is activated. Activation validates the key against Lemon Squeezy and
 only accepts keys sold for this product; the pricing page behind the application
 links is the single source for what the paid plan costs.
 
+## Reading a phone
+## Reading a phone
+
+The desktop reads what the handset will tell it and nothing more. Where a phone
+refuses a question, the report says the value was withheld instead of showing an
+empty field, because a phone that withholds a value and a phone that has none
+should not look the same on a grading sheet.
+The desktop reads what the handset will tell it and nothing more. Where a phone
+refuses a question, the report says the value was withheld instead of showing an
+empty field, because a phone that withholds a value and a phone that has none
+should not look the same on a grading sheet.
+
+On iOS 15 and later the domains that carry component serials answer with an empty
+property list, so the per-part audit on a recent iPhone reports what it can and
+leaves the rest unknown. The battery figures still come through, as do the model,
+the storage, the IMEI and the board serial.
+On iOS 15 and later the domains that carry component serials answer with an empty
+property list, so the per-part audit on a recent iPhone reports what it can and
+leaves the rest unknown. The battery figures still come through, as do the model,
+the storage, the IMEI and the board serial.
+
+Android exposes no per-part serials at all, so its audit checks what a handset
+always publishes: whether the bootloader is locked, whether the vbmeta partition
+is signed, whether the build carries the manufacturer's signing tag, and the
+warranty fuse where the manufacturer has one. A phone whose bootloader is open
+is reported as not in factory state.
+Android exposes no per-part serials at all, so its audit checks what a handset
+always publishes: whether the bootloader is locked, whether the vbmeta partition
+is signed, whether the build carries the manufacturer's signing tag, and the
+warranty fuse where the manufacturer has one. A phone whose bootloader is open
+is reported as not in factory state.
+
 ## Running the tests
 ## Running the tests
 
     dotnet test PhoneGradeApp/Tests/Tests.csproj
     dotnet test PhoneGradeApp/Tests/Tests.csproj
+
+The parsers are tested against recorded output from real handsets, kept in
+`PhoneGradeApp/Tests/Fixtures/live`, because a handset answers in ways sample
+output written by hand does not: an iPhone that refuses a domain and returns a
+warning on stderr, an Android build that refuses its own battery counters. The
+identifiers in those captures are substituted, and the shape each one keeps is
+what the parsers are checked against. Re-record them with:
+The parsers are tested against recorded output from real handsets, kept in
+`PhoneGradeApp/Tests/Fixtures/live`, because a handset answers in ways sample
+output written by hand does not: an iPhone that refuses a domain and returns a
+warning on stderr, an Android build that refuses its own battery counters. The
+identifiers in those captures are substituted, and the shape each one keeps is
+what the parsers are checked against. Re-record them with:
+
+    PHONEGRADE_CAPTURE=1 dotnet test PhoneGradeApp/Tests/Tests.csproj \
+        --filter FullyQualifiedName~DeviceCaptureTests
+    PHONEGRADE_CAPTURE=1 dotnet test PhoneGradeApp/Tests/Tests.csproj \
+        --filter FullyQualifiedName~DeviceCaptureTests
+
+The browser suite has its own runner:
+The browser suite has its own runner:
+
+    node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
+    node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
 
 Most of the suite runs offline. A few tests talk to the real imei.info gateway
 and need a key of their own: CI reads `IMEI_INFO_API_KEY` from the repository

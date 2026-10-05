@@ -583,6 +583,16 @@ public static class DeviceService
 
         data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(serial);
 
+        // Factory Reset Protection decides whether a wiped phone comes back usable.
+        // It was read by a service nobody called, so the state was never reported.
+        data.FactoryResetProtection = await SecurityServices.FrpLockService.DetectAsync(serial);
+
+        if (data.WithheldReads.Count > 0)
+        {
+            SystemEventLogger.Info(LogSource.UsbDetector,
+                $"{serial} withheld: {string.Join(", ", data.WithheldReads)}", serial);
+        }
+
         SystemEventLogger.Info(LogSource.UsbDetector,
             $"Android data collected: {data.Model}, {data.Color}, {data.Storage}, Battery: {data.BatteryHealth}", serial);
         return data;
@@ -777,20 +787,21 @@ public static class DeviceService
             FindDictValue(gestaltDict, "CoverGlassSerialNumber"));
 
         string frontCam = Parsers.CleanSerial(
+            Parsers.PlistString(camPlist, "FrontCameraModuleSerialNumString") ??
             Parsers.PlistString(camPlist, "FrontCameraModuleSerialNumber") ??
             Parsers.PlistString(camPlist, "FrontCameraSerial") ??
-            FindDictValue(diagDict, "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial") ??
-            FindDictValue(gestaltDict, "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial") ??
-            FindDictValue(defaultDict, "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial"));
+            FindDictValue(diagDict, "FrontCameraModuleSerialNumString", "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial") ??
+            FindDictValue(gestaltDict, "FrontCameraModuleSerialNumString", "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial") ??
+            FindDictValue(defaultDict, "FrontCameraModuleSerialNumString", "FrontCameraModuleSerialNumber", "FrontCameraSerialNumber", "FrontCameraSerial"));
 
         string rearCam = Parsers.CleanSerial(
+            Parsers.PlistString(camPlist, "BackCameraModuleSerialNumString") ??
             Parsers.PlistString(camPlist, "CameraModuleSerial") ??
             Parsers.PlistString(camPlist, "RearCameraModuleSerialNumber") ??
             Parsers.PlistString(camPlist, "RearCameraSerial") ??
-            Parsers.PlistString(camPlist, "SerialNumber") ??
-            FindDictValue(diagDict, "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber", "CameraModuleSerial") ??
-            FindDictValue(gestaltDict, "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber", "CameraModuleSerial") ??
-            FindDictValue(defaultDict, "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber"));
+            FindDictValue(diagDict, "BackCameraModuleSerialNumString", "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber", "CameraModuleSerial") ??
+            FindDictValue(gestaltDict, "BackCameraModuleSerialNumString", "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber", "CameraModuleSerial") ??
+            FindDictValue(defaultDict, "BackCameraModuleSerialNumString", "RearCameraModuleSerialNumber", "RearCameraSerial", "BackCameraSerialNumber"));
 
         string bioSerial = Parsers.CleanSerial(
             Parsers.PlistString(bioPlist, "SensorSerialNumber") ??

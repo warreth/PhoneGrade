@@ -131,14 +131,21 @@ public class DeviceData : INotifyPropertyChanged
         _ => PayMethod
     };
     public string DeviceId { get; set; } = "NODEVICEID";
-    public string ProductType { get; set; } = "";          // raw, e.g. iPhone14,2 — used by diagnostics
+    public string ProductType { get; set; } = "";          // raw, e.g. iPhone14,2 - used by diagnostics
     public string? IosVersion { get; set; }
 
     // Extended battery metrics
-    public int BatteryCycleCount { get; set; }
+    /// <summary>
+    /// How many times the battery has been charged. Null when the platform does
+    /// not report it: a stock Android never does, and zero would read as a
+    /// battery that has never been used.
+    /// </summary>
+    public int? BatteryCycleCount { get; set; }
     public int BatteryDesignCapacity { get; set; }
     public int BatteryCurrentCapacity { get; set; }
     public string BatterySerialNumber { get; set; } = "";
+    public int BatteryVoltage { get; set; } = 0;
+    public int BatteryTemperature { get; set; } = 0;
 
     // Factory / original component serials
     public string OriginalBatterySerialNumber { get; set; } = "";
@@ -151,6 +158,7 @@ public class DeviceData : INotifyPropertyChanged
     public string BluetoothMacAddress { get; set; } = "";
     public string WifiMacAddress { get; set; } = "";
     public string CellularAddress { get; set; } = "";
+    public string Imei2 { get; set; } = "";
 
     // FMI Verification Source
     public string FmiVerificationSource { get; set; } = "Lokaal"; // "Lokaal" of "Via Server (API)"
@@ -165,7 +173,21 @@ public class DeviceData : INotifyPropertyChanged
     public SecurityServices.ActivationLockService.ActivationLockStatus? ActivationLock { get; set; }
     public SecurityServices.ActivationLockService.CarrierLockStatus? CarrierLockIOS { get; set; }
     public SecurityServices.FrpLockService.CarrierLockStatus? CarrierLockAndroid { get; set; }
+
+    /// <summary>
+    /// Android Factory Reset Protection. Null when the handset does not let the
+    /// key be read, which is not the same as being switched off.
+    /// </summary>
+    public SecurityServices.FrpLockService.FrpLockStatus? FactoryResetProtection { get; set; }
+
     public SecurityServices.BlacklistCheckService.BlacklistStatus? Blacklist { get; set; }
+
+    /// <summary>
+    /// Reads the handset refused to give, named for the value rather than the
+    /// command. A phone whose battery counters are closed off and a phone with no
+    /// such counters look identical in the report without this.
+    /// </summary>
+    public List<string> WithheldReads { get; } = [];
 
     /// <summary>Merges interactive test results into diagnostic issue list.</summary>
     public List<DiagnosticIssue> MergeInteractiveResults(List<DiagnosticIssue>? existingIssues = null)

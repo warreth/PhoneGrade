@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IORegistry</key>
+	<dict>
+		<key>BackCameraActive</key>
+		<false/>
+		<key>BackCameraExpected</key>
+		<true/>
+		<key>BackCameraModuleFocusActuatorID</key>
+		<integer>2</integer>
+		<key>BackCameraModuleSerialNumString</key>
+		<string>F6D82332YH7HCDF2A</string>
+		<key>BackCameraSerialNumber</key>
+		<data>
+		ECkhoI8+WIE=
+		</data>
+		<key>BackTeleCameraExpected</key>
+		<false/>
+		<key>CFBundleIdentifier</key>
+		<string>com.apple.driver.AppleH10CameraInterface</string>
+		<key>CFBundleIdentifierKernel</key>
+		<string>com.apple.driver.AppleH10CameraInterface</string>
+		<key>FirmwareLoaded</key>
+		<true/>
+		<key>FrontCameraActive</key>
+		<false/>
+		<key>FrontCameraExpected</key>
+		<true/>
+		<key>FrontCameraModuleSerialNumString</key>
+		<string>G8R823167NHQHC98</string>
+		<key>FrontCameraSerialNumber</key>
+		<data>
+		WCwG5S8YGVw=
+		</data>
+		<key>FrontIRCameraExpected</key>
+		<false/>
+		<key>FrontIRStructuredLightProjectorSerialNumString</key>
+		<string>XXXXXXXX</string>
+		<key>IOClass</key>
+		<string>AppleH10CamIn</string>
+		<key>IOGeneralInterest</key>
+		<string>IOCommand is not serializable</string>
+		<key>IOMatchCategory</key>
+		<string>IODefaultMatchCategory</string>
+		<key>IOMatchedAtBoot</key>
+		<true/>
+		<key>IONameMatch</key>
+		<string>isp,t8015</string>
+		<key>IONameMatched</key>
+		<string>isp,t8015</string>
+		<key>IOPowerManagement</key>
+		<dict>
+			<key>CapabilityFlags</key>
+			<integer>0</integer>
+			<key>CurrentPowerState</key>
+			<integer>0</integer>
+			<key>DevicePowerState</key>
+			<integer>0</integer>
+			<key>MaxPowerState</key>
+			<integer>1</integer>
+		</dict>
+		<key>IOProbeScore</key>
+		<integer>0</integer>
+		<key>IOProviderClass</key>
+		<string>AppleARMIODevice</string>
+		<key>IOReportLegend</key>
+		<array>
+			<dict>
+				<key>IOReportChannelInfo</key>
+				<dict>
+					<key>IOReportChannelUnit</key>
+					<integer>0</integer>
+				</dict>
+				<key>IOReportChannels</key>
+				<array>
+					<array>
+						<integer>8390052313371145216</integer>
+						<integer>6442450945</integer>
+						<string>Total Interrupts</string>
+					</array>
+					<array>
+						<integer>8104071538110496768</integer>
+						<integer>6442450945</integer>
+						<string>Number Power Ups</string>
+					</array>
+					<array>
+						<integer>8104071538109998592</integer>
+						<integer>6442450945</integer>
+						<string>Number Power Downs</string>
+					</array>
+					<array>
+						<integer>8314035445455613556</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action0</string>
+					</array>
+					<array>
+						<integer>8314035449750580852</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action1</string>
+					</array>
+					<array>
+						<integer>8314035454045548148</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action2</string>
+					</array>
+					<array>
+						<integer>8314035462635482740</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action4</string>
+					</array>
+					<array>
+						<integer>8314035446629886257</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action0 FreqArray1</string>
+					</array>
+					<array>
+						<integer>8314035450924853553</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action1 FreqArray1</string>
+					</array>
+					<array>
+						<integer>8314035455219820849</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action2 FreqArray1</string>
+					</array>
+					<array>
+						<integer>8314035463809755441</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action4 FreqArray1</string>
+					</array>
+					<array>
+						<integer>8314035446629886258</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action0 FreqArray2</string>
+					</array>
+					<array>
+						<integer>8314035450924853554</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action1 FreqArray2</string>
+					</array>
+					<array>
+						<integer>8314035455219820850</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action2 FreqArray2</string>
+					</array>
+					<array>
+						<integer>8314035463809755442</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action4 FreqArray2</string>
+					</array>
+					<array>
+						<integer>8314035455170602853</integer>
+						<integer>6442450945</integer>
+						<string>Number SAC Action2 ChargePump</string>
+					</array>
+					<array>
+						<integer>7882826987980222307</integer>
+						<integer>6442450945</integer>
+						<string>Memory Alloc Requests</string>
+					</array>
+					<array>
+						<integer>7882827009555260672</integer>
+						<integer>6442450945</integer>
+						<string>Memory Free Requests</string>
+					</array>
+					<array>
+						<integer>7164493029236371060</integer>
+						<integer>6442450945</integer>
+						<string>ISPCPU Commands Sent</string>
+					</array>
+					<array>
+						<integer>8243121619714601829</integer>
+						<integer>6442450945</integer>
+						<string>ISPCPU Responses Received</string>
+					</array>
+					<array>
+						<integer>7508191211219674739</integer>
+						<integer>6442450945</integer>
+						<string>H2T Buffer Responses</string>
+					</array>
+					<array>
+						<integer>8372869145535276659</integer>
+						<integer>6442450945</integer>
+						<string>T2H Buffer Notifications</string>
+					</array>
+					<array>
+						<integer>8372869145551529075</integer>
+						<integer>6442450945</integer>
+						<string>T2H IO Commands</string>
+					</array>
+					<array>
+						<integer>7813577267566965107</integer>
+						<integer>6442450945</integer>
+						<string>ISPCPU Log Messages</string>
+					</array>
+					<array>
+						<integer>7020105144829044077</integer>
+						<integer>6442450945</integer>
+						<string>Allocated Shared Memory</string>
+					</array>
+					<array>
+						<integer>7796402895723852403</integer>
+						<integer>6442450945</integer>
+						<string>Number L2C Errors</string>
+					</array>
+				</array>
+				<key>IOReportGroupName</key>
+				<string>H10ISP</string>
+				<key>IOReportSubGroupName</key>
+				<string>H10ISP Events</string>
+			</dict>
+			<dict>
+				<key>IOReportChannelInfo</key>
+				<dict>
+					<key>IOReportChannelUnit</key>
+					<integer>0</integer>
+				</dict>
+				<key>IOReportChannels</key>
+				<array>
+					<array>
+						<integer>7598540280932299264</integer>
+						<integer>4295098369</integer>
+						<string>ISP Power</string>
+					</array>
+					<array>
+						<integer>7598540280763085684</integer>
+						<integer>4295098369</integer>
+						<string>ISP Fast</string>
+					</array>
+					<array>
+						<integer>8315173729079533616</integer>
+						<integer>4295098369</integer>
+						<string>Sensor0 Power</string>
+					</array>
+					<array>
+						<integer>8315173729079533617</integer>
+						<integer>4295098369</integer>
+						<string>Sensor1 Power</string>
+					</array>
+				</array>
+				<key>IOReportGroupName</key>
+				<string>H10ISP</string>
+				<key>IOReportSubGroupName</key>
+				<string>H10ISP Power State</string>
+			</dict>
+		</array>
+		<key>IOReportLegendPublic</key>
+		<true/>
+		<key>ISPFirmwareLinkDate</key>
+		<string>Oct 28 2023 - 00:44:30</string>
+		<key>ISPFirmwareVersion</key>
+		<string>35.600.00b</string>
+		<key>RamdiskMode</key>
+		<false/>
+	</dict>
+</dict>
+</plist>

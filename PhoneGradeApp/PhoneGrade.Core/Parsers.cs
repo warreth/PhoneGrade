@@ -13,18 +13,40 @@ public static class Parsers
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(xml)) return result;
 
+        // A property list that did not read is a property list that was refused.
+        // Scraping "Key: value" lines out of it turns the refusal into data, so
+        // the text reader is only for output that was never a property list.
+        if (!LooksLikePropertyList(xml))
+            return ParseKeyValues(xml);
+
         try
         {
             var doc = System.Xml.Linq.XDocument.Parse(xml);
             ParseDictElement(doc.Root?.Element("dict"), result);
         }
-        catch
+        catch (System.Xml.XmlException)
         {
-            // Fall back to regex/key-value parsing if XML is malformed
-            return ParseKeyValues(xml);
+            // The document opens like a property list but does not close as one,
+            // usually because something was written after it. Nothing can be read
+            // out of it reliably, and an empty answer says so honestly.
+            return result;
         }
 
         return result;
+    }
+
+    /// <summary>True when the text is meant to be a property list rather than key/value lines.</summary>
+    private static bool LooksLikePropertyList(string text)
+    {
+        foreach (string line in text.Split('\n', 8))
+        {
+            string trimmed = line.Trim();
+            if (trimmed.Length == 0) continue;
+            return trimmed.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("<plist", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("<!DOCTYPE plist", StringComparison.OrdinalIgnoreCase);
+        }
+        return false;
     }
 
     private static void ParseDictElement(System.Xml.Linq.XElement? dictElem, Dictionary<string, string> dict)
@@ -69,31 +91,55 @@ public static class Parsers
     /// <summary>Extracts an integer value following a &lt;key&gt;Name&lt;/key&gt; entry in plist output.</summary>
     public static int? PlistInt(string plist, string key)
     {
-        if (string.IsNullOrEmpty(plist)) return null;
-        var m = KeyRegex(key).Match(plist);
-        if (!m.Success) return null;
-        var v = ValueIntRegex().Match(plist[m.Index..]);
-        return v.Success && int.TryParse(v.Groups[1].Value, out int result) ? result : null;
+        var raw = ValueFollowingKey(plist, key, "integer");
+        if (raw is null) return null;
+        return int.TryParse(raw.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+            ? value
+            : null;
     }
 
     /// <summary>Extracts a string value following a &lt;key&gt;Name&lt;/key&gt; entry in plist output.</summary>
     public static string? PlistString(string plist, string key)
     {
-        if (string.IsNullOrEmpty(plist)) return null;
-        var m = KeyRegex(key).Match(plist);
-        if (!m.Success) return null;
-        var v = ValueStringRegex().Match(plist[m.Index..]);
-        return v.Success ? v.Groups[1].Value.Trim() : null;
+        var raw = ValueFollowingKey(plist, key, "string");
+        return raw?.Trim();
     }
 
     /// <summary>Extracts base64 or data string following a &lt;key&gt;Name&lt;/key&gt; entry in plist output.</summary>
     public static string? PlistData(string plist, string key)
     {
+        var raw = ValueFollowingKey(plist, key, "data");
+        return raw?.Replace("\r", "").Replace("\n", "").Trim();
+    }
+
+    /// <summary>
+    /// The contents of the element that sits directly under a key, when it is of
+    /// the element type asked for. Null when the key is not there, or when the key
+    /// carries a different kind of value.
+    ///
+    /// Reading only the element right under the key is what keeps a key with the
+    /// wrong value type from borrowing the next matching element further down the
+    /// document. An ioregistry dump runs to thousands of lines, so a key holding
+    /// text would otherwise come back with a battery capacity, a chip id or a
+    /// counter belonging to a different part of the phone.
+    /// </summary>
+    private static string? ValueFollowingKey(string plist, string key, string element)
+    {
         if (string.IsNullOrEmpty(plist)) return null;
+
         var m = KeyRegex(key).Match(plist);
         if (!m.Success) return null;
-        var v = ValueDataRegex().Match(plist[m.Index..]);
-        return v.Success ? v.Groups[1].Value.Replace("\r", "").Replace("\n", "").Trim() : null;
+
+        int start = m.Index + m.Length;
+        while (start < plist.Length && char.IsWhiteSpace(plist[start])) start++;
+
+        string opening = "<" + element + ">";
+        if (start + opening.Length > plist.Length) return null;
+        if (!plist.AsSpan(start, opening.Length).SequenceEqual(opening)) return null;
+
+        string closing = "</" + element + ">";
+        int end = plist.IndexOf(closing, start + opening.Length, StringComparison.OrdinalIgnoreCase);
+        return end < 0 ? null : plist[(start + opening.Length)..end];
     }
 
     /// <summary>Parses "Key: value" lines from ideviceinfo -q domain output.</summary>
@@ -177,9 +223,14 @@ public static class Parsers
     }
 
     /// <summary>
-    /// The health status Android reports for the battery, as label text. The
-    /// status code is a fixed list from the BatteryManager, not a percentage,
-    /// so it is kept apart from the condition.
+    /// The health status Android reports for the battery, as a stable token. The
+    /// status code is a fixed list from the BatteryManager, not a percentage, so it
+    /// is kept apart from the condition.
+    ///
+    /// These tokens are data, not text for the operator: they travel into the CSV,
+    /// the report and the label, so they cannot be a word in one language. The
+    /// shell puts them into the operator's language through the battery
+    /// converter, which is the only place that decides wording.
     /// </summary>
     public static string ParseAndroidBatteryStatus(string? dumpsysBattery)
     {
@@ -188,14 +239,17 @@ public static class Parsers
 
         return code switch
         {
-            1 => "Onbekend",
-            2 => "Goed",
-            3 => "Oververhit",
-            4 => "Defect",
-            5 => "Overspanning",
-            6 => "Storing",
-            7 => "Te koud",
-            _ => "NOBATT",
+            1 => "Unknown",
+            2 => "Good",
+            3 => "Overheated",
+            4 => "Defective",
+            5 => "Overvoltage",
+            6 => "StorageFault",
+            7 => "TooCold",
+            // Codes 8 and up exist on newer platforms and mean states this build
+            // cannot name. Reporting the battery as unreadable would raise a false
+            // warning on a healthy phone, so an unnamed state is carried as unknown.
+            _ => "Unknown",
         };
     }
 
@@ -206,6 +260,133 @@ public static class Parsers
         bool hasImei = imei.Length >= 14 && imei.All(char.IsDigit);
         string serial = (serialOutput ?? "").Trim();
         return hasImei ? imei : serial.Length > 0 ? serial : "NOID";
+    }
+
+    /// <summary>
+    /// Extracts IMEI from the Parcel hex-dump returned by <c>service call iphonesubinfo 1</c>
+    /// (or 2 for the second SIM). The output format is:
+    /// <c>Result: Parcel( 0x00000000: 00000000 0000000f 00350033 00360039 ... )</c>
+    /// where each line has an address prefix, then hex words. The first 8 bytes are a Parcel header
+    /// (two 32-bit integers: flags and length), followed by the UTF-16BE encoded IMEI digits.
+    /// Returns empty string when the output cannot be parsed.
+    /// </summary>
+    public static string ParseAndroidImei(string? serviceCallOutput)
+    {
+        if (string.IsNullOrWhiteSpace(serviceCallOutput)) return "";
+
+        // Match hex words (4 hex digits) that appear after a colon on each line.
+        // This avoids matching the address prefixes like "0x00000000:".
+        var hexGroups = new List<string>();
+        foreach (string line in serviceCallOutput.Split('\n'))
+        {
+            int colonIdx = line.IndexOf(':');
+            if (colonIdx < 0) continue;
+            string dataPart = line[(colonIdx + 1)..];
+            foreach (Match m in Regex.Matches(dataPart, @"([0-9a-fA-F]{4})"))
+            {
+                hexGroups.Add(m.Groups[1].Value);
+            }
+        }
+
+        if (hexGroups.Count < 6) return ""; // Need at least header (4 groups) + some data
+
+        // Skip the first 4 groups (8 bytes = Parcel header: two uint32)
+        // The 5th group onwards contains the UTF-16BE string data
+        var dataGroups = hexGroups.Skip(4).ToList();
+
+        var bytes = new List<byte>();
+        foreach (string hex in dataGroups)
+        {
+            byte high = Convert.ToByte(hex.Substring(0, 2), 16);
+            byte low = Convert.ToByte(hex.Substring(2, 2), 16);
+            bytes.Add(high);
+            bytes.Add(low);
+        }
+
+        if (bytes.Count == 0) return "";
+
+        try
+        {
+            // Decode as UTF-16BE (big endian)
+            string decoded = Encoding.BigEndianUnicode.GetString(bytes.ToArray());
+
+            // Extract only digits (the IMEI is numeric)
+            var digits = new string(decoded.Where(char.IsDigit).ToArray());
+
+            // Valid IMEI is 14-16 digits (15 is standard, 16 with check digit)
+            if (digits.Length >= 14 && digits.Length <= 16)
+                return digits;
+        }
+        catch
+        {
+            // Ignore decoding errors
+        }
+
+        return "";
+    }
+
+    /// <summary>
+    /// Battery cycle count from <c>dumpsys battery</c>, or null when the handset
+    /// does not report one.
+    ///
+    /// A stock Android carries no cycle count at all, and a few manufacturers add
+    /// one under their own name. Null and zero are kept apart on purpose: a report
+    /// that says zero cycles says the battery has never been used, which is a
+    /// claim about a number the handset never sent.
+    /// </summary>
+    public static int? ParseAndroidBatteryCycleCount(string? dumpsysBattery)
+    {
+        if (string.IsNullOrWhiteSpace(dumpsysBattery)) return null;
+
+        // The field name differs per manufacturer, so the known spellings are
+        // tried in turn rather than assuming one of them.
+        var patterns = new[]
+        {
+            @"^\s*cycle count:\s*(\d+)",
+            @"^\s*charge_cycle:\s*(\d+)",
+            @"^\s*battery_cycle:\s*(\d+)",
+            @"^\s*cycle:\s*(\d+)"
+        };
+
+        foreach (string pattern in patterns)
+        {
+            var match = Regex.Match(dumpsysBattery, pattern, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+            if (match.Success && int.TryParse(match.Groups[1].Value, out int count))
+                return count;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts battery voltage in millivolts from <c>dumpsys battery</c> output.
+    /// Looks for "voltage:" line. Returns 0 when not found.
+    /// </summary>
+    public static int ParseAndroidBatteryVoltage(string? dumpsysBattery)
+    {
+        if (string.IsNullOrWhiteSpace(dumpsysBattery)) return 0;
+
+        var match = Regex.Match(dumpsysBattery, @"^\s*voltage:\s*(\d+)", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+        if (match.Success && int.TryParse(match.Groups[1].Value, out int voltage))
+            return voltage;
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Extracts battery temperature in tenths of a degree Celsius from <c>dumpsys battery</c> output.
+    /// Looks for "temperature:" line. Returns 0 when not found.
+    /// The value is typically in tenths of a degree (e.g., 280 = 28.0°C).
+    /// </summary>
+    public static int ParseAndroidBatteryTemperature(string? dumpsysBattery)
+    {
+        if (string.IsNullOrWhiteSpace(dumpsysBattery)) return 0;
+
+        var match = Regex.Match(dumpsysBattery, @"^\s*temperature:\s*(\d+)", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+        if (match.Success && int.TryParse(match.Groups[1].Value, out int temp))
+            return temp;
+
+        return 0;
     }
 
     /// <summary>Cleans and normalizes serial numbers, decoding ASCII hex or base64 if needed.</summary>

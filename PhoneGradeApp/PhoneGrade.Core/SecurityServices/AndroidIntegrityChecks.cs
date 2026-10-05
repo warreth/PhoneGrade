@@ -143,7 +143,7 @@ public static class AndroidIntegrityChecks
             check.Description = "Niet beschikbaar";
             check.Details = "Deze fabrikant publiceert geen warrantybit. Alleen Samsung en enkele anderen.";
         }
-        else if (bit.Equals("0x0", StringComparison.OrdinalIgnoreCase))
+        else if (IsFactoryBit(bit))
         {
             check.Status = ComponentStatusType.Passed;
             check.Description = "Warrantybit intact";
@@ -157,6 +157,23 @@ public static class AndroidIntegrityChecks
         }
 
         return check;
+    }
+
+    /// <summary>
+    /// True when the warranty bit reads as the all-zero value a factory phone
+    /// carries.
+    ///
+    /// The spellings differ per manufacturer: "0x0" is the usual one, Samsung also
+    /// writes "0x00", and a few builds print a bare zero. Matching one spelling
+    /// exactly called a clean phone a repaired one, which is an accusation about
+    /// parts that were never touched. Anything that is not a zero in every
+    /// position means the fuse has tripped.
+    /// </summary>
+    private static bool IsFactoryBit(string bit)
+    {
+        string digits = bit.Trim();
+        if (digits.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) digits = digits[2..];
+        return digits.Length > 0 && digits.All(c => c == '0');
     }
 
     /// <summary>

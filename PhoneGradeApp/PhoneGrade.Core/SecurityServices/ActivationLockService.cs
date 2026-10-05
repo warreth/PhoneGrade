@@ -87,14 +87,22 @@ public static class ActivationLockService
         {
             raw ??= await DeviceService.GetBulkRawDataAsync(udid);
 
+            // SIMStatus names the state of the card, SIMTrayStatus whether a tray
+            // is fitted. A handset with an empty tray reports both, and either one
+            // on its own settles the question.
             string? simStatus = DeviceService.FindDictValue(raw.DefaultDict, "SIMStatus") ??
                                 DeviceService.FindDictValue(raw.GestaltDict, "SIMStatus");
-            if (!string.IsNullOrWhiteSpace(simStatus))
+            string? trayStatus = DeviceService.FindDictValue(raw.DefaultDict, "SIMTrayStatus") ??
+                                 DeviceService.FindDictValue(raw.GestaltDict, "SIMTrayStatus");
+
+            foreach (string? reported in new[] { simStatus, trayStatus })
             {
-                simStatus = simStatus.Trim().ToLowerInvariant();
-                status.SIMState = simStatus;
-                status.SIMPresent = !simStatus.Contains("missing") && !simStatus.Contains("nosim");
+                if (!string.IsNullOrWhiteSpace(reported))
+                    status.SIMPresent = !ReportsNoSim(reported);
             }
+
+            if (!string.IsNullOrWhiteSpace(simStatus))
+                status.SIMState = simStatus.Trim().ToLowerInvariant();
 
             string? carrierName = DeviceService.FindDictValue(raw.DefaultDict, "CarrierName", "CarrierBundleName");
             if (!string.IsNullOrWhiteSpace(carrierName))
@@ -114,5 +122,25 @@ public static class ActivationLockService
         }
 
         return status;
+    }
+
+    /// <summary>
+    /// True when a reported SIM state means there is no card to read. Apple spells
+    /// this several ways and a phone without a card says so while both of the words
+    /// that used to be looked for are absent from its answer, which reported an
+    /// empty tray as a working SIM.
+    /// </summary>
+    private static bool ReportsNoSim(string? reported)
+    {
+        if (string.IsNullOrWhiteSpace(reported)) return false;
+        string state = reported.Trim().ToLowerInvariant();
+
+        return state.Contains("notinserted")
+            || state.Contains("nosim")
+            || state.Contains("no sim")
+            || state.Contains("missing")
+            || state.Contains("kctsimsupportsimstatusabsent")
+            || state.Contains("kctsimsupporttrayabsent")
+            || state.Contains("kctsimsupporttrayinsertednosim");
     }
 }

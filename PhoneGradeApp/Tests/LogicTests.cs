@@ -93,7 +93,7 @@ public class ParsersTests
         // The counters this handset actually reports.
         Assert.Equal(92, Parsers.ParseAndroidBatteryCondition("4618000", "5022000"));
         Assert.Equal(22, Parsers.ParseAndroidChargeLevel(Pixel8ProDumpsys));
-        Assert.Equal("Goed", Parsers.ParseAndroidBatteryStatus(Pixel8ProDumpsys));
+        Assert.Equal("Good", Parsers.ParseAndroidBatteryStatus(Pixel8ProDumpsys));
     }
 
     [Fact]
@@ -133,6 +133,22 @@ public class ParsersTests
         [ro.boot.warranty_bit]: []
         [persist.sys.sf.color_saturation]: [1.0]
         [ro.surface_flinger.has_wide_color_display]: [true]
+        """;
+
+    /// <summary>Simulated `service call iphonesubinfo 1` output for IMEI 356938035643809.</summary>
+    private const string Pixel8ProImei1 = """
+        Result: Parcel(
+          0x00000000: 00000000 0000000f 00330035 00360039 00330038 00300033 00350036 00340033
+          0x00000020: 00380030 00390000 00000000
+        )
+        """;
+
+    /// <summary>Simulated `service call iphonesubinfo 2` output for IMEI2 (eSIM) 356938035643810.</summary>
+    private const string Pixel8ProImei2 = """
+        Result: Parcel(
+          0x00000000: 00000000 0000000f 00330035 00360039 00330038 00300033 00350036 00340033
+          0x00000020: 00380031 00300000 00000000
+        )
         """;
 
     /// <summary>Verbatim `df -k /data` from the same handset, per-user mount and all.</summary>
@@ -249,12 +265,13 @@ public class ParsersTests
     {
         // Drives the real collector against the output this handset actually
         // produces, so the mapping is proved end to end and not just per helper.
-        var reader = new AndroidDeviceReader("38091FDJG00EMF", command => Task.FromResult(ShellFor(command)));
+        var reader = new AndroidDeviceReader("38091FDJG00EMF", command => Task.FromResult((ShellFor(command), false)));
         var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
 
         Assert.Equal("Google Pixel 8 Pro", data.Model);
         Assert.Equal("Android (Google Pixel 8 Pro)", data.ProductType);
-        Assert.Equal("38091FDJG00EMF", data.Identifier);
+        Assert.Equal("356938035643809", data.Identifier); // IMEI1 is now the primary identifier
+        Assert.Equal("356938035643810", data.Imei2);
 
         // The three values that used to come out as placeholders.
         Assert.Equal("Wit", data.Color);
@@ -264,7 +281,53 @@ public class ParsersTests
         // Battery: the condition and the charge level are different numbers.
         Assert.Equal("92%", data.BatteryHealth);
         Assert.Equal(22, data.BatteryLevel);
+
+        // Extended battery metrics from dumpsys
+        Assert.Null(data.BatteryCycleCount);   // this handset's dumpsys carries no cycle count
+        Assert.Equal(3764, data.BatteryVoltage);
+        Assert.Equal(280, data.BatteryTemperature);
+
+        // Network MAC addresses (not in sample output, should be empty)
+        Assert.Equal("", data.WifiMacAddress);
+        Assert.Equal("", data.BluetoothMacAddress);
+
+        // Nothing was refused here, so nothing is reported as withheld.
+        Assert.Empty(data.WithheldReads);
     }
+
+    /// <summary>
+    /// A read the handset refuses is named, so a report can tell a phone that
+    /// withholds a value apart from a phone that has none. Without this the two
+    /// are the same empty field.
+    /// </summary>
+    [Fact]
+    public async Task AndroidCollector_NamesTheReadsTheHandsetRefused()
+    {
+        var reader = new AndroidDeviceReader("TEST0000000001A", command =>
+        {
+            bool refused = command.Contains("charge_full", StringComparison.Ordinal)
+                        || command.Contains("wlan0", StringComparison.Ordinal);
+            return Task.FromResult((refused ? "" : ShellFor(command), refused));
+        });
+
+        var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
+
+        Assert.Contains("charge_full", data.WithheldReads);
+        Assert.Contains("charge_full_design", data.WithheldReads);
+        Assert.Contains("wlan0_address", data.WithheldReads);
+        Assert.DoesNotContain("bluetooth_address", data.WithheldReads);
+    }
+
+    /// <summary>
+    /// A refused read that leaks its refusal onto stdout must not end up in the
+    /// field. Some builds print the error there rather than on stderr.
+    /// </summary>
+    [Theory]
+    [InlineData("null")]
+    [InlineData("Permission denied")]
+    [InlineData("cat: /sys/class/net/wlan0/address: Permission denied")]
+    public void ARefusalIsNeverAcceptedAsAMacAddress(string whatTheShellPrinted)
+        => Assert.False(AndroidDeviceReader.IsMacAddress(whatTheShellPrinted));
 
     /// <summary>Replays the captured output for whichever command the reader asks for.</summary>
     private static string ShellFor(string command) => command switch
@@ -274,6 +337,8 @@ public class ParsersTests
         "dumpsys battery" => Pixel8ProDumpsys,
         "cat /sys/class/power_supply/battery/charge_full" => "4618000\n",
         "cat /sys/class/power_supply/battery/charge_full_design" => "5022000\n",
+        "service call iphonesubinfo 1" => Pixel8ProImei1,
+        "service call iphonesubinfo 2" => Pixel8ProImei2,
         _ => "",
     };
 
@@ -442,25 +507,47 @@ public class ParsersTests
     public void AndroidChargeLevel_UnreadableGivesZero(string dumpsys, int expected)
         => Assert.Equal(expected, Parsers.ParseAndroidChargeLevel(dumpsys));
 
+    /// <summary>
+    /// The status codes are named by the platform, and the names are data: they
+    /// travel into the CSV, the report and the label. They are therefore tokens
+    /// rather than words in one language, and the battery converter is what turns
+    /// them into wording for the operator.
+    /// </summary>
     [Theory]
-    [InlineData(2, "Goed")]
-    [InlineData(3, "Oververhit")]
-    [InlineData(4, "Defect")]
-    [InlineData(5, "Overspanning")]
-    [InlineData(6, "Storing")]
-    [InlineData(7, "Te koud")]
-    public void AndroidBatteryStatus_MapsTheStatusCode(int code, string expected)
+    [InlineData(1, "Unknown")]
+    [InlineData(2, "Good")]
+    [InlineData(3, "Overheated")]
+    [InlineData(4, "Defective")]
+    [InlineData(5, "Overvoltage")]
+    [InlineData(6, "StorageFault")]
+    [InlineData(7, "TooCold")]
+    public void AndroidBatteryStatus_MapsTheStatusCodeToAToken(int code, string expected)
     {
         string dumpsys = $"  status: 2\n  health: {code}\n  level: 55\n";
         Assert.Equal(expected, Parsers.ParseAndroidBatteryStatus(dumpsys));
     }
 
+    /// <summary>
+    /// Nothing readable at all stays unreadable, so the warning that the battery
+    /// figures cannot be read still fires.
+    /// </summary>
     [Theory]
     [InlineData("")]
-    [InlineData("  health: 99\n")]
     [InlineData("no battery service")]
-    public void AndroidBatteryStatus_UnknownCodeIsNOBatt(string dumpsys)
+    public void AndroidBatteryStatus_UnreadableOutputIsNOBatt(string dumpsys)
         => Assert.Equal("NOBATT", Parsers.ParseAndroidBatteryStatus(dumpsys));
+
+    /// <summary>
+    /// A status code this build cannot name is carried as unknown rather than as
+    /// unreadable. Newer platforms added codes 8 and up; calling a healthy battery
+    /// unreadable would raise a false battery warning on a sound phone.
+    /// </summary>
+    [Theory]
+    [InlineData(8)]
+    [InlineData(99)]
+    [InlineData(255)]
+    public void AndroidBatteryStatus_CodeThisBuildCannotNameIsUnknown(int code)
+        => Assert.Equal("Unknown", Parsers.ParseAndroidBatteryStatus($"  health: {code}\n"));
 
     [Fact]
     public void Identifier_PrefersValidImei()
@@ -565,6 +652,88 @@ public class ParsersTests
         Assert.Equal(3227, Parsers.PlistInt(plist, "DesignCapacity"));
         Assert.Equal(2980, Parsers.PlistInt(plist, "AppleRawMaxCapacity"));
         Assert.Equal("F8Y8324ABC1", Parsers.PlistString(plist, "BatterySerialNumber"));
+    }
+
+    [Fact]
+    public void ParseAndroidImei_ExtractsFromParcelHexDump()
+    {
+        // Use the constant with correct hex dump for IMEI 356938035643809
+        string imei = Parsers.ParseAndroidImei(Pixel8ProImei1);
+        Assert.Equal("356938035643809", imei);
+    }
+
+    [Fact]
+    public void ParseAndroidImei_HandlesSecondSim()
+    {
+        // Use the constant with correct hex dump for IMEI2 356938035643810
+        string imei = Parsers.ParseAndroidImei(Pixel8ProImei2);
+        Assert.Equal("356938035643810", imei);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Result: Parcel()")]
+    [InlineData("ERROR: service not found")]
+    [InlineData("No such service")]
+    public void ParseAndroidImei_ReturnsEmptyForInvalidInput(string input)
+        => Assert.Equal("", Parsers.ParseAndroidImei(input));
+
+    [Theory]
+    [InlineData("  cycle count: 450\n", 450)]
+    [InlineData("  charge_cycle: 123\n", 123)]
+    [InlineData("  battery_cycle: 999\n", 999)]
+    [InlineData("  cycle: 7\n", 7)]
+    public void ParseAndroidBatteryCycleCount_ReadsVariousFieldNames(string dumpsys, int expected)
+        => Assert.Equal(expected, Parsers.ParseAndroidBatteryCycleCount(dumpsys));
+
+    /// <summary>
+    /// A stock dumpsys carries no cycle count. Zero would say the battery has
+    /// never been used, which is a claim about a number the handset never sent,
+    /// so nothing at all is the honest answer.
+    /// </summary>
+    [Fact]
+    public void ParseAndroidBatteryCycleCount_IsNullWhenTheHandsetReportsNone()
+    {
+        string dumpsys = "  level: 50\n  health: 2\n  voltage: 3800\n";
+        Assert.Null(Parsers.ParseAndroidBatteryCycleCount(dumpsys));
+        Assert.Null(Parsers.ParseAndroidBatteryCycleCount(""));
+        Assert.Null(Parsers.ParseAndroidBatteryCycleCount(null));
+    }
+
+    /// <summary>
+    /// A zero the handset really did report stays a zero. Only the absence of the
+    /// field is turned into nothing.
+    /// </summary>
+    [Fact]
+    public void ParseAndroidBatteryCycleCount_KeepsARealZeroAsZero()
+    {
+        Assert.Equal(0, Parsers.ParseAndroidBatteryCycleCount("  cycle count: 0\n"));
+    }
+
+    [Theory]
+    [InlineData("  voltage: 3764\n", 3764)]
+    [InlineData("  voltage: 4200\n", 4200)]
+    public void ParseAndroidBatteryVoltage_ReadsVoltage(string dumpsys, int expected)
+        => Assert.Equal(expected, Parsers.ParseAndroidBatteryVoltage(dumpsys));
+
+    [Fact]
+    public void ParseAndroidBatteryVoltage_ReturnsZeroWhenMissing()
+    {
+        string dumpsys = "  level: 50\n  health: 2\n  temperature: 280\n";
+        Assert.Equal(0, Parsers.ParseAndroidBatteryVoltage(dumpsys));
+    }
+
+    [Theory]
+    [InlineData("  temperature: 280\n", 280)]
+    [InlineData("  temperature: 315\n", 315)]
+    public void ParseAndroidBatteryTemperature_ReadsTemperature(string dumpsys, int expected)
+        => Assert.Equal(expected, Parsers.ParseAndroidBatteryTemperature(dumpsys));
+
+    [Fact]
+    public void ParseAndroidBatteryTemperature_ReturnsZeroWhenMissing()
+    {
+        string dumpsys = "  level: 50\n  health: 2\n  voltage: 3800\n";
+        Assert.Equal(0, Parsers.ParseAndroidBatteryTemperature(dumpsys));
     }
 }
 
@@ -1080,7 +1249,7 @@ public class PanicRulesTests
     [Fact]
     public void AllPatterns_AreValidRegex()
     {
-        // Every rule must compile — a bad pattern would silently vanish in production.
+        // Every rule must compile - a bad pattern would silently vanish in production.
         foreach (var rule in PanicRules.All)
         {
             var ex = Record.Exception(() => System.Text.RegularExpressions.Regex.Match("test", rule.Pattern));
@@ -1098,89 +1267,91 @@ public class PanicRulesTests
     }
 }
 
-public class LabelServiceTests : IDisposable
+// The label template and the values that fill it.
+//
+// It used to be one class with one method and a static path, and its tests set a
+// global so that a test run could not have two templates at once. Everything the
+// label is now decided in LabelFields, filled by DymoTemplate and written by
+// LabelWriter, so these tests read the file that was really written rather than a
+// return value. The fill rules themselves are in LabelExportTests.
+
+public class LabelTemplateLookupTests : IDisposable
 {
     private readonly string _template;
 
-    public LabelServiceTests()
+    public LabelTemplateLookupTests()
     {
         _template = Path.Combine(Path.GetTempPath(), $"my-{Guid.NewGuid():N}.dymo");
-        File.WriteAllText(_template,
-            "ID=IDENTIFIER M=MODEL C=PCOLOR B=BATTERY Q=QUALITY P=PAYM S=STORAGE");
-        LabelService.ConfiguredTemplatePath = _template;
+        File.WriteAllText(_template, "<TextObject><Text>MODEL</Text></TextObject>");
     }
 
     [Fact]
-    public void GenerateLabel_ReplacesAllPlaceholders()
+    public void TheTemplateTheCallerAsksForIsTheOneThatIsUsed()
+        => Assert.Equal(_template, DymoTemplateFiles.Locate(_template));
+
+    [Fact]
+    public void ATemplateThatIsNotThereIsNamedInTheMessage()
     {
-        string path = LabelService.GenerateLabel(new DeviceData
-        {
-            Identifier = "356938035643809", Model = "13Pro", Color = "Wit",
-            BatteryHealth = "90", Quality = "A", PayMethod = "Marge", Storage = "256GB",
-        });
-        Assert.Equal("ID=356938035643809 M=13Pro C=Wit B=90% Q=A P=Marge S=256GB",
-            File.ReadAllText(path));
+        // The operator set the path once and has since moved the file. The
+        // message has to point at the setting, or they go looking in the install
+        // folder instead.
+        var error = Assert.Throws<FileNotFoundException>(
+            () => DymoTemplateFiles.Locate("/nonexistent/my.dymo"));
+
+        Assert.Contains("Settings", error.Message);
     }
 
     [Fact]
-    public void GenerateLabel_AddsWarningForLowBattery()
+    public void AConfiguredTemplateThatIsNotThereIsNotQuietlyReplacedByTheShippedOne()
     {
-        // Battery < 85% should show "[X]" warning on label
-        string path = LabelService.GenerateLabel(new DeviceData { BatteryHealth = "68" });
-        Assert.Contains("68% [X]", File.ReadAllText(path));
-        
-        // Battery >= 85% should NOT show "[X]"
-        path = LabelService.GenerateLabel(new DeviceData { BatteryHealth = "92" });
-        string content = File.ReadAllText(path);
-        Assert.Contains("92%", content);
-        Assert.DoesNotContain("[X]", content);
+        // Silently printing on the shipped layout would put out labels the shop
+        // never chose, and nothing on screen would say so.
+        Assert.Throws<FileNotFoundException>(
+            () => DymoTemplateFiles.Locate(Path.Combine(Path.GetTempPath(), "gone.dymo")));
     }
 
     [Fact]
-    public void GenerateLabel_AndroidPercentFromCapacityCounters()
+    public void AnEmptyPathFindsTheTemplateThatCameWithTheApp()
     {
-        string path = LabelService.GenerateLabel(new DeviceData
-        {
-            BatteryHealth = $"{Parsers.ParseAndroidBatteryCondition("4400000", "5000000")}%",
-        });
-        Assert.Contains("B=88%", File.ReadAllText(path));
-        Assert.DoesNotContain("[X]", File.ReadAllText(path));
-    }
+        // Which is the only thing a fresh install can print with.
+        string found = DymoTemplateFiles.Locate();
 
-    [Fact]
-    public void GenerateLabel_AndroidStatusWordGetsNoPercentSign()
-    {
-        // When the capacity counters are unreadable Android can only report a
-        // status code. "Goed%" on a label would be nonsense.
-        string path = LabelService.GenerateLabel(new DeviceData
-        {
-            BatteryHealth = Parsers.ParseAndroidBatteryStatus("  health: 2\n  level: 20\n"),
-        });
-        Assert.Contains("B=Goed ", File.ReadAllText(path));
-    }
-
-    [Fact]
-    public void GenerateLabel_NoBatteryData_StaysUnchanged()
-    {
-        string path = LabelService.GenerateLabel(new DeviceData { BatteryHealth = "NOBATT" });
-        Assert.Contains("B=NOBATT", File.ReadAllText(path));
-    }
-
-    [Fact]
-    public void FindTemplate_FallsBackToBundledAssetsDir()
-    {
-        // The Tests bin inherits the UI's bundled Assets/my.dymo via the project
-        // reference — the app-dir fallback should find it without a configured path.
-        LabelService.ConfiguredTemplatePath = "/nonexistent/my.dymo";
-        string found = LabelService.FindTemplate();
         Assert.EndsWith("my.dymo", found);
         Assert.True(File.Exists(found));
+    }
+
+    [Fact]
+    public void TheShippedTemplateIsFoundWhateverTheSettingSays()
+        => Assert.NotNull(DymoTemplateFiles.Shipped);
+
+    [Fact]
+    public void ReadingATemplateGivesBackWhatIsInIt()
+        => Assert.Contains("MODEL", DymoTemplateFiles.Read(_template));
+
+    [Fact]
+    public void ATemplateThisAppCannotFillIsNotAccepted()
+    {
+        // Refused at the moment of choosing rather than at the moment of printing,
+        // because a template with no fields in it prints the last device forever.
+        string merged = Path.Combine(Path.GetTempPath(), $"merged-{Guid.NewGuid():N}.dymo");
+        File.WriteAllText(merged, "<DesktopLabel Version=\"1\"><DYMOLabel Version=\"3\">"
+            + "<TextObject><Name>T</Name><Text>356938035643809 13 Pro</Text></TextObject>"
+            + "</DYMOLabel></DesktopLabel>");
+
+        try
+        {
+            Assert.False(ExportService.IsUsableTemplate(merged));
+            Assert.True(ExportService.IsUsableTemplate(_template));
+        }
+        finally
+        {
+            File.Delete(merged);
+        }
     }
 
     public void Dispose()
     {
         if (File.Exists(_template)) File.Delete(_template);
-        LabelService.ConfiguredTemplatePath = null;
     }
 }
 
