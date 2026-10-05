@@ -216,4 +216,65 @@ public class LocalizationTests
             "the code asks for these and neither dictionary defines them: "
             + string.Join(", ", missing));
     }
+
+    /// <summary>
+    /// Every sentence that carries a value has to carry the same number of
+    /// placeholders in both languages.
+    ///
+    /// These are format strings filled in at runtime with the queue name, the file
+    /// path or the platform's own reason. A translation that drops {0} is not a
+    /// typo, it is a status line that reads "DYMO_LabelWriter" with no sentence
+    /// around it, or a FormatException that blanks the line that said why the
+    /// export failed. The English set is the reference for how many there are.
+    /// </summary>
+    [Fact]
+    public void EveryWordingWithAPlaceholderHasTheSameCountInBothLanguages()
+    {
+        Dictionary<string, string> english = Values(Files[1]);
+        Dictionary<string, string> dutch = Values(Files[0]);
+
+        var problems = new List<string>();
+        foreach (KeyValuePair<string, string> entry in english)
+        {
+            int wanted = Placeholders(entry.Value);
+            if (wanted == 0) continue;
+
+            if (!dutch.TryGetValue(entry.Key, out string? other)) continue;
+
+            int got = Placeholders(other);
+            if (got != wanted)
+                problems.Add($"{entry.Key} has {got} in Dutch and {wanted} in English");
+        }
+
+        Assert.True(problems.Count == 0, string.Join("; ", problems));
+    }
+
+    private static Dictionary<string, string> Values(string file) =>
+        XDocument.Load(RepoPath.Get("PhoneGradeApp", "PhoneGrade.UI", "Resources", file))
+            .Descendants()
+            .Attributes()
+            .Where(attribute => attribute.Name.LocalName == "Key")
+            .Select(attribute => attribute.Parent!)
+            .Where(node => node.Name.LocalName == "String")
+            .ToDictionary(
+                node => node.Attributes().First(a => a.Name.LocalName == "Key").Value,
+                node => node.Value,
+                StringComparer.Ordinal);
+
+    /// <summary>
+    /// How many placeholders a sentence carries. Counts {0} and {1} but not the
+    /// doubled brace, so a sentence that wants a literal brace is not mistaken for
+    /// one that wants a value.
+    /// </summary>
+    private static int Placeholders(string value)
+    {
+        int count = 0;
+        for (int i = 0; i + 1 < value.Length; i++)
+        {
+            if (value[i] != '{' || value[i + 1] == '{') continue;
+            if (int.TryParse(value.AsSpan(i + 1), out int index) && index >= 0) count++;
+        }
+
+        return count;
+    }
 }

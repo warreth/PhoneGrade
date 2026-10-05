@@ -65,6 +65,40 @@ class ScreenshotRunner
                     // bottom of the idle screen.
                     Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-kiosk.png"), 850, 620);
 
+                    // ============ The export panel ============
+                    //
+                    // Four states, because the panel has four things to show and a
+                    // screenshot of only one of them hides three: nothing chosen
+                    // yet, the same in the light theme, files written, and one
+                    // format that failed while the others arrived.
+                    var empty = BuildDemoViewModel();
+                    empty.Theme = "Dark";
+                    FillAudit(empty);
+                    CaptureExport(empty, outDir, "export-dark-empty.png");
+                    CaptureExport(empty, outDir, "export-dark-narrow.png", 850, 620);
+
+                    var light = BuildDemoViewModel();
+                    light.Theme = "Light";
+                    FillAudit(light);
+                    CaptureExport(light, outDir, "export-light-empty.png");
+
+                    var written = BuildDemoViewModel();
+                    written.Theme = "Dark";
+                    FillAudit(written);
+                    CaptureExport(written, outDir, "export-dark-written.png",
+                        seed: () => written.ExportViewModel?.Show(SampleBatch(written.DeviceData)));
+
+                    var failed = BuildDemoViewModel();
+                    failed.Theme = "Dark";
+                    FillAudit(failed);
+                    CaptureExport(failed, outDir, "export-dark-failed.png",
+            seed: () => failed.ExportViewModel?.Show(SampleBatch(failed.DeviceData, breakTheLabel: true)));
+                    // A label that is missing half its values, which is the case the
+                    // preview exists for: caught here, not on a device.
+                    var bare = BuildDemoViewModel();
+                    bare.Theme = "Dark";
+                    bare.DeviceData = new DeviceData();
+                    CaptureExport(bare, outDir, "export-dark-placeholder.png");
                     // The two fallbacks: a phone whose brand has no menu table of its
                     // own, and the generic pair for a phone nothing recognises.
                     guide.AdbTutorialViewModel.SetDevice("Honor", "");
@@ -86,6 +120,69 @@ class ScreenshotRunner
             .StartWithClassicDesktopLifetime([]);
     }
 
+    // The export panel, on the report screen it is opened from. The panel is an
+    // overlay rather than a window, so the shot has to be of the main window with
+    // the panel open; anything else photographs a control nobody ever sees.
+    static void CaptureExport(MainWindowViewModel vm, string outDir, string file,
+        double width = 1050, double height = 740, Action? seed = null)
+    {
+        // The state is seeded inside arrange rather than before the window exists.
+        // Opening the panel clears whatever it had, so a state set up beforehand is
+        // thrown away by the first frame and every shot comes out of the empty
+        // panel, which is exactly what three of the first four shots did.
+        Action arrange = () =>
+        {
+            vm.WorkflowState = AppWorkflowState.Summary;
+            vm.ExportViewModel?.Open();
+            seed?.Invoke();
+        };
+        Func<bool> still = () => vm.IsExportOpen;
+
+        // Photographed twice. The overlay's visibility follows a flag the panel owns
+        // rather than one the window owns, so the very first frame after the press
+        // can still be the screen underneath, and a single shot of it is a shot of
+        // the wrong screen. The first one absorbs that frame and is thrown away.
+        string warmup = Path.Combine(Path.GetTempPath(), "phonegrade-export-warmup.png");
+        Capture(new MainWindow { DataContext = vm }, warmup, width, height, arrange, still);
+        Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, file), width, height, arrange, still);
+        try { File.Delete(warmup); } catch (IOException) { }
+    }
+
+    // The files the export panel lists after a one click export, written for real
+    // into a scratch folder so the photographed rows are the rows an operator
+    // gets. Written rather than described, because a row is drawn from the
+    // outcome and a described one would not prove the row draws.
+    static LabelWriter.Batch SampleBatch(PhoneGrade.Core.DeviceData data, bool breakTheLabel = false)
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "phonegrade-shot-exports");
+        if (Directory.Exists(folder)) Directory.Delete(folder, true);
+
+        var wanted = new HashSet<ExportFormat>
+  {
+  ExportFormat.DymoLabel, ExportFormat.LabelPdf, ExportFormat.Json,
+     };
+
+        // The failure is produced rather than described. A template that is not
+        // there is what an operator hits after moving the file their layout was
+        // in, and asking the writer for it gives the panel the same row, the same
+        // message and the same status line it would really produce.
+        string? template = breakTheLabel
+            ? Path.Combine(folder, "a-template-that-was-moved.dymo")
+            : null;
+
+        // The wording is handed in, as the panel does. Left out, the failure line
+        // comes out in English and a shot of the failed state shows an English
+        // sentence on an otherwise Dutch panel, which is the fault these shots
+        // exist to catch.
+        //
+        // Blocking rather than awaiting: this is a console tool with no message loop
+        // of its own to post a continuation to, and the work is a few milliseconds
+        // of file writing on a background thread.
+        return Task.Run(() => LabelWriter.WriteAsync(data, new LabelWriter.Request(
+            wanted, folder, "shot", template,
+            Messages: PhoneGrade.UI.Services.ExportWordingBuilder.Current())))
+            .GetAwaiter().GetResult();
+    }
     // The licensing screens: the introduction a fresh install gets, the title bar
     // pill in each colour it can take, the panel that pill opens, and the settings
     // row that points at it. Each state is seeded through real settings files so
