@@ -69,11 +69,22 @@ public class TrialGateTests : IDisposable
 
     // ---- pro tier --------------------------------------------------------------
 
+    /// <summary>
+    /// Pro is a seat on this machine, not a key that is valid somewhere. Every Pro
+    /// case below therefore seeds an instance id as well as a key: a key with no
+    /// seat is a key whose seat was released, or one this machine never claimed,
+    /// and neither scans for free.
+    /// </summary>
     [Fact]
-    public async Task EvaluateAsync_ValidLicense_AllowsWithoutTouchingTheCount()
+    public async Task EvaluateAsync_ValidLicenseOnAHeldSeat_AllowsWithoutTouchingTheCount()
     {
         var server = new FakeLicenseServer();
-        TrialGate gate = _context.CreateGate(server, new TrialState { ScanCount = 9, LicenseKey = "KEY-PRO" });
+        TrialGate gate = _context.CreateGate(server, new TrialState
+        {
+            ScanCount = 9,
+            LicenseKey = "KEY-PRO",
+            InstanceId = "991"
+        });
 
         ScanAuthorization decision = await gate.EvaluateAsync();
 
@@ -86,10 +97,15 @@ public class TrialGateTests : IDisposable
     }
 
     [Fact]
-    public async Task EvaluateAsync_ValidLicenseAtLimit_AllowsUnlimitedScans()
+    public async Task EvaluateAsync_ValidLicenseOnAHeldSeatAtLimit_AllowsUnlimitedScans()
     {
         var server = new FakeLicenseServer();
-        TrialGate gate = _context.CreateGate(server, new TrialState { ScanCount = 10, LicenseKey = "KEY-PRO" });
+        TrialGate gate = _context.CreateGate(server, new TrialState
+        {
+            ScanCount = 10,
+            LicenseKey = "KEY-PRO",
+            InstanceId = "991"
+        });
 
         Assert.Equal(ScanAuthorization.AllowedPro, await gate.EvaluateAsync());
         Assert.Equal(ScanAuthorization.AllowedPro, await gate.EvaluateAsync());
@@ -159,7 +175,12 @@ public class TrialGateTests : IDisposable
     public async Task EvaluateAsync_SecondScanWithinCacheWindow_DoesNotCallTheApiAgain()
     {
         var server = new FakeLicenseServer();
-        TrialGate gate = _context.CreateGate(server, new TrialState { ScanCount = 1, LicenseKey = "KEY-PRO" });
+        TrialGate gate = _context.CreateGate(server, new TrialState
+        {
+            ScanCount = 1,
+            LicenseKey = "KEY-PRO",
+            InstanceId = "991"
+        });
 
         await gate.EvaluateAsync();
         await gate.EvaluateAsync();
@@ -173,7 +194,12 @@ public class TrialGateTests : IDisposable
     {
         var server = new FakeLicenseServer();
         var clock = new FakeClock(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
-        TrialGate gate = _context.CreateGate(server, new TrialState { ScanCount = 1, LicenseKey = "KEY-PRO" }, clock);
+        TrialGate gate = _context.CreateGate(server, new TrialState
+        {
+            ScanCount = 1,
+            LicenseKey = "KEY-PRO",
+            InstanceId = "991"
+        }, clock);
 
         await gate.EvaluateAsync();
         Assert.Equal(1, server.CallCount);
@@ -189,7 +215,12 @@ public class TrialGateTests : IDisposable
     {
         var server = new FakeLicenseServer { FailWithNetworkError = true };
         var clock = new FakeClock(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
-        TrialGate gate = _context.CreateGate(server, new TrialState { ScanCount = 1, LicenseKey = "KEY-PRO" }, clock);
+        TrialGate gate = _context.CreateGate(server, new TrialState
+        {
+            ScanCount = 1,
+            LicenseKey = "KEY-PRO",
+            InstanceId = "991"
+        }, clock);
 
         await gate.EvaluateAsync(); // fails, counted as no license
         Assert.Equal(1, server.CallCount);
@@ -222,8 +253,13 @@ public class TrialGateTests : IDisposable
     public async Task ActivateLicenseAsync_WrongKey_KeepsStoredKeyAndProStatus()
     {
         var server = new FakeLicenseServer();
-        TrialGate gate = _context.CreateGate(server, new TrialState { ScanCount = 4, LicenseKey = "KEY-GOOD" });
-        Assert.True(await gate.RefreshLicenseStatusAsync()); // stored key is Pro
+        TrialGate gate = _context.CreateGate(server, new TrialState
+        {
+            ScanCount = 4,
+            LicenseKey = "KEY-GOOD",
+            InstanceId = "991"
+        });
+        Assert.True(await gate.RefreshLicenseStatusAsync()); // stored key and seat are Pro
         server.ResponseJson = FakeLicenseServer.InvalidKeyJson;
 
         LicenseValidationResult result = await gate.ActivateLicenseAsync("KEY-WRONG");
@@ -238,7 +274,12 @@ public class TrialGateTests : IDisposable
     public async Task ActivateLicenseAsync_StoredKeyTurnsInvalid_DropsProFlag()
     {
         var server = new FakeLicenseServer();
-        TrialGate gate = _context.CreateGate(server, new TrialState { ScanCount = 4, LicenseKey = "KEY-GOOD" });
+        TrialGate gate = _context.CreateGate(server, new TrialState
+        {
+            ScanCount = 4,
+            LicenseKey = "KEY-GOOD",
+            InstanceId = "991"
+        });
         Assert.True(await gate.RefreshLicenseStatusAsync());
 
         server.ResponseJson = FakeLicenseServer.ExpiredJson; // vendor expires it later

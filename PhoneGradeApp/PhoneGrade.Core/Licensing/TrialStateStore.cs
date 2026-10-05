@@ -125,13 +125,26 @@ public sealed class TrialStateStore
         // High-water mark: the count only ever grows, so the lower reading is
         // the stale one no matter which file survived a delete or an edit.
         ScanCount = Math.Max(settings.ScanCount, backup.ScanCount),
-        LicenseKey = !string.IsNullOrEmpty(settings.LicenseKey) ? settings.LicenseKey : backup.LicenseKey
+        // The seat fields follow the same rule as the key: a location that lost
+        // them is the stale one. Taking them from different locations would pair a
+        // key with another key's instance, and a validate naming an instance that
+        // does not belong to the key fails closed and locks the operator out of
+        // their own license.
+        LicenseKey = Prefer(settings.LicenseKey, backup.LicenseKey),
+        InstanceId = Prefer(settings.InstanceId, backup.InstanceId),
+        MachineFingerprint = Prefer(settings.MachineFingerprint, backup.MachineFingerprint)
     };
+
+    /// <summary>The non-empty side wins, so one location losing the field does not drop the seat.</summary>
+    private static string Prefer(string preferred, string fallback) =>
+        !string.IsNullOrEmpty(preferred) ? preferred : fallback;
 
     private static bool Matches(TrialState? stored, TrialState merged) =>
         stored is not null &&
         stored.ScanCount == merged.ScanCount &&
-        string.Equals(stored.LicenseKey, merged.LicenseKey, StringComparison.Ordinal);
+        string.Equals(stored.LicenseKey, merged.LicenseKey, StringComparison.Ordinal) &&
+        string.Equals(stored.InstanceId, merged.InstanceId, StringComparison.Ordinal) &&
+        string.Equals(stored.MachineFingerprint, merged.MachineFingerprint, StringComparison.Ordinal);
 
     private TrialState? ReadSettingsSide()
     {

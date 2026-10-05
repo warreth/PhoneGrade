@@ -86,11 +86,18 @@ public class DeviceServiceScanInitializerTests : IDisposable
     }
 
     [Fact]
-    public async Task InitializeScanAsync_ThroughRealGateWithValidLicense_IgnoresTheLimit()
+    public async Task InitializeScanAsync_ThroughRealGateWithValidLicenseOnAHeldSeat_IgnoresTheLimit()
     {
+        // The instance id is part of what Pro means now: a key with no seat on this
+        // machine is a key that was released, and it scans on the free tier.
         using var context = new LicensingTestContext();
         var server = new FakeLicenseServer();
-        TrialGate gate = context.CreateGate(server, new TrialState { ScanCount = 10, LicenseKey = "KEY-PRO" });
+        TrialGate gate = context.CreateGate(server, new TrialState
+        {
+            ScanCount = 10,
+            LicenseKey = "KEY-PRO",
+            InstanceId = "991"
+        });
         DeviceService.ScanGate = () => gate.EvaluateAsync();
 
         DeviceService.ScanInitResult result = await DeviceService.InitializeScanAsync();

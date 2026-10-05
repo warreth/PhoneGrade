@@ -16,6 +16,23 @@ public sealed class TrialState
     /// <summary>The Lemon Squeezy license key as entered, empty when the operator never activated.</summary>
     public string LicenseKey { get; set; } = "";
 
+    /// <summary>
+    /// The Lemon Squeezy instance id this computer occupies, empty when it holds
+    /// no seat. This is the handle deactivate needs to hand the seat back, and the
+    /// thing every validate on the startup path names. Stored rather than derived
+    /// because the vendor owns it: it is created by activate and there is no way to
+    /// guess it.
+    /// </summary>
+    public string InstanceId { get; set; } = "";
+
+    /// <summary>
+    /// The machine fingerprint this state was last written by, empty on a machine
+    /// with no readable identity. It travels with the state so the panel can say
+    /// which machine the seat belongs to, and so a state written on another
+    /// computer is recognisable as such rather than being silently accepted.
+    /// </summary>
+    public string MachineFingerprint { get; set; } = "";
+
     public string ToJson() => JsonSerializer.Serialize(this);
 
     /// <summary>
@@ -32,6 +49,8 @@ public sealed class TrialState
             // A negative count cannot come from this app; treat it as corruption.
             if (state is null || state.ScanCount < 0) return null;
             state.LicenseKey ??= "";
+            state.InstanceId ??= "";
+            state.MachineFingerprint ??= "";
             return state;
         }
         catch (Exception)
