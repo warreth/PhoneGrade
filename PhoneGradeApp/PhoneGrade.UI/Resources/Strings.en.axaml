@@ -78,6 +78,13 @@
     <x:String x:Key="Value_Checking">Checking...</x:String>
     <x:String x:Key="Value_NotSet">Not set</x:String>
     <x:String x:Key="Value_NotGraded">Not graded</x:String>
+    <x:String x:Key="BatteryStatus_Unknown">Battery status unknown</x:String>
+    <x:String x:Key="BatteryStatus_Good">Good</x:String>
+    <x:String x:Key="BatteryStatus_Overheated">Overheated</x:String>
+    <x:String x:Key="BatteryStatus_Defective">Defective</x:String>
+    <x:String x:Key="BatteryStatus_Overvoltage">Overvoltage</x:String>
+    <x:String x:Key="BatteryStatus_StorageFault">Storage fault</x:String>
+    <x:String x:Key="BatteryStatus_TooCold">Too cold</x:String>
     <x:String x:Key="ActivationLock_On">ON (locked)</x:String>
     <x:String x:Key="ActivationLock_Off">OFF (unlocked)</x:String>
     
@@ -153,6 +160,113 @@
     <x:String x:Key="Summary_BtnNext">Next Device (Done)</x:String>
     <x:String x:Key="Summary_SimLockFree">Unlocked (SIM-free)</x:String>
     <x:String x:Key="Summary_SimLocked">SIM Locked</x:String>
+
+    <!-- ============ Export and printing ============ -->
+    <!-- The panel an operator reaches from the inspection report. It is the only
+         place that knows about labels, reports and the raw numbers, so the summary
+         screen's button opens it and nothing else writes a file. -->
+    <x:String x:Key="Export_Title">Export and print</x:String>
+    <x:String x:Key="Export_Lead">Save the label, the report and the numbers, or print the label straight away.</x:String>
+    <x:String x:Key="Export_PreviewTitle">Label preview</x:String>
+    <x:String x:Key="Export_PreviewNote">Drawn from the same values as the file. What is missing shows as a placeholder.</x:String>
+    <x:String x:Key="Export_PreviewScaled">Drawn smaller than the label so it fits here. The shape is right; the size is not.</x:String>
+    <x:String x:Key="Export_Stock">Label size</x:String>
+    <x:String x:Key="Export_FormatsTitle">What to write</x:String>
+    <x:String x:Key="Export_FormatsNote">Everything ticked is written in one go, and each one is reported on its own.</x:String>
+    <x:String x:Key="Export_Printer">Printer</x:String>
+    <x:String x:Key="Export_PrintDialog">System print dialog</x:String>
+    <x:String x:Key="Export_PrinterReady">ready</x:String>
+    <x:String x:Key="Export_PrinterBusy">busy</x:String>
+    <x:String x:Key="Export_NoPrinters">No printer found. Use the system print dialog.</x:String>
+    <x:String x:Key="Export_ScanPrinters">Find printers</x:String>
+    <x:String x:Key="Export_Copies">Copies</x:String>
+    <x:String x:Key="Export_BtnWrite">Write selected</x:String>
+    <x:String x:Key="Export_BtnPrintLabel">Print label</x:String>
+    <x:String x:Key="Export_BtnOpenFolder">Open folder</x:String>
+    <x:String x:Key="Export_FolderLabel">Into</x:String>
+    <x:String x:Key="Export_ResultsTitle">Written</x:String>
+    <x:String x:Key="Export_BtnOpen">Open</x:String>
+    <x:String x:Key="Export_BtnPrintOne">Print</x:String>
+    <x:String x:Key="Export_Close">Close</x:String>
+    <x:String x:Key="Export_Busy">Working...</x:String>
+
+    <!-- The formats, named and described. The note is what stops somebody
+         picking by extension: a JSON file and a CSV file are both "the numbers". -->
+    <x:String x:Key="Export_FormatDymo">DYMO label</x:String>
+    <x:String x:Key="Export_FormatDymoNote">.dymo for DYMO Label and for printing straight to a DYMO.</x:String>
+    <x:String x:Key="Export_FormatLabelPdf">Label as PDF</x:String>
+    <x:String x:Key="Export_FormatLabelPdfNote">The same label as a PDF, for any printer on any of the three systems.</x:String>
+    <x:String x:Key="Export_FormatReportPdf">Full report as PDF</x:String>
+    <x:String x:Key="Export_FormatReportPdfNote">Every value that was read, with the verdict at the top. To file or to show a customer.</x:String>
+    <x:String x:Key="Export_FormatJson">Raw numbers as JSON</x:String>
+    <x:String x:Key="Export_FormatJsonNote">Everything the phone reported, versioned. For your own system.</x:String>
+    <x:String x:Key="Export_FormatCsv">Raw numbers as CSV</x:String>
+    <x:String x:Key="Export_FormatCsvNote">The same numbers, one row per field, for a spreadsheet.</x:String>
+    <x:String x:Key="Export_NameOf">Format</x:String>
+    <x:String x:Key="Export_PrintFailed">The label could not be written, so nothing was printed.</x:String>
+    <x:String x:Key="Status_Exporting">Writing the files...</x:String>
+    <x:String x:Key="Status_ExportDone">{0} file(s) written to {1}</x:String>
+    <x:String x:Key="Status_ExportPartly">{0} of {1} written to {3}. {2} could not be written: see the row above.</x:String>
+    <x:String x:Key="Status_DymoSent">Label sent to DYMO. DYMO reports the job as accepted, not as printed.</x:String>
+    <x:String x:Key="Status_DymoRefused">DYMO did not take the label: {0}</x:String>
+
+    <!-- What a failed export, a note on a written one, or a print says. Read at the
+         moment something went wrong, so it comes from here rather than from the
+         code that detected it. -->
+    <x:String x:Key="Status_TemplateMissing">The label template {0} is not there. Pick another one in Settings, or clear the setting to use the template that came with the app.</x:String>
+    <x:String x:Key="Status_TemplateUnreadable">The label template at {0} could not be read: {1}</x:String>
+    <x:String x:Key="Status_NoTemplateFound">No label template ({0}) was found. Looked in: {1}</x:String>
+    <x:String x:Key="Status_TemplateHasNoFields">The label template carries none of the fields this app fills, so every label would come out the same. Open the template that came with the app again.</x:String>
+    <x:String x:Key="Status_WriteFailed">Writing the {0} file failed: {1}</x:String>
+    <x:String x:Key="Status_UnfilledFields">The template also asks for {0}, which nothing fills.</x:String>
+    <x:String x:Key="Status_BarcodeReplaced">Characters the barcode cannot carry were replaced with a dash, and the text is printed beside it.</x:String>
+    <x:String x:Key="Status_BarcodeWrapped">Asterisks were added so the barcode can be read back.</x:String>
+    <x:String x:Key="Status_NoFileAt">There is no file at {0}.</x:String>
+    <x:String x:Key="Status_NoFolderAt">There is no folder at {0}.</x:String>
+    <x:String x:Key="Status_NoPrinterChosen">No printer was chosen.</x:String>
+    <x:String x:Key="Status_PrintDialogOpened">Sent to the print dialog.</x:String>
+    <x:String x:Key="Status_PrintNoHandler">No print handler is installed, so the file was opened instead. Print it from there.</x:String>
+    <x:String x:Key="Status_PrintPreviewOpened">Opened in Preview. Print it from there.</x:String>
+    <x:String x:Key="Status_PrintDefaultApp">Opened in the default application. Print it from there.</x:String>
+    <x:String x:Key="Status_PrintNotStarted">Printing could not be started: {0}</x:String>
+    <x:String x:Key="Status_PrintQueueNeedsDialog">Choosing a printer by name needs a print dialog on Windows. Use Print instead.</x:String>
+    <x:String x:Key="Status_PrintSentToQueue">Sent to {0}.</x:String>
+    <x:String x:Key="Status_PrintToQueueFailed">Printing to {0} failed: {1}</x:String>
+    <x:String x:Key="Status_FolderOpened">Opened the folder.</x:String>
+    <x:String x:Key="Status_FolderNotOpened">The folder could not be opened: {0}</x:String>
+    <x:String x:Key="Status_FileOpened">Opened.</x:String>
+    <x:String x:Key="Status_FileNotOpened">The file could not be opened: {0}</x:String>
+
+    <!-- The wording inside the report PDFs. A report is a document somebody keeps,
+         so it is written in the language of the shop rather than of the code. -->
+    <x:String x:Key="Export_ReportTitle">Inspection report</x:String>
+    <x:String x:Key="Export_ReportGenerated">Generated</x:String>
+    <x:String x:Key="Export_Confidential">Confidential</x:String>
+    <x:String x:Key="Export_Verdict">Verdict</x:String>
+    <x:String x:Key="Export_VerdictClean">No faults found</x:String>
+    <x:String x:Key="Export_SectionDevice">Device</x:String>
+    <x:String x:Key="Export_SectionBattery">Battery</x:String>
+    <x:String x:Key="Export_SectionNetwork">Network</x:String>
+    <x:String x:Key="Export_SectionSecurity">Locks and security</x:String>
+    <x:String x:Key="Export_SectionComponents">Component originals</x:String>
+    <x:String x:Key="Export_SectionTests">Interactive tests</x:String>
+    <x:String x:Key="Export_SectionGrading">Grading</x:String>
+    <x:String x:Key="Export_FieldName">Field</x:String>
+    <x:String x:Key="Export_FieldValue">Value</x:String>
+    <x:String x:Key="Export_NotReported">Not reported</x:String>
+    <x:String x:Key="Export_Unknown">Unknown</x:String>
+    <x:String x:Key="Export_Yes">Yes</x:String>
+    <x:String x:Key="Export_No">No</x:String>
+    <x:String x:Key="Export_Locked">Locked</x:String>
+    <x:String x:Key="Export_Unlocked">Unlocked</x:String>
+    <x:String x:Key="Export_LabelLine">Label</x:String>
+    <x:String x:Key="Export_ColComponent">Component</x:String>
+    <x:String x:Key="Export_ColRead">Read</x:String>
+    <x:String x:Key="Export_ColFactory">Factory</x:String>
+    <x:String x:Key="Export_ColStatus">Status</x:String>
+    <x:String x:Key="Export_ColNotes">Notes</x:String>
+    <x:String x:Key="Export_ColTest">Test</x:String>
+    <x:String x:Key="Export_ColDuration">Duration</x:String>
 
     <!-- Header bar -->
     <x:String x:Key="Header_Connected">Device connected</x:String>
@@ -337,6 +451,11 @@
     <x:String x:Key="Status_PwaRequired">The PWA hardware test is required. Run the interactive test first.</x:String>
     <x:String x:Key="Status_ChooseQuality">Choose the quality...</x:String>
     <x:String x:Key="Status_LabelGenerating">Generating the label…</x:String>
+    <x:String x:Key="Status_ExportingCsv">Writing the CSV file…</x:String>
+    <x:String x:Key="Status_ExportingPdf">Writing the PDF report…</x:String>
+    <x:String x:Key="Status_ExportCsvSuccess">CSV written to: {0}</x:String>
+    <x:String x:Key="Status_ExportPdfSuccess">PDF written to: {0}</x:String>
+    <x:String x:Key="Status_ExportFailed">The export failed: {0}</x:String>
     <x:String x:Key="Status_LabelFailed">Label failed: {0}</x:String>
     <x:String x:Key="Status_NoLabel">No label generated yet.</x:String>
 

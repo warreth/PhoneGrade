@@ -78,6 +78,13 @@
     <x:String x:Key="Value_Checking">Controleren...</x:String>
     <x:String x:Key="Value_NotSet">Niet opgegeven</x:String>
     <x:String x:Key="Value_NotGraded">Niet beoordeeld</x:String>
+    <x:String x:Key="BatteryStatus_Unknown">Batterijstatus onbekend</x:String>
+    <x:String x:Key="BatteryStatus_Good">Goed</x:String>
+    <x:String x:Key="BatteryStatus_Overheated">Oververhit</x:String>
+    <x:String x:Key="BatteryStatus_Defective">Defect</x:String>
+    <x:String x:Key="BatteryStatus_Overvoltage">Overspanning</x:String>
+    <x:String x:Key="BatteryStatus_StorageFault">Storing</x:String>
+    <x:String x:Key="BatteryStatus_TooCold">Te koud</x:String>
     <x:String x:Key="ActivationLock_On">AAN (gelocked)</x:String>
     <x:String x:Key="ActivationLock_Off">UIT (vrij)</x:String>
     
@@ -153,6 +160,114 @@
     <x:String x:Key="Summary_BtnNext">Volgend Toestel (Klaar)</x:String>
     <x:String x:Key="Summary_SimLockFree">Vrijgeschakeld (Simlockvrij)</x:String>
     <x:String x:Key="Summary_SimLocked">Simlock Actief</x:String>
+
+    <!-- ============ Exporteren en afdrukken ============ -->
+    <!-- Het scherm dat de operator opent vanaf het inspectierapport. Het is de
+         enige plek die van labels, rapporten en ruwe getallen weet, dus de knop op
+         het rapport opent dit scherm en nergens anders wordt een bestand geschreven. -->
+    <x:String x:Key="Export_Title">Exporteren en afdrukken</x:String>
+    <x:String x:Key="Export_Lead">Bewaar het label, het rapport en de getallen, of druk het label meteen af.</x:String>
+    <x:String x:Key="Export_PreviewTitle">Labelvoorbeeld</x:String>
+    <x:String x:Key="Export_PreviewNote">Getekend uit dezelfde waarden als het bestand. Wat ontbreekt staat als plaatshouder.</x:String>
+    <x:String x:Key="Export_PreviewScaled">Kleiner getekend dan het label zodat het hier past. De verhouding klopt, het formaat niet.</x:String>
+    <x:String x:Key="Export_Stock">Labelformaat</x:String>
+    <x:String x:Key="Export_FormatsTitle">Wat er geschreven wordt</x:String>
+    <x:String x:Key="Export_FormatsNote">Alles wat aangevinkt staat wordt in een keer geschreven, en elk bestand wordt apart gemeld.</x:String>
+    <x:String x:Key="Export_Printer">Printer</x:String>
+    <x:String x:Key="Export_PrintDialog">Afdrukvenster van het systeem</x:String>
+    <x:String x:Key="Export_PrinterReady">gereed</x:String>
+    <x:String x:Key="Export_PrinterBusy">bezet</x:String>
+    <x:String x:Key="Export_NoPrinters">Geen printer gevonden. Gebruik het afdrukvenster van het systeem.</x:String>
+    <x:String x:Key="Export_ScanPrinters">Printers zoeken</x:String>
+    <x:String x:Key="Export_Copies">Aantal</x:String>
+    <x:String x:Key="Export_BtnWrite">Geselecteerde schrijven</x:String>
+    <x:String x:Key="Export_BtnPrintLabel">Label afdrukken</x:String>
+    <x:String x:Key="Export_BtnOpenFolder">Map openen</x:String>
+    <x:String x:Key="Export_FolderLabel">Naar</x:String>
+    <x:String x:Key="Export_ResultsTitle">Geschreven</x:String>
+    <x:String x:Key="Export_BtnOpen">Openen</x:String>
+    <x:String x:Key="Export_BtnPrintOne">Afdrukken</x:String>
+    <x:String x:Key="Export_Close">Sluiten</x:String>
+    <x:String x:Key="Export_Busy">Bezig...</x:String>
+
+    <!-- De formaten, met een regel erbij. Die regel voorkomt dat iemand op de
+         extensie kiest: een JSON-bestand en een CSV-bestand zijn allebei "de
+         getallen". -->
+    <x:String x:Key="Export_FormatDymo">DYMO-label</x:String>
+    <x:String x:Key="Export_FormatDymoNote">.dymo voor DYMO Label en om rechtstreeks naar een DYMO te sturen.</x:String>
+    <x:String x:Key="Export_FormatLabelPdf">Label als PDF</x:String>
+    <x:String x:Key="Export_FormatLabelPdfNote">Hetzelfde label als PDF, voor elke printer op elk van de drie systemen.</x:String>
+    <x:String x:Key="Export_FormatReportPdf">Volledig rapport als PDF</x:String>
+    <x:String x:Key="Export_FormatReportPdfNote">Elke gelezen waarde, met het oordeel bovenaan. Om te bewaren of aan een klant te tonen.</x:String>
+    <x:String x:Key="Export_FormatJson">Ruwe getallen als JSON</x:String>
+    <x:String x:Key="Export_FormatJsonNote">Alles wat het toestel gemeld heeft, met versienummer. Voor uw eigen systeem.</x:String>
+    <x:String x:Key="Export_FormatCsv">Ruwe getallen als CSV</x:String>
+    <x:String x:Key="Export_FormatCsvNote">Dezelfde getallen, een rij per veld, voor een rekenblad.</x:String>
+    <x:String x:Key="Export_NameOf">Formaat</x:String>
+    <x:String x:Key="Export_PrintFailed">Het label kon niet worden geschreven, dus er is niets afgedrukt.</x:String>
+    <x:String x:Key="Status_Exporting">Bestanden schrijven...</x:String>
+    <x:String x:Key="Status_ExportDone">{0} bestand(en) geschreven naar {1}</x:String>
+    <x:String x:Key="Status_ExportPartly">{0} van {1} geschreven naar {3}. {2} kon niet worden geschreven: zie de regel hierboven.</x:String>
+    <x:String x:Key="Status_DymoSent">Label naar DYMO gestuurd. DYMO meldt de opdracht als aangenomen, niet als afgedrukt.</x:String>
+    <x:String x:Key="Status_DymoRefused">DYMO nam het label niet aan: {0}</x:String>
+
+    <!-- Wat een mislukte export, een aantekening bij een geschreven bestand of een
+         afdruk zegt. Wordt gelezen op het moment dat er iets misgaat, dus het komt
+         van hier en niet uit de code die het zag gebeuren. -->
+    <x:String x:Key="Status_TemplateMissing">Het labelsjabloon {0} staat er niet meer. Kies een ander sjabloon in Instellingen, of wis de instelling om het sjabloon uit de app te gebruiken.</x:String>
+    <x:String x:Key="Status_TemplateUnreadable">Het labelsjabloon op {0} kon niet worden gelezen: {1}</x:String>
+    <x:String x:Key="Status_NoTemplateFound">Er is geen labelsjabloon ({0}) gevonden. Gezocht in: {1}</x:String>
+    <x:String x:Key="Status_TemplateHasNoFields">Het labelsjabloon bevat geen van de velden die deze app vult, dus elk label zou hetzelfde worden. Open het sjabloon uit de app opnieuw.</x:String>
+    <x:String x:Key="Status_WriteFailed">Het schrijven van het bestand {0} is mislukt: {1}</x:String>
+    <x:String x:Key="Status_UnfilledFields">Het sjabloon vraagt ook om {0}, en dat vult niets.</x:String>
+    <x:String x:Key="Status_BarcodeReplaced">Tekens die de barcode niet kan dragen zijn vervangen door een streepje, en de tekst staat ernaast.</x:String>
+    <x:String x:Key="Status_BarcodeWrapped">Er zijn sterretjes toegevoegd zodat de barcode teruggelezen kan worden.</x:String>
+    <x:String x:Key="Status_NoFileAt">Op {0} staat geen bestand.</x:String>
+    <x:String x:Key="Status_NoFolderAt">Op {0} staat geen map.</x:String>
+    <x:String x:Key="Status_NoPrinterChosen">Er is geen printer gekozen.</x:String>
+    <x:String x:Key="Status_PrintDialogOpened">Naar het afdrukvenster gestuurd.</x:String>
+    <x:String x:Key="Status_PrintNoHandler">Er is geen afdrukkoppeling geinstalleerd, dus het bestand is in plaats daarvan geopend. Druk het daar af.</x:String>
+    <x:String x:Key="Status_PrintPreviewOpened">Geopend in Voorbeeld. Druk het daar af.</x:String>
+    <x:String x:Key="Status_PrintDefaultApp">Geopend in de standaardtoepassing. Druk het daar af.</x:String>
+    <x:String x:Key="Status_PrintNotStarted">Afdrukken kon niet worden gestart: {0}</x:String>
+    <x:String x:Key="Status_PrintQueueNeedsDialog">Een printer bij naam kiezen kan op Windows alleen via een afdrukvenster. Gebruik Afdrukken.</x:String>
+    <x:String x:Key="Status_PrintSentToQueue">Naar {0} gestuurd.</x:String>
+    <x:String x:Key="Status_PrintToQueueFailed">Afdrukken naar {0} is mislukt: {1}</x:String>
+    <x:String x:Key="Status_FolderOpened">Map geopend.</x:String>
+    <x:String x:Key="Status_FolderNotOpened">De map kon niet worden geopend: {0}</x:String>
+    <x:String x:Key="Status_FileOpened">Geopend.</x:String>
+    <x:String x:Key="Status_FileNotOpened">Het bestand kon niet worden geopend: {0}</x:String>
+
+    <!-- De tekst binnenin de rapport-PDF's. Een rapport is een document dat iemand
+         bewaart, dus het staat in de taal van de winkel en niet van de code. -->
+    <x:String x:Key="Export_ReportTitle">Inspectierapport</x:String>
+    <x:String x:Key="Export_ReportGenerated">Gemaakt op</x:String>
+    <x:String x:Key="Export_Confidential">Vertrouwelijk</x:String>
+    <x:String x:Key="Export_Verdict">Oordeel</x:String>
+    <x:String x:Key="Export_VerdictClean">Geen afwijkingen gevonden</x:String>
+    <x:String x:Key="Export_SectionDevice">Toestel</x:String>
+    <x:String x:Key="Export_SectionBattery">Batterij</x:String>
+    <x:String x:Key="Export_SectionNetwork">Netwerk</x:String>
+    <x:String x:Key="Export_SectionSecurity">Vergrendeling en beveiliging</x:String>
+    <x:String x:Key="Export_SectionComponents">Originele onderdelen</x:String>
+    <x:String x:Key="Export_SectionTests">Interactieve tests</x:String>
+    <x:String x:Key="Export_SectionGrading">Waardering</x:String>
+    <x:String x:Key="Export_FieldName">Veld</x:String>
+    <x:String x:Key="Export_FieldValue">Waarde</x:String>
+    <x:String x:Key="Export_NotReported">Niet gemeld</x:String>
+    <x:String x:Key="Export_Unknown">Onbekend</x:String>
+    <x:String x:Key="Export_Yes">Ja</x:String>
+    <x:String x:Key="Export_No">Nee</x:String>
+    <x:String x:Key="Export_Locked">Vast</x:String>
+    <x:String x:Key="Export_Unlocked">Vrij</x:String>
+    <x:String x:Key="Export_LabelLine">Label</x:String>
+    <x:String x:Key="Export_ColComponent">Onderdeel</x:String>
+    <x:String x:Key="Export_ColRead">Gelezen</x:String>
+    <x:String x:Key="Export_ColFactory">Fabriek</x:String>
+    <x:String x:Key="Export_ColStatus">Status</x:String>
+    <x:String x:Key="Export_ColNotes">Opmerkingen</x:String>
+    <x:String x:Key="Export_ColTest">Test</x:String>
+    <x:String x:Key="Export_ColDuration">Duur</x:String>
 
     <!-- Header bar -->
     <x:String x:Key="Header_Connected">Toestel verbonden</x:String>
@@ -337,6 +452,11 @@
     <x:String x:Key="Status_PwaRequired">PWA hardwaretest is verplicht. Voer eerst de interactieve test uit.</x:String>
     <x:String x:Key="Status_ChooseQuality">Kies de kwaliteit...</x:String>
     <x:String x:Key="Status_LabelGenerating">Label genereren…</x:String>
+    <x:String x:Key="Status_ExportingCsv">CSV-bestand schrijven…</x:String>
+    <x:String x:Key="Status_ExportingPdf">PDF-rapport schrijven…</x:String>
+    <x:String x:Key="Status_ExportCsvSuccess">CSV geschreven naar: {0}</x:String>
+    <x:String x:Key="Status_ExportPdfSuccess">PDF geschreven naar: {0}</x:String>
+    <x:String x:Key="Status_ExportFailed">Het exporteren is mislukt: {0}</x:String>
     <x:String x:Key="Status_LabelFailed">Label mislukt: {0}</x:String>
     <x:String x:Key="Status_NoLabel">Nog geen label gegenereerd.</x:String>
 
