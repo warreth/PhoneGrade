@@ -637,8 +637,7 @@
             toggles sat in the same scroll and nothing could be found by place.
         -->
         <Panel x:Name="SettingsPanel" Grid.Row="1"
-               IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="40"
-               Background="{DynamicResource AppBgColor}">
+               IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="40">
             <Grid RowDefinitions="Auto,*">
                 <Border Classes="topBar" Padding="24,16">
                     <Grid ColumnDefinitions="*,Auto">
@@ -654,7 +653,10 @@
                 </Border>
 
                 <Grid Grid.Row="1" ColumnDefinitions="220,*" Margin="24,20,24,24">
-                    <!-- The topics. One is lit; the rest are one click away. -->
+                    <!-- The topics, in the order the panels below them appear. They used
+                         to disagree: the IMEI key was listed sixth in this column and
+                         drawn second on the right, so clicking it scrolled past the
+                         section it belonged to. -->
                     <Border Grid.Column="0" Classes="settingCard" Padding="8" VerticalAlignment="Top">
                         <StackPanel Spacing="2">
                             <Button Classes="navItem"
@@ -670,6 +672,10 @@
                                     Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Connection"
                                     Content="{DynamicResource Settings_SecConnection}"/>
                             <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=ImeiApi}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="ImeiApi"
+                                    Content="{DynamicResource Settings_SecImeiApi}"/>
+                            <Button Classes="navItem"
                                     Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=License}"
                                     Command="{Binding SelectSettingsSectionCommand}" CommandParameter="License"
                                     Content="{DynamicResource Settings_SecLicense}"/>
@@ -681,10 +687,6 @@
                                     Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Advanced}"
                                     Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Advanced"
                                     Content="{DynamicResource Settings_SecAdvanced}"/>
-                            <Button Classes="navItem"
-                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=ImeiApi}"
-                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="ImeiApi"
-                                    Content="{DynamicResource Settings_SecImeiApi}"/>
                         </StackPanel>
                     </Border>
 
@@ -699,7 +701,7 @@
                                 <Border Classes="settingCard">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel Spacing="3" VerticalAlignment="Center">
-                                            <TextBlock Text="{DynamicResource Settings_Language}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Language}"/>
                                             <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LanguageDesc}"/>
                                         </StackPanel>
                                         <ComboBox Grid.Column="1" Width="150" VerticalAlignment="Center"
@@ -710,7 +712,7 @@
                                 <Border Classes="settingCard">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel Spacing="3" VerticalAlignment="Center">
-                                            <TextBlock Text="{DynamicResource Settings_Theme}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Theme}"/>
                                             <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ThemeDesc}"/>
                                         </StackPanel>
                                         <ComboBox Grid.Column="1" Width="150" VerticalAlignment="Center"
@@ -727,7 +729,7 @@
                                 <!-- Why a key is wanted at all, before anything asks for one -->
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="8">
-                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoWhyTitle}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiInfoWhyTitle}"/>
                                         <TextBlock Classes="settingDesc" TextWrapping="Wrap"
                                                    Text="{DynamicResource Settings_ImeiInfoWhy}"/>
                                         <TextBlock Classes="settingDesc" TextWrapping="Wrap"
@@ -797,7 +799,7 @@
                                 <!-- API Key Input -->
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="10">
-                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoApiKey}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiInfoApiKey}"/>
                                         <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ImeiInfoApiKeyDesc}"/>
                                         <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                                             <TextBox Grid.Column="0" Text="{Binding ImeiInfoApiKey}" PasswordChar="*"
@@ -820,7 +822,7 @@
                                 <!-- Checks Selection -->
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="10">
-                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoChecks}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiInfoChecks}"/>
                                         <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ImeiInfoChecksDesc}"/>
                                         
                                         <!-- Apple Carrier Lock & FMI -->
@@ -828,7 +830,7 @@
                                             <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                                                 <CheckBox Grid.Column="0" IsChecked="{Binding ImeiCheckAppleCarrierLockFmi}" VerticalAlignment="Center"/>
                                                 <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
-                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_AppleCarrierLockFmi}" FontWeight="SemiBold"/>
+                                                    <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiCheck_AppleCarrierLockFmi}"/>
                                                     <TextBlock Text="{DynamicResource Settings_ImeiCheck_AppleCarrierLockFmiDesc}" Classes="settingDesc" FontSize="11"/>
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="2" Text="{DynamicResource Settings_ImeiCheck_AppleCarrierLockFmiPrice}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -840,7 +842,7 @@
                                             <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                                                 <CheckBox Grid.Column="0" IsChecked="{Binding ImeiCheckBlacklistSimple}" VerticalAlignment="Center"/>
                                                 <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
-                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_BlacklistSimple}" FontWeight="SemiBold"/>
+                                                    <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiCheck_BlacklistSimple}"/>
                                                     <TextBlock Text="{DynamicResource Settings_ImeiCheck_BlacklistSimpleDesc}" Classes="settingDesc" FontSize="11"/>
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="2" Text="{DynamicResource Settings_ImeiCheck_BlacklistSimplePrice}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -864,7 +866,7 @@
                                             <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                                                 <CheckBox Grid.Column="0" IsChecked="{Binding ImeiCheckSamsungInfoKnox}" VerticalAlignment="Center"/>
                                                 <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
-                                                    <TextBlock Text="{DynamicResource Settings_ImeiCheck_SamsungInfoKnox}" FontWeight="SemiBold"/>
+                                                    <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiCheck_SamsungInfoKnox}"/>
                                                     <TextBlock Text="{DynamicResource Settings_ImeiCheck_SamsungInfoKnoxDesc}" Classes="settingDesc" FontSize="11"/>
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="2" Text="{DynamicResource Settings_ImeiCheck_SamsungInfoKnoxPrice}" FontWeight="Bold" Foreground="{DynamicResource AccentColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -876,16 +878,16 @@
                                 <!-- Cost Calculator -->
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="10">
-                                        <TextBlock Text="{DynamicResource Settings_ImeiInfoCostCalculator}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiInfoCostCalculator}"/>
                                         <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ImeiInfoCostCalculatorDesc}"/>
                                         
                                         <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" Margin="0,4,0,0">
                                             <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4" Margin="0,0,12,0">
-                                                <TextBlock Text="{DynamicResource Settings_ImeiInfoAppleDevices}" FontWeight="SemiBold" FontSize="12"/>
+                                                <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiInfoAppleDevices}"/>
                                                 <TextBox Text="{Binding EstimatedAppleDevices}" Watermark="{DynamicResource Settings_ImeiInfoWatermarkDefault}" HorizontalAlignment="Stretch"/>
                                             </StackPanel>
                                             <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
-                                                <TextBlock Text="{DynamicResource Settings_ImeiInfoAndroidDevices}" FontWeight="SemiBold" FontSize="12"/>
+                                                <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_ImeiInfoAndroidDevices}"/>
                                                 <TextBox Text="{Binding EstimatedAndroidDevices}" Watermark="{DynamicResource Settings_ImeiInfoWatermarkDefault}" HorizontalAlignment="Stretch"/>
                                             </StackPanel>
                                             
@@ -906,7 +908,7 @@
                                 <Border Classes="settingCard">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel Spacing="3" VerticalAlignment="Center">
-                                            <TextBlock Text="{DynamicResource Settings_Quality}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Quality}"/>
                                             <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_QualityDesc}"/>
                                         </StackPanel>
                                         <ComboBox Grid.Column="1" Width="190" VerticalAlignment="Center"
@@ -923,7 +925,7 @@
                                 <Border Classes="settingCard">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel Spacing="3" VerticalAlignment="Center">
-                                            <TextBlock Text="{DynamicResource Settings_Payment}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Payment}"/>
                                             <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_PaymentDesc}"/>
                                         </StackPanel>
                                         <ComboBox Grid.Column="1" Width="190" VerticalAlignment="Center"
@@ -937,45 +939,48 @@
                                     </Grid>
                                 </Border>
 
-                                <Border Classes="settingCard">
-                                    <StackPanel Spacing="6">
-                                        <CheckBox Content="{DynamicResource Settings_AutoDetect}" IsChecked="{Binding AutoDetectOnPlug}"/>
-                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_AutoDetectDesc}"/>
+                                <!-- What happens when a phone arrives. -->
+                                <Border Classes="settingGroup">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Classes="groupTitle" Text="{DynamicResource Settings_GroupOnArrival}"/>
+                                        <StackPanel Spacing="0">
+                                            <CheckBox Classes="settingSwitch" Content="{DynamicResource Settings_AutoDetect}" IsChecked="{Binding AutoDetectOnPlug}"/>
+                                            <TextBlock Classes="switchNote" Text="{DynamicResource Settings_AutoDetectDesc}"/>
+                                        </StackPanel>
+                                        <StackPanel Spacing="0">
+                                            <CheckBox Classes="settingSwitch" Content="{DynamicResource Settings_UsbEventMonitoring}" IsChecked="{Binding EnableUsbEventMonitoring}"/>
+                                            <TextBlock Classes="switchNote" Text="{DynamicResource Settings_UsbEventMonitoringDesc}"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
-                                <Border Classes="settingCard">
-                                    <StackPanel Spacing="6">
-                                        <CheckBox Content="{DynamicResource Settings_UsbEventMonitoring}" IsChecked="{Binding EnableUsbEventMonitoring}"/>
-                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_UsbEventMonitoringDesc}"/>
+                                <!-- What the interactive test does about itself. -->
+                                <Border Classes="settingGroup">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Classes="groupTitle" Text="{DynamicResource Settings_GroupInteractiveTest}"/>
+                                        <StackPanel Spacing="0">
+                                            <CheckBox Classes="settingSwitch" Content="{DynamicResource Settings_AutoStartWebTest}" IsChecked="{Binding AutoStartWebTest}"/>
+                                            <TextBlock Classes="switchNote" Text="{DynamicResource Settings_AutoStartWebTestDesc}"/>
+                                        </StackPanel>
+                                        <StackPanel Spacing="0">
+                                            <CheckBox Classes="settingSwitch" Content="{DynamicResource Settings_RequirePwaTest}" IsChecked="{Binding RequirePwaTest}"/>
+                                            <TextBlock Classes="switchNote" Text="{DynamicResource Settings_RequirePwaTestDesc}"/>
+                                        </StackPanel>
+                                        <StackPanel Spacing="0">
+                                            <CheckBox Classes="settingSwitch" Content="{DynamicResource Settings_AutoFinishAfterTest}" IsChecked="{Binding AutoFinishAfterTest}"/>
+                                            <TextBlock Classes="switchNote" Text="{DynamicResource Settings_AutoFinishAfterTestDesc}"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 
-                                <Border Classes="settingCard">
-                                    <StackPanel Spacing="6">
-                                        <CheckBox Content="{DynamicResource Settings_AutoStartWebTest}" IsChecked="{Binding AutoStartWebTest}"/>
-                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_AutoStartWebTestDesc}"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Classes="settingCard">
-                                    <StackPanel Spacing="6">
-                                        <CheckBox Content="{DynamicResource Settings_RequirePwaTest}" IsChecked="{Binding RequirePwaTest}"/>
-                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_RequirePwaTestDesc}"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Classes="settingCard">
-                                    <StackPanel Spacing="6">
-                                        <CheckBox Content="{DynamicResource Settings_AutoFinishAfterTest}" IsChecked="{Binding AutoFinishAfterTest}"/>
-                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_AutoFinishAfterTestDesc}"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Classes="settingCard">
-                                    <StackPanel Spacing="6">
-                                        <CheckBox Content="{DynamicResource Settings_ShowSummary}" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
-                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_ShowSummaryDesc}"/>
+                                <!-- What the operator sees when it is over. -->
+                                <Border Classes="settingGroup">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Classes="groupTitle" Text="{DynamicResource Settings_GroupAfterwards}"/>
+                                        <StackPanel Spacing="0">
+                                            <CheckBox Classes="settingSwitch" Content="{DynamicResource Settings_ShowSummary}" IsChecked="{Binding ShowSummaryScreenAfterTesting}"/>
+                                            <TextBlock Classes="switchNote" Text="{DynamicResource Settings_ShowSummaryDesc}"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -996,7 +1001,7 @@
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="6">
                                         <CheckBox IsChecked="{Binding UseSecureOrigin}">
-                                            <TextBlock Text="{DynamicResource Settings_SecureOrigin}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_SecureOrigin}"/>
                                         </CheckBox>
                                         <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_SecureOriginDesc}"/>
                                     </StackPanel>
@@ -1005,7 +1010,7 @@
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="6">
                                         <CheckBox IsChecked="{Binding UsePublicTunnel}">
-                                            <TextBlock Text="{DynamicResource Settings_PublicTunnel}" FontWeight="SemiBold"/>
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_PublicTunnel}"/>
                                         </CheckBox>
                                         <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_PublicTunnelDesc}"/>
                                     </StackPanel>
@@ -1043,7 +1048,7 @@
 
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="8">
-                                        <TextBlock Text="{DynamicResource Settings_TroubleshootCardTitle}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_TroubleshootCardTitle}"/>
                                         <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_TroubleshootCardDesc}"/>
                                         <Button Classes="kioskSecondary" Command="{Binding OpenTroubleshootModalCommand}"
                                                 Content="{DynamicResource Btn_Troubleshoot}"
@@ -1053,7 +1058,7 @@
 
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="8">
-                                        <TextBlock Text="{DynamicResource Settings_LogsCardTitle}" FontWeight="SemiBold"/>
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_LogsCardTitle}"/>
                                         <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LogsCardDesc}"/>
                                         <Button Classes="kioskSecondary" Command="{Binding OpenLogsModalCommand}"
                                                 Content="{DynamicResource Btn_Logs}"
@@ -1401,6 +1406,60 @@
                         <ProgressBar Minimum="0" Maximum="10"
                                      Value="{Binding Licensing.UsedScans, Mode=OneWay}"
                                      Height="6"/>
+                    </StackPanel>
+
+                    <!-- Seats in use, and which of them is this computer. Both numbers
+                         come from Lemon Squeezy, so the panel shows what the key's
+                         plan actually allows instead of a figure from the binary.
+                         The line is hidden until the vendor reports a limit. -->
+                    <StackPanel Spacing="6" IsVisible="{Binding Licensing.HasSeatNumbers}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="{DynamicResource Licensing_PanelSeatsLabel}"
+                                       Classes="dim" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Licensing.SeatUsageText}"
+                                       FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Which seat is this one. Shown whenever there is a seat, not
+                         only when a plan limit was reported: knowing the bench is
+                         the one on the key matters on a single-machine plan too. -->
+                    <ItemsControl ItemsSource="{Binding Licensing.SeatLines}"
+                                  IsVisible="{Binding Licensing.CanReleaseSeat}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" Classes="dim" FontSize="12"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- A machine the operating system will not identify cannot hold a
+                         seat. Saying so beats a Validate button that keeps refusing
+                         without explanation. -->
+                    <TextBlock Text="{DynamicResource Licensing_PanelNoMachineId}"
+                               Classes="settingDesc" TextWrapping="Wrap"
+                               IsVisible="{Binding Licensing.CannotIdentifyMachine}"/>
+
+                    <!-- Handing the seat back: two presses, because it takes the shop
+                         off Pro and only a new activate can undo it. The confirm
+                         lives in the button label and beside it as a way out. -->
+                    <StackPanel Spacing="6"
+                                IsVisible="{Binding Licensing.CanReleaseSeat}">
+                        <Separator/>
+                        <Button Classes="kioskSecondary"
+                                Command="{Binding Licensing.ReleaseSeatCommand}"
+                                IsEnabled="{Binding !Licensing.IsReleasing}"
+                                Content="{Binding Licensing.ReleaseSeatText}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"/>
+                        <Button Classes="kioskSecondary"
+                                Command="{Binding Licensing.CancelReleaseCommand}"
+                                Content="{DynamicResource Licensing_PanelReleaseCancel}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                IsVisible="{Binding Licensing.IsReleaseArmed}"/>
+                        <TextBlock Text="{DynamicResource Licensing_PanelReleaseHint}"
+                                   Classes="dim" FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>
 
                     <Separator/>

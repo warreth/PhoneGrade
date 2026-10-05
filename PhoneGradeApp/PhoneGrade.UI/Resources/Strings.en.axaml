@@ -89,6 +89,9 @@
     <x:String x:Key="ActivationLock_Off">OFF (unlocked)</x:String>
     
     <x:String x:Key="Settings_DailyOptions">DAILY OPTIONS</x:String>
+    <x:String x:Key="Settings_GroupOnArrival">When a device arrives</x:String>
+    <x:String x:Key="Settings_GroupInteractiveTest">The interactive test</x:String>
+    <x:String x:Key="Settings_GroupAfterwards">After the inspection</x:String>
     <x:String x:Key="Settings_Quality">Default Quality</x:String>
     <x:String x:Key="Settings_Payment">Default Payment Method</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Automatically start interactive web test</x:String>
@@ -120,6 +123,7 @@
     <x:String x:Key="Settings_ActivationExpired">This license has expired.</x:String>
     <x:String x:Key="Settings_ActivationDeactivated">This license has been deactivated.</x:String>
     <x:String x:Key="Settings_ActivationError">Network error. Please try again later.</x:String>
+    <x:String x:Key="Settings_ActivationLimitReached">This key allows a limited number of computers, and they are all in use. Release a computer on another bench, or buy a plan with more.</x:String>
 
     <!-- Licensing: introduction screen and the status pill in the title bar -->
     <x:String x:Key="Intro_Title">Welcome to PhoneGrade</x:String>
@@ -130,6 +134,19 @@
     <x:String x:Key="Intro_ProTierBody">Unlimited scans on every device you connect.</x:String>
     <x:String x:Key="Intro_ProBadge">Unlimited</x:String>
     <x:String x:Key="Intro_StartFree">Start free</x:String>
+    <x:String x:Key="Intro_PageWelcome">Language and look</x:String>
+    <x:String x:Key="Intro_WelcomeLead">Set these once. Both can be changed later in Settings.</x:String>
+    <x:String x:Key="Intro_PagePlan">What the free plan gives you</x:String>
+    <x:String x:Key="Intro_PageWorkflow">How an inspection runs</x:String>
+    <x:String x:Key="Intro_WorkflowLead">Four steps, the same every time. The interactive test is the one that needs the phone.</x:String>
+    <x:String x:Key="Intro_StepPlug">Plug the phone in over USB and unlock it</x:String>
+    <x:String x:Key="Intro_StepRead">PhoneGrade reads the hardware itself and writes what it found on screen</x:String>
+    <x:String x:Key="Intro_StepTest">Scan the QR code with the phone to run the camera, screen, sensor and audio tests</x:String>
+    <x:String x:Key="Intro_StepFinish">Pick the grade, print the label, and hand the phone back</x:String>
+    <x:String x:Key="Intro_PageImei">Carrier lock and blacklist checks</x:String>
+    <x:String x:Key="Intro_Next">Next</x:String>
+    <x:String x:Key="Intro_Back">Back</x:String>
+    <x:String x:Key="Intro_Skip">Skip</x:String>
     <x:String x:Key="Intro_SeePricing">See pricing</x:String>
     <x:String x:Key="Intro_HaveLicense">I already have a license</x:String>
     <x:String x:Key="Intro_ActivationTitle">Activate your license</x:String>
@@ -139,6 +156,16 @@
     <x:String x:Key="Licensing_PanelTitle">License</x:String>
     <x:String x:Key="Licensing_PanelScansLeft">Scans remaining</x:String>
     <x:String x:Key="Licensing_PanelClose">Close</x:String>
+    <x:String x:Key="Licensing_PanelSeatsUsed">{0} of {1} computers in use</x:String>
+    <x:String x:Key="Licensing_PanelSeatThis">This computer ({0})</x:String>
+    <x:String x:Key="Licensing_PanelSeatsLabel">Computers</x:String>
+    <x:String x:Key="Licensing_PanelNoMachineId">This computer cannot be identified, so a license cannot be activated here. The free scans still work.</x:String>
+    <x:String x:Key="Licensing_PanelRelease">Release this computer</x:String>
+    <x:String x:Key="Licensing_PanelReleaseConfirm">Really release it?</x:String>
+    <x:String x:Key="Licensing_PanelReleaseCancel">Keep it</x:String>
+    <x:String x:Key="Licensing_PanelReleaseHint">Frees this computer so another one can use the same key. You can activate the key again afterwards.</x:String>
+    <x:String x:Key="Licensing_PanelReleaseDone">This computer was released. You are on the free tier until you activate the key again.</x:String>
+    <x:String x:Key="Licensing_PanelReleaseDoneAlready">This computer was no longer registered with the key. You are on the free tier.</x:String>
 
     <x:String x:Key="Btn_Troubleshoot">USB and Driver Diagnostics</x:String>
     <x:String x:Key="Btn_Logs">View System Logs</x:String>
@@ -148,6 +175,7 @@
     <x:String x:Key="Summary_AuditTitle">3UTOOLS HARDWARE COMPONENT AUDIT</x:String>
     <x:String x:Key="Summary_AuditSubtitle">Comparison Ex-Factory vs Read Value</x:String>
     <x:String x:Key="Summary_ColComponent">Component</x:String>
+    <x:String x:Key="Summary_ColPart">Part</x:String>
     <x:String x:Key="Summary_ColFactory">Ex-Factory Value</x:String>
     <x:String x:Key="Summary_ColRead">Read Value</x:String>
     <!-- The audit rows are far narrower than the report, so the two columns get

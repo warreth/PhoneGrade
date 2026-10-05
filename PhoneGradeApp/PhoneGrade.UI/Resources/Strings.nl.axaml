@@ -89,6 +89,9 @@
     <x:String x:Key="ActivationLock_Off">UIT (vrij)</x:String>
     
     <x:String x:Key="Settings_DailyOptions">DAGELIJKSE OPTIES</x:String>
+    <x:String x:Key="Settings_GroupOnArrival">Wanneer een toestel aankomt</x:String>
+    <x:String x:Key="Settings_GroupInteractiveTest">De interactieve test</x:String>
+    <x:String x:Key="Settings_GroupAfterwards">Na de inspectie</x:String>
     <x:String x:Key="Settings_Quality">Standaard Kwaliteit</x:String>
     <x:String x:Key="Settings_Payment">Standaard Factuurmethode</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Automatisch interactieve webtest starten</x:String>
@@ -120,6 +123,7 @@
     <x:String x:Key="Settings_ActivationExpired">Deze licentie is verlopen.</x:String>
     <x:String x:Key="Settings_ActivationDeactivated">Deze licentie is gedeactiveerd.</x:String>
     <x:String x:Key="Settings_ActivationError">Netwerkfout. Probeer het later opnieuw.</x:String>
+    <x:String x:Key="Settings_ActivationLimitReached">Deze sleutel is beperkt tot een aantal computers en die zijn allemaal in gebruik. Maak een computer op een andere werkplek vrij, of neem een abonnement met meer plaatsen.</x:String>
 
     <!-- Introductiescherm en de statusmelding bovenaan -->
     <x:String x:Key="Intro_Title">Welkom bij PhoneGrade</x:String>
@@ -130,6 +134,19 @@
     <x:String x:Key="Intro_ProTierBody">Onbeperkt scannen op elk toestel dat je aansluit.</x:String>
     <x:String x:Key="Intro_ProBadge">Onbeperkt</x:String>
     <x:String x:Key="Intro_StartFree">Gratis starten</x:String>
+    <x:String x:Key="Intro_PageWelcome">Taal en weergave</x:String>
+    <x:String x:Key="Intro_WelcomeLead">Kies dit een keer. Beide zijn later aan te passen bij Instellingen.</x:String>
+    <x:String x:Key="Intro_PagePlan">Wat de gratis versie je geeft</x:String>
+    <x:String x:Key="Intro_PageWorkflow">Hoe een inspectie verloopt</x:String>
+    <x:String x:Key="Intro_WorkflowLead">Vier stappen, elke keer hetzelfde. Alleen de interactieve test heeft de telefoon zelf nodig.</x:String>
+    <x:String x:Key="Intro_StepPlug">Sluit de telefoon aan via USB en ontgrendel hem</x:String>
+    <x:String x:Key="Intro_StepRead">PhoneGrade leest de hardware zelf uit en toont wat het heeft gevonden</x:String>
+    <x:String x:Key="Intro_StepTest">Scan de QR-code met de telefoon voor de camera-, scherm-, sensor- en audiotoets</x:String>
+    <x:String x:Key="Intro_StepFinish">Kies de kwaliteit, druk het label af en geef de telefoon terug</x:String>
+    <x:String x:Key="Intro_PageImei">Carrier lock en blacklist controles</x:String>
+    <x:String x:Key="Intro_Next">Volgende</x:String>
+    <x:String x:Key="Intro_Back">Terug</x:String>
+    <x:String x:Key="Intro_Skip">Overslaan</x:String>
     <x:String x:Key="Intro_SeePricing">Bekijk prijzen</x:String>
     <x:String x:Key="Intro_HaveLicense">Ik heb al een licentie</x:String>
     <x:String x:Key="Intro_ActivationTitle">Activeer je licentie</x:String>
@@ -139,6 +156,16 @@
     <x:String x:Key="Licensing_PanelTitle">Licentie</x:String>
     <x:String x:Key="Licensing_PanelScansLeft">Scans resterend</x:String>
     <x:String x:Key="Licensing_PanelClose">Sluiten</x:String>
+    <x:String x:Key="Licensing_PanelSeatsUsed">{0} van {1} computers in gebruik</x:String>
+    <x:String x:Key="Licensing_PanelSeatThis">Deze computer ({0})</x:String>
+    <x:String x:Key="Licensing_PanelSeatsLabel">Computers</x:String>
+    <x:String x:Key="Licensing_PanelNoMachineId">Deze computer kan niet worden herkend, dus hier kan geen licentie worden geactiveerd. De gratis scans blijven werken.</x:String>
+    <x:String x:Key="Licensing_PanelRelease">Deze computer vrijmaken</x:String>
+    <x:String x:Key="Licensing_PanelReleaseConfirm">Echt vrijmaken?</x:String>
+    <x:String x:Key="Licensing_PanelReleaseCancel">Behouden</x:String>
+    <x:String x:Key="Licensing_PanelReleaseHint">Maakt deze computer vrij zodat een andere dezelfde sleutel kan gebruiken. Je kunt de sleutel daarna opnieuw activeren.</x:String>
+    <x:String x:Key="Licensing_PanelReleaseDone">Deze computer is vrijgemaakt. Je bent op de gratis versie tot je de sleutel opnieuw activeert.</x:String>
+    <x:String x:Key="Licensing_PanelReleaseDoneAlready">Deze computer stond niet meer bij de sleutel. Je bent op de gratis versie.</x:String>
 
     <x:String x:Key="Btn_Troubleshoot">USB en Driver Diagnose</x:String>
     <x:String x:Key="Btn_Logs">Systeemlogboeken Bekijken</x:String>
@@ -148,6 +175,7 @@
     <x:String x:Key="Summary_AuditTitle">3UTOOLS HARDWARE COMPONENTEN AUDIT</x:String>
     <x:String x:Key="Summary_AuditSubtitle">Vergelijking Fabriekswaarde vs Gelezen Waarde</x:String>
     <x:String x:Key="Summary_ColComponent">Onderdeel</x:String>
+    <x:String x:Key="Summary_ColPart">Onderdeel</x:String>
     <x:String x:Key="Summary_ColFactory">Fabriekswaarde (Ex-factory)</x:String>
     <x:String x:Key="Summary_ColRead">Gelezen Waarde (Read)</x:String>
     <!-- The audit rows are far narrower than the report, so the two columns get
