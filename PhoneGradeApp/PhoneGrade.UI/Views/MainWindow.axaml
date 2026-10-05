@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:PhoneGrade.UI.ViewModels"
         xmlns:views="using:PhoneGrade.UI.Views"
+        xmlns:core="using:PhoneGrade.Core"
         x:Class="PhoneGrade.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="PhoneGrade Kiosk"
@@ -559,13 +560,21 @@
                         </Grid>
                     </Border>
 
-                    <!-- Actions: a bar, not three buttons floating on the background -->
+                    <!-- Actions: a bar, not three buttons floating on the background.
+
+                         The middle button opens the export panel rather than writing
+                         a label and handing it to whatever application the system had
+                         registered for a .dymo file. That ended the flow in the DYMO
+                         editor or in an error dialog depending on what happened to
+                         be installed, and it left the report, the PDF and the numbers
+                         each behind a different button nobody could find. One button
+                         to one screen, and the screen decides what gets written. -->
                     <Border Grid.Row="2" Classes="actionBar">
                         <Grid Grid.Column="0" ColumnDefinitions="Auto,*,Auto" MaxWidth="960" HorizontalAlignment="Stretch">
                             <Button Grid.Column="0" Classes="kioskSecondary" Command="{Binding RetestCommand}"
                                     Content="{DynamicResource Summary_BtnRetest}" Padding="16,10" HorizontalContentAlignment="Center"/>
 
-                            <Button Grid.Column="1" Classes="kioskPrint" Command="{Binding OpenLabelCommand}"
+                            <Button Grid.Column="1" Classes="kioskPrint" Command="{Binding OpenExportCommand}"
                                     Content="{DynamicResource Summary_BtnPrint}" Margin="12,0" Padding="20,12" FontSize="14" FontWeight="Bold"
                                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
 
@@ -1100,6 +1109,28 @@
             </Grid>
         </Panel>
         </Grid>
+
+        <!--
+            ==================== EXPORT AND PRINT ====================
+
+            An overlay rather than a window, on top of the report screen: the
+            operator came from there and goes back to it, and a second window would
+            leave two windows stacked with no visual order between them.
+
+            Two columns. The left is what will come out of the printer, drawn on a
+            sheet of paper to scale, because a label with a placeholder where a
+            colour should be is much cheaper to catch here than on a device. The
+            right is what to do with it: the formats, the printer, and the buttons.
+
+            The result list is below the formats rather than in a second screen,
+            because writing the files and seeing what happened are one gesture. An
+            operator who has to press something else to find out whether the export
+            worked will press the export again.
+        -->
+        <Panel IsVisible="{Binding IsExportOpen}" ZIndex="55"
+               Background="{DynamicResource AppBgColor}">
+            <views:ExportPanel DataContext="{Binding ExportViewModel}"/>
+        </Panel>
 
         <!-- ==================== SYSTEM LOGS MODAL OVERLAY ==================== -->
         <Panel IsVisible="{Binding IsLogsModalOpen}" ZIndex="60">

@@ -46,7 +46,18 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Views/DataEditorWindow.axaml.cs">
+      <DependentUpon>DataEditorWindow.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views/ExportPanel.axaml.cs">
+      <DependentUpon>ExportPanel.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
     <AvaloniaXaml Update="Views/DataEditorWindow.axaml">
+      <SubType>Designer</SubType>
+    </AvaloniaXaml>
+    <AvaloniaXaml Update="Views/ExportPanel.axaml">
       <SubType>Designer</SubType>
     </AvaloniaXaml>
   </ItemGroup>

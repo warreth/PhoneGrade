@@ -681,6 +681,83 @@
         <Style Selector="Border.chip.warn">
             <Setter Property="Background" Value="{DynamicResource WarnColor}"/>
         </Style>
+        <!--
+            The export panel.
+
+            Three pieces that no other screen needed: a sheet of paper the label is
+            drawn on, a row that can be ticked, and a stock picker.
+
+            The sheet is white in both themes on purpose. It is a photograph of a
+            label, and a label does not come out dark because the operator has a
+            dark theme; a preview that changed colour with the theme would be
+            showing the theme, not the label.
+        -->
+        <Style Selector="Border.labelSheet">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="BorderBrush" Value="#C8CCD4"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <!-- A label on a dark screen needs an edge to be found by. Without the
+                 hairline the white sheet floats in the middle of the card. -->
+            <Setter Property="BoxShadow" Value="0 4 14 0 #40000000"/>
+        </Style>
+        <Style Selector="TextBlock.labelSheetText">
+            <Setter Property="Foreground" Value="#101014"/>
+        </Style>
+        <Style Selector="TextBlock.labelSheetBarcode">
+            <Setter Property="Foreground" Value="#5A5E68"/>
+        </Style>
+
+        <!--
+            The preview column on the export panel. Named so the code behind the
+            panel can find it and measure it: only a laid out panel knows how much
+            room the label sheet has, and that is what decides whether the sheet is
+            drawn at its real size or scaled down to fit.
+        -->
+        <Style Selector="Border.previewColumn">
+            <Setter Property="MaxWidth" Value="324"/>
+        </Style>
+
+        <!--
+            A format in the checklist: a tickbox, a name, and what it is for. A
+            ToggleButton rather than a Border so the row is its own hit target and
+            the tick is the row's state rather than a copy of it.
+        -->
+        <Style Selector="ToggleButton.formatRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="ToggleButton.formatRow:pointerover">
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+        </Style>
+        <!-- Lit only while the format is ticked, so the list of what will be
+             written is legible before anything is pressed. -->
+        <Style Selector="ToggleButton.formatRow.on">
+            <Setter Property="Background" Value="{DynamicResource AccentTintBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+        </Style>
+        <Style Selector="ToggleButton.formatRow.on:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentTintBrush}"/>
+        </Style>
+        <!-- The theme's own toggle chrome would draw a box and a bullet in the
+             corner of every row; the tickbox inside the template is the state. -->
+        <Style Selector="ToggleButton.formatRow /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource TextColor}"/>
+        </Style>
+
         <Style Selector="TextBlock.emptyNote">
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>

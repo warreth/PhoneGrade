@@ -1,4 +1,5 @@
 using System;
+using System.Reactive;
 using Avalonia.Controls;
 using PhoneGrade.Core;
 using PhoneGrade.UI.ViewModels;
@@ -17,7 +18,19 @@ public partial class MainWindow : Window, IDisposable
         // Data editor requests arrive from the view model; keep a single editor instance.
         vm.DataEditorRequested += data =>
         {
-            var editor = new DataEditorWindow { DataContext = new DataEditorViewModel(data) };
+            var form = new DataEditorViewModel(data);
+            var editor = new DataEditorWindow { DataContext = form };
+
+            // A correction made on the label form is followed by the export panel.
+            // The form edits the same DeviceData the panel reads, so opening the
+            // panel here is enough: the operator lands on a preview showing what
+            // they just typed rather than having to ask for the label again.
+            form.SavedInteraction.RegisterHandler(interaction =>
+            {
+                vm.ExportViewModel?.Open();
+                interaction.SetOutput(Unit.Default);
+            });
+
             editor.Show();
         };
     }

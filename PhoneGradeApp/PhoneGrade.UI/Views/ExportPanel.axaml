@@ -1,0 +1,336 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:PhoneGrade.UI.ViewModels"
+             xmlns:views="using:PhoneGrade.UI.Views"
+             xmlns:conv="using:PhoneGrade.UI.Converters"
+             x:Class="PhoneGrade.UI.Views.ExportPanel"
+             x:DataType="vm:ExportViewModel">
+
+    <!--
+        ==================== EXPORT AND PRINT ====================
+
+        An overlay rather than a window, on top of the report screen: the operator
+        came from there and goes back to it, and a second window would leave two
+        windows stacked with no visual order between them.
+
+        Three rows that never move: a heading, the two columns, and the bar of
+        actions. Only the middle scrolls, so the write button is on screen at the
+        minimum window height.
+
+        Two columns. The left is what comes out of the printer, drawn on a sheet of
+        paper at the shape of the stock, because a label with a placeholder where a
+        colour should be is far cheaper to catch here than on a device. The right is
+        what to do with it: the formats, and what was written.
+
+        The result list sits below the formats rather than behind a second screen,
+        because writing the files and finding out what happened are one gesture. An
+        operator who has to press something else to learn whether the export worked
+        will press the export again.
+    -->
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <Border Grid.Row="0" Classes="topBar" Padding="24,16">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Classes="pageTitle" Text="{DynamicResource Export_Title}"/>
+                    <TextBlock Classes="settingDesc" Text="{DynamicResource Export_Lead}"/>
+                </StackPanel>
+                <Button Grid.Column="1" Classes="headerBtn" VerticalAlignment="Center"
+                        Command="{Binding CloseCommand}"
+                        ToolTip.Tip="{DynamicResource Export_Close}"
+                        Content="{DynamicResource Export_Close}"/>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+            <Grid ColumnDefinitions="Auto,28,*" Margin="24,20,24,16" MaxWidth="1060"
+                  HorizontalAlignment="Center">
+
+                <!-- ============ What will come out of the printer ============ -->
+                <Border Grid.Column="0" Classes="previewColumn" Padding="12,0">
+                    <StackPanel Spacing="12">
+
+                        <TextBlock Classes="cardTitle" Text="{DynamicResource Export_PreviewTitle}"/>
+
+                        <!--
+                            The sheet is the stock size itself, at 96 dpi, so a
+                            narrow label looks narrow and a long one looks long. The
+                            ratio is what carries the meaning here; a preview drawn
+                            at a fixed size would show a 54mm label and a 106mm
+                            label as the same rectangle, which is the opposite of a
+                            preview.
+                        -->
+                        <Border x:Name="LabelSheet" Classes="labelSheet"
+                                HorizontalAlignment="Center"
+                                Width="{Binding SheetWidth}"
+                                Height="{Binding SheetHeight}">
+                            <Grid RowDefinitions="*,Auto">
+                                <!--
+                                    The barcode, drawn as bars from the same table
+                                    the label file uses, so an identifier that had
+                                    to be rewritten shows up rewritten here. A run
+                                    of characters in place of it looked like a
+                                    barcode and was not one.
+                                -->
+                                <views:BarcodeView Grid.Row="0" Margin="5,4,5,2"
+                                                   Value="{Binding LabelBarcode}"/>
+
+                                <StackPanel Grid.Row="1" Margin="5,0,5,4" Spacing="2">
+                                    <TextBlock Classes="labelSheetText"
+                                               Text="{Binding LabelTextLine}"
+                                               FontSize="8.5" FontWeight="Bold" TextWrapping="Wrap"
+                                               HorizontalAlignment="Center" TextAlignment="Center"/>
+                                    <!--
+                                        The identifier under the bars, always. A
+                                        barcode nobody can read back is worse than
+                                        none, and this is what it is read against.
+                                    -->
+                                    <TextBlock Classes="labelSheetBarcode"
+                                               Text="{Binding Label.Identifier}"
+                                               FontSize="7" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!--
+                            Two notes under the sheet: what it is, and whether it
+                            is drawn to size. The second matters, because a sheet
+                            scaled down to fit the column keeps the right shape and
+                            is no longer a picture of the physical label, which is
+                            the thing it is being asked to be.
+                        -->
+                        <StackPanel Spacing="3">
+                            <TextBlock Classes="settingDesc" TextWrapping="Wrap" FontSize="11"
+                                       Text="{DynamicResource Export_PreviewNote}"/>
+                            <TextBlock Classes="settingDesc" TextWrapping="Wrap" FontSize="11"
+                                       Foreground="{DynamicResource WarnColor}"
+                                       Text="{DynamicResource Export_PreviewScaled}"
+                                       IsVisible="{Binding SheetOverflows}"/>
+                        </StackPanel>
+
+                        <!--
+                            Stock and printer. The stock changes the sheet above it,
+                            so the operator sees what the other size would look like
+                            before choosing it rather than after.
+                        -->
+                        <Border Classes="settingCard" Padding="14">
+                            <StackPanel Spacing="12">
+
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="fieldLabel" Text="{DynamicResource Export_Stock}"/>
+                                    <ComboBox ItemsSource="{Binding Layouts}"
+                                              SelectedItem="{Binding Stock}"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:LabelLayoutItem">
+                                                <TextBlock Text="{Binding Label}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Classes="fieldLabel" Text="{DynamicResource Export_Printer}"
+                                                   VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Classes="headerBtn" FontSize="12"
+                                                Padding="8,4"
+                                                Command="{Binding DetectPrintersCommand}"
+                                                Content="{DynamicResource Export_ScanPrinters}"/>
+                                    </Grid>
+
+                                    <!--
+                                        Empty means no printer was found. The
+                                        placeholder is the system print dialog, which
+                                        is the right fallback on a machine that has
+                                        no printers configured yet.
+                                    -->
+                                    <ComboBox ItemsSource="{Binding Printers}"
+                                              SelectedItem="{Binding Printer}"
+                                              PlaceholderText="{DynamicResource Export_PrintDialog}"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:PrinterOption">
+                                                <StackPanel Spacing="1">
+                                                    <TextBlock Text="{Binding Name}" FontSize="12"/>
+                                                    <TextBlock Text="{Binding Detail}" Classes="dim" FontSize="10"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+
+                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap" FontSize="11"
+                                               Text="{DynamicResource Export_NoPrinters}"
+                                               IsVisible="{Binding !Printers.Count}"/>
+                                </StackPanel>
+
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </Border>
+
+                <!-- ============ What to write, and what happened ============ -->
+                <StackPanel Grid.Column="2" Spacing="12">
+                    <TextBlock Classes="cardTitle" Text="{DynamicResource Export_FormatsTitle}"/>
+                    <TextBlock Classes="settingDesc" Text="{DynamicResource Export_FormatsNote}"/>
+
+                    <ItemsControl ItemsSource="{Binding Options}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ExportOption">
+                                <!--
+                                    The whole row is the target, not just the box: a
+                                    twelve pixel tickbox in a row this wide is
+                                    something to aim at with a finger. A
+                                    ToggleButton rather than a CheckBox with a
+                                    handler, because the tick is then the row's own
+                                    state rather than a copy of it that can drift.
+                                -->
+                                <ToggleButton Classes="formatRow"
+                                              Classes.on="{Binding Selected}"
+                                              Margin="0,0,0,8"
+                                              IsChecked="{Binding Selected, Mode=TwoWay}">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding Selected}"
+                                                  IsHitTestVisible="False"/>
+                                        <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="2">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock FontWeight="SemiBold" FontSize="13"
+                                                           Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                <TextBlock Text="{Binding Suffix}" Classes="dim" FontSize="11"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock Classes="settingDesc" FontSize="11"
+                                                       Text="{Binding NoteKey, Converter={StaticResource LocalizationConverter}}"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </ToggleButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!--
+                        What was written. A failed row keeps its place in the list
+                        rather than moving to a separate error box, because the
+                        operator needs to see that the other formats still arrived.
+                        A failure panel that replaces the list reads as "nothing was
+                        written".
+                    -->
+                    <Border Classes="settingCard" Padding="14" IsVisible="{Binding HasResults}">
+                        <StackPanel Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Classes="cardTitle" VerticalAlignment="Center"
+                                           Text="{DynamicResource Export_ResultsTitle}"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Classes="dim" FontSize="11"
+                                               Text="{DynamicResource Export_FolderLabel}"/>
+                                    <TextBlock FontSize="11" FontWeight="SemiBold" MaxWidth="220"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding FolderName}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{Binding Results}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ExportResultItem">
+                                        <Border Classes="reportRow" Margin="0,0,0,6"
+                                                Background="{Binding Succeeded, Converter={x:Static conv:ExportResultBrushConverter.Instance}}">
+                                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                                <StackPanel Grid.Column="0" Spacing="1">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock FontSize="12" FontWeight="SemiBold"
+                                                                   Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                        <TextBlock Classes="dim" FontSize="11"
+                                                                   VerticalAlignment="Center"
+                                                                   Text="{Binding FileName}"
+                                                                   IsVisible="{Binding Succeeded}"/>
+                                                    </StackPanel>
+                                                    <!--
+                                                        Why it failed, or what was
+                                                        noticed about a file that was
+                                                        written. Both on the row they
+                                                        belong to, never as a line
+                                                        somewhere else.
+                                                    -->
+                                                    <TextBlock TextWrapping="Wrap" FontSize="11"
+                                                               Foreground="{DynamicResource DangerColor}"
+                                                               Text="{Binding Outcome.Problem}"
+                                                               IsVisible="{Binding Outcome.Problem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                    <TextBlock TextWrapping="Wrap" FontSize="11"
+                                                               Foreground="{DynamicResource WarnColor}"
+                                                               Text="{Binding Outcome.Note}"
+                                                               IsVisible="{Binding Outcome.Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                </StackPanel>
+
+                                                <!--
+                                                    Only offered where it can work: the
+                                                    .dymo file opens in DYMO Label if it
+                                                    is installed, and a PDF can always
+                                                    be printed. A JSON file can do
+                                                    neither, so it gets no button
+                                                    that could only fail.
+                                                -->
+                                                <Button Grid.Column="1" Classes="kioskSecondary" FontSize="12"
+                                                        Margin="8,0,0,0" Padding="12,6"
+                                                        Content="{DynamicResource Export_BtnOpen}"
+                                                        IsVisible="{Binding CanOpenInApp}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:ExportViewModel)DataContext).OpenFileCommand}"
+                                                        CommandParameter="{Binding Outcome.Path}"/>
+
+                                                <Button Grid.Column="2" Classes="kioskSecondary" FontSize="12"
+                                                        Margin="6,0,0,0" Padding="12,6"
+                                                        Content="{DynamicResource Export_BtnPrintOne}"
+                                                        IsVisible="{Binding CanPrint}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:ExportViewModel)DataContext).PrintFileCommand}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- One bar: what was done, and the two buttons that do things. -->
+        <Border Grid.Row="2" Classes="actionBar">
+            <Grid ColumnDefinitions="*,Auto,Auto" MaxWidth="1060" HorizontalAlignment="Center">
+                <!--
+                    The status line comes first and takes what is left, so a long
+                    message is read rather than pushed off the bar. The error colour
+                    is the one thing on this panel that has to be findable at a
+                    glance: it is the only thing an operator would otherwise act on
+                    wrongly.
+                -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
+                    <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding Status}"
+                               Foreground="{Binding StatusIsError, Converter={x:Static conv:ExportStatusBrushConverter.Instance}}"/>
+                    <TextBlock Classes="dim" FontSize="11" IsVisible="{Binding IsBusy}"
+                               Text="{DynamicResource Export_Busy}"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Classes="kioskSecondary" Margin="0,0,10,0" Padding="16,10"
+                        HorizontalContentAlignment="Center"
+                        Content="{DynamicResource Export_BtnOpenFolder}"
+                        Command="{Binding OpenFolderCommand}"/>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+                    <Button Classes="kioskSecondary" Padding="18,10"
+                            HorizontalContentAlignment="Center"
+                            IsEnabled="{Binding !IsBusy}"
+                            Content="{DynamicResource Export_BtnPrintLabel}"
+                            Command="{Binding PrintLabelCommand}"/>
+
+                    <Button Classes="kioskPrint" FontSize="14" Padding="22,12"
+                            HorizontalContentAlignment="Center"
+                            IsEnabled="{Binding CanExport}"
+                            Content="{DynamicResource Export_BtnWrite}"
+                            Command="{Binding ExportCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

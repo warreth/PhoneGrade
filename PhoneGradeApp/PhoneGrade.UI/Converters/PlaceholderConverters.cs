@@ -31,9 +31,29 @@ public class BatteryLevelConverter : IValueConverter
 /// <summary>Shows the current charge level as a subline under the battery condition.</summary>
 public class BatteryHealthConverter : IValueConverter
 {
+    /// <summary>
+    /// The platform status codes Android reports for its battery, which arrive as
+    /// tokens rather than as a percentage. The wording belongs to the operator's
+    /// language, so the conversion happens here instead of at the place the code is
+    /// read, where it would have to guess a language.
+    /// </summary>
+    private static readonly Dictionary<string, string> StatusKeys = new(StringComparer.Ordinal)
+    {
+        ["Unknown"] = "BatteryStatus_Unknown",
+        ["Good"] = "BatteryStatus_Good",
+        ["Overheated"] = "BatteryStatus_Overheated",
+        ["Defective"] = "BatteryStatus_Defective",
+        ["Overvoltage"] = "BatteryStatus_Overvoltage",
+        ["StorageFault"] = "BatteryStatus_StorageFault",
+        ["TooCold"] = "BatteryStatus_TooCold",
+    };
+
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is not string str) return LocalizationManager.GetString("Value_Unknown");
+
+        if (StatusKeys.TryGetValue(str, out string? key))
+            return LocalizationManager.GetString(key);
 
         return str switch
         {
