@@ -71,9 +71,26 @@
                                     to be rewritten shows up rewritten here. A run
                                     of characters in place of it looked like a
                                     barcode and was not one.
+
+                                    Two of them when the operator asked for the pair
+                                    to be separate, because that is two bands of the
+                                    label and the preview has to show the words
+                                    sitting lower than they did with one.
                                 -->
-                                <views:BarcodeView Grid.Row="0" Margin="5,4,5,2"
-                                                   Value="{Binding LabelBarcode}"/>
+                                <StackPanel Grid.Row="0" Spacing="1"
+                                            Margin="{Binding SideInsetThickness}">
+                                    <views:BarcodeView Value="{Binding LabelBarcode}"
+                                                       IsVisible="{Binding HasLabelBarcode}"
+                                                       Height="{Binding BarcodeBandHeight}"/>
+                                    <views:BarcodeView Value="{Binding LabelBarcodeSecond}"
+                                                       IsVisible="{Binding HasSecondLabelBarcode}"
+                                                       Height="{Binding BarcodeBandHeight}"/>
+                                    <TextBlock Classes="labelSheetBarcode"
+                                               Text="{Binding LabelSpelled}"
+                                               IsVisible="{Binding HasSpelledBarcode}"
+                                               FontSize="{Binding DetailFontSize}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
 
                                 <!--
                                     Everything the label says, in the order the
@@ -83,19 +100,21 @@
                                     the writer reads, because a preview of a label
                                     with different faults on it is not a preview.
                                 -->
-                                <StackPanel Grid.Row="1" Margin="5,0,5,4" Spacing="1.5">
+                                <StackPanel Grid.Row="1" Spacing="1"
+                                            Margin="{Binding SideInsetThickness}">
                                     <TextBlock Classes="labelSheetText"
                                                Text="{Binding LabelTextLine}"
-                                               FontSize="8.5" FontWeight="Bold" TextWrapping="Wrap"
+                                               FontSize="{Binding SpecFontSize}" FontWeight="Bold"
+                                               TextWrapping="Wrap"
                                                HorizontalAlignment="Center" TextAlignment="Center"/>
                                     <TextBlock Classes="labelSheetText"
                                                Text="{Binding LabelDetailLine}"
-                                               FontSize="7" TextWrapping="Wrap"
+                                               FontSize="{Binding DetailFontSize}" TextWrapping="Wrap"
                                                IsVisible="{Binding HasLabelDetail}"
                                                HorizontalAlignment="Center" TextAlignment="Center"/>
                                     <TextBlock Classes="labelSheetText"
                                                Text="{Binding LabelLockLine}"
-                                               FontSize="9" FontWeight="Bold"
+                                               FontSize="{Binding LockFontSize}" FontWeight="Bold"
                                                IsVisible="{Binding HasLabelLocks}"
                                                HorizontalAlignment="Center" TextAlignment="Center"/>
                                     <!--
@@ -105,7 +124,8 @@
                                     -->
                                     <TextBlock Classes="labelSheetBarcode"
                                                Text="{Binding Label.Identifier}"
-                                               FontSize="7" HorizontalAlignment="Center"/>
+                                               FontSize="{Binding DetailFontSize}"
+                                               HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -145,6 +165,53 @@
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
+                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                               Text="{DynamicResource Export_StockNote}"/>
+                                </StackPanel>
+
+                                <!--
+                                    What the barcode carries. Two codes take two bands
+                                    of the label and leave the words less room, so
+                                    this sits with the stock rather than with the
+                                    formats: both of them decide how much paper the
+                                    words get.
+                                -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="fieldLabel"
+                                               Text="{DynamicResource Export_BarcodeTitle}"/>
+                                    <ComboBox ItemsSource="{Binding BarcodeModes}"
+                                              SelectedItem="{Binding Barcode}"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:LabelBarcodeItem">
+                                                <TextBlock Text="{Binding TitleKey}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                               Text="{Binding Barcode.NoteKey, Converter={StaticResource LocalizationConverter}}"/>
+                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource WarnColor}"
+                                               IsVisible="{Binding HasSpelledBarcode}"
+                                               Text="{DynamicResource Export_LabelTooNarrow}"/>
+                                </StackPanel>
+
+                                <!--
+                                    What the label says about the phone, as three
+                                    switches. Turning off the locks takes away the one
+                                    line that stops a FRP locked phone being sold,
+                                    which is why the wording says so rather than
+                                    leaving it to be remembered.
+                                -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="fieldLabel"
+                                               Text="{DynamicResource Export_LabelShowTitle}"/>
+                                    <CheckBox IsChecked="{Binding LabelShowBatteryCycles}"
+                                              Content="{DynamicResource Export_LabelShowCycles}"/>
+                                    <CheckBox IsChecked="{Binding LabelShowFaults}"
+                                              Content="{DynamicResource Export_LabelShowFaults}"/>
+                                    <CheckBox IsChecked="{Binding LabelShowLocks}"
+                                              Content="{DynamicResource Export_LabelShowLocks}"/>
                                 </StackPanel>
 
                                 <StackPanel Spacing="4">
