@@ -97,6 +97,7 @@
                                     <Grid Height="{Binding BarcodeBandHeight}"
                                           IsVisible="{Binding HasLabelBarcode}">
                                         <views:BarcodeView Value="{Binding LabelBarcode}"
+                                                           Symbology="{Binding LabelSymbology}"
                                                            BarShare="{Binding BarcodeBarShare}"/>
                                         <TextBlock Classes="labelSheetBarcode"
                                                    Text="{Binding LabelBarcode}"
@@ -107,6 +108,7 @@
                                     <Grid Height="{Binding BarcodeBandHeight}"
                                           IsVisible="{Binding HasSecondLabelBarcode}">
                                         <views:BarcodeView Value="{Binding LabelBarcodeSecond}"
+                                                           Symbology="{Binding LabelSymbology}"
                                                            BarShare="{Binding BarcodeBarShare}"/>
                                         <TextBlock Classes="labelSheetBarcode"
                                                    Text="{Binding LabelBarcodeSecond}"
@@ -201,25 +203,137 @@
                                     formats: both of them decide how much paper the
                                     words get.
                                 -->
-                                <StackPanel Spacing="4">
-                                    <TextBlock Classes="fieldLabel"
-                                               Text="{DynamicResource Export_BarcodeTitle}"/>
-                                    <ComboBox ItemsSource="{Binding BarcodeModes}"
-                                              SelectedItem="{Binding Barcode}"
-                                              HorizontalAlignment="Stretch">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:LabelBarcodeItem">
-                                                <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
-                                               Text="{Binding Barcode.NoteKey, Converter={StaticResource LocalizationConverter}}"/>
-                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
-                                               Foreground="{DynamicResource WarnColor}"
-                                               IsVisible="{Binding HasSpelledBarcode}"
-                                               Text="{DynamicResource Export_LabelTooNarrow}"/>
-                                </StackPanel>
+                                <!--
+                                    Two settings that belong together and are read as
+                                    one: what the barcode carries, and how it is
+                                    written down. Side by side, because the second
+                                    decides whether the first can be done at all:
+                                    the combined mode needs Code128, and on the two
+                                    small rolls it cannot be done in either.
+
+                                    The two are in one bordered row rather than two
+                                    stacked ones because an operator choosing the
+                                    combined mode needs to see what it costs on the
+                                    paper before they leave the setting, and two
+                                    separate rows with a note between them is where
+                                    that connection goes missing.
+                                -->
+                                <Border Classes="settingCardInner">
+                                    <StackPanel Spacing="14">
+
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="fieldCaption"
+                                                       Text="{DynamicResource Export_BarcodeTitle}"/>
+                                            <!--
+                                                Named because the screenshot runner
+                                                opens it: the state that matters is
+                                                the row that is closed inside it, and
+                                                a picture of the closed picker does
+                                                not show any rows at all.
+                                            -->
+                                            <ComboBox x:Name="BarcodePicker"
+                                                      ItemsSource="{Binding BarcodeModes}"
+                                                      SelectedItem="{Binding Barcode}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:LabelBarcodeItem">
+                                                        <Border Classes="optionRow"
+                                                                Opacity="{Binding RowStrength}">
+                                                                <StackPanel Spacing="3">
+                                                                    <Grid ColumnDefinitions="Auto,*">
+                                                                        <!--
+                                                                            The tick. Kept even though
+                                                                            the picker shows its own,
+                                                                            because a greyed row with
+                                                                            no tick reads as a rendering
+                                                                            fault rather than as a
+                                                                            setting that cannot be
+                                                                            chosen.
+                                                                        -->
+                                                                        <Path Classes="tick" IsVisible="{Binding IsSelected}"
+                                                                              Data="M 0,5 L 3,8 L 9,0"
+                                                                              Width="12" Height="11"
+                                                                              VerticalAlignment="Center"
+                                                                              Margin="0,0,9,0"/>
+                                                                        <TextBlock Grid.Column="1"
+                                                                                   Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                                    </Grid>
+
+                                                                    <!--
+                                                                        The reason, on the row it is
+                                                                        about. The fade alone says
+                                                                        almost nothing here: measured
+                                                                        off the two screenshots taken
+                                                                        to check it, a row at forty
+                                                                        five per cent against a dark
+                                                                        row background differs by
+                                                                        four per cent of mean
+                                                                        brightness, which is nothing
+                                                                        an operator sees.
+
+                                                                        A row that says why it is shut
+                                                                        is read whether or not the
+                                                                        fade is noticed, and it cannot
+                                                                        be taken for the reason
+                                                                        belonging to the setting above
+                                                                        it, because it is in the row.
+                                                                    -->
+                                                                    <TextBlock Classes="optionRowNote"
+                                                                               Margin="21,0,0,0"
+                                                                               TextWrapping="Wrap"
+                                                                               IsVisible="{Binding ShowUnavailableReason}"
+                                                                               Text="{Binding UnavailableKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                                </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                                       Text="{Binding Barcode.NoteKey, Converter={StaticResource LocalizationConverter}}"/>
+
+                                            <!--
+                                                Why a value is printed as words
+                                                rather than as bars. Under the picker
+                                                rather than on a row, because it is
+                                                about what the label will carry and
+                                                not about one of the choices: it
+                                                applies to whichever mode is chosen,
+                                                and a message attached to one row
+                                                would read as being about that row.
+                                            -->
+                                            <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource WarnColor}"
+                                                       IsVisible="{Binding HasSpelledBarcode}"
+                                                       Text="{DynamicResource Export_LabelTooNarrow}"/>
+                                        </StackPanel>
+
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="fieldCaption"
+                                                       Text="{DynamicResource Export_SymbologyTitle}"/>
+                                            <ComboBox ItemsSource="{Binding Symbologies}"
+                                                      SelectedItem="{Binding Symbology}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:LabelSymbologyItem">
+                                                        <Border Classes="optionRow">
+                                                            <Grid ColumnDefinitions="Auto,*">
+                                                                <Path Classes="tick" IsVisible="{Binding IsSelected}"
+                                                                      Data="M 0,5 L 3,8 L 9,0"
+                                                                      Width="12" Height="11"
+                                                                      VerticalAlignment="Center"
+                                                                      Margin="0,0,9,0"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                                       Text="{Binding Symbology.NoteKey, Converter={StaticResource LocalizationConverter}}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
 
                                 <!--
                                     What the label says about the phone, as three

@@ -217,7 +217,7 @@
     <x:String x:Key="Export_BarcodeCombinedNote">Un code qui porte à la fois le numéro de série et les caractéristiques.</x:String>
     <x:String x:Key="Export_BarcodeNone">Pas de code-barres</x:String>
     <x:String x:Key="Export_BarcodeNoneNote">Pour un magasin dont le scanner ne sait pas en lire. L'étiquette porte alors uniquement ses mots.</x:String>
-    <x:String x:Key="Export_BarcodeUnavailable">Indisponible dans cette symbologie sur ce rouleau. Choisissez Code 128 ou un rouleau plus large.</x:String>
+    <x:String x:Key="Export_BarcodeUnavailable">Trop large pour &#039;&#039;tre imprim&#233; en barres sur ce rouleau. Choisissez un rouleau plus large, ou un type de code-barres qui y tient.</x:String>
     <x:String x:Key="Export_SymbologyTitle">Type de code-barres</x:String>
     <x:String x:Key="Export_Symbology39">Code 39</x:String>
     <x:String x:Key="Export_Symbology39Note">Ce que lise d&#233;j&#224; toute caisse et tout scanner d&#039;une t&#233;l&#233;phonie. Il porte les majuscules et quelques symboles, si bien qu&#039;un nom de mod&#232;le arrive sur le code en tirets.</x:String>

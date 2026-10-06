@@ -217,7 +217,7 @@
     <x:String x:Key="Export_BarcodeCombinedNote">一个编码同时包含序列号和规格信息。</x:String>
     <x:String x:Key="Export_BarcodeNone">无条形码</x:String>
     <x:String x:Key="Export_BarcodeNoneNote">适用于扫描枪无法识别条形码的门店。标签只印文字，不含其他内容。</x:String>
-    <x:String x:Key="Export_BarcodeUnavailable">此条码类型在当前标签卷上不可用。请选择 Code 128，或更宽的标签卷。</x:String>
+    <x:String x:Key="Export_BarcodeUnavailable">&#22312;&#26412;&#22238;&#26800;&#19978;&#22810;&#23485;&#20197;&#36807;&#36824;&#24050;&#21487;&#20854;&#20026;&#26465;&#30721;&#21360;&#21040;&#12290;&#35831;&#36873;&#25321;&#26356;&#23485;&#30340;&#22238;&#26800;&#65292;&#25110;&#32773;&#31245;&#21516;&#20026;&#23453;&#23433;&#20026;&#20854;&#37324;&#30340;&#30721;&#29392;&#12290;</x:String>
     <x:String x:Key="Export_SymbologyTitle">次码类型</x:String>
     <x:String x:Key="Export_Symbology39">Code 39</x:String>
     <x:String x:Key="Export_Symbology39Note">手机店里的收银机和扫码枪都已经能读这种条码。它能表示大写字母和少量符号，所以型号名称会以短横线的形式写进条码里。</x:String>

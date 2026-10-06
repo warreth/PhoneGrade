@@ -217,6 +217,12 @@
     <x:String x:Key="Export_BarcodeCombinedNote">Eén code met het serienummer en de specificatie samen.</x:String>
     <x:String x:Key="Export_BarcodeNone">Geen barcode</x:String>
     <x:String x:Key="Export_BarcodeNoneNote">Voor een winkel waarvan de scanner er geen één kan lezen. Het label krijgt alleen zijn woorden.</x:String>
+    <x:String x:Key="Export_BarcodeUnavailable">Te breed om als balken op deze rol te drukken. Kies een bredere rol, of een barcodeformaat dat erop past.</x:String>
+    <x:String x:Key="Export_SymbologyTitle">Barcodeformaat</x:String>
+    <x:String x:Key="Export_Symbology39">Code 39</x:String>
+    <x:String x:Key="Export_Symbology39Note">Wat elke kassa en scanner in een telefoonwinkel al leest. Draagt hoofdletters en een handvol tekens, dus een modelnaam komt als streepjes op de code.</x:String>
+    <x:String x:Key="Export_Symbology128">Code 128</x:String>
+    <x:String x:Key="Export_Symbology128Note">Dichter, dus één code kan het serienummer en de specificatie samen dragen waar Code39 dat niet kan. Je scanner moet erop ingesteld staan.</x:String>
     <x:String x:Key="Export_LabelShowTitle">Op het label</x:String>
     <x:String x:Key="Export_LabelShowCycles">Laadcycli</x:String>
     <x:String x:Key="Export_LabelShowCyclesNote">Hoe vaak de batterij is opgeladen, wat een percentage je niet kan vertellen.</x:String>

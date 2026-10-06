@@ -217,6 +217,12 @@
     <x:String x:Key="Export_BarcodeCombinedNote">One code carrying the serial number and the specification together.</x:String>
     <x:String x:Key="Export_BarcodeNone">No barcode</x:String>
     <x:String x:Key="Export_BarcodeNoneNote">For a shop whose scanner cannot read one. The label carries its words and nothing else.</x:String>
+    <x:String x:Key="Export_BarcodeUnavailable">Too wide to print as bars on this roll. Choose a wider roll, or a barcode type that fits it.</x:String>
+    <x:String x:Key="Export_SymbologyTitle">Barcode type</x:String>
+    <x:String x:Key="Export_Symbology39">Code 39</x:String>
+    <x:String x:Key="Export_Symbology39Note">What every till and scanner in a phone shop already reads. Carries capitals and a handful of symbols, so a model name goes on the code as dashes.</x:String>
+    <x:String x:Key="Export_Symbology128">Code 128</x:String>
+    <x:String x:Key="Export_Symbology128Note">Denser, so one code can carry the identifier and the specification together where Code39 cannot. Your scanner has to be set to read it.</x:String>
     <x:String x:Key="Export_LabelShowTitle">On the label</x:String>
     <x:String x:Key="Export_LabelShowCycles">Charge count</x:String>
     <x:String x:Key="Export_LabelShowCyclesNote">How many times the battery has been charged, which a percentage cannot tell you.</x:String>

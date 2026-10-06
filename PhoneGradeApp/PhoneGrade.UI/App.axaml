@@ -830,6 +830,68 @@
         </Style>
 
         <!--
+            An option row that cannot be chosen on the roll and symbology in force.
+
+            Not the framework's own disabled look. That fades the whole row, and on
+            this panel a faded row reads as a rendering fault rather than as a choice
+            that is closed: the operator cannot tell it apart from a control that has
+            stopped responding.
+
+            Two things instead, because a setting that cannot be chosen still has to
+            be findable. The row keeps its place in the list and its normal weight, so
+            it is still read as a choice, and the colour is what says it is closed.
+            The reason sits on that row's own note, where it cannot be read as being
+            about the setting above it.
+
+            The row is greyed as a whole rather than only its label, because a grey
+            label next to a black tick still reads as a live row.
+        -->
+        <Style Selector="Border.optionRow">
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+        <!--
+            The reason a row in a picker is shut, on that row.
+
+            In the warning colour rather than the dim one: the row itself is already
+            faded, and a second shade of grey on top of a grey is a fault nobody
+            reports. The colour is what says the row is closed, so it has to be the
+            one that means something.
+        -->
+        <Style Selector="TextBlock.optionRowNote">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="{DynamicResource WarnColor}"/>
+        </Style>
+
+        <!--
+            The tick beside a chosen setting in a picker.
+
+            A filled shape rather than a stroked line: this build of Avalonia has no
+            setter for the round caps a stroked tick wants, and a stroked one here
+            came out with square ends, which at twelve pixels reads as a smudge rather
+            than as a tick. Filled, it is the same mark the rest of the app draws its
+            check marks with.
+        -->
+        <Style Selector="Path.tick">
+            <Setter Property="Fill" Value="{DynamicResource TextColor}"/>
+            <Setter Property="Stretch" Value="Uniform"/>
+        </Style>
+
+        <!--
+            A card inside a card, for a group of settings that are read together
+            rather than one after another. Lighter than a setting card and without
+            its own heading, because it has no name of its own: it exists to say
+            these two belong together.
+        -->
+        <Style Selector="Border.settingCardInner">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="14"/>
+        </Style>
+
+        <!--
             A format in the checklist: a tickbox, a name, and what it is for. A
             ToggleButton rather than a Border so the row is its own hit target and
             the tick is the row's state rather than a copy of it.

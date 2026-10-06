@@ -174,7 +174,14 @@ class ScreenshotRunner
                 $"{file,-34} sheet {panel.SheetWidth,6:F0}x{panel.SheetHeight,5:F0}px  " +
                 $"band {panel.BarcodeBandHeight,5:F1}px  " +
                 $"type {panel.SpecFontSize,4:F1}/{panel.LockFontSize,4:F1}pt-on-sheet  " +
-                $"text room {panel.TextRoomHeight,5:F1}px  barcodes {panel.LabelBarcodes.Count}");
+                $"text room {panel.TextRoomHeight,5:F1}px  " +
+                $"stock {panel.Layout.Stock.PartNumber,-8} " +
+                $"{panel.LabelSymbology,-8} {panel.BarcodeMode,-11} " +
+                $"combined {(LabelBarcodeItem.For(LabelBarcodeMode.Combined).IsAvailable ? "on" : "OFF")}");
+
+            foreach (LabelBarcodeItem mode in LabelBarcodeItem.All)
+                Console.WriteLine($"    {mode.Mode,-11} {(mode.IsAvailable ? "can be drawn" : "closed")}" +
+                    $"{(mode.ShowUnavailableReason ? ", reason shown" : "")}");
         }
     }
 
@@ -189,6 +196,7 @@ class ScreenshotRunner
     static void CaptureLabelSettings(string outDir)
     {
         void Shot(string file, string? stock, LabelBarcodeMode? barcode,
+            LabelCodeSymbology? symbology = null,
             bool cycles = true, bool faults = true, bool locks = true,
             double width = 1050, double height = 820, string theme = "Dark")
         {
@@ -200,6 +208,7 @@ class ScreenshotRunner
             // and would otherwise overwrite them with whatever came first.
             CaptureExport(vm, outDir, file, width, height, seed: () =>
             {
+                if (symbology is not null) vm.LabelSymbology = symbology.Value;
                 if (stock is not null) vm.LabelStockPartNumber = stock;
                 if (barcode is not null) vm.LabelBarcodeMode = barcode.Value;
                 vm.LabelShowBatteryCycles = cycles;
@@ -230,6 +239,107 @@ class ScreenshotRunner
         // The locks off. A shop can do this and the panel says so in the wording,
         // which is the last place that could warn about it.
         Shot("label-address-no-locks.png", "1982991", LabelBarcodeMode.Identifier, locks: false);
+
+        // The panel with the barcode picker open, because that is the only way a
+        // closed row is ever on the picture.
+        OpenPicker(outDir, "label-picker-c39-closed.png", LabelCodeSymbology.Code39);
+        OpenPicker(outDir, "label-picker-c128-open.png", LabelCodeSymbology.Code128);
+
+        // ============ The picker open, because that is the only place a closed row is
+    /// on the picture. Two shots, and they are a pair: the same row greyed out in one
+    /// symbology and live in the other, on the same roll, so the only difference on
+    /// the two pictures is the thing the setting is for.
+    ///
+    /// Taken separately from the others because the drop down is a second visual root
+    /// and does not come along for the ride with a window frame.
+    static void OpenPicker(string outDir, string file, LabelCodeSymbology symbology)
+    {
+        var vm = BuildDemoViewModel();
+        vm.Theme = "Dark";
+        vm.DeviceData = FaultyPhone();
+
+        var window = new MainWindow { DataContext = vm };
+        vm.WorkflowState = AppWorkflowState.Summary;
+        vm.ExportViewModel?.Open();
+
+        window.Width = 1050;
+        window.Height = 820;
+        if (_onScreen is not null && !ReferenceEquals(_onScreen, window)) _onScreen.IsVisible = false;
+        _onScreen = window;
+        window.Show();
+
+        // The window has to be laid out before the settings are applied, because
+        // opening the panel reads them and would otherwise overwrite whatever came
+        // first. That is the same ordering every other label shot relies on.
+        for (int attempt = 0; attempt < 40; attempt++)
+        {
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            System.Threading.Thread.Sleep(5);
+        }
+
+        vm.LabelSymbology = symbology;
+        vm.LabelStockPartNumber = "1982991";
+        vm.LabelBarcodeMode = LabelBarcodeMode.Identifier;
+
+        Avalonia.Controls.ComboBox? picker =
+            Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window)
+                .OfType<Avalonia.Controls.ComboBox>()
+                .FirstOrDefault(box => box.Name == "BarcodePicker");
+
+        if (picker is null)
+        {
+            Console.WriteLine($"warning: {file} has no barcode picker to open");
+            return;
+        }
+
+        picker.IsDropDownOpen = true;
+
+        foreach (LabelBarcodeItem mode in LabelBarcodeItem.All)
+            Console.WriteLine($"    picker row {mode.Mode,-11} available={mode.IsAvailable} " +
+                $"closed={mode.IsClosed} strength={mode.RowStrength}");
+
+        // The popup lives outside the window's own visual tree, so it is ticked and
+        // given time to lay itself out on its own. A frame taken straight after
+        // setting the flag is a picture of a picker that has been asked to open and
+        // has not drawn itself.
+        for (int attempt = 0; attempt < 30; attempt++)
+        {
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            System.Threading.Thread.Sleep(8);
+        }
+
+        string path = Path.Combine(outDir, file);
+        using (var shot = HeadlessWindowExtensions.CaptureRenderedFrame(window))
+            shot.Save(path);
+
+        Console.WriteLine($"saved {path} (picker open, {symbology})");
+    }
+
+    // ============ The two symbologies, and the setting that only one of them
+        // ============ can do ============
+        //
+        // Four shots. The point of choosing Code128 is that the combined code
+        // becomes available, so the pair has to be photographed together: the
+        // combined mode greyed out in Code39 and live in Code128 on the same roll,
+        // and the same in Code128 on a roll too narrow for it either way. A
+        // screenshot of only one of the four hides the whole question the setting
+        // exists to answer.
+        Shot("label-c39-combined-unavailable.png", "1982991",
+            LabelBarcodeMode.Identifier, LabelCodeSymbology.Code39);
+
+        Shot("label-c128-combined-available.png", "1982991",
+            LabelBarcodeMode.Combined, LabelCodeSymbology.Code128);
+
+        // Code128 on the small roll, where even the denser symbology cannot put
+        // both halves on the paper, so the setting is closed here too and the reason
+        // is about the roll rather than about the symbology.
+        Shot("label-c128-narrow-combined.png", "30336",
+            LabelBarcodeMode.Identifier, LabelCodeSymbology.Code128);
+
+        // Code128 with the two codes separately, which is the other thing a shop
+        // choosing it might want, and the case where the payload carries lower case.
+        Shot("label-c128-split.png", "1982991",
+            LabelBarcodeMode.Split, LabelCodeSymbology.Code128);
 
         // A clean phone with two codes: two bands of barcode and one line of words,
         // which is the case where a fixed layout would look like something is missing.

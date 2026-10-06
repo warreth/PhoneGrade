@@ -217,7 +217,7 @@
     <x:String x:Key="Export_BarcodeCombinedNote">Ein Code mit Seriennummer und Spezifikation zusammen.</x:String>
     <x:String x:Key="Export_BarcodeNone">Kein Barcode</x:String>
     <x:String x:Key="Export_BarcodeNoneNote">Für einen Shop, dessen Scanner keinen Barcode lesen kann. Das Etikett trägt nur seinen Text.</x:String>
-    <x:String x:Key="Export_BarcodeUnavailable">In dieser Symbologie auf dieser Rolle nicht verf&#252;gbar. W&#228;hlen Sie Code 128 oder eine breitere Rolle.</x:String>
+    <x:String x:Key="Export_BarcodeUnavailable">Zu breit, um es auf dieser Rolle als Balken zu drucken. W&#228;hlen Sie eine breitere Rolle oder ein Strichcodeformat, das darauf passt.</x:String>
     <x:String x:Key="Export_SymbologyTitle">Strichcodeformat</x:String>
     <x:String x:Key="Export_Symbology39">Code 39</x:String>
     <x:String x:Key="Export_Symbology39Note">Was jede Kasse und jeder Scanner in einem Telefonladen bereits liest. Tr&#228;gt Gro&#223;buchstaben und einige Zeichen, ein Modellname steht deshalb als Striche auf dem Code.</x:String>

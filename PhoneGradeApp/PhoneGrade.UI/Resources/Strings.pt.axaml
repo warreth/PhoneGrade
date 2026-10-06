@@ -217,7 +217,7 @@
     <x:String x:Key="Export_BarcodeCombinedNote">Um código que carrega o número de série e a especificação juntos.</x:String>
     <x:String x:Key="Export_BarcodeNone">Sem código de barras</x:String>
     <x:String x:Key="Export_BarcodeNoneNote">Para uma loja cujo leitor não consegue ler um. A etiqueta leva o texto e nada mais.</x:String>
-    <x:String x:Key="Export_BarcodeUnavailable">Indispon&#237;vel nesta simbologia neste rolo. Escolha Code 128 ou um rolo mais largo.</x:String>
+    <x:String x:Key="Export_BarcodeUnavailable">Largo demais para imprimir como barras neste rolo. Escolha um rolo mais largo, ou um tipo de c&#243;digo de barras que caiba.</x:String>
     <x:String x:Key="Export_SymbologyTitle">Tipo de c&#243;digo de barras</x:String>
     <x:String x:Key="Export_Symbology39">Code 39</x:String>
     <x:String x:Key="Export_Symbology39Note">O que qualquer caixa e qualquer scanner de uma loja de telem&#243;veis j&#225; l&#234;. Transporta mai&#250;sculas e poucos s&#237;mbolos, por isso um nome de modelo vai para o c&#243;digo como travess&#245;es.</x:String>

@@ -1048,7 +1048,7 @@ public class ExportViewModel : ReactiveObject
     /// or a missing model before the label is on a device, rather than after.
     /// </summary>
     public LabelFields Label => LabelFields.From(
-        _main.DeviceData, _main.Enable85PercentChecker, content: _main.LabelContent,);
+        _main.DeviceData, _main.Enable85PercentChecker, content: _main.LabelContent);
 
     /// <summary>The first line of the preview: what the device is and what it is worth.</summary>
     public string LabelTextLine => LabelLayout.TextLine(Label);
@@ -1250,7 +1250,7 @@ public class ExportViewModel : ReactiveObject
                 FlagLowBattery: _main.Enable85PercentChecker,
                 Content: _main.LabelContent,
                 Wording: ReportWordingBuilder.Current(),
-                Messages: ExportWordingBuilder.Current(),));
+                Messages: ExportWordingBuilder.Current()));
 
             Show(batch);
 
@@ -1353,7 +1353,7 @@ public class ExportViewModel : ReactiveObject
                 Barcode: BarcodeMode,
                 FlagLowBattery: _main.Enable85PercentChecker,
                 Content: _main.LabelContent,
-                Messages: ExportWordingBuilder.Current(),));
+                Messages: ExportWordingBuilder.Current()));
 
             LabelWriter.Outcome? pdf = batch.Files.FirstOrDefault(file => file.Succeeded);
             if (pdf?.Path is not { Length: > 0 } path)
@@ -1417,7 +1417,7 @@ public class ExportViewModel : ReactiveObject
             Barcode: BarcodeMode,
             FlagLowBattery: _main.Enable85PercentChecker,
             Content: _main.LabelContent,
-            Messages: ExportWordingBuilder.Current(),));
+            Messages: ExportWordingBuilder.Current()));
 
         LabelWriter.Outcome? written = batch.Files.FirstOrDefault(file => file.Succeeded);
         if (written?.Path is { Length: > 0 } writtenPath)
