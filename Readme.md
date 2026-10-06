@@ -104,4 +104,65 @@ machine. Camera and microphone streams never leave the phone being tested, only
 results do. Exports and audit files stay in your local app data folder. IMEI API keys
 stay on the machine that entered them.
 
-## Licence
+## Licence and terms
+## Licence and terms
+
+This project is published so a shop owner can read what the tool does with a serial
+number rather than take a promise on trust. The licence is what makes that practical,
+and it is set out in four documents.
+This project is published so a shop owner can read what the tool does with a serial
+number rather than take a promise on trust. The licence is what makes that practical,
+and it is set out in four documents.
+
+| Document | What it is |
+| --- | --- |
+| [LICENSE](LICENSE) | PolyForm Noncommercial 1.0.0. The licence the code is published under. Noncommercial use, change and distribution; commercial use is not covered by it. |
+| [COMMERCIAL_EULA.md](COMMERCIAL_EULA.md) | What a paying business customer may and may not do, including the warranty, the liability limit and the end user licence agreement. |
+| [TRADEMARK_POLICY.md](TRADEMARK_POLICY.md) | What you may and may not do with the PhoneGrade name and the logo. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, and the contributor licence agreement. |
+| [NOTICE.md](NOTICE.md) | Who wrote it, and the attribution that has to stay with any copy. |
+### Liability
+### Liability
+
+**PhoneGrade is provided as is, without warranty of any kind, to the fullest extent the
+law allows.** The author makes no promise that it is free of defects, that it will be
+available or uninterrupted, or that it is fit for any particular purpose.
+**PhoneGrade is provided as is, without warranty of any kind, to the fullest extent the
+law allows.** The author makes no promise that it is free of defects, that it will be
+available or uninterrupted, or that it is fit for any particular purpose.
+
+**To the fullest extent the law allows, the author is not liable for any damage arising
+from the use of this software or from failing to use it.** That includes the device
+tested and anything connected to it, lost profit, lost business, lost or corrupted
+records, lost customers, regulatory penalties, and any claim by a customer or a third
+party.
+**To the fullest extent the law allows, the author is not liable for any damage arising
+from the use of this software or from failing to use it.** That includes the device
+tested and anything connected to it, lost profit, lost business, lost or corrupted
+records, lost customers, regulatory penalties, and any claim by a customer or a third
+party.
+
+**For a paying customer, the author's total liability is limited to the amount that
+customer actually paid for the subscription covering the twelve months in which the
+claim arose.** That is the whole cap. Nothing excludes liability that cannot lawfully
+be excluded, such as fraud or deliberate harm.
+**For a paying customer, the author's total liability is limited to the amount that
+customer actually paid for the subscription covering the twelve months in which the
+claim arose.** That is the whole cap. Nothing excludes liability that cannot lawfully
+be excluded, such as fraud or deliberate harm.
+
+A grade produced by this tool is the result of automated checks and a published set of
+rules. It is not a certification, not a valuation and not an inspection by a person. It
+does not establish whether a device was stolen, opened or repaired, and it does not
+establish what a customer will think of it. The decision to pay, accept or reject a
+device on the basis of that output is yours alone.
+A grade produced by this tool is the result of automated checks and a published set of
+rules. It is not a certification, not a valuation and not an inspection by a person. It
+does not establish whether a device was stolen, opened or repaired, and it does not
+establish what a customer will think of it. The decision to pay, accept or reject a
+device on the basis of that output is yours alone.
+
+Nothing here is legal advice. Read the documents, and if any part of them is unclear or
+you think is wrong, say so before you rely on it.
+Nothing here is legal advice. Read the documents, and if any part of them is unclear or
+you think is wrong, say so before you rely on it.
