@@ -115,78 +115,140 @@
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
         </Style>
 
-        <!-- Cards: the single container style used everywhere -->
+        <!--
+            Cards: the one container style, used by every screen.
+
+            The padding is 16 and the radius 12 rather than the 20 and 14 it used
+            to be. Both were sized for a screen that had one card in it; at the
+            minimum window width the old numbers ate the margin the card needed
+            from the window edge, which is why the reading screen and the summary
+            screen both overrode the padding per card rather than agreeing on one.
+        -->
         <Style Selector="Border.card">
             <Setter Property="Background" Value="{DynamicResource CardColor}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="14"/>
-            <Setter Property="Padding" Value="20"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
         </Style>
         <Style Selector="Border.card /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="TextElement.Foreground" Value="{DynamicResource TextColor}"/>
         </Style>
 
-        <!-- Section headers inside cards -->
+        <!--
+            Section headers inside cards.
+
+            One size, because the reading screen used 11, the summary screen 11
+            in one card and 12 in the next, and the export panel took 13 from
+            here. A heading that changes size between two cards on the same screen
+            reads as those cards belonging to different applications.
+        -->
         <Style Selector="TextBlock.cardTitle">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
         </Style>
 
-        <!-- Centralized Mandatory Unified Styles -->
-        <Style Selector="Border.Card">
-            <Setter Property="Background" Value="{DynamicResource CardColor}"/>
+        <!--
+            A read-out: the value under its label, wherever it appears.
+
+            The screens used four separate markup shapes for this one pair of
+            lines, and a tenth, twelve, thirteen and eighteen point font across
+            them. These two classes are that pair, so a value is the same size and
+            weight wherever the operator reads it, and the reading screen and the
+            summary screen stop disagreeing about what a serial number looks like.
+        -->
+        <Style Selector="TextBlock.valueText">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style Selector="SelectableTextBlock.valueText">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <!-- A value that leads its row: the model name, the grade, a headline figure. -->
+        <Style Selector="TextBlock.valueLead">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="SelectableTextBlock.valueLead">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <!-- The second line under a value, where a read-out has one. -->
+        <Style Selector="TextBlock.valueHint">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+        <Style Selector="SelectableTextBlock.valueHint">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+        </Style>
+
+        <!--
+            One field cell: a label above a value, in a grid of them.
+
+            Every screen that shows numbers under names had grown its own cell, so
+            the same fact sat at ten points in one card and twelve in another two
+            cards away. A cell is this class now, and the four columns on the
+            summary screen and the six on the reading screen are the same object.
+        -->
+        <Style Selector="StackPanel.fieldCell">
+            <Setter Property="Spacing" Value="2"/>
+        </Style>
+        <Style Selector="TextBlock.fieldCaption">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
+        <Style Selector="Border.fieldCellDivider">
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="Background" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+
+        <!--
+            The component audit row, as one shape.
+
+            This is the single worst drift in the app: the same four facts about a
+            part were drawn three ways, in the reading screen, the summary report
+            and the data editor, with the name column at 170, 210 and 160 pixels
+            and the captions at nine or ten points. One row template now, so a
+            part looks the same wherever it appears and the columns line up.
+        -->
+        <Style Selector="Border.auditRow">
+            <Setter Property="Background" Value="{DynamicResource CardDeepColor}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Padding" Value="12,8"/>
         </Style>
-        <Style Selector="TextBlock.SectionHeader">
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextColor}"/>
-        </Style>
-        <Style Selector="TextBlock.TableHeader">
+        <Style Selector="TextBlock.auditHead">
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
         </Style>
-        <Style Selector="Border.BadgeOriginal">
-            <Setter Property="Background" Value="{DynamicResource SuccessColor}"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="6,2"/>
-            <Setter Property="HorizontalAlignment" Value="Right"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-        <Style Selector="Border.BadgeOriginal > TextBlock">
+        <Style Selector="TextBlock.auditCaption">
             <Setter Property="FontSize" Value="10"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style Selector="Border.BadgeUnknown">
-            <Setter Property="Background" Value="{DynamicResource CardBorderColor}"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="6,2"/>
-            <Setter Property="HorizontalAlignment" Value="Right"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-        <Style Selector="Border.BadgeUnknown > TextBlock">
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
         </Style>
-        <Style Selector="Border.BadgeWarning">
-            <Setter Property="Background" Value="{DynamicResource WarnColor}"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="6,2"/>
-            <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Style Selector="SelectableTextBlock.auditValue">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style Selector="TextBlock.auditName">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <Style Selector="Border.BadgeWarning > TextBlock">
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="White"/>
+        <Style Selector="SelectableTextBlock.auditName">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
         <!--
@@ -218,23 +280,6 @@
         <Style Selector="Button:pressed">
             <Setter Property="Background" Value="{DynamicResource CardBorderColor}"/>
         </Style>
-        <Style Selector="Button.primary">
-            <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
-        <Style Selector="Button.primary:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AccentHoverColor}"/>
-        </Style>
-        <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style Selector="Button.big">
-            <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Padding" Value="20,13"/>
-        </Style>
-        <!-- big primary: needs both classes; keep one combined class to stay explicit -->
         <Style Selector="Button.cta">
             <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
             <Setter Property="Foreground" Value="White"/>
@@ -595,6 +640,20 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
         </Style>
+        <!--
+            The name of a setting, on the left of its row. Full brightness because it
+            is what the operator is looking for, and the sentence under it is dim
+            because it is what they read afterwards.
+
+            Every settings row used to spell this role out as a raw
+            FontWeight="SemiBold" with no size, so it sat at the inherited thirteen
+            while the sentence under it sat at twelve, and sixteen of them all
+            carried a slightly different idea of what a row heading looks like.
+        -->
+        <Style Selector="TextBlock.settingTitle">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
         <Style Selector="TextBlock.settingDesc">
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
@@ -632,6 +691,49 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="16"/>
+        </Style>
+        <!--
+            A group of switches that answer one question.
+
+            Each switch used to be a card of its own, so a section of nine settings
+            was a column of nine boxes with nine thin gaps between them, which reads
+            as nine separate decisions rather than as the two or three questions
+            they actually are. A group is one card, its own heading above the
+            switches it holds, and the switches inside it are lines rather than
+            boxes.
+        -->
+        <Style Selector="Border.settingGroup">
+            <Setter Property="Background" Value="{DynamicResource CardDeepColor}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,14"/>
+        </Style>
+        <Style Selector="TextBlock.groupTitle">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <!--
+            A switch and the sentence under it, as one unit.
+
+            The sentence is indented by the width of the box plus its gap. That
+            margin was written out at 26 pixels on every row, and one row had it at
+            a different value, which put one description a few pixels out of line
+            with the eleven above it.
+        -->
+        <Style Selector="CheckBox.settingSwitch">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+        <Style Selector="TextBlock.switchNote">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="26,2,0,0"/>
+        </Style>
+        <Style Selector="TextBlock.switchNote.last">
+            <Setter Property="Margin" Value="26,2,0,0"/>
         </Style>
         <Style Selector="Border.actionBar">
             <Setter Property="Background" Value="{DynamicResource CardColor}"/>
