@@ -757,4 +757,30 @@
     <x:String x:Key="Changelog_CardTitle">Was sich in dieser Version geändert hat</x:String>
     <x:String x:Key="Changelog_CardDesc">Die Notizen des Releases, von GitHub gelesen.</x:String>
     <x:String x:Key="Changelog_Open">Änderungen anzeigen</x:String>
+
+    <!-- ==================== Licence agreement ==================== -->
+
+    <!--
+         Shown on the one page of the introduction that cannot be skipped.
+
+         The three liability sentences are the ones an operator reads when
+         something has gone wrong, so they are written out here rather than
+         left behind a link. What is being agreed to has to be readable on
+         the screen, not only in a document nobody opens.
+    -->
+    <x:String x:Key="Intro_PageLicence">Bedingungen</x:String>
+    <x:String x:Key="Intro_LicenceLead">Eine Seite, der Sie zustimmen müssen, bevor die Einführung geschlossen werden kann.</x:String>
+    <x:String x:Key="Intro_LicenceWhat">PhoneGrade liest, was ein Telefon über sich selbst meldet. Es wird geliefert, wie es ist, ohne Gewährleistung, und die Bedingungen unten sagen, was das bedeutet.</x:String>
+    <x:String x:Key="Intro_LicenceRead">Bedingungen lesen</x:String>
+    <x:String x:Key="Intro_LicenceTrademark">Markenrichtlinie lesen</x:String>
+    <x:String x:Key="Intro_LicenceAcknowledge">Ich habe die Lizenzbedingungen gelesen und akzeptiere sie</x:String>
+    <x:String x:Key="Intro_LicenceAcceptFree">Ich habe die Lizenzbedingungen gelesen und akzeptiere sie</x:String>
+    <x:String x:Key="Intro_LicenceAcceptCommercial">Ich habe die kommerzielle Endbenutzerlizenzvereinbarung gelesen und akzeptiere sie</x:String>
+    <x:String x:Key="Intro_LicenceRequired">Haken Sie das Feld an, um zu schließen. Das ist nicht optional, denn die Anwendung wird benutzt.</x:String>
+    <x:String x:Key="Intro_LicenceFinish">Akzeptieren und fortfahren</x:String>
+    <x:String x:Key="Intro_LiabilityTitle">Womit Sie einverstanden sind</x:String>
+    <x:String x:Key="Intro_LiabilityNoWarranty">PhoneGrade wird geliefert, wie es ist, ohne jede Gewährleistung, soweit gesetzlich zulässig. Niemand verspricht, dass es fehlerfrei ist, immer verfügbar bleibt oder für das geeignet ist, was Sie damit vorhaben.</x:String>
+    <x:String x:Key="Intro_LiabilityCap">Soweit gesetzlich zulässig, haftet der Autor nicht für Schäden aus der Benutzung oder aus der Nichtbenutzung. Das betrifft das geprüfte Telefon, entgangenen Gewinn, verlorene Aufzeichnungen, einen Kunden, der nicht mehr bei Ihnen kauft, und jede Forderung eines Kunden oder Dritten. Für zahlende Kunden ist die Summe auf das Abonnement des Jahres begrenzt, in dem die Forderung entstanden ist.</x:String>
+    <x:String x:Key="Intro_LiabilityGrade">Ein Grade sind automatisierte Prüfungen und ein veröffentlichter Regelsatz. Er ist keine Zertifizierung und keine Prüfung durch einen Menschen. Zu entscheiden, was Sie jemandem auf dieser Grundlage zahlen, ist Ihre Entscheidung.</x:String>
+    <x:String x:Key="Intro_Finish">Fertig</x:String>
 </ResourceDictionary>

@@ -757,4 +757,30 @@
     <x:String x:Key="Changelog_CardTitle">O que mudou nesta versão</x:String>
     <x:String x:Key="Changelog_CardDesc">As notas da versão, lidas do GitHub.</x:String>
     <x:String x:Key="Changelog_Open">Ver as alterações</x:String>
+
+    <!-- ==================== Licence agreement ==================== -->
+
+    <!--
+         Shown on the one page of the introduction that cannot be skipped.
+
+         The three liability sentences are the ones an operator reads when
+         something has gone wrong, so they are written out here rather than
+         left behind a link. What is being agreed to has to be readable on
+         the screen, not only in a document nobody opens.
+    -->
+    <x:String x:Key="Intro_PageLicence">Termos</x:String>
+    <x:String x:Key="Intro_LicenceLead">Uma página que tem de aceitar antes de poder fechar a introdução.</x:String>
+    <x:String x:Key="Intro_LicenceWhat">O PhoneGrade lê o que o telemóvel comunica sobre si próprio. É fornecido tal como está, sem garantia, e os termos abaixo dizem o que isso significa.</x:String>
+    <x:String x:Key="Intro_LicenceRead">Ler os termos</x:String>
+    <x:String x:Key="Intro_LicenceTrademark">Ler a política de marca</x:String>
+    <x:String x:Key="Intro_LicenceAcknowledge">Li e aceito as condições de licença</x:String>
+    <x:String x:Key="Intro_LicenceAcceptFree">Li e aceito as condições de licença</x:String>
+    <x:String x:Key="Intro_LicenceAcceptCommercial">Li e aceito o contrato de licenciamento de utilizador final comercial</x:String>
+    <x:String x:Key="Intro_LicenceRequired">Assinale a caixa para terminar. Isto não é opcional, porque a aplicação está a ser usada.</x:String>
+    <x:String x:Key="Intro_LicenceFinish">Aceitar e continuar</x:String>
+    <x:String x:Key="Intro_LiabilityTitle">O que está a aceitar</x:String>
+    <x:String x:Key="Intro_LiabilityNoWarranty">O PhoneGrade é fornecido tal como está, sem garantia de qualquer espécie, na máxima extentão que a lei permita. Ninguém promete que esteja livre de defeitos, que esteja sempre disponível, nem que sirva para o que quer fazer com ele.</x:String>
+    <x:String x:Key="Intro_LiabilityCap">Na máxima extensão que a lei permita, o autor não responde pelo que resulte de o usar ou de não o usar. Isso inclui o telemóvel em teste, o lucro perdido, os registos perdidos, um cliente que deixa de comprar, e qualquer reclamação de um cliente ou de um terceiro. Para um cliente pagador, o total fica limitado à subscrição do ano em que a reclamação arose.</x:String>
+    <x:String x:Key="Intro_LiabilityGrade">Uma classe é o resultado de verificações automáticas e de um conjunto de regras publicado. Não é uma certificação nem uma inspeção feita por uma pessoa. Decidir o que pagar a alguém com base nisso é sua decisão.</x:String>
+    <x:String x:Key="Intro_Finish">Terminar</x:String>
 </ResourceDictionary>

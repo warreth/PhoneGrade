@@ -208,7 +208,90 @@
                     </Border>
                 </StackPanel>
 
-                <!-- ==================== Page 4: the optional checks ==================== -->
+                <!-- ==================== Page 4: the terms ==================== -->
+                <!--
+                    The one page in the introduction that cannot be skipped.
+
+                    Every other page is offering something an operator is allowed to
+                    decline: the plan, the grade defaults, the IMEI lookups. That is
+                    what Skip is for. This page is not that. The application is being
+                    used, using it is what the terms are about, so the way out is the
+                    checkbox and nothing else.
+
+                    The Finish button is beside it rather than in the usual place in
+                    the foot of the card, because on this page it is gated and on every
+                    other page it is not, and a button that appears in two places with
+                    two behaviours is a fault report waiting to happen.
+                -->
+                <StackPanel Grid.Row="1" Spacing="14"
+                            IsVisible="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Licence}">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="sectionTitle" Text="{DynamicResource Intro_PageLicence}"/>
+                        <TextBlock Classes="settingDesc" Text="{DynamicResource Intro_LicenceLead}" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <Border Classes="settingCard">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="{DynamicResource Intro_LicenceWhat}" Classes="settingDesc" TextWrapping="Wrap"/>
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Classes="kioskSecondary" Height="38"
+                                        Content="{DynamicResource Intro_LicenceRead}"
+                                        Command="{Binding OpenLicenceCommand}"/>
+                                <Button Classes="kioskSecondary" Height="38"
+                                        Content="{DynamicResource Intro_LicenceTrademark}"
+                                        Command="{Binding OpenTrademarkCommand}"/>
+                            </StackPanel>
+
+                            <!-- One box, and it decides whether Finish works. The
+                                 sentence beside it is bound to the agreement that
+                                 actually applies, so a paying customer is never handed
+                                 the free one by a copy mistake. -->
+                            <Border Classes="stepItem" Padding="10">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <CheckBox IsChecked="{Binding IsLicenceAccepted}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{DynamicResource Intro_LicenceAcknowledge}"
+                                               Classes="settingDesc" TextWrapping="Wrap"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Said rather than left to be discovered. A Finish button
+                                 that does nothing because a box is unticked is the
+                                 fastest way to convince an operator the application is
+                                 broken. -->
+                            <TextBlock Classes="settingDesc"
+                                       Foreground="{DynamicResource WarnColor}"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding !CanFinishIntro}"
+                                       Text="{DynamicResource Intro_LicenceRequired}"/>
+
+                            <Button Classes="cta" Height="46"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"
+                                    Content="{DynamicResource Intro_LicenceFinish}"
+                                    IsEnabled="{Binding CanFinishIntro}"
+                                    Command="{Binding DismissIntroCommand}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- What the operator is being asked to accept, in three lines,
+                         so the question can be answered on screen rather than only in
+                         a document behind a link. -->
+                    <Border Classes="settingCard">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{DynamicResource Intro_LiabilityTitle}" Classes="settingTitle"/>
+                            <TextBlock Text="{DynamicResource Intro_LiabilityNoWarranty}"
+                                       Classes="settingDesc" TextWrapping="Wrap"/>
+                            <TextBlock Text="{DynamicResource Intro_LiabilityCap}"
+                                       Classes="settingDesc" TextWrapping="Wrap"/>
+                            <TextBlock Text="{DynamicResource Intro_LiabilityGrade}"
+                                       Classes="settingDesc" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- ==================== Page 5: the optional checks ==================== -->
                 <StackPanel Grid.Row="1" Spacing="14"
                             IsVisible="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Imei}">
                     <TextBlock Classes="sectionTitle" Text="{DynamicResource Intro_PageImei}"/>
@@ -244,6 +327,10 @@
                                 Command="{Binding IntroGoToPageCommand}" CommandParameter="Workflow"
                                 Content="{DynamicResource Intro_PageWorkflow}"/>
                         <Button Classes="navItem"
+                                Classes.current="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Licence}"
+                                Command="{Binding IntroGoToPageCommand}" CommandParameter="Licence"
+                                Content="{DynamicResource Intro_PageLicence}"/>
+                        <Button Classes="navItem"
                                 Classes.current="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Imei}"
                                 Command="{Binding IntroGoToPageCommand}" CommandParameter="Imei"
                                 Content="{DynamicResource Intro_PageImei}"/>
@@ -257,11 +344,22 @@
 
                         <Button Grid.Column="2" Classes="cta"
                                 Content="{DynamicResource Intro_Next}"
+                                IsVisible="{Binding ShowIntroNext}"
+                                Command="{Binding IntroNextCommand}"/>
+
+                        <Button Grid.Column="2" Classes="cta"
+                                Content="{DynamicResource Intro_Finish}"
+                                IsVisible="{Binding IsLastIntroPage}"
                                 Command="{Binding IntroNextCommand}"/>
                     </Grid>
 
+                    <!-- Absent on the agreement page until the box is ticked. Not
+                         hidden and greyed out, because on the first run an operator
+                         has no way to know that a dimmed button is about terms rather
+                         than about something being broken. -->
                     <Button Classes="headerBtn" HorizontalAlignment="Center"
                             Content="{DynamicResource Intro_Skip}"
+                            IsVisible="{Binding CanSkipIntro}"
                             Command="{Binding DismissIntroCommand}"/>
                 </StackPanel>
             </Grid>

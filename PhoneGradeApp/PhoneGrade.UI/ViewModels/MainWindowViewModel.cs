@@ -695,7 +695,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public bool IsIntroVisible
     {
         get => _isIntroVisible;
-        private set => this.RaiseAndSetIfChanged(ref _isIntroVisible, value);
+        set => this.RaiseAndSetIfChanged(ref _isIntroVisible, value);
     }
 
     /// <summary>
@@ -708,7 +708,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// the operator to find afterwards.
     /// </summary>
     public IReadOnlyList<string> IntroPages { get; } =
-        ["Language", "Plan", "Workflow", "Imei"];
+        ["Language", "Plan", "Workflow", "Licence", "Imei"];
 
     private string _introPage = "Language";
 
@@ -716,7 +716,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public string IntroPage
     {
         get => _introPage;
-        private set
+        set
         {
             this.RaiseAndSetIfChanged(ref _introPage, value);
             this.RaisePropertyChanged(nameof(IsFirstIntroPage));
@@ -775,13 +775,93 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// <summary>Opens the license panel and closes the settings drawer, so the two never overlap.</summary>
     public ReactiveCommand<Unit, Unit> ManageLicenseCommand { get; }
 
+    /// <summary>
+    /// Ends the introduction, and refuses to record it as seen until the terms have
+    /// been accepted.
+    ///
+    /// Every route out of the introduction arrives here, so this is the one place the
+    /// check has to be. Without it the Skip button and the page dots are both ways
+    /// around the agreement, and a gate that can be walked past is worse than no gate
+    /// because it reads as one.
+    /// </summary>
     private void DismissIntro()
     {
+        if (!CanFinishIntro) return;
+
         _settings.IntroSeen = true;
         _settings.Save();
         IsIntroVisible = false;
         IsIntroActivationVisible = false;
     }
+
+    /// <summary>The page carrying the agreement, named so the markup cannot drift.</summary>
+    public const string LicencePage = "Licence";
+
+    /// <summary>
+    /// Whether the operator has accepted the terms that apply to them.
+    ///
+    /// Deliberately not written to the settings file. An operator who ticked this on
+    /// one machine has not agreed on another, and a gate that remembered across
+    /// machines could be walked past with a single tick on the first one. It is asked
+    /// once per machine, which is also the only point at which the answer is worth
+    /// anything.
+    /// </summary>
+    private bool _isLicenceAccepted;
+    public bool IsLicenceAccepted
+    {
+        get => _isLicenceAccepted;
+        set
+        {
+            if (this.RaiseAndSetIfChanged(ref _isLicenceAccepted, value))
+                this.RaisePropertyChanged(nameof(CanFinishIntro));
+        }
+    }
+
+    /// <summary>
+    /// Whether the introduction may be closed.
+    ///
+    /// Checked here rather than only on the button, because the Skip button and the
+    /// page dots are also ways out and neither of them should be able to skip the one
+    /// page that is not optional.
+    /// </summary>
+    public bool CanFinishIntro => IsLicenceAccepted;
+
+    public bool IsOnLicencePage => IntroPage == LicencePage;
+
+    /// <summary>
+    /// Next is offered everywhere except the agreement page and the last page, where
+    /// the button says Finish instead.
+    /// </summary>
+    public bool ShowIntroNext => !IsOnLicencePage && !IsLastIntroPage;
+
+    /// <summary>
+    /// Skip is offered on every page except the agreement, and on every page again
+    /// once the box is ticked. An operator who has already agreed on this machine can
+    /// leave from wherever they are.
+    /// </summary>
+    public bool CanSkipIntro => !IsOnLicencePage || IsLicenceAccepted;
+
+    /// <summary>
+    /// Which document applies. The free plan is covered by the licence the source is
+    /// published under. A paying customer is not, which is why the commercial end user
+    /// licence agreement is the document that has to be named to them.
+    /// </summary>
+    public string LicenceDocumentUrl =>
+        Services.LicenceTerms.DocumentFor(Licensing.IsPro);
+
+    /// <summary>
+    /// What the checkbox says. It names the document rather than only saying agree,
+    /// so an operator who did not read it can still say afterwards which document it
+    /// was.
+    /// </summary>
+    public string LicenceAgreementLabel => LocalizationManager.GetString(
+        Licensing.IsPro
+            ? "Intro_LicenceAcceptCommercial"
+            : "Intro_LicenceAcceptFree");
+
+    public ReactiveCommand<Unit, Unit> OpenLicenceCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> OpenTrademarkCommand { get; }
 
     private DeviceData _deviceData = new();
     public DeviceData DeviceData
@@ -1155,6 +1235,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         // Introduction screen: shown until dismissed, and never again after that.
         IsIntroVisible = !_settings.IntroSeen;
         DismissIntroCommand = ReactiveCommand.Create(DismissIntro);
+
+        // Opening the documents rather than reproducing them. A licence is long, and
+        // the sentence that matters is much easier to find on a page an operator can
+        // scroll and search than inside a modal.
+        OpenLicenceCommand = ReactiveCommand.Create(() =>
+            Services.PricingLink.Open(Services.LicenceTerms.DocumentFor(Licensing.IsPro)));
+        OpenTrademarkCommand = ReactiveCommand.Create(() =>
+            Services.PricingLink.Open(Services.LicenceTerms.Trademark));
         // The last page finishes; the ones before it turn the page. One button for
         // both, because a Next that turns into a Finish halfway through is what
         // the operator expects and two buttons at the foot of the card is not.

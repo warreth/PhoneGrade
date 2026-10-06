@@ -750,5 +750,31 @@
     <x:String x:Key="Changelog_CardTitle">What changed in this version</x:String>
     <x:String x:Key="Changelog_CardDesc">The notes from the release, read from GitHub.</x:String>
     <x:String x:Key="Changelog_Open">Show what changed</x:String>
+
+    <!-- ==================== Licence agreement ==================== -->
+
+    <!--
+         Shown on the one page of the introduction that cannot be skipped.
+
+         The three liability sentences are the ones an operator reads when
+         something has gone wrong, so they are written out here rather than
+         left behind a link. What is being agreed to has to be readable on
+         the screen, not only in a document nobody opens.
+    -->
+    <x:String x:Key="Intro_PageLicence">Terms</x:String>
+    <x:String x:Key="Intro_LicenceLead">One page you have to agree to before the introduction can be closed.</x:String>
+    <x:String x:Key="Intro_LicenceWhat">PhoneGrade reads what a phone reports about itself. It is provided as is, with no warranty, and the terms below say what that means.</x:String>
+    <x:String x:Key="Intro_LicenceRead">Read the terms</x:String>
+    <x:String x:Key="Intro_LicenceTrademark">Read the trademark policy</x:String>
+    <x:String x:Key="Intro_LicenceAcknowledge">I have read and accept the licence terms</x:String>
+    <x:String x:Key="Intro_LicenceAcceptFree">I have read and accept the licence terms</x:String>
+    <x:String x:Key="Intro_LicenceAcceptCommercial">I have read and accept the commercial end user licence agreement</x:String>
+    <x:String x:Key="Intro_LicenceRequired">Tick the box to finish. This one is not optional, because the application is being used.</x:String>
+    <x:String x:Key="Intro_LicenceFinish">Accept and continue</x:String>
+    <x:String x:Key="Intro_LiabilityTitle">What you are agreeing to</x:String>
+    <x:String x:Key="Intro_LiabilityNoWarranty">PhoneGrade comes as it is, with no warranty of any kind, to the fullest extent the law allows. Nobody promises it is free of defects, that it is always available, or that it is fit for what you intend to do with it.</x:String>
+    <x:String x:Key="Intro_LiabilityCap">To the fullest extent the law allows, the author is not liable for damage arising from using it or from not using it. That covers the phone under test, lost profit, lost records, a customer who stops buying from you, and any claim by a customer or a third party. For a paying customer the total is capped at the subscription fee for the year the claim arose in.</x:String>
+    <x:String x:Key="Intro_LiabilityGrade">A grade is automated checks and a published set of rules. It is not a certification and not an inspection by a person. Deciding what to pay someone on the strength of it is your decision.</x:String>
+    <x:String x:Key="Intro_Finish">Finish</x:String>
 </ResourceDictionary>
 

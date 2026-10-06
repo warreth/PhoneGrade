@@ -752,5 +752,31 @@
     <x:String x:Key="Changelog_CardTitle">Qué ha cambiado en esta versión</x:String>
     <x:String x:Key="Changelog_CardDesc">Las notas de la versión, leídas de GitHub.</x:String>
     <x:String x:Key="Changelog_Open">Ver los cambios</x:String>
+
+    <!-- ==================== Licence agreement ==================== -->
+
+    <!--
+         Shown on the one page of the introduction that cannot be skipped.
+
+         The three liability sentences are the ones an operator reads when
+         something has gone wrong, so they are written out here rather than
+         left behind a link. What is being agreed to has to be readable on
+         the screen, not only in a document nobody opens.
+    -->
+    <x:String x:Key="Intro_PageLicence">Condiciones</x:String>
+    <x:String x:Key="Intro_LicenceLead">Una página que tienes que aceptar antes de poder cerrar la introducción.</x:String>
+    <x:String x:Key="Intro_LicenceWhat">PhoneGrade lee lo que el móvil comunica sobre sí mismo. Se entrega tal cual, sin garantía, y las condiciones de abajo explican qué significa eso.</x:String>
+    <x:String x:Key="Intro_LicenceRead">Leer las condiciones</x:String>
+    <x:String x:Key="Intro_LicenceTrademark">Leer la política de marca</x:String>
+    <x:String x:Key="Intro_LicenceAcknowledge">He leído y acepto las condiciones de licencia</x:String>
+    <x:String x:Key="Intro_LicenceAcceptFree">He leído y acepto las condiciones de licencia</x:String>
+    <x:String x:Key="Intro_LicenceAcceptCommercial">He leído y acepto el contrato de licencia de usuario final comercial</x:String>
+    <x:String x:Key="Intro_LicenceRequired">Marca la casilla para terminar. Esto no es opcional, porque la aplicación se está usando.</x:String>
+    <x:String x:Key="Intro_LicenceFinish">Aceptar y continuar</x:String>
+    <x:String x:Key="Intro_LiabilityTitle">Lo que estás aceptando</x:String>
+    <x:String x:Key="Intro_LiabilityNoWarranty">PhoneGrade se entrega tal cual, sin garantía de ningún tipo, en todo lo que la ley permita. Nadie promete que esté libre de defectos, que siempre esté disponible, ni que sirva para lo que quieras hacer con él.</x:String>
+    <x:String x:Key="Intro_LiabilityCap">En todo lo que la ley permita, el autor no responde de lo que se derive de usarlo o de no usarlo. Eso incluye el móvil examinado, el beneficio perdido, los registros perdidos, un cliente que deja de comprarte, y cualquier reclamación de un cliente o un tercero. Para un cliente de pago, el total se limita a la suscripción del año en que nació la reclamación.</x:String>
+    <x:String x:Key="Intro_LiabilityGrade">Un grado son unas comprobaciones automáticas y un conjunto de reglas publicado. No es una certificación ni una inspección hecha por una persona. Decidir qué pagar a alguien en base a eso es tu decisión.</x:String>
+    <x:String x:Key="Intro_Finish">Terminar</x:String>
 </ResourceDictionary>
 

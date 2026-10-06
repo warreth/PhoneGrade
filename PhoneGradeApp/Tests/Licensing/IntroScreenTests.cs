@@ -42,6 +42,10 @@ public class IntroScreenTests : IDisposable
     {
         using var vm = new MainWindowViewModel();
 
+        // The terms first. Dismissal is refused until they are accepted, so a test that
+        // wants to know whether the flag reaches disk has to accept them like an
+        // operator does.
+        vm.IsLicenceAccepted = true;
         vm.DismissIntroCommand.Execute().Subscribe();
 
         Assert.False(vm.IsIntroVisible);
@@ -57,12 +61,28 @@ public class IntroScreenTests : IDisposable
     {
         using (var first = new MainWindowViewModel())
         {
+            first.IsLicenceAccepted = true;
             first.DismissIntroCommand.Execute().Subscribe();
         }
 
         using var second = new MainWindowViewModel();
 
         Assert.False(second.IsIntroVisible);
+    }
+
+    [AvaloniaFact]
+    public void AnUntickedOperatorCannotDismissTheIntroduction()
+    {
+        // The counterpart to the tests above, and the reason they had to change. Skip
+        // used to be a way past this and now is not, which is the whole point of the
+        // page it sits on.
+        using var vm = new MainWindowViewModel();
+        Assert.True(vm.IsIntroVisible);
+
+        vm.DismissIntroCommand.Execute().Subscribe();
+
+        Assert.True(vm.IsIntroVisible);
+        Assert.False(AppSettings.Load().IntroSeen);
     }
 
     [AvaloniaFact]
@@ -77,7 +97,7 @@ public class IntroScreenTests : IDisposable
     }
 
     [AvaloniaFact]
-    public async Task ValidKeyOnTheIntroductionScreen_ClosesItAndTurnsPro()
+    public async Task ValidKeyOnTheIntroductionScreen_TurnsProAndKeepsTheTermsInFront()
     {
         using var server = new LicensingTestContext.FakeLicenseServer
         {
@@ -95,7 +115,42 @@ public class IntroScreenTests : IDisposable
         await vm.Licensing.ValidateCommand.Execute();
 
         Assert.True(vm.IsProLicenseActive);
-        Assert.False(vm.IsIntroVisible); // the screen explains the free tier, Pro needs no explanation
+
+        // The screen used to fold itself away the moment a key turned out to be valid,
+        // on the reasoning that it exists to explain the free tier. It does not any
+        // more, because the operator is now a paying customer and a paying customer
+        // is the one who has to be shown the commercial end user licence agreement.
+        // Closing the screen here would grant a Pro licence under terms nobody agreed
+        // to, which is precisely the gap the document was written to close.
+        Assert.True(vm.IsIntroVisible, "a valid key dismissed the screen before the terms were accepted");
+
+        // And the page it lands on is the one carrying the commercial terms, not the
+        // repository licence a free operator sees.
+        Assert.Equal(MainWindowViewModel.LicencePage, "Licence");
+        Assert.Contains("COMMERCIAL", PhoneGrade.UI.Services.LicenceTerms.DocumentFor(vm.Licensing.IsPro));
+        Assert.False(AppSettings.Load().IntroSeen);
+    }
+
+    [AvaloniaFact]
+    public async Task ValidKeyOnTheIntroductionScreen_ClosesItOnceTheTermsAreAccepted()
+    {
+        using var server = new LicensingTestContext.FakeLicenseServer
+        {
+            ResponseJson = LicensingTestContext.FakeLicenseServer.ActiveJson
+        };
+        using var client = new PhoneGrade.Core.Licensing.LemonSqueezyClient(server);
+        using var vm = new MainWindowViewModel(client);
+
+        vm.ShowIntroActivationCommand.Execute().Subscribe();
+        vm.Licensing!.LicenseKeyInput = "KEY-VALID-1";
+        await vm.Licensing.ValidateCommand.Execute();
+
+        Assert.True(vm.IsProLicenseActive);
+
+        vm.IsLicenceAccepted = true;
+        vm.DismissIntroCommand.Execute().Subscribe();
+
+        Assert.False(vm.IsIntroVisible);
         Assert.True(AppSettings.Load().IntroSeen);
     }
 

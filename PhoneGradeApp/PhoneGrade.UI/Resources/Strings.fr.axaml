@@ -757,4 +757,30 @@
     <x:String x:Key="Changelog_CardTitle">Ce qui a changé dans cette version</x:String>
     <x:String x:Key="Changelog_CardDesc">Les notes de la version, lues sur GitHub.</x:String>
     <x:String x:Key="Changelog_Open">Voir les changements</x:String>
+
+    <!-- ==================== Licence agreement ==================== -->
+
+    <!--
+         Shown on the one page of the introduction that cannot be skipped.
+
+         The three liability sentences are the ones an operator reads when
+         something has gone wrong, so they are written out here rather than
+         left behind a link. What is being agreed to has to be readable on
+         the screen, not only in a document nobody opens.
+    -->
+    <x:String x:Key="Intro_PageLicence">Conditions</x:String>
+    <x:String x:Key="Intro_LicenceLead">Une page à accepter avant de pouvoir fermer la présentation.</x:String>
+    <x:String x:Key="Intro_LicenceWhat">PhoneGrade lit ce que le téléphone signale sur lui-même. Il est fourni tel quel, sans garantie, et les conditions ci-dessous expliquent ce que cela signifie.</x:String>
+    <x:String x:Key="Intro_LicenceRead">Lire les conditions</x:String>
+    <x:String x:Key="Intro_LicenceTrademark">Lire la politique de marque</x:String>
+    <x:String x:Key="Intro_LicenceAcknowledge">J'ai lu et j'accepte les conditions de licence</x:String>
+    <x:String x:Key="Intro_LicenceAcceptFree">J'ai lu et j'accepte les conditions de licence</x:String>
+    <x:String x:Key="Intro_LicenceAcceptCommercial">J'ai lu et j'accepte le contrat de licence utilisateur final commercial</x:String>
+    <x:String x:Key="Intro_LicenceRequired">Cochez la case pour terminer. Ce n'est pas facultatif, puisque l'application est utilisée.</x:String>
+    <x:String x:Key="Intro_LicenceFinish">Accepter et continuer</x:String>
+    <x:String x:Key="Intro_LiabilityTitle">Ce que vous acceptez</x:String>
+    <x:String x:Key="Intro_LiabilityNoWarranty">PhoneGrade est fourni tel quel, sans garantie d'aucune sorte, dans les limites permises par la loi. Personne ne promet qu'il est sans défaut, qu'il reste disponible, ni qu'il convient à ce que vous voulez en faire.</x:String>
+    <x:String x:Key="Intro_LiabilityCap">Dans les limites permises par la loi, l'auteur n'est pas responsable de ce qui découle de son usage ou de son non-usage. Cela comprend le téléphone examiné, le manque à gagner, les enregistrements perdus, un client qui ne vous achète plus, et toute demande d'un client ou d'un tiers. Pour un client payant, le total est plafonné à l'abonnement de l'année où la réclamation est née.</x:String>
+    <x:String x:Key="Intro_LiabilityGrade">Un grade est le résultat de contrôles automatisés et d'un jeu de règles publié. Ce n'est ni une certification ni un examen par une personne. Décider de ce que vous payez à quelqu'un sur cette base est votre décision.</x:String>
+    <x:String x:Key="Intro_Finish">Terminer</x:String>
 </ResourceDictionary>

@@ -751,4 +751,30 @@
     <x:String x:Key="Changelog_CardTitle">Wat er in deze versie is veranderd</x:String>
     <x:String x:Key="Changelog_CardDesc">De opmerkingen van de release, opgehaald van GitHub.</x:String>
     <x:String x:Key="Changelog_Open">Toon wat er is veranderd</x:String>
+
+    <!-- ==================== Licence agreement ==================== -->
+
+    <!--
+         Shown on the one page of the introduction that cannot be skipped.
+
+         The three liability sentences are the ones an operator reads when
+         something has gone wrong, so they are written out here rather than
+         left behind a link. What is being agreed to has to be readable on
+         the screen, not only in a document nobody opens.
+    -->
+    <x:String x:Key="Intro_PageLicence">Voorwaarden</x:String>
+    <x:String x:Key="Intro_LicenceLead">Eén pagina die je moet accepteren voordat de introductie kan worden afgesloten.</x:String>
+    <x:String x:Key="Intro_LicenceWhat">PhoneGrade leest wat een telefoon over zichzelf meldt. Het wordt geleverd zoals het is, zonder garantie, en de voorwaarden hieronder zeggen wat dat betekent.</x:String>
+    <x:String x:Key="Intro_LicenceRead">Lees de voorwaarden</x:String>
+    <x:String x:Key="Intro_LicenceTrademark">Lees het merkpolicy</x:String>
+    <x:String x:Key="Intro_LicenceAcknowledge">Ik heb de licentievoorwaarden gelezen en ga ermee akkoord</x:String>
+    <x:String x:Key="Intro_LicenceAcceptFree">Ik heb de licentievoorwaarden gelezen en ga ermee akkoord</x:String>
+    <x:String x:Key="Intro_LicenceAcceptCommercial">Ik heb de commerciële eindgebruikerslicentie gelezen en ga ermee akkoord</x:String>
+    <x:String x:Key="Intro_LicenceRequired">Vink het vakje aan om te sluiten. Dit is niet optioneel, want de applicatie wordt gebruikt.</x:String>
+    <x:String x:Key="Intro_LicenceFinish">Accepteren en doorgaan</x:String>
+    <x:String x:Key="Intro_LiabilityTitle">Waar je akkoord mee gaat</x:String>
+    <x:String x:Key="Intro_LiabilityNoWarranty">PhoneGrade wordt geleverd zoals het is, zonder enige garantie, voor zover de wet toestaat. Niemand belooft dat het foutloos is, altijd beschikbaar, of geschikt voor wat je ermee wilt doen.</x:String>
+    <x:String x:Key="Intro_LiabilityCap">Voor zover de wet toestaat, is de auteur niet aansprakelijk voor schade die ontstaat door het gebruik ervan of door het niet gebruiken ervan. Dat geldt voor de geteste telefoon, verloren winst, verloren administratie, een klant die niet meer koopt, en elke claim van een klant of derde. Voor een betalende klant is het totaal begrensd op het abonnement voor het jaar waarin de vordering ontstond.</x:String>
+    <x:String x:Key="Intro_LiabilityGrade">Een grade is geautomatiseerde controles en een gepubliceerde set regels. Het is geen certificering en geen inspectie door een mens. Beslissen wat je iemand op basis daarvan betaalt is jouw beslissing.</x:String>
+    <x:String x:Key="Intro_Finish">Afronden</x:String>
 </ResourceDictionary>

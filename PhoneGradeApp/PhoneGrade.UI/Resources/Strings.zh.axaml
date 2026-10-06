@@ -757,4 +757,30 @@
     <x:String x:Key="Changelog_CardTitle">此版本的变更内容</x:String>
     <x:String x:Key="Changelog_CardDesc">从 GitHub 读取的版本说明。</x:String>
     <x:String x:Key="Changelog_Open">查看变更内容</x:String>
+
+    <!-- ==================== Licence agreement ==================== -->
+
+    <!--
+         Shown on the one page of the introduction that cannot be skipped.
+
+         The three liability sentences are the ones an operator reads when
+         something has gone wrong, so they are written out here rather than
+         left behind a link. What is being agreed to has to be readable on
+         the screen, not only in a document nobody opens.
+    -->
+    <x:String x:Key="Intro_PageLicence">条款</x:String>
+    <x:String x:Key="Intro_LicenceLead">在接受之后才能关闭这段引导，这里是一页需要同意的条款。</x:String>
+    <x:String x:Key="Intro_LicenceWhat">PhoneGrade 读取手机自报的信息。它按现状交付，不作担保，下面的条款说明这意味着什么。</x:String>
+    <x:String x:Key="Intro_LicenceRead">阅读条款</x:String>
+    <x:String x:Key="Intro_LicenceTrademark">阅读商标政策</x:String>
+    <x:String x:Key="Intro_LicenceAcknowledge">我已阅读并同意许可条款</x:String>
+    <x:String x:Key="Intro_LicenceAcceptFree">我已阅读并同意许可条款</x:String>
+    <x:String x:Key="Intro_LicenceAcceptCommercial">我已阅读并同意商业最终用户许可协议</x:String>
+    <x:String x:Key="Intro_LicenceRequired">勾选方框即可继续。这一项不是可选的，因为程序正在被使用。</x:String>
+    <x:String x:Key="Intro_LicenceFinish">接受并继续</x:String>
+    <x:String x:Key="Intro_LiabilityTitle">你正在同意的内容</x:String>
+    <x:String x:Key="Intro_LiabilityNoWarranty">PhoneGrade 按现状交付，在法律允许的最大范围内不作任何担保。没有人保证它没有缺陷、一直可用，或者适合你要拿它做的事。</x:String>
+    <x:String x:Key="Intro_LiabilityCap">在法律允许的最大范围内，作者不对因使用它或不使用它而产生的损坏负责。这包括被检测的手机、利润损失、记录丢失、不再向你购买的客户，以及客户或第三方提出的任何索赔对付费客户，全部责任以索赔发生那一年的订阅费用为上限。</x:String>
+    <x:String x:Key="Intro_LiabilityGrade">一个等级是自动检查加上一套公开的规则。它不是认证，也不是有人上手做的检测。基于它决定付给某人多少钱，是你的决定。</x:String>
+    <x:String x:Key="Intro_Finish">完成</x:String>
 </ResourceDictionary>
