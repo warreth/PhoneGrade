@@ -26,7 +26,7 @@ public class ColorWordingTests
     public void TheDeviceCarriesAKeyRatherThanAWord()
     {
         // The whole point. A word on the model is what put Dutch on an English label.
-        Assert.Equal(ColorKeys.White, Mappers.MapColor("WHT"));
+        Assert.Equal(ColorKeys.White, Mappers.MapAndroidColor("WHT"));
         Assert.Equal(ColorKeys.White, Mappers.MapColor("#ffffff"));
         Assert.Equal(ColorKeys.White, Mappers.MapColor("white"));
         Assert.Equal(ColorKeys.SpaceGrey, Mappers.MapAndroidColor("space gray"));
@@ -36,14 +36,26 @@ public class ColorWordingTests
     [AvaloniaFact]
     public void EveryKeyTheTablesCanProduceHasAWordInBothLanguages()
     {
+        // Asked of the dictionary rather than of the finished word, because for a
+        // colour whose English name is already the key, "Black", the fallback and the
+        // correct answer are the same string and cannot be told apart from the outside.
+        // What has to be true is that an entry exists, and that is a question about the
+        // dictionary.
         foreach (string language in new[] { "en", "nl" })
         {
             LocalizationManager.SetLanguage(language);
+
             foreach (string key in ColorKeys.All)
             {
-                string word = ColorWording.Word(key);
-                Assert.False(word == key || word.Length == 0,
-                    $"{language} has no word for Color_{key}");
+                string resourceKey = ColorKeys.ResourceKey(key);
+                string entry = LocalizationManager.GetString(resourceKey);
+
+                Assert.False(entry == resourceKey, $"{language} has no entry for {resourceKey}");
+                Assert.False(string.IsNullOrWhiteSpace(entry), $"{language} has an empty entry for {resourceKey}");
+
+                // And it has to be reachable, not merely present in the file.
+                Assert.False(string.IsNullOrWhiteSpace(ColorWording.Word(key)),
+                    $"{language} produced nothing for {resourceKey}");
             }
         }
     }
@@ -132,6 +144,11 @@ public class ColorWordingTests
     [AvaloniaFact]
     public void TheLabelIsCompleteOnWhatWasReportedRatherThanOnWhatItSays()
     {
+        // Stated rather than inherited. The label follows the window, so a test that
+        // does not say which window it means is really asserting whatever language the
+        // test before it happened to leave behind.
+        LocalizationManager.SetLanguage("en");
+
         DeviceData phone = new() { Color = ColorKeys.White };
         LabelFields spoken = LabelFields.From(phone, colour: ColorWording.OnLabel);
         Assert.Equal("White", spoken.Color);
