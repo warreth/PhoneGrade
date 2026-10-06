@@ -86,7 +86,7 @@ public static class ReportPdfWriter
                 (wording.FieldName, null),
                 ("IMEI / serial", data.Identifier),
                 ("Model", data.Model),
-                ("Colour", data.Color),
+                ("Colour", wording.Colour(data.Color)),
                 ("Storage", data.Storage),
                 ("Memory", data.Memory),
                 ("OS", data.IosVersion ?? na),

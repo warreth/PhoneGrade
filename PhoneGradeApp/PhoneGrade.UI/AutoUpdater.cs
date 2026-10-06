@@ -1,16 +1,54 @@
+using System.Reflection;
 using Velopack;
 using Velopack.Sources;
 
 namespace PhoneGrade.UI;
 
-/// <summary>Checks GitHub releases for a newer version and installs it.
-/// Only acts on Velopack-installed apps; dev runs and portable copies skip silently.</summary>
+/// <summary>
+/// Finds a newer build on GitHub and installs it.
+///
+/// Only acts on Velopack-installed apps; a development run and a portable copy skip
+/// silently. The notes for whatever version is running are not this class's job:
+/// they are read from the release itself, so an operator can ask for them on any
+/// launch rather than only on the one after an update.
+/// </summary>
 public static class AutoUpdater
 {
-    // The repository was renamed from Auto-Dymo-Label to PhoneGrade. GitHub
-    // still redirects the old path, but the updater should not depend on a
-    // redirect that can be dropped whenever the old name is reused.
-    private const string RepoUrl = "https://github.com/warreth/PhoneGrade";
+    // The repository was renamed from Auto-Dymo-Label to PhoneGrade. GitHub still
+    // redirects the old path, but the updater should not depend on a redirect that
+    // can be dropped whenever the old name is reused.
+    private const string RepoUrl = PhoneGrade.Core.ReleaseChangelog.RepositoryUrl;
+
+    /// <summary>
+    /// The version this build is, or an empty string when it cannot be worked out.
+    ///
+    /// Read from the assembly rather than from Velopack, because a portable copy has
+    /// no Velopack to ask and still has notes on the release page. The workflow
+    /// stamps the version onto the assembly, so this is the same string the tag
+    /// carries.
+    /// </summary>
+    public static string RunningVersion()
+    {
+        try
+        {
+            var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+            var informational = assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+            if (!string.IsNullOrWhiteSpace(informational))
+            {
+                // The SDK appends the source revision to the informational version.
+                int plus = informational.IndexOf('+', StringComparison.Ordinal);
+                return plus > 0 ? informational[..plus] : informational;
+            }
+
+            return assembly.GetName().Version?.ToString(3) ?? "";
+        }
+        catch
+        {
+            return "";
+        }
+    }
 
     public static async Task CheckAndApplyAsync()
     {
@@ -22,12 +60,6 @@ public static class AutoUpdater
             var update = await mgr.CheckForUpdatesAsync();
             if (update is null) return;
 
-            // The release notes are written before the update is applied, because
-            // applying it replaces this binary and restarts the process. Whatever
-            // is not on disk by then is gone, and the operator gets a new version
-            // with no idea what changed in it.
-            RecordNotes(update);
-
             await mgr.DownloadUpdatesAsync(update);
             mgr.ApplyUpdatesAndRestart(update);
         }
@@ -35,39 +67,5 @@ public static class AutoUpdater
         {
             // Offline, rate limit, incomplete release assets: never block startup.
         }
-    }
-
-    /// <summary>
-    /// Saves the notes of the version about to be installed.
-    ///
-    /// Velopack carries both a Markdown and an HTML form on the release. The
-    /// Markdown is kept because it is what a person wrote; <see cref="ReleaseChangelog"/>
-    /// flattens either into plain lines for a read-only text block. A release
-    /// packaged without notes carries an empty string, and an empty string is
-    /// not written at all, so an update that ships no notes does not put an empty
-    /// panel in front of the operator on the next start.
-    /// </summary>
-    private static void RecordNotes(UpdateInfo update)
-    {
-        string version = "";
-        string? notes = null;
-
-        try
-        {
-            var target = update.TargetFullRelease;
-            if (target is null) return;
-
-            version = target.Version?.ToString() ?? "";
-            notes = string.IsNullOrWhiteSpace(target.NotesMarkdown)
-                ? target.NotesHTML
-                : target.NotesMarkdown;
-        }
-        catch
-        {
-            // A release entry the updater cannot read fully is still worth
-            // installing; only the note about it is lost.
-        }
-
-        PhoneGrade.Core.ReleaseChangelog.Record(version, notes);
     }
 }

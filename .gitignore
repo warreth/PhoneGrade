@@ -37,3 +37,4 @@ deepseek-todos.md
 
 # Lokale sleutel voor de live imei.info tests; de CI leest 'm uit secrets
 PhoneGradeApp/Tests/.imei-info-key
+PhoneGradeApp/FEATURE_AUDIT_CHECKLIST.md

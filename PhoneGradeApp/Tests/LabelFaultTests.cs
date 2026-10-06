@@ -17,7 +17,7 @@ public class LabelFaultTests
 {
     private static DeviceData Clean() => new()
     {
-        Identifier = "356938035643809", Model = "13 Pro", Color = "Wit",
+        Identifier = "356938035643809", Model = "13 Pro", Color = ColorKeys.White,
         Storage = "256GB", BatteryHealth = "90", Quality = "A", PayMethod = "Marge",
         BatteryCycleCount = 84,
     };

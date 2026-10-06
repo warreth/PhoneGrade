@@ -67,19 +67,14 @@ public class BatteryHealthConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>Color placeholder: the phone never sent a colour rather than it being white.</summary>
+/// <summary>Colour as the operator reads it, in the language of the window.</summary>
 public class ColorConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return LocalizationManager.GetString("Value_NotSet");
-
-        return str switch
-        {
-            "NOCOLOR" => LocalizationManager.GetString("Value_NotSet"),
-            "" => LocalizationManager.GetString("Value_NotSet"),
-            _ => str,
-        };
+        return value is string str
+            ? ColorWording.Word(str)
+            : LocalizationManager.GetString("Value_NotSet");
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

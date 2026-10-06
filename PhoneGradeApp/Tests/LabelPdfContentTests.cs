@@ -263,19 +263,26 @@ public class LabelPdfContentTests : IDisposable
         var fields = LabelFields.From(Phone());
         var code = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields));
 
+        // Every symbology, because the width a code is measured against is worked out
+        // from its own table and Code128 is the denser of the two. A fit test run
+        // against Code39 says nothing about whether the same label is right in the
+        // other one.
+        foreach (LabelCodeSymbology symbology in new[]
+                 { LabelCodeSymbology.Code39, LabelCodeSymbology.Code128 })
         foreach (LabelStock stock in LabelStock.All)
         {
-            var (barred, spelled) = code.On(stock, LabelBarcodeMode.Identifier, fields.IsIdentifiable);
+            var (barred, spelled) = code.On(
+                stock, LabelBarcodeMode.Identifier, symbology, fields.IsIdentifiable);
 
             Assert.Equal(barred.Count + spelled.Count, 1);
 
             foreach (string payload in barred)
             {
-                Assert.True(LabelBarcode.DrawnNarrowMm(payload, stock.PrintableWidthMm)
+                Assert.True(LabelBarcode.DrawnNarrowMm(payload, symbology, stock.PrintableWidthMm)
                         >= LabelBarcode.NarrowestNarrowMm,
                     $"stock {stock.PartNumber} was asked to draw {payload} narrower than a scanner reads");
-                Assert.True(LabelBarcode.WidthMm(payload,
-                        LabelBarcode.DrawnNarrowMm(payload, stock.PrintableWidthMm))
+                Assert.True(LabelBarcode.WidthMm(payload, symbology,
+                        LabelBarcode.DrawnNarrowMm(payload, symbology, stock.PrintableWidthMm))
                         <= stock.PrintableWidthMm,
                     $"stock {stock.PartNumber} was asked to draw a code wider than its paper");
             }
@@ -421,10 +428,12 @@ public class LabelPdfContentTests : IDisposable
         var code = new LabelCode(DevicePlaceholders.Identifier, "SM-G991B 128GB B 87%");
 
         foreach (LabelBarcodeMode mode in Enum.GetValues<LabelBarcodeMode>())
+        foreach (LabelCodeSymbology symbology in Enum.GetValues<LabelCodeSymbology>())
         {
-            var payloads = code.Payloads(mode, identifiable: false);
+            var payloads = code.Payloads(mode, symbology, identifiable: false);
             Assert.True(payloads.Count == 0 || payloads.All(string.IsNullOrEmpty),
-                $"{mode} put {string.Join(", ", payloads)} on a label for a phone with no serial");
+                $"{mode} in {symbology} put {string.Join(", ", payloads)} " +
+                "on a label for a phone with no serial");
         }
     }
 

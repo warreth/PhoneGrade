@@ -56,7 +56,7 @@ public class LabelExportTests : IDisposable
     {
         Identifier = "356938035643809",
         Model = "13 Pro",
-        Color = "Wit",
+        Color = ColorKeys.White,
         Storage = "256GB",
         Memory = "6GB",
         BatteryHealth = "90",
@@ -161,8 +161,8 @@ public class LabelExportTests : IDisposable
         string path = batch.Files.Single().Path!;
         string text = File.ReadAllText(path);
 
-        Assert.Contains("13 Pro 256GB Wit A 90% Marge", text);
-        Assert.Contains("Wit", text);
+        Assert.Contains("13 Pro 256GB White A 90% Marge", text);
+        Assert.Contains("White", text);
         Assert.Contains("QUALITY".Replace("QUALITY", "A"), text);
 
         // The reason this is a substitution on the file's bytes rather than a
@@ -542,7 +542,7 @@ public class LabelFieldsTests
     {
         Assert.True(LabelFields.From(new DeviceData
         {
-            Identifier = "1", Model = "13 Pro", Storage = "256GB", Color = "Wit",
+            Identifier = "1", Model = "13 Pro", Storage = "256GB", Color = ColorKeys.White,
             Quality = "A", PayMethod = "Marge", BatteryHealth = "90",
         }).IsComplete);
     }
@@ -565,7 +565,8 @@ public class DymoTemplateTests
         Faults = LabelFaults.None,
         Grade = "A",
         Identifier = "356938035643809",
-        Color = "Wit",
+        Color = ColorKeys.White,
+        ColorReported = ColorKeys.White,
         Memory = "6GB",
         Model = "13 Pro",
         PayMethod = "Marge",
@@ -576,7 +577,7 @@ public class DymoTemplateTests
     public void EveryFieldIsFilled()
     {
         string filled = DymoTemplate.Fill(Template, Full()).Text;
-        Assert.Contains("13 Pro 256GB Wit A 90% Marge", filled);
+        Assert.Contains("13 Pro 256GB White A 90% Marge", filled);
         Assert.Contains("356938035643809", filled);
         Assert.DoesNotContain("MODEL", filled);
     }
@@ -913,7 +914,7 @@ public class ExportWordingTests : IDisposable
 
     private static DeviceData Phone() => new()
     {
-        Identifier = "356938035643809", Model = "13 Pro", Color = "Wit",
+        Identifier = "356938035643809", Model = "13 Pro", Color = ColorKeys.White,
         Storage = "256GB", BatteryHealth = "90", Quality = "A", PayMethod = "Marge",
     };
 

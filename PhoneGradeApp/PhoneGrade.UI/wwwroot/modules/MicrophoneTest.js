@@ -85,6 +85,26 @@ export class MicrophoneTest extends DeviceTest {
             return this.runRecorderFallback(wsClient, container, CAPABILITY.MISSING);
         }
 
+        // First, enumerate audio input devices to allow microphone selection
+        let audioInputs = [];
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            audioInputs = devices.filter(d => d.kind === 'audioinput' && d.deviceId);
+        } catch (err) {
+            // enumeration failed, continue without selection
+            console.warn('Could not enumerate audio devices:', err);
+        }
+
+        // If multiple microphones found, let the operator choose
+        if (audioInputs.length > 1) {
+            const selectedDeviceId = await this.showMicSelection(container, audioInputs);
+            if (!selectedDeviceId) {
+                return this.fail(t('microphone.noSelection'));
+            }
+            // Store the selected deviceId for use in getUserMedia
+            this._selectedDeviceId = selectedDeviceId;
+        }
+
         let lastResult = null;
 
         // Retrying is the operator's choice, so the loop only ends when they
@@ -98,7 +118,10 @@ export class MicrophoneTest extends DeviceTest {
         while (true) {
             let stream = null;
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const constraints = this._selectedDeviceId
+                    ? { audio: { deviceId: { exact: this._selectedDeviceId } } }
+                    : { audio: true };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
                 lastResult = classifyMediaError(err);
 
@@ -161,6 +184,54 @@ export class MicrophoneTest extends DeviceTest {
             if (retry) retry.onclick = () => resolve('retry');
             if (recorder) recorder.onclick = () => resolve('recorder');
             reject.onclick = () => resolve('reject');
+        });
+    }
+
+    /**
+     * Shows a microphone selection UI when multiple audio inputs are available.
+     * Returns the selected deviceId or null if cancelled.
+     */
+    async showMicSelection(container, audioInputs) {
+        return new Promise((resolve) => {
+            const optionsHtml = audioInputs.map((device, index) => {
+                const label = device.label || `${t(index === 0 ? 'microphone.bottomMic' : 'microphone.topMic')} (${index + 1})`;
+                return `<option value="${device.deviceId}">${label}</option>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="step-screen">
+                    <div class="step-column">
+                        <h3 class="step-title">${t('microphone.title')}</h3>
+                        <div class="step-card">
+                            <p class="step-lead">${t('microphone.micSelectionHint')}</p>
+                            <div class="step-stack">
+                                <select id="mic-select" class="form-select" style="max-width: 400px; margin-bottom: 16px;">
+                                    <option value="" disabled selected>${t('microphone.selectMic')}</option>
+                                    ${optionsHtml}
+                                </select>
+                                <button id="mic-select-confirm" class="btn btn-primary step-block">${t('microphone.testSelected')}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            this.reportProgress(wsClient, 0, t('microphone.progressTesting'));
+
+            const select = container.querySelector('#mic-select');
+            const confirmBtn = container.querySelector('#mic-select-confirm');
+
+            select.addEventListener('change', () => {
+                confirmBtn.disabled = !select.value;
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                if (select.value) {
+                    resolve(select.value);
+                }
+            });
+
+            // No cancel button - user must select a microphone
         });
     }
 

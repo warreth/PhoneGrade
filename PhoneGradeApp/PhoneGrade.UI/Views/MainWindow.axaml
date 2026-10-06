@@ -1065,6 +1065,20 @@
                                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- The notes for the build that is running. The panel
+                                     opens by itself once per build, so this is for
+                                     everyone who closed it and wants it again, which
+                                     is most people who ever see it. -->
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Changelog_CardTitle}"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Changelog_CardDesc}"/>
+                                        <Button Classes="kioskSecondary" Command="{Binding OpenChangelogCommand}"
+                                                Content="{DynamicResource Changelog_Open}"
+                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ============ Advanced: things that change how the tool behaves ============ -->
@@ -1357,12 +1371,17 @@
             </Border>
         </Panel>
 
-        <!-- ==================== Changelog after an update ==================== -->
+        <!-- ==================== What changed in this version ==================== -->
         <!--
-            Shown once, on the launch after an update installed itself. The update
-            replaces the binaries and restarts, so there is no window open at the
-            moment the new version appears; the updater writes the release notes to
-            disk first and this reads them here.
+            Opens by itself on the first launch of a build, because an update
+            replaces the binaries and restarts and there is no window open at the
+            moment a new version lands to say what is in it. It is also one click
+            away in the settings from then on, which matters more now the notes
+            come from the release rather than from what an update left behind.
+
+            The notes are read from the release on GitHub, so they are the same
+            words that are on the release page. Cached ones go up first, so the
+            panel is never blank while it waits.
 
             Below the intro rather than above it: an operator seeing this has
             already installed, so it is not the first thing they need, and putting
@@ -1375,24 +1394,49 @@
                     BoxShadow="0 24 60 0 #66000000" Padding="24">
                 <StackPanel Spacing="14">
                     <StackPanel Spacing="4">
-                        <TextBlock Text="{DynamicResource Changelog_Title}" FontSize="18" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{DynamicResource Changelog_Title}" FontSize="18" FontWeight="Bold"/>
+                            <Border Classes="pill" Padding="8,2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding ChangelogVersion}" FontSize="11" Classes="dim"/>
+                            </Border>
+                        </StackPanel>
                         <TextBlock Text="{DynamicResource Changelog_Lead}" Classes="settingDesc"/>
                     </StackPanel>
 
                     <!-- The notes as written, in a read-only block. Not a WebView:
-                         three lines of release notes do not justify a scripting
-                         surface inside a kiosk application. -->
+                         a screen of release notes does not justify a scripting
+                         surface inside a kiosk application, and the release page
+                         is one click away for anyone who wants the formatting. -->
                     <Border Classes="card" Background="{DynamicResource CardDeepColor}"
-                            Padding="14" MaxHeight="420">
+                            Padding="14" MaxHeight="380">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <TextBlock Text="{Binding ChangelogNotes}"
-                                       FontSize="13" TextWrapping="Wrap" LineHeight="20"/>
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="{DynamicResource Changelog_Loading}"
+                                           Classes="settingDesc"
+                                           IsVisible="{Binding IsChangelogLoading}"/>
+                                <TextBlock Text="{DynamicResource Changelog_None}"
+                                           Classes="settingDesc"
+                                           IsVisible="{Binding ChangelogUnavailable}"/>
+                                <TextBlock Text="{Binding ChangelogNotes}"
+                                           FontSize="13" TextWrapping="Wrap" LineHeight="20"/>
+                            </StackPanel>
                         </ScrollViewer>
                     </Border>
 
-                    <Button Classes="kioskPrimary" Height="48"
-                            Command="{Binding CloseChangelogCommand}"
-                            Content="{DynamicResource Changelog_Close}"/>
+                    <!-- The gap between the two buttons is a margin on the first one rather than
+                         ColumnSpacing on the grid: Avalonia's Grid has no such
+                         property, so the markup does not load and the whole window
+                         fails to open. Every other pair of buttons in this file is
+                         spaced this way for the same reason. -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Button Grid.Column="0" Classes="kioskSecondary" Height="48"
+                                Margin="0,0,10,0"
+                                Command="{Binding OpenChangelogReleaseCommand}"
+                                Content="{DynamicResource Changelog_Release}"/>
+                        <Button Grid.Column="1" Classes="kioskPrimary" Height="48"
+                                Command="{Binding CloseChangelogCommand}"
+                                Content="{DynamicResource Changelog_Close}"/>
+                    </Grid>
                 </StackPanel>
             </Border>
         </Panel>

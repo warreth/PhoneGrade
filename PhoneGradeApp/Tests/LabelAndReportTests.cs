@@ -71,7 +71,7 @@ public class LabelAndReportTests : IDisposable
         {
             Identifier = "356938035643809",
             Model = "13 Pro",
-            Color = "Wit",
+            Color = ColorKeys.White,
             Storage = "256GB",
         });
 

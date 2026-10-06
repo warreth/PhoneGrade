@@ -20,6 +20,9 @@ class ScreenshotRunner
         // A second argument picks one section while iterating: "flow" runs only
         // the workflow states, "lic" only the licensing screens.
         string section = args.Length > 1 ? args[1] : "";
+        // A third picks the language, "en" or "nl", or it comes from the
+        // environment so a caller that only wants to choose a folder can.
+        Language = args.Length > 2 ? args[2] : Environment.GetEnvironmentVariable(SHOTS_LANG) ?? "nl";
         Directory.CreateDirectory(outDir);
 
         AppBuilder.Configure<PhoneGrade.UI.App>()
@@ -27,6 +30,11 @@ class ScreenshotRunner
             .UseSkia()
             .AfterSetup(_ =>
             {
+                // Here rather than before the builder: Application.Initialize reads the
+                // settings file and calls SetLanguage with whatever it says, so setting
+                // it earlier is overwritten and the run comes out in the wrong language.
+                PhoneGrade.UI.Services.LocalizationManager.SetLanguage(Language);
+
                 var vm = BuildDemoViewModel();
 
                 if (section is "" or "main")
@@ -373,7 +381,7 @@ class ScreenshotRunner
         [
             new PhoneGrade.Core.ComponentStatus
             {
-                Name = "Batterij", SerialRead = "L9", SerialOriginal = "K1",
+                Name = T("Batterij", "Battery"), SerialRead = "L9", SerialOriginal = "K1",
                 Status = PhoneGrade.Core.ComponentStatusType.Mismatch,
             },
         ],
@@ -581,33 +589,33 @@ class ScreenshotRunner
         var active = BuildDemoViewModel();
         active.WorkflowState = AppWorkflowState.Active;
         active.Progress = 62;
-        active.Status = "Batterij en beveiliging uitlezen...";
+        active.Status = T("Batterij en beveiliging uitlezen...", "Reading battery and security...");
         FillAudit(active);
         Shot(active, "flow-active-dark.png", state: AppWorkflowState.Active);
         Shot(active, "flow-active-narrow.png", 850, 620, state: AppWorkflowState.Active);
 
         var summary = BuildDemoViewModel();
         summary.WorkflowState = AppWorkflowState.Summary;
-        summary.Status = "Inspectie afgerond";
+        summary.Status = T("Inspectie afgerond", "Inspection complete");
         FillAudit(summary);
         summary.FailedInteractiveTests.Add(new InteractiveTestResult
         {
             Name = "Touchscreen",
             Status = TestStatus.Failed,
-            Notes = "Linkeronderhoek reageert niet, ongeveer 4 cm breed.",
+            Notes = T("Linkeronderhoek reageert niet, ongeveer 4 cm breed.", "The bottom left corner does not respond, roughly 4 cm wide."),
         });
         summary.SkippedInteractiveTests.Add(new InteractiveTestResult
         {
-            Name = "Nabijheidssensor",
+            Name = T("Nabijheidssensor", "Proximity sensor"),
             Status = TestStatus.Skipped,
-            Notes = "De browser weigerde de toegang tot de sensor.",
+            Notes = T("De browser weigerde de toegang tot de sensor.", "The browser refused access to the sensor."),
         });
         Shot(summary, "flow-summary-dark.png", state: AppWorkflowState.Summary);
         Shot(summary, "flow-summary-narrow.png", 850, 620, state: AppWorkflowState.Summary);
 
         var clean = BuildDemoViewModel();
         clean.WorkflowState = AppWorkflowState.Summary;
-        clean.Status = "Inspectie afgerond";
+        clean.Status = T("Inspectie afgerond", "Inspection complete");
         FillAudit(clean);
         Shot(clean, "flow-summary-clean-dark.png", state: AppWorkflowState.Summary);
 
@@ -716,14 +724,14 @@ class ScreenshotRunner
     {
         vm.ComponentChecks.Add(new ComponentStatus
         {
-            Name = "Batterij",
+            Name = T("Batterij", "Battery"),
             SerialRead = "F2LXG0A3Q1G6",
             SerialOriginal = "F2LXG0A3Q1G6",
             Status = ComponentStatusType.Match,
         });
         vm.ComponentChecks.Add(new ComponentStatus
         {
-            Name = "Scherm",
+            Name = T("Scherm", "Display"),
             SerialRead = "C3X9P2LM4K1Q",
             SerialOriginal = "C3X9P2LM4K8Z",
             Status = ComponentStatusType.Mismatch,
@@ -740,7 +748,7 @@ class ScreenshotRunner
             vm.DeviceData.ComponentChecks.Add(check);
         vm.DeviceData.ComponentChecks.Add(new ComponentStatus
         {
-            Name = "Scherm",
+            Name = T("Scherm", "Display"),
             SerialRead = "C3X9P2LM4K1Q",
             SerialOriginal = "C3X9P2LM4K8Z",
             Status = ComponentStatusType.Mismatch,
@@ -748,7 +756,7 @@ class ScreenshotRunner
 
         vm.DefectiveComponents.Add(new ComponentStatus
         {
-            Name = "Scherm",
+            Name = T("Scherm", "Display"),
             SerialRead = "C3X9P2LM4K1Q",
             SerialOriginal = "C3X9P2LM4K8Z",
             Status = ComponentStatusType.Mismatch,
@@ -788,7 +796,7 @@ class ScreenshotRunner
 
     static DeviceData DemoDevice() => new()
     {
-        Model = "13 Pro", Storage = "256GB", Color = "Wit",
+        Model = "13 Pro", Storage = "256GB", Color = ColorKeys.White,
         BatteryHealth = "90", Identifier = "356938035643809", Quality = "A",
     };
 
@@ -800,7 +808,7 @@ class ScreenshotRunner
         };
         vm.Issues.Add(new DiagnosticIssue
         {
-            Title = "Batterij-sensor mist (TG0B)",
+            Title = T("Batterij-sensor mist (TG0B)", "Battery sensor missing (TG0B)"),
             Explanation = "Het toestel 'ziet' de batterij niet (Tigris/batterij-temperatuursensor). Leidt tot reboot-loops.",
             Fix = "Controleer de batterijconnector en batterij; vervang de batterij.",
             Level = Severity.Error,
@@ -906,4 +914,23 @@ class ScreenshotRunner
             return -1;
         }
     }
+
+    /// <summary>The environment variable that chooses the language, for a caller with no spare argument.</summary>
+    const string SHOTS_LANG = "PG_SHOT_LANG";
+
+    /// <summary>The dictionary the run is rendered in.</summary>
+    static string Language = "nl";
+
+    static bool English => Language == "en";
+
+    /// <summary>
+    /// One demo string in both languages.
+    ///
+    /// The demo device is built here rather than by the app, so a Dutch literal
+    /// reaches the screenshot whichever dictionary is loaded. That is invisible in a
+    /// Dutch run and obvious in an English one, which is exactly the sort of thing
+    /// nobody reports and every English reader sees. Anything from a dictionary
+    /// follows the language on its own and needs neither half of this.
+    /// </summary>
+    static string T(string dutch, string english) => English ? english : dutch;
 }

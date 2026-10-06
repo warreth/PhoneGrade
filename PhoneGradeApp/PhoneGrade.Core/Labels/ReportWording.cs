@@ -33,6 +33,18 @@ public sealed record ReportWording
     public required string Unlocked { get; init; }
     public required string LabelLine { get; init; }
 
+    /// <summary>
+    /// The colour as the report should spell it.
+    ///
+    /// The device data holds a <see cref="ColorKeys"/> key rather than a word, so
+    /// somebody has to turn it into one, and that somebody is the caller because this
+    /// is the only layer that knows which languages the app has. The default spells
+    /// the key out with its capitals turned back into spaces, so a caller that
+    /// forgets still produces a readable document rather than an exception.
+    /// </summary>
+    public Func<string?, string> Colour { get; init; } =
+        key => ColorKeys.Word(key, static _ => null);
+
     /// <summary>Column headings for the component table.</summary>
     public required string[] ComponentColumns { get; init; }
 

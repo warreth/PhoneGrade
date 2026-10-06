@@ -146,7 +146,7 @@ int wide = bars.Skip(character * Stride).Take(ElementsPerCharacter).Count(width 
         // elements alone, which is roughly half of a Code39 code: the preview showed
         // a barcode the label file did not contain, and it was the preview an
         // operator would have compared the printed label against.
-        Code39Element[] elements = BarcodeView.Barcode("*356938035643809*");
+        BarcodeElement[] elements = BarcodeView.Barcode("*356938035643809*");
 
         int bars = elements.Count(element => element.IsBar);
         int wideBars = elements.Count(element => element.IsBar && element.Units > Code39.NarrowUnit);
@@ -157,7 +157,7 @@ int wide = bars.Skip(character * Stride).Take(ElementsPerCharacter).Count(width 
 
         // Every other element of a Code39 character is a space, and no two spaces
         // run together, which is what tells a scanner where one character stops.
-        foreach (Code39Element element in elements)
+        foreach (BarcodeElement element in elements)
             Assert.True(element.Units is Code39.NarrowUnit or Code39.WideUnit,
                 $"an element is {element.Units} units, which Code39 does not have");
     }

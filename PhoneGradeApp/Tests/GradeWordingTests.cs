@@ -3,6 +3,7 @@ using PhoneGrade.Core;
 using PhoneGrade.UI.Services;
 using PhoneGrade.UI.ViewModels;
 using Xunit;
+using PhoneGrade.Tests;
 
 namespace PhoneGrade.UI.Tests.Web;
 
@@ -20,6 +21,7 @@ namespace PhoneGrade.UI.Tests.Web;
 /// the CSV and the JSON all carry A, B or C, so the window agreeing with them is
 /// the point; a second spelling on screen is a third thing to keep in step.
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public class GradeWordingTests
 {
     [AvaloniaFact]

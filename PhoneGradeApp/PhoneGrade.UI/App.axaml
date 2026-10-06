@@ -404,6 +404,22 @@
             <Setter Property="CornerRadius" Value="10"/>
         </Style>
 
+        <!-- The one button on a panel that is the whole point of closing. The
+             changelog had a primary button for months and no style for it, so it
+             rendered in the plain default and did not read as the way out. -->
+        <Style Selector="Button.kioskPrimary">
+            <Setter Property="Background" Value="{DynamicResource AccentColor}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Setter Property="CornerRadius" Value="10"/>
+        </Style>
+        <Style Selector="Button.kioskPrimary:pointerover">
+            <Setter Property="Opacity" Value="0.9"/>
+        </Style>
+
         <!-- Icon button (Gear, Close, Refresh) -->
         <Style Selector="Button.iconBtn">
             <Setter Property="Background" Value="Transparent"/>

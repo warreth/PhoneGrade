@@ -255,7 +255,7 @@ public class CopyableValueTests
         {
             Model = "13 Pro",
             Storage = "256GB",
-            Color = "Wit",
+            Color = ColorKeys.White,
             BatteryHealth = "90",
             Identifier = "356938035643809",
             Quality = "A",

@@ -1,26 +1,38 @@
 using System;
 using System.IO;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PhoneGrade.Core;
 
 /// <summary>
-/// What changed in the version that was just installed, kept so the shell can
-/// show it on the next launch.
+/// What changed in the version that is running, so the shell can show it.
 ///
-/// An update replaces the binaries and restarts, so there is no window open at
-/// the moment the new version appears to tell the operator what they now have.
-/// Velopack hands the release notes over during the update; the notes are written
-/// here first and the shell reads them once, on the next start, and clears them.
+/// An update replaces the binaries and restarts, so there is no window open at the
+/// moment the new version appears to tell the operator what they now have. The
+/// release notes are read from the release on GitHub, which is where they are
+/// written from, and cached here so the panel has something to show with no network
+/// and on the next open.
 ///
-/// The file is deliberately plain text rather than an Avalonia type: it is
-/// written by the updater before any UI exists and read after, and it must not
-/// be able to fail to deserialize because a field changed.
+/// The file is deliberately plain text rather than an Avalonia type: it is written
+/// before any UI exists and read after, and it must not be able to fail to
+/// deserialize because a field changed.
 /// </summary>
 public sealed class ReleaseChangelog
 {
+    /// <summary>
+    /// Where the releases live.
+    ///
+    /// The updater needs this to ask whether there is anything newer and the
+    /// changelog needs it to fetch the notes for the version that is running, so
+    /// there is one answer rather than two that can drift apart.
+    /// </summary>
+    public const string RepositoryUrl = "https://github.com/warreth/PhoneGrade";
+
     /// <summary>Version that was installed, as Velopack reported it.</summary>
     [JsonPropertyName("version")]
     public string Version { get; set; } = "";
@@ -135,6 +147,104 @@ public sealed class ReleaseChangelog
         catch (Exception)
         {
             // Best effort. A file that cannot be deleted is overwritten next time.
+        }
+    }
+
+    /// <summary>
+    /// Reads the changelog without clearing it.
+    ///
+    /// <see cref="Take"/> exists because the notes used to be a one-shot message
+    /// about an update that had just happened. Now that the notes come from the
+    /// release on GitHub they answer a question an operator can ask at any time,
+    /// which is "what changed in the build I am running", and that question has to
+    /// be answerable more than once.
+    /// </summary>
+    public static ReleaseChangelog? Read(string? path = null)
+    {
+        string target = path ?? FilePath;
+        try
+        {
+            if (!File.Exists(target)) return null;
+
+            var changelog = JsonSerializer.Deserialize<ReleaseChangelog>(
+                File.ReadAllText(target, Encoding.UTF8), Options);
+
+            return changelog is null || string.IsNullOrWhiteSpace(changelog.Notes) ? null : changelog;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The page a person reads when they want the notes in full.</summary>
+    public static string ReleasePageUrl(string version) =>
+        $"{RepositoryUrl}/releases/tag/v{version.TrimStart('v')}";
+
+    private static readonly HttpClient Shared = new() { Timeout = TimeSpan.FromSeconds(10) };
+
+    /// <summary>
+    /// The release notes for one version, read from the release page itself.
+    ///
+    /// The release body is the canonical copy: the same text is on the GitHub
+    /// release, in the package the update installs, and on the website, and they
+    /// are written from one input by the release workflow. Reading it means the app
+    /// can be asked what it contains on any launch rather than only on the launch
+    /// after an update installed itself, and it means an operator who skipped the
+    /// panel the first time can still get to it.
+    ///
+    /// Nothing is thrown. A machine with no network, a rate limit, a missing tag or
+    /// a release with an empty body all come back as null, and the caller falls back
+    /// to whatever was cached.
+    /// </summary>
+    public static async Task<ReleaseChangelog?> FetchAsync(
+        string? version,
+        HttpMessageHandler? handler = null,
+        CancellationToken cancellation = default)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return null;
+
+        string url = $"{RepositoryUrl.Replace("https://github.com", "https://api.github.com")}"
+            + $"/releases/tags/v{version.Trim().TrimStart('v')}";
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            // GitHub refuses a request with no user agent, and says so with a 403.
+            request.Headers.UserAgent.ParseAdd("PhoneGrade");
+
+            HttpResponseMessage response = handler is null
+                ? await Shared.SendAsync(request, cancellation).ConfigureAwait(false)
+                : await new HttpClient(handler) { Timeout = Shared.Timeout }
+                    .SendAsync(request, cancellation).ConfigureAwait(false);
+
+            using (response)
+            {
+                if (!response.IsSuccessStatusCode) return null;
+
+                string json = await response.Content.ReadAsStringAsync(cancellation).ConfigureAwait(false);
+                using var document = JsonDocument.Parse(json);
+                if (!document.RootElement.TryGetProperty("body", out var body)) return null;
+
+                string notes = Normalise(body.GetString() ?? "");
+                if (notes.Length == 0) return null;
+
+                var changelog = new ReleaseChangelog
+                {
+                    Version = version.Trim().TrimStart('v'),
+                    Notes = notes,
+                    AppliedAt = DateTimeOffset.UtcNow,
+                };
+
+                // Cached so the second open of the panel, and an open with no network,
+                // both still have something to show.
+                Record(changelog.Version, changelog.Notes);
+                return changelog;
+            }
+        }
+        catch (Exception)
+        {
+            return null;
         }
     }
 

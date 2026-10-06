@@ -27,6 +27,16 @@ public sealed record LabelFields
     /// <summary>Colour, or the placeholder while the platform gave none.</summary>
     public required string Color { get; init; }
 
+    /// <summary>
+    /// The colour as the phone reported it, before any wording.
+    ///
+    /// Kept beside <see cref="Color"/> because the two answer different questions. One
+    /// is what goes on paper, which is a word in the operator's language; the other is
+    /// whether the platform said anything at all, and a translated word cannot answer
+    /// that once it has been translated.
+    /// </summary>
+    public required string ColorReported { get; init; }
+
     /// <summary>Installed memory, or the placeholder while the platform gave none.</summary>
     public required string Memory { get; init; }
 
@@ -80,7 +90,7 @@ public sealed record LabelFields
         Identifier != DevicePlaceholders.Identifier
         && Model != DevicePlaceholders.Model
         && Storage != DevicePlaceholders.Storage
-        && Color != DevicePlaceholders.Color
+        && ColorReported != DevicePlaceholders.Color
         && Grade != DevicePlaceholders.Grade
         && PayMethod != DevicePlaceholders.PayMethod
         && Battery != DevicePlaceholders.Battery;
@@ -98,11 +108,19 @@ public sealed record LabelFields
     /// the switch the marker is on the label whether the operator wants it or not.
     /// </param>
     /// <param name="faults">What is wrong with the phone, for the label to carry.</param>
+    /// <param name="colour">
+    /// Turns the colour key into a word for the paper.
+    ///
+    /// Handed in rather than looked up here because this layer sits below the app's
+    /// dictionaries, and a label that said "Wit" while the window said "White" is the
+    /// thing this parameter exists to stop. Left out, the key is printed as it stands.
+    /// </param>
     public static LabelFields From(
         DeviceData data,
         bool flagLowBattery = true,
         LabelFaults? faults = null,
-        LabelContent? content = null)
+        LabelContent? content = null,
+        Func<string?, string>? colour = null)
     {
         (string battery, bool low) = BatteryField(data.BatteryHealth, flagLowBattery);
         return new LabelFields
@@ -111,7 +129,8 @@ public sealed record LabelFields
             BatteryIsLow = low,
             Grade = Clean(data.Quality, DevicePlaceholders.Grade),
             Identifier = Clean(data.Identifier, DevicePlaceholders.Identifier),
-            Color = Clean(data.Color, DevicePlaceholders.Color),
+            Color = colour?.Invoke(data.Color) ?? Clean(data.Color, DevicePlaceholders.Color),
+            ColorReported = Clean(data.Color, DevicePlaceholders.Color),
             Memory = Clean(data.Memory, DevicePlaceholders.Memory),
             Model = Clean(data.Model, DevicePlaceholders.Model),
             PayMethod = Clean(data.PayMethod, DevicePlaceholders.PayMethod),

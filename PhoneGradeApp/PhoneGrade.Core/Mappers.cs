@@ -57,38 +57,46 @@ public static partial class Mappers
         ["iPod5,1"] = "iPodTouch5", ["iPod7,1"] = "iPodTouch6", ["iPod9,1"] = "iPodTouch7",
     };
 
+    /// <summary>
+    /// Every colour a phone can report, reduced to one of the keys in <see cref="ColorKeys"/>.
+    ///
+    /// The value is a key rather than a word so that nothing language specific reaches
+    /// the device data. A raw value this table does not carry still lands on the model as
+    /// itself, and the screen and the label then show it unchanged, which beats naming a
+    /// colour wrongly.
+    /// </summary>
     private static readonly Dictionary<string, string> Colors = new()
     {
-        ["#3b3b3c"] = "Zwart", ["#ffffff"] = "Wit", ["#ff3b30"] = "Rood", ["#ff9500"] = "Oranje",
-        ["#ffcc00"] = "Goud", ["#4cd964"] = "Groen", ["#5ac8fa"] = "Blauw", ["#007aff"] = "Lichtblauw",
-        ["#5856d6"] = "Paars", ["#ff2d55"] = "Roze", ["#8e8e93"] = "Grijs", ["#c69c6d"] = "Goud",
-        ["#d0d1d2"] = "Zilver", ["1"] = "Zwart", ["2"] = "Wit", ["3"] = "Goud", ["4"] = "Roze",
-        ["5"] = "Grijs", ["6"] = "Rood", ["7"] = "Goud", ["8"] = "Oranje", ["9"] = "Blauw",
-        ["17"] = "Paars", ["18"] = "Groen",
+        ["#3b3b3c"] = ColorKeys.Black, ["#ffffff"] = ColorKeys.White, ["#ff3b30"] = ColorKeys.Red, ["#ff9500"] = ColorKeys.Orange,
+        ["#ffcc00"] = ColorKeys.Gold, ["#4cd964"] = ColorKeys.Green, ["#5ac8fa"] = ColorKeys.Blue, ["#007aff"] = ColorKeys.LightBlue,
+        ["#5856d6"] = ColorKeys.Purple, ["#ff2d55"] = ColorKeys.Pink, ["#8e8e93"] = ColorKeys.Grey, ["#c69c6d"] = ColorKeys.Gold,
+        ["#d0d1d2"] = ColorKeys.Silver, ["1"] = ColorKeys.Black, ["2"] = ColorKeys.White, ["3"] = ColorKeys.Gold, ["4"] = ColorKeys.Pink,
+        ["5"] = ColorKeys.Grey, ["6"] = ColorKeys.Red, ["7"] = ColorKeys.Gold, ["8"] = ColorKeys.Orange, ["9"] = ColorKeys.Blue,
+        ["17"] = ColorKeys.Purple, ["18"] = ColorKeys.Green,
         
         // Common raw Apple color strings
-        ["black"] = "Zwart", ["white"] = "Wit", ["gold"] = "Goud", ["silver"] = "Zilver",
-        ["rose gold"] = "Rosé Goud", ["space gray"] = "Spacegrijs", ["space grey"] = "Spacegrijs",
-        ["midnight green"] = "Middernachtgroen", ["pacific blue"] = "Pacifisch Blauw",
-        ["graphite"] = "Grafiet", ["sierra blue"] = "Sierra Blauw", ["alpine green"] = "Alpengroen",
-        ["midnight"] = "Middernacht", ["starlight"] = "Sterrenlicht", ["blue"] = "Blauw",
-        ["purple"] = "Paars", ["red"] = "Rood", ["green"] = "Groen", ["yellow"] = "Goud",
-        ["geel"] = "Goud",
-        ["pink"] = "Roze", ["coral"] = "Koraal", ["product(red)"] = "Rood",
+        ["black"] = ColorKeys.Black, ["white"] = ColorKeys.White, ["gold"] = ColorKeys.Gold, ["silver"] = ColorKeys.Silver,
+        ["rose gold"] = ColorKeys.RoseGold, ["space gray"] = ColorKeys.SpaceGrey, ["space grey"] = ColorKeys.SpaceGrey,
+        ["midnight green"] = ColorKeys.MidnightGreen, ["pacific blue"] = ColorKeys.PacificBlue,
+        ["graphite"] = ColorKeys.Graphite, ["sierra blue"] = ColorKeys.SierraBlue, ["alpine green"] = ColorKeys.AlpineGreen,
+        ["midnight"] = ColorKeys.Midnight, ["starlight"] = ColorKeys.Starlight, ["blue"] = ColorKeys.Blue,
+        ["purple"] = ColorKeys.Purple, ["red"] = ColorKeys.Red, ["green"] = ColorKeys.Green, ["yellow"] = ColorKeys.Gold,
+        ["geel"] = ColorKeys.Gold,
+        ["pink"] = ColorKeys.Pink, ["coral"] = ColorKeys.Coral, ["product(red)"] = ColorKeys.Red,
 
         // Plain colour words. Android vendors usually publish a marketing name
         // rather than Apple's raw strings, and those are ordinary words, so they
         // resolve here instead of in a per-vendor list.
-        ["obsidian"] = "Obsidiaan", ["porcelain"] = "Porselein", ["hazel"] = "Hazel",
-        ["rose"] = "Rosé", ["charcoal"] = "Houtskool", ["mint"] = "Mint", ["navy"] = "Navy",
-        ["sage"] = "Sage", ["olive"] = "Olijf", ["cream"] = "Crème", ["beige"] = "Beige",
-        ["brown"] = "Bruin", ["orange"] = "Oranje", ["teal"] = "Blauwgroen",
-        ["lilac"] = "Lila", ["lavender"] = "Lavendel", ["violet"] = "Violet",
-        ["titanium"] = "Titaan", ["sand"] = "Zand", ["graphite"] = "Grafiet",
-        ["transparent"] = "Transparant", ["clear"] = "Transparant"
+        ["obsidian"] = ColorKeys.Obsidian, ["porcelain"] = ColorKeys.Porcelain, ["hazel"] = ColorKeys.Hazel,
+        ["rose"] = ColorKeys.Rose, ["charcoal"] = ColorKeys.Charcoal, ["mint"] = ColorKeys.Mint, ["navy"] = ColorKeys.Navy,
+        ["sage"] = ColorKeys.Sage, ["olive"] = ColorKeys.Olive, ["cream"] = ColorKeys.Cream, ["beige"] = ColorKeys.Beige,
+        ["brown"] = ColorKeys.Brown, ["orange"] = ColorKeys.Orange, ["teal"] = ColorKeys.Teal,
+        ["lilac"] = ColorKeys.Lilac, ["lavender"] = ColorKeys.Lavender, ["violet"] = ColorKeys.Violet,
+        ["titanium"] = ColorKeys.Titanium, ["sand"] = ColorKeys.Sand, ["graphite"] = ColorKeys.Graphite,
+        ["transparent"] = ColorKeys.Clear, ["clear"] = ColorKeys.Clear
     };
 
-    /// <summary>ProductType (iPhone14,2) → friendly model. Unknown ProductTypes fall back to the raw value.</summary>
+    /// <summary>ProductType (iPhone14,2) to a friendly model. Unknown ProductTypes fall back to the raw value.</summary>
     public static string MapModel(string productType)
     {
         string trimmed = productType.Trim();
@@ -159,11 +167,16 @@ public static partial class Mappers
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(trimmed.ToLowerInvariant());
     }
 
-    /// <summary>DeviceEnclosureColor raw value or hex → Dutch color name.</summary>
+    /// <summary>
+    /// DeviceEnclosureColor raw value or hex, to the colour key.
+    ///
+    /// A raw value that matches nothing becomes <see cref="ColorKeys.Unknown"/> rather
+    /// than a guess, because a wrong colour on a label is worse than an unnamed one.
+    /// </summary>
     public static string MapColor(string raw)
     {
         string trimmed = raw.Trim().ToLowerInvariant();
-        return Colors.TryGetValue(trimmed, out var c) ? c : "Onbekend";
+        return Colors.TryGetValue(trimmed, out var c) ? c : ColorKeys.Unknown;
     }
 
     // Android colour properties carry a three letter code, not a word. A title case
@@ -171,15 +184,15 @@ public static partial class Mappers
     // other code is passed through unchanged rather than guessed at.
     private static readonly Dictionary<string, string> AndroidColorCodes = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["WHT"] = "Wit", ["BLK"] = "Zwart", ["BLU"] = "Blauw", ["PNG"] = "Roze", ["RSE"] = "Rosé",
-        ["ORG"] = "Oranje", ["GRN"] = "Groen", ["GRY"] = "Grijs", ["MNT"] = "Mint", ["HZL"] = "Hazel",
-        ["OBS"] = "Obsidiaan", ["POR"] = "Porselein", ["RED"] = "Rood", ["BRN"] = "Bruin",
-        ["GLD"] = "Goud", ["SLV"] = "Zilver", ["TAN"] = "Beige", ["PUR"] = "Paars", ["CRM"] = "Crème",
-        ["BLU2"] = "Blauw", ["NVY"] = "Navy", ["SGE"] = "Sage", ["OLV"] = "Olijf", ["SKY"] = "Lichtblauw",
+        ["WHT"] = ColorKeys.White, ["BLK"] = ColorKeys.Black, ["BLU"] = ColorKeys.Blue, ["PNG"] = ColorKeys.Pink, ["RSE"] = ColorKeys.Rose,
+        ["ORG"] = ColorKeys.Orange, ["GRN"] = ColorKeys.Green, ["GRY"] = ColorKeys.Grey, ["MNT"] = ColorKeys.Mint, ["HZL"] = ColorKeys.Hazel,
+        ["OBS"] = ColorKeys.Obsidian, ["POR"] = ColorKeys.Porcelain, ["RED"] = ColorKeys.Red, ["BRN"] = ColorKeys.Brown,
+        ["GLD"] = ColorKeys.Gold, ["SLV"] = ColorKeys.Silver, ["TAN"] = ColorKeys.Beige, ["PUR"] = ColorKeys.Purple, ["CRM"] = ColorKeys.Cream,
+        ["BLU2"] = ColorKeys.Blue, ["NVY"] = ColorKeys.Navy, ["SGE"] = ColorKeys.Sage, ["OLV"] = ColorKeys.Olive, ["SKY"] = ColorKeys.LightBlue,
     };
 
     /// <summary>
-    /// Android colour property → Dutch colour name, or the NOCOLOR placeholder when
+    /// Android colour property, to the colour key, or the NOCOLOR placeholder when
     /// the device exposes no colour. A full word goes through the normal colour
     /// table first, so "Obsidian" and "black" both resolve without an entry here.
     /// </summary>

@@ -43,12 +43,12 @@
         </Border>
 
         <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
-            <Grid ColumnDefinitions="Auto,28,*" Margin="24,20,24,16" MaxWidth="1060"
-                  HorizontalAlignment="Center">
+            <Grid ColumnDefinitions="*,1,*" Margin="24,20,24,16" MaxWidth="1100"
+                  HorizontalAlignment="Stretch">
 
                 <!-- ============ What will come out of the printer ============ -->
-                <Border Grid.Column="0" Classes="previewColumn" Padding="12,0">
-                    <StackPanel Spacing="12">
+                <Border Grid.Column="0" Classes="previewColumn" Padding="0,0,24,0">
+                    <StackPanel Spacing="14">
 
                         <TextBlock Classes="cardTitle" Text="{DynamicResource Export_PreviewTitle}"/>
 
@@ -160,10 +160,9 @@
                             is no longer a picture of the physical label, which is
                             the thing it is being asked to be.
                         -->
-                        <StackPanel Spacing="3">
-                            <TextBlock Classes="settingDesc" TextWrapping="Wrap" FontSize="11"
-                                       Text="{DynamicResource Export_PreviewNote}"/>
-                            <TextBlock Classes="settingDesc" TextWrapping="Wrap" FontSize="11"
+                        <StackPanel Spacing="4">
+                            <TextBlock Classes="settingDesc" Text="{DynamicResource Export_PreviewNote}"/>
+                            <TextBlock Classes="settingDesc"
                                        Foreground="{DynamicResource WarnColor}"
                                        Text="{DynamicResource Export_PreviewScaled}"
                                        IsVisible="{Binding SheetOverflows}"/>
@@ -174,11 +173,11 @@
                             so the operator sees what the other size would look like
                             before choosing it rather than after.
                         -->
-                        <Border Classes="settingCard" Padding="14">
-                            <StackPanel Spacing="12">
+                        <Border Classes="settingCard">
+                            <StackPanel Spacing="14">
 
-                                <StackPanel Spacing="4">
-                                    <TextBlock Classes="fieldLabel" Text="{DynamicResource Export_Stock}"/>
+                                <StackPanel Spacing="6">
+                                    <TextBlock Classes="fieldCaption" Text="{DynamicResource Export_Stock}"/>
                                     <ComboBox ItemsSource="{Binding Layouts}"
                                               SelectedItem="{Binding Stock}"
                                               HorizontalAlignment="Stretch">
@@ -192,7 +191,7 @@
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                    <TextBlock Classes="settingDesc"
                                                Text="{DynamicResource Export_StockNote}"/>
                                 </StackPanel>
 
@@ -342,8 +341,8 @@
                                     which is why the wording says so rather than
                                     leaving it to be remembered.
                                 -->
-                                <StackPanel Spacing="4">
-                                    <TextBlock Classes="fieldLabel"
+                                <StackPanel Spacing="8">
+                                    <TextBlock Classes="fieldCaption"
                                                Text="{DynamicResource Export_LabelShowTitle}"/>
                                     <CheckBox IsChecked="{Binding LabelShowBatteryCycles}"
                                               Content="{DynamicResource Export_LabelShowCycles}"/>
@@ -353,9 +352,9 @@
                                               Content="{DynamicResource Export_LabelShowLocks}"/>
                                 </StackPanel>
 
-                                <StackPanel Spacing="4">
+                                <StackPanel Spacing="6">
                                     <Grid ColumnDefinitions="*,Auto">
-                                        <TextBlock Classes="fieldLabel" Text="{DynamicResource Export_Printer}"
+                                        <TextBlock Classes="fieldCaption" Text="{DynamicResource Export_Printer}"
                                                    VerticalAlignment="Center"/>
                                         <Button Grid.Column="1" Classes="headerBtn" FontSize="12"
                                                 Padding="8,4"
@@ -376,14 +375,14 @@
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="vm:PrinterOption">
                                                 <StackPanel Spacing="1">
-                                                    <TextBlock Text="{Binding Name}" FontSize="12"/>
-                                                    <TextBlock Text="{Binding Detail}" Classes="dim" FontSize="10"/>
+                                                    <TextBlock Text="{Binding Name}" FontSize="13"/>
+                                                    <TextBlock Text="{Binding Detail}" Classes="valueHint"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
 
-                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap" FontSize="11"
+                                    <TextBlock Classes="settingDesc"
                                                Text="{DynamicResource Export_NoPrinters}"
                                                IsVisible="{Binding !Printers.Count}"/>
                                 </StackPanel>
@@ -440,16 +439,16 @@
                         A failure panel that replaces the list reads as "nothing was
                         written".
                     -->
-                    <Border Classes="settingCard" Padding="14" IsVisible="{Binding HasResults}">
-                        <StackPanel Spacing="10">
+                    <Border Classes="settingCard" IsVisible="{Binding HasResults}">
+                        <StackPanel Spacing="12">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock Classes="cardTitle" VerticalAlignment="Center"
                                            Text="{DynamicResource Export_ResultsTitle}"/>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
                                             VerticalAlignment="Center">
-                                    <TextBlock Classes="dim" FontSize="11"
+                                    <TextBlock Classes="valueHint"
                                                Text="{DynamicResource Export_FolderLabel}"/>
-                                    <TextBlock FontSize="11" FontWeight="SemiBold" MaxWidth="220"
+                                    <TextBlock Classes="valueText" MaxWidth="220"
                                                TextTrimming="CharacterEllipsis"
                                                Text="{Binding FolderName}"/>
                                 </StackPanel>
@@ -461,11 +460,11 @@
                                         <Border Classes="reportRow" Margin="0,0,0,6"
                                                 Background="{Binding Succeeded, Converter={x:Static conv:ExportResultBrushConverter.Instance}}">
                                             <Grid ColumnDefinitions="*,Auto,Auto">
-                                                <StackPanel Grid.Column="0" Spacing="1">
+                                                <StackPanel Grid.Column="0" Spacing="2">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                                        <TextBlock FontSize="12" FontWeight="SemiBold"
+                                                        <TextBlock Classes="valueText"
                                                                    Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
-                                                        <TextBlock Classes="dim" FontSize="11"
+                                                        <TextBlock Classes="valueHint"
                                                                    VerticalAlignment="Center"
                                                                    Text="{Binding FileName}"
                                                                    IsVisible="{Binding Succeeded}"/>
@@ -477,11 +476,11 @@
                                                         belong to, never as a line
                                                         somewhere else.
                                                     -->
-                                                    <TextBlock TextWrapping="Wrap" FontSize="11"
+                                                    <TextBlock TextWrapping="Wrap" Classes="settingDesc"
                                                                Foreground="{DynamicResource DangerColor}"
                                                                Text="{Binding Outcome.Problem}"
                                                                IsVisible="{Binding Outcome.Problem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                                    <TextBlock TextWrapping="Wrap" FontSize="11"
+                                                    <TextBlock TextWrapping="Wrap" Classes="settingDesc"
                                                                Foreground="{DynamicResource WarnColor}"
                                                                Text="{Binding Outcome.Note}"
                                                                IsVisible="{Binding Outcome.Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
@@ -521,7 +520,7 @@
 
         <!-- One bar: what was done, and the two buttons that do things. -->
         <Border Grid.Row="2" Classes="actionBar">
-            <Grid ColumnDefinitions="*,Auto,Auto" MaxWidth="1060" HorizontalAlignment="Center">
+            <Grid ColumnDefinitions="*,Auto,Auto" MaxWidth="1100" HorizontalAlignment="Center">
                 <!--
                     The status line comes first and takes what is left, so a long
                     message is read rather than pushed off the bar. The error colour
@@ -530,25 +529,25 @@
                     wrongly.
                 -->
                 <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
-                    <TextBlock FontSize="12" TextWrapping="Wrap" Text="{Binding Status}"
+                    <TextBlock Classes="valueText" TextWrapping="Wrap" Text="{Binding Status}"
                                Foreground="{Binding StatusIsError, Converter={x:Static conv:ExportStatusBrushConverter.Instance}}"/>
-                    <TextBlock Classes="dim" FontSize="11" IsVisible="{Binding IsBusy}"
+                    <TextBlock Classes="valueHint" IsVisible="{Binding IsBusy}"
                                Text="{DynamicResource Export_Busy}"/>
                 </StackPanel>
 
-                <Button Grid.Column="1" Classes="kioskSecondary" Margin="0,0,10,0" Padding="16,10"
+                <Button Grid.Column="1" Classes="kioskSecondary" Margin="0,0,10,0"
                         HorizontalContentAlignment="Center"
                         Content="{DynamicResource Export_BtnOpenFolder}"
                         Command="{Binding OpenFolderCommand}"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
-                    <Button Classes="kioskSecondary" Padding="18,10"
+                    <Button Classes="kioskSecondary"
                             HorizontalContentAlignment="Center"
                             IsEnabled="{Binding !IsBusy}"
                             Content="{DynamicResource Export_BtnPrintLabel}"
                             Command="{Binding PrintLabelCommand}"/>
 
-                    <Button Classes="kioskPrint" FontSize="14" Padding="22,12"
+                    <Button Classes="kioskPrint" FontSize="16"
                             HorizontalContentAlignment="Center"
                             IsEnabled="{Binding CanExport}"
                             Content="{DynamicResource Export_BtnWrite}"

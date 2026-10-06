@@ -100,6 +100,7 @@ public static class ReportWordingBuilder
         Locked = Say(locked, "Locked"),
         Unlocked = Say(unlocked, "Unlocked"),
         LabelLine = Say(labelLine, "Label"),
+        Colour = ColorWording.Word,
         ComponentColumns = [.. componentColumns.Select(key => Say(key, "Column"))],
         TestColumns = [.. testColumns.Select(key => Say(key, "Column"))],
     };

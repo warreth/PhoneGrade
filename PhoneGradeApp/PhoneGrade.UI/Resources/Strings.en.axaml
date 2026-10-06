@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     
     <!-- Window Title -->
@@ -697,5 +697,58 @@
     <x:String x:Key="Diag_ResolveUsbmuxdLinux">Run: 'sudo systemctl start usbmuxd' or 'sudo usbmuxd -f -v'.</x:String>
     <x:String x:Key="Diag_ResolveUsbCable">Check the USB cable, try another USB port directly on the computer (not a hub), unlock the phone and tap 'Trust' if asked.</x:String>
 
+    <!-- Colour names. The device data holds the key, and each of these is one
+         key in one language. The Dutch values are the ones the app shipped
+         with, moved here so nothing on screen or on paper has to be Dutch by
+         accident. -->
+    <x:String x:Key="Color_Black">Black</x:String>
+    <x:String x:Key="Color_White">White</x:String>
+    <x:String x:Key="Color_Red">Red</x:String>
+    <x:String x:Key="Color_Orange">Orange</x:String>
+    <x:String x:Key="Color_Gold">Gold</x:String>
+    <x:String x:Key="Color_Green">Green</x:String>
+    <x:String x:Key="Color_Blue">Blue</x:String>
+    <x:String x:Key="Color_LightBlue">Light blue</x:String>
+    <x:String x:Key="Color_Purple">Purple</x:String>
+    <x:String x:Key="Color_Pink">Pink</x:String>
+    <x:String x:Key="Color_Grey">Grey</x:String>
+    <x:String x:Key="Color_Silver">Silver</x:String>
+    <x:String x:Key="Color_RoseGold">Rose gold</x:String>
+    <x:String x:Key="Color_SpaceGrey">Space grey</x:String>
+    <x:String x:Key="Color_MidnightGreen">Midnight green</x:String>
+    <x:String x:Key="Color_PacificBlue">Pacific blue</x:String>
+    <x:String x:Key="Color_Graphite">Graphite</x:String>
+    <x:String x:Key="Color_SierraBlue">Sierra blue</x:String>
+    <x:String x:Key="Color_AlpineGreen">Alpine green</x:String>
+    <x:String x:Key="Color_Midnight">Midnight</x:String>
+    <x:String x:Key="Color_Starlight">Starlight</x:String>
+    <x:String x:Key="Color_Coral">Coral</x:String>
+    <x:String x:Key="Color_Obsidian">Obsidian</x:String>
+    <x:String x:Key="Color_Porcelain">Porcelain</x:String>
+    <x:String x:Key="Color_Hazel">Hazel</x:String>
+    <x:String x:Key="Color_Rose">Rose</x:String>
+    <x:String x:Key="Color_Charcoal">Charcoal</x:String>
+    <x:String x:Key="Color_Mint">Mint</x:String>
+    <x:String x:Key="Color_Navy">Navy</x:String>
+    <x:String x:Key="Color_Sage">Sage</x:String>
+    <x:String x:Key="Color_Olive">Olive</x:String>
+    <x:String x:Key="Color_Cream">Cream</x:String>
+    <x:String x:Key="Color_Beige">Beige</x:String>
+    <x:String x:Key="Color_Brown">Brown</x:String>
+    <x:String x:Key="Color_Teal">Teal</x:String>
+    <x:String x:Key="Color_Lilac">Lilac</x:String>
+    <x:String x:Key="Color_Lavender">Lavender</x:String>
+    <x:String x:Key="Color_Violet">Violet</x:String>
+    <x:String x:Key="Color_Titanium">Titanium</x:String>
+    <x:String x:Key="Color_Sand">Sand</x:String>
+    <x:String x:Key="Color_Clear">Clear</x:String>
+    <x:String x:Key="Color_Unknown">Unknown</x:String>
+
+    <x:String x:Key="Changelog_Loading">Reading the release notes.</x:String>
+    <x:String x:Key="Changelog_None">No notes for this version, and no connection to fetch them. The release page has the same list.</x:String>
+    <x:String x:Key="Changelog_Release">See it on GitHub</x:String>
+    <x:String x:Key="Changelog_CardTitle">What changed in this version</x:String>
+    <x:String x:Key="Changelog_CardDesc">The notes from the release, read from GitHub.</x:String>
+    <x:String x:Key="Changelog_Open">Show what changed</x:String>
 </ResourceDictionary>
 

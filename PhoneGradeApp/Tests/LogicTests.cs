@@ -274,7 +274,7 @@ public class ParsersTests
         Assert.Equal("356938035643810", data.Imei2);
 
         // The three values that used to come out as placeholders.
-        Assert.Equal("Wit", data.Color);
+        Assert.Equal(ColorKeys.White, data.Color);
         Assert.Equal("128GB", data.Storage);
         Assert.Equal("12GB", data.Memory);
 
@@ -385,7 +385,7 @@ public class ParsersTests
 
         var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
 
-        Assert.Equal("Wit", data.Color);
+        Assert.Equal(ColorKeys.White, data.Color);
         Assert.Equal("128GB", data.Storage);
         Assert.Equal("NOBATT", data.BatteryHealth);
     }
@@ -822,12 +822,12 @@ public class MappersTests
     }
 
     [Theory]
-    [InlineData("WHT", "Wit")]        // the code a Pixel 8 Pro actually reports
-    [InlineData("BLK", "Zwart")]
-    [InlineData("wht", "Wit")]        // case does not matter
-    [InlineData("OBS", "Obsidiaan")]
-    [InlineData("MNT", "Mint")]
-    [InlineData("HZL", "Hazel")]
+    [InlineData("WHT", ColorKeys.White)]        // the code a Pixel 8 Pro actually reports
+    [InlineData("BLK", ColorKeys.Black)]
+    [InlineData("wht", ColorKeys.White)]        // case does not matter
+    [InlineData("OBS", ColorKeys.Obsidian)]
+    [InlineData("MNT", ColorKeys.Mint)]
+    [InlineData("HZL", ColorKeys.Hazel)]
     public void AndroidColor_MapsTheVendorCode(string raw, string expected)
         => Assert.Equal(expected, Mappers.MapAndroidColor(raw));
 
@@ -836,9 +836,9 @@ public class MappersTests
     {
         // Some vendors publish the marketing name instead of a code, and those go
         // through the normal colour table first.
-        Assert.Equal("Obsidiaan", Mappers.MapAndroidColor("obsidian"));
-        Assert.Equal("Zwart", Mappers.MapAndroidColor("black"));
-        Assert.Equal("Roze", Mappers.MapAndroidColor("pink"));
+        Assert.Equal(ColorKeys.Obsidian, Mappers.MapAndroidColor("obsidian"));
+        Assert.Equal(ColorKeys.Black, Mappers.MapAndroidColor("black"));
+        Assert.Equal(ColorKeys.Pink, Mappers.MapAndroidColor("pink"));
     }
 
     [Fact]
@@ -1010,16 +1010,16 @@ public class MappersTests
         => Assert.Equal(expected, Mappers.IsAndroidProductType(productType));
 
     [Theory]
-    [InlineData("#ffffff", "Wit")]
-    [InlineData("#3B3B3C", "Zwart")] // case-insensitive
-    [InlineData("3", "Goud")]
-    [InlineData("18", "Groen")]
+    [InlineData("#ffffff", ColorKeys.White)]
+    [InlineData("#3B3B3C", ColorKeys.Black)] // case-insensitive
+    [InlineData("3", ColorKeys.Gold)]
+    [InlineData("18", ColorKeys.Green)]
     public void MapColor_Works(string raw, string expected)
         => Assert.Equal(expected, Mappers.MapColor(raw));
 
     [Fact]
-    public void MapColor_UnknownReturnsOnbekend()
-        => Assert.Equal("Onbekend", Mappers.MapColor("#abcdef"));
+    public void MapColor_UnknownBecomesTheUnknownKey()
+        => Assert.Equal(ColorKeys.Unknown, Mappers.MapColor("#abcdef"));
 
     [Theory]
     [InlineData(30_000_000_000, "32GB")]
@@ -1087,12 +1087,12 @@ public class MappersTests
     }
 
     [Theory]
-    [InlineData("yellow", "Goud")]
-    [InlineData("Geel", "Goud")]
-    [InlineData("gold", "Goud")]
-    [InlineData("7", "Goud")]
-    [InlineData("#ffcc00", "Goud")]
-    public void MapColor_YellowAndGoldVariations_ReturnGoud(string input, string expected)
+    [InlineData("yellow", ColorKeys.Gold)]
+    [InlineData("Geel", ColorKeys.Gold)]
+    [InlineData("gold", ColorKeys.Gold)]
+    [InlineData("7", ColorKeys.Gold)]
+    [InlineData("#ffcc00", ColorKeys.Gold)]
+    public void MapColor_YellowAndGoldVariations_ReturnTheGoldKey(string input, string expected)
     {
         Assert.Equal(expected, Mappers.MapColor(input));
     }
@@ -1149,13 +1149,13 @@ public class MappersTests
     }
 
     [Theory]
-    [InlineData("gold", "Goud")]
-    [InlineData("silver", "Zilver")]
-    [InlineData("space gray", "Spacegrijs")]
-    [InlineData("rose gold", "Rosé Goud")]
-    [InlineData("midnight", "Middernacht")]
-    [InlineData("starlight", "Sterrenlicht")]
-    public void MapColor_MapsAppleColorsAccurately(string raw, string expected)
+    [InlineData("gold", ColorKeys.Gold)]
+    [InlineData("silver", ColorKeys.Silver)]
+    [InlineData("space gray", ColorKeys.SpaceGrey)]
+    [InlineData("rose gold", ColorKeys.RoseGold)]
+    [InlineData("midnight", ColorKeys.Midnight)]
+    [InlineData("starlight", ColorKeys.Starlight)]
+    public void MapColor_MapsAppleColorsToTheirKeys(string raw, string expected)
     {
         Assert.Equal(expected, Mappers.MapColor(raw));
     }
@@ -1376,7 +1376,7 @@ public class AuditLogServiceTests : IDisposable
             DeviceId = "00008110-001234567890",
             Model = "13Pro",
             ProductType = "iPhone14,2",
-            Color = "Wit",
+            Color = ColorKeys.White,
             Storage = "256GB",
             BatteryHealth = "94",
             Quality = "A",

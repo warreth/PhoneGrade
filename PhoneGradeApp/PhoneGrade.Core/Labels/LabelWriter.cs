@@ -52,6 +52,11 @@ public static class LabelWriter
     /// written in the language the operator is working in rather than the
     /// language the code was written in.
     /// </param>
+    /// <param name="Colour">
+    /// Turns the colour key on the device into a word for the paper. Carried on the
+    /// request for the same reason as the report wording, and so that the preview the
+    /// operator reads is built from the same call as the file that gets printed.
+    /// </param>
     /// <param name="Messages">
     /// The sentences the panel shows next to each file: why one did not arrive,
     /// what was noticed about one that did. Same reasoning as the report wording,
@@ -68,7 +73,8 @@ public static class LabelWriter
         bool FlagLowBattery = true,
         LabelContent? Content = null,
         ReportWording? Wording = null,
-        ExportWording? Messages = null)
+        ExportWording? Messages = null,
+        Func<string?, string>? Colour = null)
     {
         public static Request One(ExportFormat format, string? folder = null, string? fileName = null) =>
             new([format], folder, fileName);
@@ -82,7 +88,7 @@ public static class LabelWriter
     public static async Task<Batch> WriteAsync(DeviceData data, Request request, CancellationToken cancellation = default)
     {
         LabelFields fields = LabelFields.From(
-            data, request.FlagLowBattery, content: request.Content);
+            data, request.FlagLowBattery, content: request.Content, colour: request.Colour);
         LabelLayout layout = request.Layout ?? LabelLayout.Address;
 
         string folder = request.Folder is { Length: > 0 } chosen ? chosen : ExportService.ExportDir;
