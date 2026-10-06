@@ -1,210 +1,175 @@
 <div align="center">
-  <img src="PhoneGradeApp/PhoneGrade.UI/Assets/logo.svg" width="120" height="120" alt="PhoneGrade Logo"/>
+  <img src="PhoneGradeApp/PhoneGrade.UI/Assets/logo.svg" width="96" height="96" alt="PhoneGrade"/>
   <h1>PhoneGrade</h1>
-  <p>Professional iPhone & Android hardware inspection and grading system</p>
+  <p><strong>Inspection, grading and documentation for second hand phones.</strong></p>
+  <p>Desktop app for phone shops and refurbishers. Windows, macOS and Linux.</p>
 </div>
 <div align="center">
-  <img src="PhoneGradeApp/PhoneGrade.UI/Assets/logo.svg" width="120" height="120" alt="PhoneGrade Logo"/>
+  <img src="PhoneGradeApp/PhoneGrade.UI/Assets/logo.svg" width="96" height="96" alt="PhoneGrade"/>
   <h1>PhoneGrade</h1>
-  <p>Professional iPhone & Android hardware inspection and grading system</p>
+  <p><strong>Inspection, grading and documentation for second hand phones.</strong></p>
+  <p>Desktop app for phone shops and refurbishers. Windows, macOS and Linux.</p>
 </div>
 
 ---
 ---
 
-## Overview
-## Overview
+## What it does
+## What it does
 
-PhoneGrade is a professional desktop application for comprehensive hardware diagnostics and quality grading of mobile devices. The system combines automated USB detection, diagnostic analysis, and an interactive PWA test suite for thorough device evaluation.
-PhoneGrade is a professional desktop application for comprehensive hardware diagnostics and quality grading of mobile devices. The system combines automated USB detection, diagnostic analysis, and an interactive PWA test suite for thorough device evaluation.
+Plug a phone in over USB. PhoneGrade reads what the handset reports about itself,
+runs eleven interactive hardware tests in the phone's own browser through a QR code,
+gives the device a grade from A to C, then prints a label and a report you can hand
+a customer.
+Plug a phone in over USB. PhoneGrade reads what the handset reports about itself,
+runs eleven interactive hardware tests in the phone's own browser through a QR code,
+gives the device a grade from A to C, then prints a label and a report you can hand
+a customer.
 
-**Key Features:**
-- Automated iOS and Android device detection via USB
-- Hardware diagnostics (battery health, activation status, component verification)
-- Interactive PWA test suite (touchscreen, cameras, sensors, GPS, audio)
-- Automatic grading engine with capability-aware penalties
-- Dymo label generation for inventory management
-**Key Features:**
-- Automated iOS and Android device detection via USB
-- Hardware diagnostics (battery health, activation status, component verification)
-- Interactive PWA test suite (touchscreen, cameras, sensors, GPS, audio)
-- Automatic grading engine with capability-aware penalties
-- Dymo label generation for inventory management
+**Read automatically:** model, serial, storage, memory, battery cycles and health,
+IMEI, activation lock and Find My, carrier and SIM status.
+**Read automatically:** model, serial, storage, memory, battery cycles and health,
+IMEI, activation lock and Find My, carrier and SIM status.
+
+**Original parts on iOS:** nine components compared against the factory values the
+phone publishes about itself. **Integrity on Android:** bootloader, vbmeta, system
+image, warranty bit and factory reset protection.
+**Original parts on iOS:** nine components compared against the factory values the
+phone publishes about itself. **Integrity on Android:** bootloader, vbmeta, system
+image, warranty bit and factory reset protection.
+
+**Eleven interactive tests:** touchscreen coverage across 112 cells, force touch,
+display and dead pixels, rotation, earpiece and loudspeaker, microphone, SIM and
+calling, every camera lens, motion sensors, GPS, vibration.
+**Eleven interactive tests:** touchscreen coverage across 112 cells, force touch,
+display and dead pixels, rotation, earpiece and loudspeaker, microphone, SIM and
+calling, every camera lens, motion sensors, GPS, vibration.
+
+**Output:** DYMO labels, label PDF, full inspection report as PDF, CSV and JSON
+exports, and a local audit record per inspection.
+**Output:** DYMO labels, label PDF, full inspection report as PDF, CSV and JSON
+exports, and a local audit record per inspection.
+
+## It reports what it could not read
+## It reports what it could not read
+
+A grading tool that guesses is how a shop ends up selling a bad phone. A refused
+read is reported as refused, never as an empty field and never as a pass. A denied
+permission is a choice, not a defect. Grade A is automatically lowered to B when a
+phone is missing a hardware API it advertises.
+A grading tool that guesses is how a shop ends up selling a bad phone. A refused
+read is reported as refused, never as an empty field and never as a pass. A denied
+permission is a choice, not a defect. Grade A is automatically lowered to B when a
+phone is missing a hardware API it advertises.
+
+## Pricing
+## Pricing
+
+| Plan | Price | What you get |
+| --- | --- | --- |
+| Free | Free, forever | 10 scans, no account needed |
+| Pro | EUR 400 per year | Unlimited scans on every device, every station |
+| Custom | On request | Volume terms and invoicing |
+| Plan | Price | What you get |
+| --- | --- | --- |
+| Free | Free, forever | 10 scans, no account needed |
+| Pro | EUR 400 per year | Unlimited scans on every device, every station |
+| Custom | On request | Volume terms and invoicing |
+
+One price, not a bill per check. Nothing is metered: testing a device again because
+you are unsure costs nothing. IMEI, blacklist, carrier lock and Knox lookups are not
+included and are not resold; they come from [imei.info](https://imei.info) with a key
+you hold yourself, and most refurbishers never turn them on.
+One price, not a bill per check. Nothing is metered: testing a device again because
+you are unsure costs nothing. IMEI, blacklist, carrier lock and Knox lookups are not
+included and are not resold; they come from [imei.info](https://imei.info) with a key
+you hold yourself, and most refurbishers never turn them on.
+
+**Website and downloads:** <https://phonegrade.app>
+**Store:** <https://store.phonegrade.app>
+**Questions and feature requests:** hello@phonegrade.app
+**Website and downloads:** <https://phonegrade.app>
+**Store:** <https://store.phonegrade.app>
+**Questions and feature requests:** hello@phonegrade.app
 
 ## Requirements
 ## Requirements
 
-**Desktop Application:**
-- Windows 10/11 or macOS 11+
-- .NET 8 Runtime
-- libimobiledevice tools (iOS)
-- Android Platform Tools (Android)
-**Desktop Application:**
-- Windows 10/11 or macOS 11+
-- .NET 8 Runtime
-- libimobiledevice tools (iOS)
-- Android Platform Tools (Android)
+**Computer:** Windows 10 or 11, macOS 11 or newer, or Linux x64. Needs the .NET 8
+runtime; the macOS and Linux builds are self contained. Android platform tools for
+Android phones, libimobiledevice for iPhones and iPads, both installable from within
+the app.
+**Computer:** Windows 10 or 11, macOS 11 or newer, or Linux x64. Needs the .NET 8
+runtime; the macOS and Linux builds are self contained. Android platform tools for
+Android phones, libimobiledevice for iPhones and iPads, both installable from within
+the app.
 
-**Mobile Devices:**
-- iOS 13+ or Android 8+
-- USB cable connection
-- Device unlocked with "Trust This Computer" confirmed
-**Mobile Devices:**
-- iOS 13+ or Android 8+
-- USB cable connection
-- Device unlocked with "Trust This Computer" confirmed
+**Phone:** iOS 13 or newer or Android 8 or newer, a USB cable, and unlocked with
+"Trust This Computer" confirmed. On Android also USB debugging on and File Transfer
+selected.
+**Phone:** iOS 13 or newer or Android 8 or newer, a USB cable, and unlocked with
+"Trust This Computer" confirmed. On Android also USB debugging on and File Transfer
+selected.
 
-## Android Setup
-## Android Setup
+## Privacy
+## Privacy
 
-1. Enable Developer Options (tap Build Number 7 times)
-2. Enable USB Debugging in Developer Options
-3. Select File Transfer (MTP) mode when connecting
-4. Authorize RSA fingerprint prompt on device screen
-1. Enable Developer Options (tap Build Number 7 times)
-2. Enable USB Debugging in Developer Options
-3. Select File Transfer (MTP) mode when connecting
-4. Authorize RSA fingerprint prompt on device screen
+No cloud service and no telemetry upload. The only local server listens on your own
+machine. Camera and microphone streams never leave the phone being tested, only
+results do. Exports and audit files stay in your local app data folder. IMEI API keys
+stay on the machine that entered them.
+No cloud service and no telemetry upload. The only local server listens on your own
+machine. Camera and microphone streams never leave the phone being tested, only
+results do. Exports and audit files stay in your local app data folder. IMEI API keys
+stay on the machine that entered them.
 
-## PWA Test Suite
-## PWA Test Suite
+## Building from source
+## Building from source
 
-The interactive test suite runs in the device browser and verifies:
-- Touchscreen coverage, including the dead zones along the screen edges
-- Display quality and dead pixels
-- Front and rear cameras with live WebRTC preview
-- Motion sensors (accelerometer, gyroscope)
-- GPS location accuracy
-- Audio (speakers, microphone, earpiece)
-- Vibration motor
-The interactive test suite runs in the device browser and verifies:
-- Touchscreen coverage, including the dead zones along the screen edges
-- Display quality and dead pixels
-- Front and rear cameras with live WebRTC preview
-- Motion sensors (accelerometer, gyroscope)
-- GPS location accuracy
-- Audio (speakers, microphone, earpiece)
-- Vibration motor
+Requires the .NET 8 SDK and Node.
+Requires the .NET 8 SDK and Node.
 
-Results sync automatically to the desktop application with offline fallback.
-Results sync automatically to the desktop application with offline fallback.
+```
+dotnet build PhoneGradeApp/PhoneGrade.sln -c Release
+dotnet test PhoneGradeApp/Tests/Tests.csproj -c Release --no-build
+node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
+```
+```
+dotnet build PhoneGradeApp/PhoneGrade.sln -c Release
+dotnet test PhoneGradeApp/Tests/Tests.csproj -c Release --no-build
+node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
+```
 
-The suite speaks Dutch and English. The desktop passes its own language on the
-address the QR code opens, so the phone and the desk it is being graded on read
-the same words; opened by hand the phone follows its own language settings, and
-falls back to Dutch when neither carries a language this app has.
-The suite speaks Dutch and English. The desktop passes its own language on the
-address the QR code opens, so the phone and the desk it is being graded on read
-the same words; opened by hand the phone follows its own language settings, and
-falls back to Dutch when neither carries a language this app has.
+The desktop app is Avalonia on .NET 8. The interactive test suite is a PWA served by
+a local Kestrel host on port 5055, reached from the phone over a USB loopback tunnel
+where the platform allows it and a secure tunnel where it does not. The suite speaks
+Dutch and English, and follows the language the desktop passes it, so the phone and
+the desk read the same words.
+The desktop app is Avalonia on .NET 8. The interactive test suite is a PWA served by
+a local Kestrel host on port 5055, reached from the phone over a USB loopback tunnel
+where the platform allows it and a secure tunnel where it does not. The suite speaks
+Dutch and English, and follows the language the desktop passes it, so the phone and
+the desk read the same words.
 
-## Free Tier and Pro
-## Free Tier and Pro
+The browser suite has its own screenshot tool, run by hand rather than as part of the
+test suite, which renders the real windows to PNG through Avalonia headless with Skia
+and seeds demo view models so screens show content without hardware attached:
+The browser suite has its own screenshot tool, run by hand rather than as part of the
+test suite, which renders the real windows to PNG through Avalonia headless with Skia
+and seeds demo view models so screens show content without hardware attached:
 
-The desktop application includes ten free scans. The counter is kept encrypted in
-the local settings directory, and a scan is refused once the ten are spent until a
-Pro license is activated. Activation validates the key against Lemon Squeezy and
-only accepts keys sold for this product; the pricing page behind the application
-links is the single source for what the paid plan costs.
-The desktop application includes ten free scans. The counter is kept encrypted in
-the local settings directory, and a scan is refused once the ten are spent until a
-Pro license is activated. Activation validates the key against Lemon Squeezy and
-only accepts keys sold for this product; the pricing page behind the application
-links is the single source for what the paid plan costs.
+```
+dotnet run --project PhoneGradeApp/Tests -c Release --no-build -- <outputDir> [section] [en|nl]
+```
+```
+dotnet run --project PhoneGradeApp/Tests -c Release --no-build -- <outputDir> [section] [en|nl]
+```
 
-## Reading a phone
-## Reading a phone
+`section` is one of `main`, `lic`, `flow`, `settings`, or omitted for all. It writes
+about forty shots in both themes, at kiosk and narrow sizes, with `en` or `nl` as the
+interface language.
+`section` is one of `main`, `lic`, `flow`, `settings`, or omitted for all. It writes
+about forty shots in both themes, at kiosk and narrow sizes, with `en` or `nl` as the
+interface language.
 
-The desktop reads what the handset will tell it and nothing more. Where a phone
-refuses a question, the report says the value was withheld instead of showing an
-empty field, because a phone that withholds a value and a phone that has none
-should not look the same on a grading sheet.
-The desktop reads what the handset will tell it and nothing more. Where a phone
-refuses a question, the report says the value was withheld instead of showing an
-empty field, because a phone that withholds a value and a phone that has none
-should not look the same on a grading sheet.
-
-On iOS 15 and later the domains that carry component serials answer with an empty
-property list, so the per-part audit on a recent iPhone reports what it can and
-leaves the rest unknown. The battery figures still come through, as do the model,
-the storage, the IMEI and the board serial.
-On iOS 15 and later the domains that carry component serials answer with an empty
-property list, so the per-part audit on a recent iPhone reports what it can and
-leaves the rest unknown. The battery figures still come through, as do the model,
-the storage, the IMEI and the board serial.
-
-Android exposes no per-part serials at all, so its audit checks what a handset
-always publishes: whether the bootloader is locked, whether the vbmeta partition
-is signed, whether the build carries the manufacturer's signing tag, and the
-warranty fuse where the manufacturer has one. A phone whose bootloader is open
-is reported as not in factory state.
-Android exposes no per-part serials at all, so its audit checks what a handset
-always publishes: whether the bootloader is locked, whether the vbmeta partition
-is signed, whether the build carries the manufacturer's signing tag, and the
-warranty fuse where the manufacturer has one. A phone whose bootloader is open
-is reported as not in factory state.
-
-## Running the tests
-## Running the tests
-
-    dotnet test PhoneGradeApp/Tests/Tests.csproj
-    dotnet test PhoneGradeApp/Tests/Tests.csproj
-
-The parsers are tested against recorded output from real handsets, kept in
-`PhoneGradeApp/Tests/Fixtures/live`, because a handset answers in ways sample
-output written by hand does not: an iPhone that refuses a domain and returns a
-warning on stderr, an Android build that refuses its own battery counters. The
-identifiers in those captures are substituted, and the shape each one keeps is
-what the parsers are checked against. Re-record them with:
-The parsers are tested against recorded output from real handsets, kept in
-`PhoneGradeApp/Tests/Fixtures/live`, because a handset answers in ways sample
-output written by hand does not: an iPhone that refuses a domain and returns a
-warning on stderr, an Android build that refuses its own battery counters. The
-identifiers in those captures are substituted, and the shape each one keeps is
-what the parsers are checked against. Re-record them with:
-
-    PHONEGRADE_CAPTURE=1 dotnet test PhoneGradeApp/Tests/Tests.csproj \
-        --filter FullyQualifiedName~DeviceCaptureTests
-    PHONEGRADE_CAPTURE=1 dotnet test PhoneGradeApp/Tests/Tests.csproj \
-        --filter FullyQualifiedName~DeviceCaptureTests
-
-The browser suite has its own runner:
-The browser suite has its own runner:
-
-    node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
-    node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
-
-Most of the suite runs offline. A few tests talk to the real imei.info gateway
-and need a key of their own: CI reads `IMEI_INFO_API_KEY` from the repository
-secrets, a local run reads the same variable or, failing that,
-`PhoneGradeApp/Tests/.imei-info-key`, which git ignores. Without one, those
-tests report themselves as skipped.
-Most of the suite runs offline. A few tests talk to the real imei.info gateway
-and need a key of their own: CI reads `IMEI_INFO_API_KEY` from the repository
-secrets, a local run reads the same variable or, failing that,
-`PhoneGradeApp/Tests/.imei-info-key`, which git ignores. Without one, those
-tests report themselves as skipped.
-
-An account without credit has every check refused with `Request is too
-expensive.`, so the live tests expect that wording rather than a paid answer,
-and the one test that needs credit to say anything useful skips with the
-reason until the account carries some.
-An account without credit has every check refused with `Request is too
-expensive.`, so the live tests expect that wording rather than a paid answer,
-and the one test that needs credit to say anything useful skips with the
-reason until the account carries some.
-
-The sandbox IMEI numbers imei.info publishes for integration testing get their
-own tests as well. They run against a small server inside the test project that
-answers the way imei.info answers: fixed device data for the three published
-numbers, HTTP 402 for every other one, the gateway's own words when the key is
-not the one it knows, and the account balance behind the account route. That
-keeps the contract covered on a machine with an empty account balance.
-The sandbox IMEI numbers imei.info publishes for integration testing get their
-own tests as well. They run against a small server inside the test project that
-answers the way imei.info answers: fixed device data for the three published
-numbers, HTTP 402 for every other one, the gateway's own words when the key is
-not the one it knows, and the account balance behind the account route. That
-keeps the contract covered on a machine with an empty account balance.
-
-## License
+## Licence
