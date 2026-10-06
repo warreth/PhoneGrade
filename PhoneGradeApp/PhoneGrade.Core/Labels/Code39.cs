@@ -97,4 +97,49 @@ public static class Code39
     /// <summary>Whether every character can be encoded.</summary>
     public static bool CanEncode(string value) =>
         value.All(character => Alphabet.IndexOf(character) >= 0);
+
+    /// <summary>
+    /// The bars and spaces of a value, each with the width it is drawn at.
+    /// </summary>
+    /// <remarks>
+    /// The width matters as much as whether it is a bar. Code39 has three wide
+    /// elements in every nine, and which three is what tells one character from
+    /// another: draw every bar wide and the code is no longer Code39, it is a row
+    /// of stripes a scanner reads as noise. Nine characters of a serial coming back
+    /// as nine wrong ones is worse than no barcode, because the operator files the
+    /// phone under the wrong record.
+    ///
+    /// A wide element is three units and a narrow one is a single unit, which is the
+    /// ratio the standard is read at. A narrow space sits between one character and
+    /// the next; without it two characters run together and the whole value comes
+    /// back as one long run.
+    /// </remarks>
+    public static IEnumerable<Code39Element> Elements(string value)
+    {
+        bool first = true;
+
+        foreach (string pattern in Encode(value))
+        {
+            if (!first) yield return new(false, NarrowUnit);
+
+            for (int i = 0; i < pattern.Length; i++)
+            {
+                bool isBar = i % 2 == 0;
+                yield return new(isBar, pattern[i] == 'W' ? WideUnit : NarrowUnit);
+            }
+
+            first = false;
+        }
+    }
+
+    /// <summary>A narrow element is one unit wide.</summary>
+    public const int NarrowUnit = 1;
+
+    /// <summary>A wide element is three, which is the ratio the standard is read at.</summary>
+    public const int WideUnit = 3;
 }
+
+/// <summary>One bar or space of a Code39 code, and how wide it is drawn.</summary>
+/// <param name="IsBar">Whether there is ink. A space is paper.</param>
+/// <param name="Units">How many narrow elements wide it is.</param>
+public readonly record struct Code39Element(bool IsBar, int Units);

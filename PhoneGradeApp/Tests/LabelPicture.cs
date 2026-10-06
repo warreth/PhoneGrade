@@ -56,6 +56,50 @@ public sealed class LabelPicture : IDisposable
     /// <summary>The whole page's worth of ink.</summary>
     public long Ink() => InkBetween(0d, 1d);
 
+    /// <summary>
+    /// The bands of ink down the page, as a fraction of its height.
+    /// </summary>
+    /// <remarks>
+    /// A row of ink, a gap, a row of ink again: one band per thing printed. This is
+    /// how the label is checked for having all of its lines rather than some of them.
+    /// Counting pixels instead answers a weaker question, because three lines of
+    /// five point type and one line of nine point type carry a similar amount of ink
+    /// and only one of them is a label with the faults on it.
+    ///
+    /// Bands are split on gaps of more than a few pixels, which is closer than two
+    /// pieces of type ever sit and further than the line spacing in this block puts
+    /// them.
+    /// </remarks>
+    public IReadOnlyList<(double Top, double Bottom)> InkBands()
+    {
+        var rows = new List<int>();
+        for (int y = 0; y < _bitmap.Height; y++)
+        {
+            long row = InkBetween((double)y / _bitmap.Height, (double)(y + 1) / _bitmap.Height);
+            if (row > 2) rows.Add(y);
+        }
+
+        if (rows.Count == 0) return [];
+
+        int gap = Math.Max(2, Height / 200);
+        var bands = new List<(double Top, double Bottom)>();
+
+        int start = rows[0];
+        int last = rows[0];
+        foreach (int y in rows.Skip(1))
+        {
+            if (y - last > gap)
+            {
+                bands.Add(((double)start / Height, (double)last / Height));
+                start = y;
+            }
+            last = y;
+        }
+        bands.Add(((double)start / Height, (double)last / Height));
+
+        return bands;
+    }
+
     /// <summary>Whether two renders of the same label are pixel for pixel the same.</summary>
     public bool SameAs(LabelPicture other)
     {

@@ -63,7 +63,9 @@ public static class LabelWriter
         string? FileName = null,
         string? TemplatePath = null,
         LabelLayout? Layout = null,
+        LabelBarcodeMode Barcode = LabelBarcodeMode.Identifier,
         bool FlagLowBattery = true,
+        LabelContent? Content = null,
         ReportWording? Wording = null,
         ExportWording? Messages = null)
     {
@@ -78,7 +80,8 @@ public static class LabelWriter
     /// </summary>
     public static async Task<Batch> WriteAsync(DeviceData data, Request request, CancellationToken cancellation = default)
     {
-        LabelFields fields = LabelFields.From(data, request.FlagLowBattery);
+        LabelFields fields = LabelFields.From(
+            data, request.FlagLowBattery, content: request.Content);
         LabelLayout layout = request.Layout ?? LabelLayout.Address;
 
         string folder = request.Folder is { Length: > 0 } chosen ? chosen : ExportService.ExportDir;
@@ -131,8 +134,8 @@ public static class LabelWriter
         {
             return format switch
             {
-                ExportFormat.DymoLabel => DymoLabel(path, fields, request.TemplatePath, messages),
-                ExportFormat.LabelPdf => LabelPdf(path, fields, layout),
+                ExportFormat.DymoLabel => DymoLabel(path, fields, layout, request.Barcode, request.TemplatePath, messages),
+                ExportFormat.LabelPdf => LabelPdf(path, fields, layout, request.Barcode),
                 ExportFormat.ReportPdf => ReportPdf(path, data, request.Wording),
                 ExportFormat.Json => Json(path, data),
                 ExportFormat.Csv => Csv(path, data),
@@ -157,39 +160,31 @@ public static class LabelWriter
         }
     }
 
-    private static Outcome DymoLabel(string path, LabelFields fields, string? templatePath,
-        ExportWording messages)
+    private static Outcome DymoLabel(string path, LabelFields fields, LabelLayout layout,
+        LabelBarcodeMode mode, string? templatePath, ExportWording messages)
     {
         string template = DymoTemplateFiles.Read(templatePath, messages);
-        DymoFillResult filled = DymoTemplate.Fill(template, fields, messages);
 
-        // The barcode is a second copy of the identifier in a form that has to be
-        // encodable. A serial with a character Code39 cannot carry would either
-        // fail on the printer or, worse, be scanned back as another device.
-        string? barcode = LabelBarcode.Encode(fields.Identifier, out string? barcodeNote, messages);
+        // The template is filled in one pass by the same code that decides what the
+        // barcodes carry, so the .dymo file cannot come out with something on it
+        // that the label PDF and the preview do not also have.
+        DymoFillResult filled = DymoTemplate.Fill(template, fields, layout, mode, messages);
 
-        string text = filled.Text;
-        if (barcode is not null && text.Contains("IDENTIFIER", StringComparison.Ordinal))
-        {
-            text = text.Replace("IDENTIFIER", DymoTemplate.EscapeValue(barcode));
-        }
-
-        File.WriteAllText(path, text, new System.Text.UTF8Encoding(false));
+        File.WriteAllText(path, filled.Text, new System.Text.UTF8Encoding(false));
 
         var notes = new List<string>();
         if (filled.UnfilledFields.Count > 0)
             notes.Add(messages.Say(messages.UnfilledFields, string.Join(", ", filled.UnfilledFields)));
-        if (barcodeNote is not null)
-            notes.Add(barcodeNote);
 
         return new Outcome(ExportFormat.DymoLabel, path, true, null,
             notes.Count > 0 ? string.Join(" ", notes) : null);
     }
 
-    private static Outcome LabelPdf(string path, LabelFields fields, LabelLayout layout)
+    private static Outcome LabelPdf(
+        string path, LabelFields fields, LabelLayout layout, LabelBarcodeMode mode)
     {
         ReportFonts.Ensure();
-        LabelPdfWriter.Write(path, fields, layout);
+        LabelPdfWriter.Write(path, fields, layout, mode);
         return new Outcome(ExportFormat.LabelPdf, path, true, null);
     }
 

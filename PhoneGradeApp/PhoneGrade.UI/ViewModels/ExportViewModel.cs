@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using Avalonia;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -131,17 +132,86 @@ public sealed class ExportResultItem : ReactiveObject
 /// </summary>
 public sealed class LabelLayoutItem
 {
-    public LabelLayoutItem(LabelLayout layout)
+    public LabelLayoutItem(LabelStock stock)
     {
-        Layout = layout;
+        Stock = stock;
     }
 
-    public LabelLayout Layout { get; }
+    /// <summary>The paper, named by the part number a shop orders it by.</summary>
+    public LabelStock Stock { get; }
 
-    /// <summary>As it reads on the picker: the two measurements and the unit.</summary>
-    public string Label => $"{Layout.WidthMm:0} x {Layout.HeightMm:0} mm";
+    /// <summary>The arrangement on that paper, for the renderer that draws it.</summary>
+    public LabelLayout Layout => new(Stock);
+
+    /// <summary>As it reads on the picker: the name and the size.</summary>
+    public string Label => Stock.Label;
 
     public override string ToString() => Label;
+}
+
+/// <summary>
+/// One choice for what the barcode carries, with the wording that explains it.
+/// </summary>
+/// <remarks>
+/// Wraps the Core enum so the picker never formats a choice itself, the same
+/// reason <see cref="LabelLayoutItem"/> exists for the stocks.
+/// </remarks>
+public sealed class LabelBarcodeItem : ReactiveObject
+{
+    private bool _isSelected;
+
+    private LabelBarcodeItem(LabelBarcodeMode mode, string titleKey, string noteKey)
+    {
+        Mode = mode;
+        TitleKey = titleKey;
+        NoteKey = noteKey;
+    }
+
+    public LabelBarcodeMode Mode { get; }
+
+    public string TitleKey { get; }
+
+    public string NoteKey { get; }
+
+    /// <summary>
+    /// Whether this is the chosen mode, for the picker's tick.
+    /// </summary>
+    /// <remarks>
+    /// Held on the item rather than worked out in the view, because the items are a
+    /// fixed list the picker binds to and a view cannot ask them anything. An
+    /// earlier version compared the item's own mode with itself, which is always
+    /// true, so every option showed as chosen at once.
+    /// </remarks>
+    public bool IsSelected
+    {
+        get => _isSelected;
+        internal set => this.RaiseAndSetIfChanged(ref _isSelected, value);
+    }
+
+    /// <summary>
+    /// The modes, in the order they are offered.
+    /// </summary>
+    /// <remarks>
+    /// The identifier alone leads because it is what a till reads and it leaves the
+    /// most room on the paper for the words, which on a 28mm label is not much.
+    /// </remarks>
+    public static IReadOnlyList<LabelBarcodeItem> All { get; } =
+    [
+        new(LabelBarcodeMode.Identifier, "Export_BarcodeIdentifier", "Export_BarcodeIdentifierNote"),
+        new(LabelBarcodeMode.Split, "Export_BarcodeSplit", "Export_BarcodeSplitNote"),
+        new(LabelBarcodeMode.Combined, "Export_BarcodeCombined", "Export_BarcodeCombinedNote"),
+        new(LabelBarcodeMode.None, "Export_BarcodeNone", "Export_BarcodeNoneNote"),
+    ];
+
+    /// <summary>The item for a mode, falling back to the identifier alone.</summary>
+    public static LabelBarcodeItem For(LabelBarcodeMode mode) =>
+        All.FirstOrDefault(item => item.Mode == mode) ?? All[1];
+
+    /// <summary>Moves the tick onto one item and off the others.</summary>
+    internal static void Select(LabelBarcodeMode mode)
+    {
+        foreach (LabelBarcodeItem item in All) item.IsSelected = item.Mode == mode;
+    }
 }
 
 /// <summary>A printer the operator can pick, and where it came from.</summary>
@@ -194,6 +264,7 @@ public class ExportViewModel : ReactiveObject
     private bool _statusIsError;
     private string _folder = ExportService.ExportDir;
     private LabelLayoutItem? _stock;
+    private LabelBarcodeItem? _barcode;
     private PrinterOption? _printer;
     private DymoPrintResult? _lastDymoPrint;
     private int _copies = 1;
@@ -224,15 +295,25 @@ public class ExportViewModel : ReactiveObject
         foreach (ExportFormat format in ExportService.All)
             Options.Add(new ExportOption(format, ExportService.DefaultSet.Contains(format), NoteSelection));
 
+        // The stocks the panel offers, most used first, and the one the operator
+        // chose. Read from the settings rather than defaulted here, because the
+        // stock is chosen once and then applies to every label from then on: a
+        // picker that forgot it on each panel would put a 36mm label on a 28mm roll.
         Layouts = new ObservableCollection<LabelLayoutItem>(
-            LabelLayout.Presets.Values.Select(layout => new LabelLayoutItem(layout)));
+            LabelStock.All.Select(stock => new LabelLayoutItem(stock)));
 
-        // The address label is chosen rather than left empty, because the shipped
-        // template describes that stock and an unset picker would draw a preview of
-        // one size while the file went out at another.
-        Stock = Layouts[0];
+        BarcodeModes = new ObservableCollection<LabelBarcodeItem>(LabelBarcodeItem.All);
         Printers = new ObservableCollection<PrinterOption>();
         Results = new ObservableCollection<ExportResultItem>();
+
+        // Seeded from the settings rather than left for the operator to pick, because
+        // both of these decide how much of the paper the barcodes take. An unset
+        // picker draws a preview of one label and writes another.
+        Stock = Layouts.FirstOrDefault(item =>
+            string.Equals(item.Stock.PartNumber, main.LabelStockPartNumber, StringComparison.OrdinalIgnoreCase))
+            ?? Layouts[0];
+        Barcode = LabelBarcodeItem.For(main.LabelBarcodeMode);
+        LabelBarcodeItem.Select(Barcode.Mode);
 
         // The formats live in a collection rather than in properties, so a tick cannot
         // raise a property change on its own. The subject is how a tickbox tells
@@ -261,10 +342,74 @@ public class ExportViewModel : ReactiveObject
     }
 
     /// <summary>How wide the label is drawn on the preview sheet, in pixels.</summary>
-    public double SheetWidth => Math.Min(Layout.WidthMm * PixelsPerMm, MaxSheetWidth);
+    public double SheetWidth => Math.Min(Layout.PaperWidthMm * PixelsPerMm, MaxSheetWidth);
+
+    /// <summary>
+    /// How many preview pixels a millimetre of paper is at the size the sheet is
+    /// being drawn.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="PixelsPerMm"/>, because the sheet is often narrower than the
+    /// column allows and is scaled down to fit. Every measurement taken off the
+    /// preview is multiplied by this, which is what lets the preview be drawn at the
+    /// proportions of the roll rather than at proportions of its own.
+    /// </remarks>
+    private double SheetScale => SheetWidth / Layout.PaperWidthMm;
+
+    /// <summary>How tall one barcode band is on the sheet, bars and caption together.</summary>
+    public double BarcodeBandHeight => Layout.BarcodeBandMm(LabelBarcodes.Count) * SheetScale;
+
+    /// <summary>How much room the words have, which the barcode bands have taken from.</summary>
+    public double TextRoomHeight => Layout.TextHeightMm(LabelBarcodes.Count) * SheetScale;
+
+    /// <summary>The size the specification line is set at, scaled to the sheet.</summary>
+    public double SpecFontSize => LabelBodyPoint * PointsToPixels;
+
+    /// <summary>The size the charge count and the faults are set at.</summary>
+    public double DetailFontSize => LabelBodyPoint * PointsToPixels;
+
+    /// <summary>The size the locks line is set at, larger than everything else.</summary>
+    public double LockFontSize => LabelLockPoint * PointsToPixels;
+
+    /// <summary>
+    /// The size the whole text block is set at, worked out from the same place the
+    /// printed label works it out.
+    /// </summary>
+    /// <remarks>
+    /// Read from <see cref="LabelType"/> rather than measured here. A preview that
+    /// sets its text at a size of its own choosing cannot answer the question it is
+    /// on the panel for, which is whether the words will fit on the roll.
+    /// </remarks>
+    private float LabelBodyPoint =>
+        LabelType.BlockSize(LabelLines, Layout, LabelBarcodes.Count);
+
+    /// <summary>The locks line, which is set larger than the rest of the block.</summary>
+    private float LabelLockPoint =>
+        LabelType.LineSize(LabelLockLine, Layout, LabelBarcodes.Count,
+            LabelBodyPoint * LabelType.LocksLargerThanBody, LabelBodyPoint);
+
+    /// <summary>The lines the label carries, in the order it says them.</summary>
+    private IReadOnlyList<string> LabelLines => new[]
+        { LabelSpelled, LabelTextLine, LabelDetailLine, LabelLockLine }
+        .Where(line => line.Length > 0).ToList();
+
+    /// <summary>Points as preview pixels, at the size this sheet is drawn.</summary>
+    private double PointsToPixels => LabelType.LineHeightInMm * SheetScale;
+
+    /// <summary>
+    /// The paper the printer cannot reach, as a margin on the sheet.
+    /// </summary>
+    /// <remarks>
+    /// Drawn on the preview because it is on the label, and a preview that showed
+    /// the printable area filling the whole sheet would be showing a label with no
+    /// margins, which is not a thing a printer produces.
+    /// </remarks>
+    public Thickness SideInsetThickness => new(
+        Layout.Stock.SideMarginMm * SheetScale,
+        Layout.Stock.TopMarginMm * SheetScale);
 
     /// <summary>How tall it is, at the same ratio as the width, which is what keeps the shape.</summary>
-    public double SheetHeight => SheetWidth / Layout.WidthMm * Layout.HeightMm;
+    public double SheetHeight => SheetWidth / Layout.PaperWidthMm * Layout.PaperHeightMm;
 
     /// <summary>
     /// The widest the sheet may be drawn. Set by the view from the width its column
@@ -290,19 +435,54 @@ public class ExportViewModel : ReactiveObject
     private const double PixelsPerMm = 96.0 / 25.4;
 
     /// <summary>
-    /// The identifier as the barcode draws it, wrapped in the markers, or empty
-    /// when there is no identifier to draw. The pattern comes from the same Code39
-    /// table as the label file, so an identifier that had to be rewritten shows up
-    /// rewritten on the preview as well as on the label.
+    /// What the barcodes carry, in the order they are drawn.
+    ///
+    /// Built by the same code the writer builds its payloads with, so a preview
+    /// showing one thing and a file carrying another is not possible rather than
+    /// merely unlikely. Empty where a barcode is switched off, and the preview leaves
+    /// the space out entirely rather than drawing an empty band.
     /// </summary>
-    public string LabelBarcode => Core.LabelBarcode.Encode(Label.Identifier, out _) ?? "";
+    public IReadOnlyList<string> LabelBarcodes => new LabelCode(
+            Label.Identifier, LabelLayout.ScannableLine(Label))
+        .On(Layout.Stock, BarcodeMode, Label.IsIdentifiable).Barred;
+
+    /// <summary>
+    /// The values that will not fit a barcode on this stock, and are printed as
+    /// words instead.
+    /// </summary>
+    /// <remarks>
+    /// Empty on the stock most shops use. On the two small multi purpose rolls a
+    /// fifteen digit identifier is wider than the paper at a width a scanner reads,
+    /// so it is spelled out, and the preview has to say so: a label drawn here with
+    /// a barcode that the file will not have is worse than no preview.
+    /// </remarks>
+    public IReadOnlyList<string> LabelSpelledBarcodes => new LabelCode(
+            Label.Identifier, LabelLayout.ScannableLine(Label))
+        .On(Layout.Stock, BarcodeMode, Label.IsIdentifiable).Spelled;
+
+    /// <summary>The identifier alone, which is the first barcode in every mode.</summary>
+    public string LabelBarcode => LabelBarcodes.Count > 0 ? LabelBarcodes[0] : "";
+
+    /// <summary>The second code, in the modes that draw one.</summary>
+    public string LabelBarcodeSecond => LabelBarcodes.Count > 1 ? LabelBarcodes[1] : "";
 
     /// <summary>Whether there is a barcode to draw at all.</summary>
-    public bool HasLabelBarcode => LabelBarcode.Length > 0;
+    public bool HasLabelBarcode => LabelBarcodes.Count > 0;
+
+    /// <summary>Whether a second barcode is drawn below the first.</summary>
+    public bool HasSecondLabelBarcode => LabelBarcodes.Count > 1;
+
+    /// <summary>What is printed as words in place of a barcode that would not fit.</summary>
+    public string LabelSpelled => string.Join("  ", LabelSpelledBarcodes);
+
+    /// <summary>What the barcode carries, as the setting holds it.</summary>
+    public LabelBarcodeMode BarcodeMode => Barcode?.Mode ?? _main.LabelBarcodeMode;
 
     public ObservableCollection<ExportOption> Options { get; }
 
     public ObservableCollection<LabelLayoutItem> Layouts { get; }
+
+    public ObservableCollection<LabelBarcodeItem> BarcodeModes { get; }
 
     public ObservableCollection<PrinterOption> Printers { get; }
 
@@ -390,8 +570,9 @@ public class ExportViewModel : ReactiveObject
         get => _stock;
         set
         {
-            if (Equals(_stock, value)) return;
+            if (Equals(_stock, value) || value is null) return;
             _stock = value;
+            _main.SetLabelStock(value.Stock);
             this.RaisePropertyChanged();
             this.RaisePropertyChanged(nameof(Layout));
             this.RaisePropertyChanged(nameof(SheetHeight));
@@ -405,6 +586,26 @@ public class ExportViewModel : ReactiveObject
     /// writes something that matches the template.
     /// </summary>
     public LabelLayout Layout => Stock?.Layout ?? LabelLayout.Address;
+
+    /// <summary>
+    /// What the barcode carries, as the picker holds it.
+    ///
+    /// A setting rather than a per export choice, because the mode decides how much
+    /// room the barcodes take on the paper, and a label whose text position depends
+    /// on something asked at print time is a label that moves under the operator.
+    /// </summary>
+    public LabelBarcodeItem? Barcode
+    {
+        get => _barcode;
+        set
+        {
+            if (Equals(_barcode, value) || value is null) return;
+            _barcode = value;
+            LabelBarcodeItem.Select(value.Mode);
+            _main.SetLabelBarcodeMode(value.Mode);
+            RaiseLabelChanged();
+        }
+    }
 
     /// <summary>The chosen printer, or null for the print dialog.</summary>
     public PrinterOption? Printer
@@ -454,9 +655,9 @@ public class ExportViewModel : ReactiveObject
     /// files are written from. It is here so the operator can see a battery marker
     /// or a missing model before the label is on a device, rather than after.
     /// </summary>
-    public LabelFields Label => LabelFields.From(_main.DeviceData, _main.Enable85PercentChecker);
+    public LabelFields Label => LabelFields.From(
+        _main.DeviceData, _main.Enable85PercentChecker, content: _main.LabelContent);
 
-    /// <summary>The one line of text under the barcode, as it will print.</summary>
     /// <summary>The first line of the preview: what the device is and what it is worth.</summary>
     public string LabelTextLine => LabelLayout.TextLine(Label);
 
@@ -468,6 +669,42 @@ public class ExportViewModel : ReactiveObject
 
     /// <summary>Whether the fault line has anything to say, so the preview can leave it out.</summary>
     public bool HasLabelDetail => LabelDetailLine.Length > 0;
+
+    /// <summary>
+    /// Whether a value had to be printed as words because no barcode of it would
+    /// fit this stock at a width a scanner reads.
+    /// </summary>
+    /// <remarks>
+    /// Said on the panel rather than left for the operator to work out from a
+    /// missing barcode. It is the two small multi purpose rolls: a fifteen digit
+    /// identifier is 271 units of Code39, which is 51.5mm at the narrowest bar a
+    /// scanner reads, against the 48mm and 51mm those rolls have.
+    /// </remarks>
+    public bool HasSpelledBarcode => LabelSpelledBarcodes.Count > 0;
+
+    /// <summary>Whether the charge count is on the label.</summary>
+    public bool LabelShowBatteryCycles
+    {
+        get => _main.LabelShowBatteryCycles;
+        set => _main.LabelShowBatteryCycles = value;
+    }
+
+    /// <summary>Whether the faults are on the label.</summary>
+    public bool LabelShowFaults
+    {
+        get => _main.LabelShowFaults;
+        set => _main.LabelShowFaults = value;
+    }
+
+    /// <summary>
+    /// Whether the locks are on the label. A shop that turns this off should know
+    /// that it removes the one line that stops a FRP locked phone being sold.
+    /// </summary>
+    public bool LabelShowLocks
+    {
+        get => _main.LabelShowLocks;
+        set => _main.LabelShowLocks = value;
+    }
 
     /// <summary>Whether the locks line has anything to say.</summary>
     public bool HasLabelLocks => LabelLockLine.Length > 0;
@@ -510,7 +747,38 @@ public class ExportViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(LabelLockLine));
         this.RaisePropertyChanged(nameof(HasLabelDetail));
         this.RaisePropertyChanged(nameof(HasLabelLocks));
+        this.RaisePropertyChanged(nameof(LabelBarcode));
+        this.RaisePropertyChanged(nameof(LabelBarcodeSecond));
+        this.RaisePropertyChanged(nameof(LabelBarcodes));
+        this.RaisePropertyChanged(nameof(LabelSpelledBarcodes));
+        this.RaisePropertyChanged(nameof(LabelSpelled));
+        this.RaisePropertyChanged(nameof(HasLabelBarcode));
+        this.RaisePropertyChanged(nameof(HasSecondLabelBarcode));
+        this.RaisePropertyChanged(nameof(HasSpelledBarcode));
+        this.RaisePropertyChanged(nameof(Barcode));
+        this.RaisePropertyChanged(nameof(BarcodeMode));
+        this.RaisePropertyChanged(nameof(LabelShowBatteryCycles));
+        this.RaisePropertyChanged(nameof(LabelShowFaults));
+        this.RaisePropertyChanged(nameof(LabelShowLocks));
         this.RaisePropertyChanged(nameof(SheetWidth));
+    }
+
+    /// <summary>
+    /// Reads the label settings again, after one of them changed elsewhere.
+    ///
+    /// The pickers on this panel and the switches on the settings page edit the same
+    /// settings, so whichever changed the other has to be told: a panel left showing
+    /// one stock while the files went out at another is the whole class of fault
+    /// this preview exists to prevent.
+    /// </summary>
+    public void ReloadLabelSettings()
+    {
+        Stock = Layouts.FirstOrDefault(item =>
+            string.Equals(item.Stock.PartNumber, _main.LabelStockPartNumber, StringComparison.OrdinalIgnoreCase))
+            ?? Layouts[0];
+        Barcode = LabelBarcodeItem.For(_main.LabelBarcodeMode);
+        LabelBarcodeItem.Select(Barcode.Mode);
+        RaiseLabelChanged();
     }
 
     public void Close() => IsOpen = false;
@@ -559,7 +827,9 @@ public class ExportViewModel : ReactiveObject
                 stem,
                 _main.LabelTemplatePath,
                 Layout,
+                BarcodeMode,
                 _main.Enable85PercentChecker,
+                _main.LabelContent,
                 ReportWordingBuilder.Current(),
                 ExportWordingBuilder.Current()));
 
@@ -657,7 +927,8 @@ public class ExportViewModel : ReactiveObject
 
             LabelWriter.Batch batch = await LabelWriter.WriteAsync(_main.DeviceData, new LabelWriter.Request(
                 new HashSet<ExportFormat> { ExportFormat.LabelPdf }, scratch, stem,
-                _main.LabelTemplatePath, Layout, _main.Enable85PercentChecker,
+                _main.LabelTemplatePath, Layout, BarcodeMode,
+                _main.Enable85PercentChecker, _main.LabelContent,
                 Messages: ExportWordingBuilder.Current()));
 
             LabelWriter.Outcome? pdf = batch.Files.FirstOrDefault(file => file.Succeeded);
@@ -715,7 +986,8 @@ public class ExportViewModel : ReactiveObject
 
         LabelWriter.Batch batch = await LabelWriter.WriteAsync(_main.DeviceData, new LabelWriter.Request(
             new HashSet<ExportFormat> { format }, Folder, stem, _main.LabelTemplatePath, Layout,
-            _main.Enable85PercentChecker, Messages: ExportWordingBuilder.Current()));
+            BarcodeMode, _main.Enable85PercentChecker, _main.LabelContent,
+            Messages: ExportWordingBuilder.Current()));
 
         LabelWriter.Outcome? written = batch.Files.FirstOrDefault(file => file.Succeeded);
         if (written?.Path is { Length: > 0 } writtenPath)

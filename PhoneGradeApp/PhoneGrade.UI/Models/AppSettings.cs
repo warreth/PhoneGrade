@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PhoneGrade.Core;
 
 namespace PhoneGrade.UI.Models;
 
@@ -29,6 +30,39 @@ public class AppSettings
     public string DefaultQuality { get; set; } = "";       // "", "A", "B", "C": empty asks
     public string DefaultPaymentMethod { get; set; } = "";  // "", "Marge", "BTW"
     public string? TemplatePath { get; set; }             // custom my.dymo override
+
+    /// <summary>
+    /// The DYMO part number of the roll in the printer, which is how a shop orders
+    /// label stock and how the two are told apart: two rolls both called "address"
+    /// are 89x28 and 89x36 and nothing about the name says which.
+    /// </summary>
+    public string LabelStockPartNumber { get; set; } = "1982991";
+
+    /// <summary>
+    /// What the label's barcode carries: the identifier alone, the identifier and
+    /// the specification in one, or the two separately.
+    /// </summary>
+    public LabelBarcodeMode LabelBarcodeMode { get; set; } = LabelBarcodeMode.Identifier;
+
+    /// <summary>
+    /// Whether the charge count is on the label.
+    ///
+    /// On by default, and worth saying why it can be off: it is the first thing a
+    /// shop that only cares about the grade stops printing.
+    /// </summary>
+    public bool LabelShowBatteryCycles { get; set; } = true;
+
+    /// <summary>Whether the faults are on the label.</summary>
+    public bool LabelShowFaults { get; set; } = true;
+
+    /// <summary>
+    /// Whether the locks are on the label.
+    ///
+    /// Off is a deliberate choice a shop can make, and it is a dangerous one: a
+    /// FRP-locked phone that the next owner activates wipes itself.
+    /// </summary>
+    public bool LabelShowLocks { get; set; } = true;
+
     public bool EnableVerboseNetworkLogging { get; set; } = false; // Trace HTTP requests, CLI stdout/stderr, JSON payloads
     public bool IsDebugMode { get; set; } = false; // Global debug toggle for mobile PWA overlay and verbose tracing
     public bool EnableUsbEventMonitoring { get; set; } = true; // Use native USB event monitoring instead of polling

@@ -135,14 +135,17 @@ public class ExportPanelTests : IDisposable
     public void TheSheetKeepsTheShapeOfTheStock_AtEverySize()
     {
         // A preview drawn at a fixed size shows a 54mm label and a 106mm label as
-        // the same rectangle, which is the opposite of a preview.
+        // the same rectangle, which is the opposite of a preview. The shape it is
+        // compared against is the paper rather than the printable area inside it,
+        // because the sheet stands for the label the operator holds.
         ExportViewModel panel = Panel();
 
         foreach (LabelLayoutItem stock in panel.Layouts)
         {
             panel.Stock = stock;
 
-            double expected = stock.Layout.HeightMm / stock.Layout.WidthMm;
+            LabelStock paper = stock.Stock;
+            double expected = paper.HeightMm / paper.WidthMm;
             double drawn = panel.SheetHeight / panel.SheetWidth;
 
             Assert.True(Math.Abs(expected - drawn) < 0.001,

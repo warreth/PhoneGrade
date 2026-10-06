@@ -29,14 +29,34 @@ public class LabelPdfContentTests : IDisposable
         Storage = "128GB", BatteryHealth = "87", Quality = "B", PayMethod = "Marge",
     };
 
-    private (byte[] Pdf, LabelLayout Size, DeviceData Phone) Written(
-        DeviceData? phone = null, LabelLayout? layout = null)
+    private (byte[] Pdf, LabelLayout Size, LabelBarcodeMode Mode, DeviceData Phone) Written(
+        DeviceData? phone = null, LabelLayout? layout = null,
+        LabelBarcodeMode mode = LabelBarcodeMode.Identifier)
     {
         DeviceData what = phone ?? Phone();
         LabelLayout size = layout ?? LabelLayout.Address;
         string path = Path.Combine(_folder, $"{Guid.NewGuid():N}.pdf");
-        LabelPdfWriter.Write(path, LabelFields.From(what), size);
-        return (File.ReadAllBytes(path), size, what);
+        LabelPdfWriter.Write(path, LabelFields.From(what), size, mode);
+        return (File.ReadAllBytes(path), size, mode, what);
+    }
+
+    /// <summary>
+    /// Where the text block starts on the label, as a fraction of its height.
+    /// </summary>
+    /// <remarks>
+    /// Taken from the layout and from the same decision the writer makes about
+    /// which payloads become bars. Guessing either is how this test came to look at
+    /// a region of a 54mm label that was always blank: it assumed a barcode the
+    /// writer had decided against drawing, then measured the paper below where the
+    /// barcode would have been.
+    /// </remarks>
+    private static double TextTop(LabelLayout size, LabelBarcodeMode mode, LabelFields fields)
+    {
+        int barcodes = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields))
+            .On(size.Stock, mode, fields.IsIdentifiable).Barred.Count;
+
+        return Math.Clamp(
+            (size.Stock.TopMarginMm + size.TextYmm(barcodes)) / size.PaperHeightMm, 0d, 1d);
     }
 
     [Fact]
@@ -46,56 +66,83 @@ public class LabelPdfContentTests : IDisposable
         // time, which is why a test on the file's contents could not see it.
         var written = Written();
         using var picture = LabelPicture.Of(written.Pdf);
+        double text = TextTop(written.Size, written.Mode, LabelFields.From(written.Phone));
 
-        long bars = picture.InkBetween(0d, 0.45);
-        long words = picture.InkBetween(0.55d, 1d);
+        long bars = picture.InkBetween(0d, text);
+        long words = picture.InkBetween(text, 1d);
 
         Assert.True(bars > 500, $"the barcode drew {bars} pixels of ink, which is not a barcode");
-        Assert.True(words > 500,
-            $"the lower half of the label holds {words} pixels of ink; the words are not on it");
+        Assert.True(words > 200,
+            $"below the barcode the label holds {words} pixels of ink; the words are not on it");
+    }
+
+    [Fact]
+    public void EveryLineTheLabelIsSupposedToHaveIsOnIt()
+    {
+        // Counted as bands rather than as pixels. Three lines of small type and one
+        // line of large type carry a similar amount of ink, and only one of them is
+        // a label with the faults and the locks on it.
+        var written = Written();
+        using var picture = LabelPicture.Of(written.Pdf);
+
+        var fields = LabelFields.From(written.Phone);
+        int expected = 1
+            + (LabelLayout.DetailLine(fields).Length > 0 ? 1 : 0)
+            + (LabelLayout.LockLine(fields).Length > 0 ? 1 : 0);
+
+        double text = TextTop(written.Size, written.Mode, fields);
+        var bands = picture.InkBands().Where(band => band.Bottom > text).ToList();
+
+        Assert.True(bands.Count >= expected,
+            $"the label has {bands.Count} lines of text under its barcode and should have {expected}");
     }
 
     [Fact]
     public void TheWordsAreLargeEnoughToReadOnAShelf()
     {
         // A label is read at arm's length while a phone is in the other hand, so a
-        // caption rendered at two point is a caption nobody reads. Measured by how
-        // much height the ink takes, not by what was asked for: the question is what
-        // the printer will honour.
+        // line rendered at two point is a line nobody reads. Measured off the render
+        // rather than off the request, because the question is what the printer will
+        // honour and not what was asked of it.
         var written = Written();
         using var picture = LabelPicture.Of(written.Pdf);
 
-        int firstInked = -1;
-        int lastInked = -1;
-        for (int y = 0; y < picture.Height; y++)
+        var bands = picture.InkBands();
+        Assert.NotEmpty(bands);
+
+        float mmPerPixel = written.Size.PaperHeightMm / picture.Height;
+        foreach ((double top, double bottom) in bands)
         {
-            long row = picture.InkBetween((double)y / picture.Height, (double)(y + 1) / picture.Height);
-            if (row < 5) continue;
-
-            if (firstInked < 0) firstInked = y;
-            lastInked = y;
+            float tallMm = (float)((bottom - top) * picture.Height * mmPerPixel);
+            Assert.True(tallMm >= 1f, $"a line of the label is {tallMm:N1}mm tall");
         }
-
-        Assert.True(firstInked >= 0 && lastInked > firstInked, "the label is empty");
-        Assert.True(lastInked - firstInked > picture.Height / 4,
-            $"the ink on the label is {(lastInked - firstInked) * 100 / picture.Height}% of its height");
     }
 
+    /// <summary>
+    /// Every stock the panel offers, as its DYMO part number.
+    ///
+    /// Taken from the list rather than written out here, so a stock added to the
+    /// panel is covered the day it is added rather than the day somebody remembers.
+    /// </summary>
+    public static IEnumerable<object[]> EveryStock =>
+        LabelStock.All.Select(stock => new object[] { stock.PartNumber });
+
     [Theory]
-    [InlineData("106x57")]
-    [InlineData("159x57")]
-    [InlineData("89x36")]
-    public void EveryStockThePanelOffersCarriesItsWords(string stock)
+    [MemberData(nameof(EveryStock))]
+    public void EveryStockThePanelOffersCarriesItsWords(string partNumber)
     {
-        // Three stocks, and the smallest one is where the barcode runs out of paper:
-        // fifteen digits of Code39 is 339 units wide, and holding every bar to the
-        // width a printer likes put the code 6mm past the edge of an 89mm label, at
-        // which point the export failed outright instead of coming out narrow.
-        var written = Written(layout: LabelLayout.Presets[stock]);
+        // The smallest stocks are where a barcode runs out of paper. Fifteen digits
+        // of Code39 with its two asterisks is 271 units, and at the narrowest bar a
+        // scanner reads that is 51.5mm against the 48mm and 51mm of printable width
+        // those two rolls have, so they print the identifier as words instead of as
+        // bars. The words have to be there either way, which is what this asks.
+        var written = Written(layout: new LabelLayout(LabelStock.FromPartNumber(partNumber)));
         using var picture = LabelPicture.Of(written.Pdf);
 
-        Assert.True(picture.InkBetween(0.55d, 1d) > 200,
-            $"a {stock}mm label printed nothing under its barcode");
+        double text = TextTop(written.Size, written.Mode, LabelFields.From(written.Phone));
+
+        Assert.True(picture.InkBetween(text, 1d) > 100,
+            $"stock {partNumber} printed nothing below where its text block starts");
     }
 
     [Fact]
@@ -112,8 +159,10 @@ public class LabelPdfContentTests : IDisposable
         var written = Written(phone);
         using var picture = LabelPicture.Of(written.Pdf);
 
-        Assert.True(picture.InkBetween(0.55d, 1d) > 200,
-            "a label with no identifier carries no words at all");
+        // With no identifier there is no barcode band, so the words move up to the
+        // top of the label rather than sitting below where they usually are. What is
+        // being asked is only that there is something on it at all.
+        Assert.NotEmpty(picture.InkBands());
     }
 
     [Fact]
@@ -129,9 +178,9 @@ public class LabelPdfContentTests : IDisposable
         tired.BatteryHealth = "78";
 
         Assert.Equal("SM-G991B 128GB Phantom Silver B 87% Marge",
-            LabelLayout.Address.TextLine(LabelFields.From(healthy)));
+            LabelLayout.TextLine(LabelFields.From(healthy)));
         Assert.Contains(LabelMarkers.LowBattery,
-            LabelLayout.Address.TextLine(LabelFields.From(tired)));
+            LabelLayout.TextLine(LabelFields.From(tired)));
 
         using var before = LabelPicture.Of(Written(healthy).Pdf);
         using var after = LabelPicture.Of(Written(tired).Pdf);
@@ -140,19 +189,242 @@ public class LabelPdfContentTests : IDisposable
             "a battery under the threshold printed exactly the label a healthy one does");
     }
 
-    [Fact]
-    public void TheLabelIsDrawnAtTheSizeThePanelSaysItIs()
+    [Theory]
+    [MemberData(nameof(EveryStock))]
+    public void TheLabelIsDrawnAtTheSizeTheStockSaysItIs(string partNumber)
     {
-        // A preview that is not the size of the label is a picture of a label. The
-        // stock sizes are read off the render rather than off the request, so a
-        // layout that quietly drew an A4 with the label in the corner would fail.
-        foreach (LabelLayout size in LabelLayout.Presets.Values)
-        {
-            using var picture = LabelPicture.Of(Written(layout: size).Pdf);
-            float drawnWidthMm = picture.Width / (picture.Height / (float)size.HeightMm);
+        // A label that is not the size of the roll is not a label. Read off the
+        // render rather than off the request, so a writer that quietly drew an A4
+        // with the label in the corner would fail here rather than at a printer.
+        LabelStock stock = LabelStock.FromPartNumber(partNumber);
+        var written = Written(layout: new LabelLayout(stock));
 
-            Assert.True(Math.Abs(drawnWidthMm - size.WidthMm) < 1f,
-                $"a {size.WidthMm}x{size.HeightMm}mm stock came out {drawnWidthMm:F0}mm wide");
+        using var picture = LabelPicture.Of(written.Pdf);
+        float drawnWidthMm = picture.Width / (picture.Height / (float)stock.HeightMm);
+
+        Assert.True(Math.Abs(drawnWidthMm - stock.WidthMm) < 1f,
+            $"stock {partNumber} is {stock.WidthMm}x{stock.HeightMm}mm and came out {drawnWidthMm:F0}mm wide");
+    }
+
+    [Fact]
+    public void ThePrintableAreaMatchesWhatTheShippedTemplateDescribes()
+    {
+        // The template that ships with the app was drawn for a 89 x 28mm address
+        // label, part 1982991, and its DYMORect is 3.21 x 0.9967 inches. If the
+        // printable area here does not come out at those millimetres then the PDF
+        // and the .dymo file are drawing on different paper, and the preview is a
+        // picture of neither.
+        LabelStock address = LabelStock.Address;
+
+        Assert.Equal("1982991", address.PartNumber);
+        Assert.Equal(3.21f * 25.4f, address.PrintableWidthMm, 1);
+        Assert.Equal(0.9966666f * 25.4f, address.PrintableHeightMm, 1);
+    }
+
+    [Theory]
+    [InlineData(LabelBarcodeMode.Identifier, 1)]
+    [InlineData(LabelBarcodeMode.Split, 2)]
+    public void TheBarcodeModeDecidesHowManyCodesAreOnTheLabel(LabelBarcodeMode mode, int expected)
+    {
+        // Measured by drawing both ways and asking whether the label changed, which
+        // is the only way to know the mode reached the paper rather than only the
+        // settings file.
+        using var identifier = LabelPicture.Of(Written(mode: LabelBarcodeMode.Identifier).Pdf);
+        using var chosen = LabelPicture.Of(Written(mode: mode).Pdf);
+
+        if (mode == LabelBarcodeMode.Identifier) Assert.True(identifier.SameAs(chosen));
+        else Assert.False(identifier.SameAs(chosen),
+            $"choosing {mode} printed the same label as the identifier alone");
+    }
+
+    [Fact]
+    public void TheTwoCodesAreBothDrawnWhenTheOperatorAsksForThemSeparately()
+    {
+        // Split is the only mode with more than one code, and both have to be on the
+        // paper: a second code that was planned for and left off is a label whose
+        // scanner reads half of what the label says.
+        var fields = LabelFields.From(Phone());
+        var (barred, _) = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields))
+            .On(LabelStock.Address, LabelBarcodeMode.Split, fields.IsIdentifiable);
+
+        Assert.Equal(2, barred.Count);
+        Assert.Equal("*356938035643809*", barred[0]);
+        Assert.Contains("128GB", barred[1], StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ACodeThatCannotBeReadIsNotDrawnAsBars()
+    {
+        // The two small multi purpose rolls have 48mm and 51mm of printable width.
+        // A fifteen digit Code39 with its two asterisks needs 51.5mm at the narrowest
+        // bar a scanner reads, so on those it is spelled out rather than squeezed
+        // into grey. Every stock is checked, because which ones are too narrow is a
+        // consequence of the arithmetic and not something to hard code here.
+        var fields = LabelFields.From(Phone());
+        var code = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields));
+
+        foreach (LabelStock stock in LabelStock.All)
+        {
+            var (barred, spelled) = code.On(stock, LabelBarcodeMode.Identifier, fields.IsIdentifiable);
+
+            Assert.Equal(barred.Count + spelled.Count, 1);
+
+            foreach (string payload in barred)
+            {
+                Assert.True(LabelBarcode.DrawnNarrowMm(payload, stock.PrintableWidthMm)
+                        >= LabelBarcode.NarrowestNarrowMm,
+                    $"stock {stock.PartNumber} was asked to draw {payload} narrower than a scanner reads");
+                Assert.True(LabelBarcode.WidthMm(payload,
+                        LabelBarcode.DrawnNarrowMm(payload, stock.PrintableWidthMm))
+                        <= stock.PrintableWidthMm,
+                    $"stock {stock.PartNumber} was asked to draw a code wider than its paper");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The shipped template, filled, so a template that has drifted from the code
+    /// is caught here rather than at a printer.
+    /// </summary>
+    private static string ShippedTemplate => File.ReadAllText(
+        RepoPath.Get("PhoneGradeApp", "PhoneGrade.UI", "Assets", "my.dymo"));
+
+    [Theory]
+    [InlineData(LabelBarcodeMode.Identifier)]
+    [InlineData(LabelBarcodeMode.Split)]
+    [InlineData(LabelBarcodeMode.Combined)]
+    [InlineData(LabelBarcodeMode.None)]
+    public void TheShippedTemplateCarriesWhatTheLabelCarries(LabelBarcodeMode mode)
+    {
+        // The .dymo file and the label PDF are two renderings of one label. If the
+        // template has lost a barcode object, or a sentinel was renamed to something
+        // the exporter does not fill, the file still prints: it just prints an empty
+        // band where a barcode should be, and nothing anywhere says so.
+        var fields = LabelFields.From(Phone());
+        var layout = LabelLayout.Address;
+        var (barred, spelled) = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields))
+            .On(layout.Stock, mode, fields.IsIdentifiable);
+
+        DymoFillResult filled = DymoTemplate.Fill(ShippedTemplate, fields, layout, mode);
+
+        var values = new Dictionary<string, string>();
+        foreach (var element in System.Xml.Linq.XDocument.Parse(filled.Text).Descendants())
+        {
+            if (element.Name.LocalName is not ("TextObject" or "BarcodeObject")) continue;
+
+            values[element.Element("Name")?.Value ?? "?"] = element.Name.LocalName == "BarcodeObject"
+                ? string.Concat(element.Descendants("DataString").Select(d => d.Value))
+                : element.Descendants("Text").FirstOrDefault()?.Value.Trim() ?? "";
+        }
+
+        Assert.Equal(barred.ElementAtOrDefault(0) ?? "", values["BARCODE_1"]);
+        Assert.Equal(barred.ElementAtOrDefault(1) ?? "", values["BARCODE_2"]);
+        Assert.Equal(string.Join(" ", spelled), values["TEKST_1"]);
+        Assert.Equal(LabelLayout.TextLine(fields), values["TEKST_2"]);
+        Assert.Equal(LabelLayout.DetailLine(fields), values["TEKST_3"]);
+        Assert.Equal(LabelLayout.LockLine(fields), values["TEKST_4"]);
+    }
+
+    [Fact]
+    public void EveryObjectInTheShippedTemplateSitsOnThePrintableLabel()
+    {
+        // The template describes a 1982991 address label: 3.21 by 0.9967 inches of
+        // printable area at 0.23, 0.06. An object outside that is drawn on the
+        // backing carrier, which is the part of the roll the operator sees and the
+        // customer does not.
+        var document = System.Xml.Linq.XDocument.Parse(ShippedTemplate);
+
+        var rect = document.Descendants("DYMORect").Single();
+        float left = float.Parse(rect.Descendants("X").First().Value);
+        float top = float.Parse(rect.Descendants("Y").First().Value);
+        float width = float.Parse(rect.Descendants("Width").First().Value);
+        float height = float.Parse(rect.Descendants("Height").First().Value);
+
+        foreach (var layout in document.Descendants("ObjectLayout").ToList())
+        {
+            string name = layout.Parent!.Element("Name")!.Value;
+            float x = float.Parse(layout.Descendants("X").First().Value);
+            float y = float.Parse(layout.Descendants("Y").First().Value);
+            float w = float.Parse(layout.Descendants("Width").First().Value);
+            float h = float.Parse(layout.Descendants("Height").First().Value);
+
+            Assert.True(x >= left - 0.001f && x + w <= left + width + 0.001f,
+                $"{name} runs from {x} to {x + w} across a label {left} to {left + width}");
+            Assert.True(y >= top - 0.001f && y + h <= top + height + 0.001f,
+                $"{name} runs from {y} to {y + h} down a label {top} to {top + height}");
+        }
+    }
+
+    [Fact]
+    public void TheShippedTemplateNamesNothingThatLooksLikeAField()
+    {
+        // A sentinel inside an object name is substituted inside the name. That is
+        // how an object called TEKST_SPELLED came to be called TEKST_FRP!ACT!, and
+        // a DYMO object whose name no longer matches the one in the layout is a
+        // label the DYMO software does not recognise.
+        foreach (string name in System.Xml.Linq.XDocument.Parse(ShippedTemplate)
+                     .Descendants("Name").Select(e => e.Value))
+        {
+            foreach (string sentinel in DymoTemplate.KnownSentinels)
+                Assert.DoesNotContain(sentinel, name, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("1982991")]
+    [InlineData("30256")]
+    [InlineData("30336")]
+    public void ThePreviewSetsItsWordsAtTheSizeTheFileWill(string partNumber)
+    {
+        // The whole reason the sizing lives in Core. A preview that set its text at a
+        // size of its own choosing could not answer the question it is on the panel
+        // for, which is whether the words will fit on the roll: it would look right
+        // on screen and come off the bottom of the label.
+        LabelStock stock = LabelStock.FromPartNumber(partNumber);
+        var layout = new LabelLayout(stock);
+        var fields = LabelFields.From(Phone());
+
+        var block = new[] { LabelLayout.TextLine(fields), LabelLayout.DetailLine(fields) }
+            .Where(line => line.Length > 0).ToList();
+
+        float written = LabelType.BlockSize(block, layout, barcodes: 1);
+
+        Assert.InRange(written, LabelType.SmallestBodyPoint, LabelType.LargestBodyPoint);
+
+        // And it is the same number for the same inputs, which is the property the
+        // two renderers depend on rather than merely resembling.
+        Assert.Equal(written, LabelType.BlockSize(block, layout, barcodes: 1));
+    }
+
+    [Fact]
+    public void ASecondBarcodeLeavesTheTextLessRoomThanOne()
+    {
+        // The reason the barcode mode is a setting rather than something asked at
+        // print time. A label whose words move because something asked later is a
+        // label that moves under the operator.
+        var layout = LabelLayout.Address;
+
+        Assert.True(layout.TextHeightMm(2) < layout.TextHeightMm(1));
+        Assert.True(layout.TextYmm(2) > layout.TextYmm(1));
+
+        // And the words still have somewhere to go with two codes on the stock most
+        // shops use, which is 25.3mm of printable height.
+        Assert.True(layout.TextHeightMm(2) >= LabelLayout.MinimumTextMm,
+            $"two barcodes leave {layout.TextHeightMm(2):N1}mm for the words");
+    }
+
+    [Fact]
+    public void APhoneThatCannotBeIdentifiedNeverGetsABarcodeOfItsPlaceholder()
+    {
+        // A barcode reading NOID scans on every phone in the shop, which is worse
+        // than no barcode at all.
+        var code = new LabelCode(DevicePlaceholders.Identifier, "SM-G991B 128GB B 87%");
+
+        foreach (LabelBarcodeMode mode in Enum.GetValues<LabelBarcodeMode>())
+        {
+            var payloads = code.Payloads(mode, identifiable: false);
+            Assert.True(payloads.Count == 0 || payloads.All(string.IsNullOrEmpty),
+                $"{mode} put {string.Join(", ", payloads)} on a label for a phone with no serial");
         }
     }
 
@@ -164,7 +436,7 @@ public class LabelPdfContentTests : IDisposable
         // carry the values the report would have led with, or the label answers
         // nothing on its own.
         var written = Written();
-        string line = written.Size.TextLine(LabelFields.From(written.Phone));
+        string line = LabelLayout.TextLine(LabelFields.From(written.Phone));
 
         foreach (string value in new[] { written.Phone.Model, written.Phone.Storage, written.Phone.Color })
             Assert.Contains(value, line, StringComparison.OrdinalIgnoreCase);

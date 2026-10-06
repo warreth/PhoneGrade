@@ -48,79 +48,88 @@ public sealed class BarcodeView : Control
     public override void Render(DrawingContext context)
     {
         var bounds = Bounds;
-  if (bounds.Width <= 0 || bounds.Height <= 0) return;
-      if (string.IsNullOrEmpty(Value)) return;
+        if (bounds.Width <= 0 || bounds.Height <= 0) return;
+        if (string.IsNullOrEmpty(Value)) return;
 
-  int[] bars = Elements(Value!);
-    if (bars.Length == 0) return;
+        Code39Element[] elements = Barcode(Value!);
+        if (elements.Length == 0) return;
 
-  // Narrow is one unit and wide three, which is the ratio the standard
-      // is read at, and the unit is scaled so the code fills the width it
-        // is given. The one exception is a code so long that scaling
-        // would take the narrow bars below what a printer can put on
-        // paper: those are held at the minimum and the code is centred with
-        // paper either side, because a barcode whose bars are too fine
-        // prints as a grey block and reads back as nothing at all.
-        double narrow = FitWidth(bars, bounds.Width);
+        // Narrow is one unit and wide three, which is the ratio the standard is
+        // read at, and the unit is scaled so the code fills the width it is given.
+        double narrow = FitWidth([.. elements.Select(element => element.Units)], bounds.Width);
         double height = bounds.Height * Math.Clamp(BarShare, 0.2, 1.0);
-        double codeWidth = 0;
-        foreach (int width in bars) codeWidth += narrow * width;
-      double x = Math.Max(0, (bounds.Width - codeWidth) / 2);
 
- foreach (int width in bars)
+        int units = 0;
+        foreach (Code39Element element in elements) units += element.Units;
+
+        double codeWidth = units * narrow;
+        double x = Math.Max(0, (bounds.Width - codeWidth) / 2);
+
+        foreach (Code39Element element in elements)
         {
-     // Only the bars are drawn. The gaps are the paper showing through,
-            // so drawing them white would be the same thing said twice.
- if (width > 1)
-   context.DrawRectangle(Brushes.Black, null, new Rect(x, 0, narrow * width, height));
-     x += narrow * width;
+            double wide = element.Units * narrow;
+
+            // Only the bars are drawn. A space is the paper showing through, so
+            // drawing it white would be the same thing said twice. A narrow bar is
+            // a bar: taking anything wider than a wide element for ink drew the
+            // wide elements only, which is half a barcode.
+            if (element.IsBar)
+                context.DrawRectangle(Brushes.Black, null, new Rect(x, 0, wide, height));
+
+            x += wide;
         }
     }
 
     /// <summary>
-    /// The bar widths in units, wide being three. A character Code39 cannot carry
-    /// becomes a dash rather than being dropped, so the value on the label below
-    /// the code and the code itself always describe the same thing.
+    /// The bars and spaces of a value, each with the width it is drawn at.
     /// </summary>
-    internal static int[] Elements(string value)
+    internal static Code39Element[] Barcode(string value)
     {
-  var widths = new List<int>();
+        if (string.IsNullOrEmpty(value)) return [];
+
+        var encodable = new System.Text.StringBuilder(value.Length);
         foreach (char character in value)
-        {
-      // The start and stop markers are part of the code rather than
-       // characters of the value, and they are drawn like any
-    // other pattern.
-            string encodable = character switch
-            {
-      '*' => "*",
-          _ => Code39.CanEncode(character.ToString()) ? character.ToString() : "-",
-            };
+            encodable.Append(Code39.CanEncode(character.ToString()) ? character.ToString() : "-");
 
-   // The narrow gap between one character and the next. Without
-    // it one character is read as part of the next and the whole
-        // identifier comes back wrong.
-      if (widths.Count > 0) widths.Add(1);
-
-            foreach (char element in Code39.Encode(encodable).Single())
-       widths.Add(element == 'W' ? 3 : 1);
-        }
-
-        return [.. widths];
+        return [.. Code39.Elements(encodable.ToString())];
     }
+
+    /// <summary>
+    /// The bar widths in units, wide being three.
+    /// </summary>
+    /// <remarks>
+    /// Read from the same table the label file is drawn from, through the same
+    /// <see cref="Code39.Elements"/>, rather than from a second copy of the rule
+    /// kept here. Two copies of a barcode pattern are two chances to disagree, and
+    /// the one place that must not disagree is the preview: an operator who trusts
+    /// a barcode drawn on screen has to be looking at the code the printer draws.
+    ///
+    /// A character Code39 cannot carry becomes a dash rather than being dropped, so
+    /// the value printed under the code and the code itself always describe the
+    /// same thing.
+    /// </remarks>
+    internal static int[] Elements(string value) =>
+        [.. Barcode(value).Select(element => element.Units)];
 
     /// <summary>
     /// The width of one narrow element, chosen so the code fills the width given.
-    ///
-    /// No floor, and that is deliberate. A fifteen digit identifier on a 106mm
-    /// label really is drawn with bars about a millimetre wide at 96 dpi, so
-    /// holding them at some larger "printable minimum" makes the code wider than
-    /// the label, and the preview then shows a barcode running off the edge of its
-    /// own sheet. The minimum a printer needs is applied where the printing
-    /// happens, not in a drawing that prints nothing.
     /// </summary>
+    /// <remarks>
+    /// The clear paper a scanner needs on each side is counted, because it is part
+    /// of the code. A preview that filled its whole width with bars would draw a
+    /// wider code than the file carries, and an operator comparing the two would be
+    /// comparing two different barcodes.
+    ///
+    /// No floor, and that is deliberate. The width at which a code stops being
+    /// readable is decided once, by <see cref="LabelCode.Fits"/>, and this control
+    /// is only ever handed a value that passed. Holding the bars at some larger
+    /// minimum here would push the code off the edge of the preview, which is a
+    /// drawing that prints nothing, telling the operator something untrue of the
+    /// label.
+    /// </remarks>
     internal static double FitWidth(IReadOnlyList<int> widths, double available)
     {
-        int units = 0;
+        int units = LabelBarcode.QuietZoneUnits * 2;
         foreach (int width in widths) units += width;
 
         return units > 0 ? available / units : available;

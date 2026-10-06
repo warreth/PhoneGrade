@@ -28,30 +28,80 @@ public static class PngWriter
     /// not have shown up as an error anywhere.
     /// </summary>
     /// <param name="bars">True where there is ink.</param>
-    /// <param name="width">How many pixels wide, in total.</param>
+    /// <param name="quietEachSide">
+    /// Pixels of clear paper on each side. Painted into the picture rather than
+    /// left to the margin, because the picture is handed over with an exact
+    /// physical width and a scanner needs clear paper it can see is there.
+    /// </param>
     /// <param name="height">How many pixels high.</param>
-    public static byte[] Barcode(IReadOnlyList<bool> bars, int width, int height)
+    /// <param name="elements">The bars and spaces, each with the width it is drawn at.</param>
+    /// <param name="narrow">
+    /// How many dots wide a narrow element is. Each element is drawn at its own
+    /// width in units, so a wide bar is three of them and a narrow space is one.
+    /// </param>
+    /// <param name="quietEachSide">
+    /// Dots of clear paper on each side. Painted into the picture rather than left
+    /// to the margin, because the picture is handed over with an exact physical
+    /// width and a scanner needs clear paper it can see is there.
+    /// </param>
+    /// <param name="height">How many dots high.</param>
+    public static byte[] Barcode(
+        IReadOnlyList<Code39Element> elements, int narrow, int quietEachSide, int height)
     {
+        narrow = Math.Max(1, narrow);
+
+        int content = 0;
+        foreach (Code39Element element in elements) content += element.Units * narrow;
+
+        int width = content + (2 * quietEachSide);
         var pixels = new bool[width * height];
-        int x = 0;
-        foreach (bool isBar in bars)
+
+        int x = quietEachSide;
+        foreach (Code39Element element in elements)
         {
-            // A bar is three dots and a space is one, which is the ratio Code39 is
-            // read at. Only the bar is ink; the space is left white and is what
-            // makes it a barcode rather than a black rectangle.
-            int span = isBar ? 3 : 1;
+            int span = element.Units * narrow;
             for (int i = 0; i < span && x < width; i++, x++)
             {
-                if (!isBar) continue;
+                if (!element.IsBar) continue;
                 for (int y = 0; y < height; y++) pixels[(y * width) + x] = true;
             }
         }
 
-        return Greyscale(pixels, width, height, oneBit: false);
+        return Greyscale(pixels, width, height, oneBit: false, dotsPerMm: DotsPerMm);
     }
 
+    /// <summary>
+    /// How finely a barcode is drawn, in dots per millimetre.
+    /// </summary>
+    /// <remarks>
+    /// Twelve, which is a little finer than the 300 dots an inch a DYMO head prints
+    /// at, so no bar is rounded away into the one beside it. It has to be declared
+    /// to whoever reads the picture, which is what the resolution chunk in the file
+    /// is for: without it the label is assumed to be drawn at 72 dots an inch and
+    /// the barcode comes out at a sixth of the width it was measured at, sitting in
+    /// the corner of a box sized for the real thing.
+    /// </remarks>
+    public const float DotsPerMm = 12f;
+
+    /// <summary>
+    /// How many dots wide a measurement of so many millimetres is drawn.
+    /// </summary>
+    /// <remarks>
+    /// Down rather than to the nearest. A code measured to fit the paper and then
+    /// rounded up to the next dot is a code wider than the paper: it runs off the
+    /// side, and the layout engine answers a code that will not fit by failing the
+    /// whole export rather than by trimming the code. Rounding down leaves at most
+    /// a dot of clear paper at the edge, which is what the quiet zone is for anyway.
+    /// </remarks>
+    public static int DotsFor(float millimetres) =>
+        Math.Max(1, (int)MathF.Floor(millimetres * DotsPerMm));
+
+    /// <summary>How many millimetres a whole number of dots comes to.</summary>
+    public static float MmOf(int dots) => dots / DotsPerMm;
+
     /// <summary>A one bit or eight bit greyscale PNG of the given pixels.</summary>
-    private static byte[] Greyscale(bool[] pixels, int width, int height, bool oneBit)
+    private static byte[] Greyscale(
+        bool[] pixels, int width, int height, bool oneBit, float dotsPerMm = 0f)
     {
         int stride = oneBit ? (width + 7) / 8 : width;
         var scanlines = new byte[(stride + 1) * height];
@@ -86,6 +136,19 @@ public static class PngWriter
         header[8] = oneBit ? (byte)1 : (byte)8;  // bits per sample
         header[9] = 0;                            // greyscale, no colour
         WriteChunk(png, "IHDR", header);
+
+        // The resolution, in pixels to the metre, which is the unit the standard
+        // uses. Without this the picture has no size of its own and whatever draws
+        // it decides for itself how big a millimetre is.
+        if (dotsPerMm > 0)
+        {
+            var resolution = new byte[9];
+            WriteInt(resolution, 0, (int)MathF.Round(dotsPerMm * 1000));
+            WriteInt(resolution, 4, (int)MathF.Round(dotsPerMm * 1000));
+            resolution[8] = 1;  // the unit is the metre
+            WriteChunk(png, "pHYs", resolution);
+        }
+
         WriteChunk(png, "IDAT", Zlib(scanlines));
         WriteChunk(png, "IEND", []);
 

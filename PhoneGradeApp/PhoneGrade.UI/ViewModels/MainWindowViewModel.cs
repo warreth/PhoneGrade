@@ -507,6 +507,116 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set { _settings.DefaultPaymentMethod = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _defaultPaymentMethod, value); }
     }
 
+    // ============ What the label says ============
+    //
+    // Six settings that decide what is printed on a label, kept together because
+    // they are read together: the paper and the barcodes take up the space the
+    // words go in, so changing one changes what fits of the others.
+
+    private string _labelStockPartNumber = LabelStock.Address.PartNumber;
+
+    /// <summary>
+    /// The DYMO part number of the roll in the printer.
+    ///
+    /// Read as a part number rather than as millimetres because that is how the roll
+    /// is ordered and how it is recognised: 89x28 and 89x36 are both "address", and
+    /// an operator holding the wrong one has no way to tell from the name.
+    /// </summary>
+    public string LabelStockPartNumber
+    {
+        get => _labelStockPartNumber;
+        set
+        {
+            string wanted = LabelStock.FromPartNumber(value).PartNumber;
+            _labelStockPartNumber = wanted;
+            _settings.LabelStockPartNumber = wanted;
+            _settings.Save();
+            this.RaiseAndSetIfChanged(ref _labelStockPartNumber, wanted);
+            ExportViewModel?.ReloadLabelSettings();
+        }
+    }
+
+    /// <summary>What the barcode carries: the identifier, the pair, or one of each.</summary>
+    public LabelBarcodeMode LabelBarcodeMode
+    {
+        get => _settings.LabelBarcodeMode;
+        set
+        {
+            _settings.LabelBarcodeMode = value;
+            _settings.Save();
+            this.RaisePropertyChanged();
+            ExportViewModel?.ReloadLabelSettings();
+        }
+    }
+
+    /// <summary>Called by the export panel's pickers, which own the collections.</summary>
+    public void SetLabelStock(LabelStock stock)
+    {
+        if (string.Equals(_labelStockPartNumber, stock.PartNumber, StringComparison.Ordinal)) return;
+        _labelStockPartNumber = stock.PartNumber;
+        _settings.LabelStockPartNumber = stock.PartNumber;
+        _settings.Save();
+        this.RaiseAndSetIfChanged(ref _labelStockPartNumber, stock.PartNumber);
+        this.RaisePropertyChanged(nameof(LabelStock));
+    }
+
+    /// <summary>Called by the export panel's picker.</summary>
+    public void SetLabelBarcodeMode(LabelBarcodeMode mode)
+    {
+        if (_settings.LabelBarcodeMode == mode) return;
+        _settings.LabelBarcodeMode = mode;
+        _settings.Save();
+        this.RaisePropertyChanged(nameof(LabelBarcodeMode));
+        ExportViewModel?.ReloadLabelSettings();
+    }
+
+    /// <summary>The stock, as the label writers take it.</summary>
+    public LabelStock LabelStock => LabelStock.FromPartNumber(_labelStockPartNumber);
+
+    /// <summary>
+    /// The switches that decide what the label says, as the settings page shows them.
+    /// </summary>
+    /// <remarks>
+    /// Gathered into one object so the label's wording is passed around as a single
+    /// value. Every renderer takes it, which is the only way the preview can promise
+    /// it is showing what the file will contain.
+    /// </remarks>
+    public LabelContent LabelContent => new(
+        _settings.LabelShowBatteryCycles,
+        _settings.LabelShowFaults,
+        _settings.LabelShowLocks);
+
+    /// <summary>Whether the charge count is on the label.</summary>
+    public bool LabelShowBatteryCycles
+    {
+        get => _settings.LabelShowBatteryCycles;
+        set { _settings.LabelShowBatteryCycles = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _labelShowBatteryCycles, value); LabelSettingsChanged(); }
+    }
+
+    /// <summary>Whether the faults are on the label.</summary>
+    public bool LabelShowFaults
+    {
+        get => _settings.LabelShowFaults;
+        set { _settings.LabelShowFaults = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _labelShowFaults, value); LabelSettingsChanged(); }
+    }
+
+    /// <summary>
+    /// Whether the locks are on the label. A shop that turns this off should know
+    /// that it removes the one line that stops a FRP locked phone being sold.
+    /// </summary>
+    public bool LabelShowLocks
+    {
+        get => _settings.LabelShowLocks;
+        set { _settings.LabelShowLocks = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _labelShowLocks, value); LabelSettingsChanged(); }
+    }
+
+    private bool _labelShowBatteryCycles = true;
+    private bool _labelShowFaults = true;
+    private bool _labelShowLocks = true;
+
+    /// <summary>Tells the preview and the writers that the label's wording changed.</summary>
+    private void LabelSettingsChanged() => ExportViewModel?.ReloadLabelSettings();
+
     private bool _enableUsbEventMonitoring;
     public bool EnableUsbEventMonitoring
     {
@@ -549,6 +659,55 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         get => _isIntroVisible;
         private set => this.RaiseAndSetIfChanged(ref _isIntroVisible, value);
     }
+
+    /// <summary>
+    /// The pages the introduction screen is made of, in the order they are read.
+    ///
+    /// It used to be one long card holding the plan, the Pro price, the IMEI key
+    /// offer, three buttons and a license box, which put the whole of it on one
+    /// screen at a font too small to read comfortably. It is now four pages, and the
+    /// language and the look are asked for on the first one rather than left for
+    /// the operator to find afterwards.
+    /// </summary>
+    public IReadOnlyList<string> IntroPages { get; } =
+        ["Language", "Plan", "Workflow", "Imei"];
+
+    private string _introPage = "Language";
+
+    /// <summary>The page of the introduction currently on screen.</summary>
+    public string IntroPage
+    {
+        get => _introPage;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _introPage, value);
+            this.RaisePropertyChanged(nameof(IsFirstIntroPage));
+            this.RaisePropertyChanged(nameof(IsLastIntroPage));
+        }
+    }
+
+    /// <summary>True on the first page, where the back button has nowhere to go.</summary>
+    public bool IsFirstIntroPage => IntroPage == IntroPages[0];
+
+    /// <summary>True on the last page, where the button finishes instead of advancing.</summary>
+    public bool IsLastIntroPage => IntroPage == IntroPages[^1];
+
+    /// <summary>The page after this one, wrapping to the first on the last.</summary>
+    public string NextIntroPage =>
+        IsLastIntroPage ? IntroPages[0] : IntroPages[IntroPages.IndexOf(IntroPage) + 1];
+
+    /// <summary>The page before this one, stopping at the first.</summary>
+    public string PreviousIntroPage =>
+        IsFirstIntroPage ? IntroPages[0] : IntroPages[IntroPages.IndexOf(IntroPage) - 1];
+
+    /// <summary>Goes to the next page, or closes the screen when it is the last one.</summary>
+    public ReactiveCommand<Unit, Unit> IntroNextCommand { get; }
+
+    /// <summary>Goes back a page. Does nothing on the first one.</summary>
+    public ReactiveCommand<Unit, Unit> IntroBackCommand { get; }
+
+    /// <summary>Jumps straight to a named page.</summary>
+    public ReactiveCommand<string, Unit> IntroGoToPageCommand { get; }
 
     private bool _isIntroActivationVisible;
     /// <summary>True once "I already have a license" was pressed on the introduction screen.</summary>
@@ -878,6 +1037,22 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         // Introduction screen: shown until dismissed, and never again after that.
         IsIntroVisible = !_settings.IntroSeen;
         DismissIntroCommand = ReactiveCommand.Create(DismissIntro);
+        // The last page finishes; the ones before it turn the page. One button for
+        // both, because a Next that turns into a Finish halfway through is what
+        // the operator expects and two buttons at the foot of the card is not.
+        IntroNextCommand = ReactiveCommand.Create(() =>
+        {
+            if (IsLastIntroPage) DismissIntro();
+            else IntroPage = NextIntroPage;
+        });
+        IntroBackCommand = ReactiveCommand.Create(() =>
+        {
+            if (!IsFirstIntroPage) IntroPage = PreviousIntroPage;
+        });
+        IntroGoToPageCommand = ReactiveCommand.Create<string>(page =>
+        {
+            if (IntroPages.Contains(page)) IntroPage = page;
+        });
         ShowIntroActivationCommand = ReactiveCommand.Create(() => { IsIntroActivationVisible = true; });
         NavigateToImeiSettingsCommand = ReactiveCommand.Create(() =>
         {

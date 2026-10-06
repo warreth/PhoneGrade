@@ -52,8 +52,28 @@ public sealed record LabelFields
     /// </summary>
     public required LabelFaults Faults { get; init; }
 
+    /// <summary>
+    /// Whether the charge count, the faults and the locks are on this label.
+    /// </summary>
+    /// <remarks>
+    /// Carried through rather than being read from a setting inside the writer, so
+    /// the preview and the file are decided by the same value at the same moment. A
+    /// writer that went and read the settings for itself would go on drawing a part
+    /// of the label the operator has already switched off.
+    /// </remarks>
+    public LabelContent Content { get; init; } = LabelContent.Everything;
+
     /// <summary>How many times the battery has been charged, or the placeholder.</summary>
     public required string BatteryCycles { get; init; }
+
+    /// <summary>
+    /// Whether the identifier can be put on a barcode at all.
+    ///
+    /// A phone whose serial could not be read has the placeholder on it, and a
+    /// barcode of the placeholder scans on every phone in the shop. This is the one
+    /// value a barcode must never be built from.
+    /// </summary>
+    public bool IsIdentifiable => Identifier != DevicePlaceholders.Identifier;
 
     /// <summary>True when a value is still a placeholder and must not reach a label.</summary>
     public bool IsComplete =>
@@ -81,7 +101,8 @@ public sealed record LabelFields
     public static LabelFields From(
         DeviceData data,
         bool flagLowBattery = true,
-        LabelFaults? faults = null)
+        LabelFaults? faults = null,
+        LabelContent? content = null)
     {
         (string battery, bool low) = BatteryField(data.BatteryHealth, flagLowBattery);
         return new LabelFields
@@ -97,6 +118,7 @@ public sealed record LabelFields
             Storage = Clean(data.Storage, DevicePlaceholders.Storage),
             BatteryCycles = Cycles(data.BatteryCycleCount),
             Faults = faults ?? LabelFaultReader.From(data),
+            Content = content ?? LabelContent.Everything,
         };
     }
 

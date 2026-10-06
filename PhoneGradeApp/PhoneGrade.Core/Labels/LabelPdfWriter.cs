@@ -17,8 +17,25 @@ namespace PhoneGrade.Core;
 /// </summary>
 public static class LabelPdfWriter
 {
-    /// <summary>Writes one label, the size the layout says.</summary>
-    public static void Write(string path, LabelFields fields, LabelLayout? layout = null)
+    /// <summary>
+    /// Writes one label, on the stock and in the barcode mode the operator chose.
+    /// </summary>
+    /// <param name="path">Where the PDF goes.</param>
+    /// <param name="fields">What the inspection read.</param>
+    /// <param name="layout">
+    /// The stock and where things sit on it. Omitted means the DYMO address label,
+    /// which is what the shipped template was drawn for and the roll in nearly
+    /// every phone shop.
+    /// </param>
+    /// <param name="mode">
+    /// What the barcode carries. Identifiers only by default, because a barcode
+    /// that does not scan to a serial is a barcode that gets a phone mislaid.
+    /// </param>
+    public static void Write(
+        string path,
+        LabelFields fields,
+        LabelLayout? layout = null,
+        LabelBarcodeMode mode = LabelBarcodeMode.Identifier)
     {
         // Done here rather than left to the caller. Setting the licence up is one
         // line but it is the one line that has to happen before the document is
@@ -27,77 +44,127 @@ public static class LabelPdfWriter
         ReportFonts.Ensure();
 
         LabelLayout size = layout ?? LabelLayout.Address;
-                string? barcode = LabelBarcode.Encode(fields.Identifier, out _);
+
+        // A code that will not fit at a width a scanner reads is not drawn. It goes
+        // on the label as words instead, on the two small multi purpose stocks,
+        // where a fifteen digit identifier is simply wider than the paper. Squeezing
+        // it in would produce grey rather than bars, and an operator who scans that
+        // and gets nothing believes the phone has no identifier.
+        var (barred, spelled) = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields))
+            .On(size.Stock, mode, fields.IsIdentifiable);
+
+        string spec = LabelLayout.TextLine(fields);
+        string detail = LabelLayout.DetailLine(fields);
+        string locks = LabelLayout.LockLine(fields);
+
+        // The values that could not be barcoded are printed instead, above the
+        // specification, so a label with no barcode on it still says which device it
+        // is. A label that cannot be scanned has to be readable by eye, or it says
+        // nothing at all.
+        string written = string.Join("  ", spelled);
+
+        // How many lines the text block really is, taken from the lines that have
+        // something on them. A clean phone with one line can be set much larger than
+        // a phone with three, which is the difference between a label that fills its
+        // paper and one that huddles in the middle of it.
+        var block = new[] { written, spec, detail, locks }.Where(line => line.Length > 0).ToList();
+
+        float body = LabelType.BlockSize(block, size, barred.Count);
+        float lockSize = LabelType.LineSize(locks, size, barred.Count, body * LabelType.LocksLargerThanBody, body);
 
         Document.Create(document =>
         {
             document.Page(page =>
             {
-                // The page is the label. Anything outside this rectangle is not
-                // printed by a label printer, so the layout is measured in the
-                // stock's own millimetres rather than in a scaled-down A4.
-                page.Size(new PageSize(size.WidthMm, size.HeightMm));
-                page.Margin(0);
+                // The page is the paper, margins and all, so that a label written
+                // here is the same piece of stock a DYMO takes. Drawing on the whole
+                // rectangle puts the words where the printer cannot reach them, and
+                // they come off the label while still being in the file.
+                //
+                // Points, not millimetres. A page size given in millimetres is read
+                // as millimetres of paper divided by nothing at all, so an 89mm label
+                // comes out as a 31mm page with the same words on it: the file is
+                // valid, it looks right, and it prints at a third of the size of the
+                // roll it was drawn for. Every measurement on this label is in
+                // millimetres because that is the language of label stock, and the
+                // conversions are the one place the two have to meet.
+                page.Size(new PageSize(Points(size.PaperWidthMm), Points(size.PaperHeightMm)));
                 page.PageColor(Colors.White);
 
                 string? family = ReportFonts.Resolve();
 
-                page.Content().Column(column =>
+                // The margin the printer cannot reach is a padding on the content
+                // rather than a page margin, and there is one content layer rather
+                // than two: QuestPDF takes a page margin once and lets content be
+                // defined once, and asking for a second layer fails the whole
+                // export rather than quietly drawing somewhere else.
+                page.Content().PaddingTop(Points(size.Stock.TopMarginMm))
+                    .PaddingBottom(Points(size.Stock.BottomMarginMm))
+                    .PaddingHorizontal(Points(size.Stock.SideMarginMm))
+                    .Column(column =>
                 {
                     column.Spacing(0);
 
-                    if (barcode is not null)
+                    // No height is set on any item below. An item that believes it
+                    // owns a fixed slice of the paper hands the layout engine two
+                    // requirements it cannot both meet, and QuestPDF answers that by
+                    // dropping the text rather than by complaining: the label comes
+                    // out with bars on it and no words, which reads as a blank label.
+                    // Each barcode is placed by its own offset from the top of the
+                    // printable area, measured from the top rather than accumulated,
+                    // so a second barcode cannot drift a fraction of a millimetre per
+                    // label because of the one before it.
+                    for (int index = 0; index < barred.Count; index++)
                     {
-                        // No fixed height on this item, deliberately. Pinning the
-                        // band to a height and then putting the caption inside it
-                        // hands the layout engine two requirements that cannot both
-                        // be met, and QuestPDF answers that by quietly dropping
-                        // everything after it: the label comes out with bars on it
-                        // and no text at all, which reads as a blank label rather
-                        // than as a fault. Let the band take the height its bars and
-                        // its caption actually need.
+                        string payload = barred[index];
+
+                        // Only the gap. Every band is the same height and the column
+                        // stacks them with no spacing between them, so the second band
+                        // already starts where the first one ended and the offset from
+                        // the top of the label has been accounted for. Padding it by
+                        // its own offset as well put the second barcode lower than its
+                        // place and pushed the words off the bottom of the label.
                         column.Item()
-                            .PaddingTop(size.BarcodeYmm)
-                            .Element(container => Barcode(container, barcode, size, family));
+                            .PaddingTop(Points(index == 0 ? 0f : LabelLayout.GapMm))
+                            .Element(container => Barcode(container, payload, size, barred.Count, family));
                     }
 
-                    // The rest of the paper: the specification, what is wrong, and
-                    // the locks on their own line. No height is set on any of them,
-                    // because an item that believes it owns a fixed slice of the
-                    // paper is what fought with the barcode band in the first
-                    // place: two items that both think they own it is a layout the
-                    // engine cannot always satisfy, and it answers by dropping the
-                    // text rather than by complaining.
-                    // Every line of the text block is set at one size, worked out
-                    // from the longest of them. Sized line by line the block reads
-                    // as three different pieces of paper; one size makes it read as
-                    // one label.
-                    string spec = LabelLayout.TextLine(fields);
-                    string detail = LabelLayout.DetailLine(fields);
-                    string locks = LabelLayout.LockLine(fields);
+                    // The text, below however many barcodes there were. Every line at
+                    // one size, worked out from the longest: sized line by line the
+                    // block reads as three pieces of paper rather than one label.
+                    string first = block[0];
 
-                    float body = BlockSize(spec, detail, size);
-                    float lockSize = FittedSize(locks, size, body * 1.35f, body);
+                    // Sat in the middle of the room that is left rather than against
+                    // the top of it. A label is read on a shelf, and one whose words
+                    // stop a third of the way up its paper looks like a label that
+                    // ran out of something.
+                    float room = size.TextHeightMm(barred.Count);
+                    float taken = block.Count * body + (block.Contains(locks) && locks.Length > 0
+                        ? body * (LabelType.LocksLargerThanBody - 1)
+                        : 0);
+                    float slack = Math.Max(0f, (room - taken * LabelType.LineHeightInMm) / 2f);
 
-                    column.Item()
-                        .PaddingTop(Math.Max(1f, size.TextYmm - size.BarcodeYmm - size.BarcodeHeightMm))
-                        .AlignCenter().AlignMiddle()
-                        .Element(container => TextLine(container, spec, size, body, family));
+                    float above = barred.Count == 0 ? 0f : LabelLayout.GapMm + slack;
 
-                    if (detail.Length > 0)
+                    column.Item().PaddingTop(Points(above)).AlignCenter().AlignMiddle()
+                        .Element(container => TextLine(container, first, body, family));
+
+                    for (int index = 1; index < block.Count; index++)
+                    {
+                        string line = block[index];
+                        if (line.Length == 0) continue;
+
                         column.Item().AlignCenter().AlignMiddle()
-                            .Element(container => Detail(container, detail, size, body, family));
-
-                    if (locks.Length > 0)
-                        column.Item().AlignCenter().AlignMiddle()
-                            .Element(container => Detail(container, locks, size, lockSize, family));
+                            .Element(container => Detail(container, line,
+                                line == locks ? lockSize : body, family));
+                    }
                 });
             });
         }).GeneratePdf(path);
     }
 
     /// <summary>
- /// The barcode drawn as bars.
+    /// One barcode: the bars, and the value under them.
     ///
     /// Code39 is drawn here rather than handed to a barcode library because it is
     /// nine elements of fixed widths per character, and a dependency that draws it
@@ -105,29 +172,28 @@ public static class LabelPdfWriter
     /// come from the standard's own table: nine patterns of wide and narrow, three
     /// of them wide, and a narrow gap between one character and the next.
     ///
-    /// The bars are given their widths in absolute units rather than as shares of
-    /// the row. A fifteen character identifier is a hundred and fifty elements, and
-    /// each one given a relative width comes out narrower than the layout engine's
-    /// own minimum, which makes the whole page fail to draw.
+    /// The caption is what a barcode is read against. A code nobody can read back
+    /// is worse than no code, because the operator believes it was scanned.
     /// </summary>
-    private static void Barcode(IContainer container, string value, LabelLayout size, string? family)
+    private static void Barcode(
+        IContainer container, string value, LabelLayout size, int count, string? family)
     {
-        // Narrow is one unit and wide is three, which is the ratio the standard is
-        // read at. Everything is scaled afterwards so the whole barcode fits the
-        // label rather than a fixed number of units spilling off it.
-        var elements = new List<bool>();
-        foreach (string pattern in Code39.Encode(value))
-        {
-            for (int i = 0; i < pattern.Length; i++) elements.Add(i % 2 == 0);
+        // The bar width is rounded to whole dots before anything else uses it, so
+        // that the picture and the box it is handed are the same width. Rounding
+        // twice, once for the picture and once for the box, is how a barcode ends
+        // up drawn at one size inside a box of another: it sits in the corner of the
+        // band, a sixth of the width it was measured at, because the layout engine
+        // scaled it to fit. Rounded down rather than to the nearest, so the code is
+        // never wider than the paper it was measured against.
+        int narrowDots = PngWriter.DotsFor(LabelBarcode.NarrowMm(value, size.WidthMm));
+        float narrow = PngWriter.MmOf(narrowDots);
 
-            // The gap between characters. Without it one character is read as part
-            // of the next and the whole identifier comes back wrong.
-            elements.Add(false);
-        }
-        if (elements.Count > 0) elements.RemoveAt(elements.Count - 1);
+        float band = size.BarcodeBandMm(count);
 
-        float narrow = NarrowBarWidth(elements, size);
-        float barHeight = size.BarcodeHeightMm - 3f;
+        // Two thirds of the band for the bars and the rest for the caption, which
+        // is about a two and a half millimetre line at six point.
+        float caption = Math.Min(3f, band * 0.3f);
+        float bars = band - caption;
 
         container.Column(column =>
         {
@@ -135,30 +201,40 @@ public static class LabelPdfWriter
             // fill, the image is stretched across the whole band and a barcode comes
             // out as a black rectangle, which scans as nothing and looks like a
             // printer fault rather than a drawing one.
-            column.Item().Height(barHeight).AlignCenter()
+            column.Item().Height(Points(bars)).AlignCenter()
                 .Element(box => box
-                    .Width(BarWidthMm(elements, narrow))
-                    .Height(barHeight)
-                    .Image(Bars(elements, narrow, barHeight)));
+                    .Width(Points(LabelBarcode.WidthMm(value, narrow)))
+                    .Height(Points(bars))
+                    .Image(Bars(value, narrowDots, bars)));
 
-            // The value under the bars. A barcode nobody can read back is worse
-            // than no barcode, because the operator believes it was scanned.
-            column.Item().AlignCenter().Text(value)
-                .FontFamily(family ?? "Helvetica").FontSize(6).FontColor(Colors.Black);
+            column.Item().AlignCenter().AlignMiddle().Text(value)
+                .FontFamily(family ?? "Helvetica")
+                .FontSize(CaptionPoint)
+                .FontColor(Colors.Black);
         });
     }
 
-    /// <summary>How wide the drawn code is on the paper, in millimetres.</summary>
-    private static float BarWidthMm(IReadOnlyList<bool> elements, float narrowMm)
-    {
-        float units = 0;
-        foreach (bool isBar in elements) units += isBar ? 3 : 1;
-        return units * narrowMm;
-    }
+    /// <summary>
+    /// Millimetres as points, which is the unit a PDF page is measured in.
+    /// </summary>
+    /// <remarks>
+    /// There are 72 points to the inch and 25.4 millimetres to it. A label is
+    /// described in millimetres throughout, because that is how the roll is sold
+    /// and how the DYMO template measures, so this is where the two meet. Getting it
+    /// wrong is silent: the document still draws, it is still valid, and it comes
+    /// out at 72/25.4 of the size it should be.
+    /// </remarks>
+    private static float Points(float millimetres) => millimetres * PointsPerMm;
+
+    private const float PointsPerMm = 72f / 25.4f;
+
+    /// <summary>The size the value under the barcode is set at.</summary>
+    private const float CaptionPoint = 5.5f;
 
     /// <summary>
     /// The bars as one picture.
-    ///
+    /// </summary>
+    /// <remarks>
     /// Painted rather than laid out, and that is the whole point. Laid out as a
     /// hundred and sixty-nine separate boxes, the label's words sat on a knife
     /// edge: making the code a third of a millimetre narrower was enough for the
@@ -166,62 +242,36 @@ public static class LabelPdfWriter
     /// printed the barcode and nothing else, with every word still in the file.
     /// An image has one width and takes it, so there is nothing left to negotiate.
     ///
-    /// Four dots to the millimetre, which is what a 300 dpi head can hold. The
-    /// bitmap is handed over with its physical size, so the printer scales it to
-    /// the label rather than deciding for itself how wide each bar is.
-    /// </summary>
-    private static byte[] Bars(IReadOnlyList<bool> elements, float narrowMm, float heightMm)
-    {
-        const float DotsPerMm = 4f;
-        int narrow = Math.Max(1, (int)MathF.Round(narrowMm * DotsPerMm));
-        int high = Math.Max(1, (int)MathF.Round(heightMm * DotsPerMm));
-
-        int width = 0;
-        foreach (bool isBar in elements) width += isBar ? narrow * 3 : narrow;
-
-        return PngWriter.Barcode(elements, width, high);
-    }
-
-    /// <summary>
-    /// The width of one narrow element, in millimetres, chosen so a barcode of
-    /// this many elements fills the label and no more.
+    /// The bars are drawn at the same dots per millimetre the page is measured in,
+    /// and the picture says so, so the layout engine has no reason to rescale it.
     ///
-    /// The floor is the narrowest a 300 dpi head holds, about three dots. Fifteen
-    /// digits of Code39 is 339 units, which is 95mm at a comfortable width, so an
-    /// 89mm label is given the narrowest code that still scans rather than a code
-    /// that runs off the side of the paper.
-    /// </summary>
-    private static float NarrowBarWidth(IReadOnlyList<bool> elements, LabelLayout size)
+    /// The quiet zones are painted into the picture rather than left as bare paper
+    /// around it, because the picture is given an exact width and the layout engine
+    /// will not leave the margin a scanner needs unless it is asked to.
+    /// </remarks>
+    private static byte[] Bars(string value, int narrowDots, float heightMm)
     {
-        float available = size.WidthMm - (2 * size.MarginMm);
-        int units = 0;
-        foreach (bool isBar in elements) units += isBar ? 3 : 1;
+        int high = PngWriter.DotsFor(heightMm);
 
-        float fitted = units > 0 ? available / units : available;
-        return Math.Max(fitted, NarrowestNarrowMm);
+        return PngWriter.Barcode(
+            Code39.Elements(value).ToList(), narrowDots,
+            quietEachSide: LabelBarcode.QuietZoneUnits * narrowDots, high);
     }
-
-    /// <summary>
-    /// The narrowest Code39 is read at, about three dots on a 300 dpi head. Below
-    /// this a scanner stops reading the code, which looks exactly like a label with
-    /// no barcode on it.
-    /// </summary>
-    private const float NarrowestNarrowMm = 0.19f;
 
     /// <summary>
     /// The specification line under the barcode.
     ///
-    /// Set to a size that fits the stock on one line, measured rather than guessed.
-    /// A fixed 9 point line is a comfortable read on a 106mm label and overflows it,
-    /// and an overflowing line wraps: two lines take the room the fault line needs,
-    /// so the faults are squeezed to nothing at the bottom of the label. The faults
-    /// going missing is worse than the specification being set a size smaller.
+    /// Set to a size that fits the stock, measured rather than guessed, and set at
+    /// that size exactly. The whole block is sized once from its longest line, so
+    /// the label reads as one label. What it must not do is let each line find its
+    /// own size, which is what scaling every line to fill whatever room is left
+    /// does: on a three line label that came out as a specification at nine point,
+    /// the faults at four, and the locks in between, and the locks are the one line
+    /// a shop cannot afford to have as the smallest thing on the paper.
     /// </summary>
-    private static void TextLine(IContainer container, string text, LabelLayout layout, float points, string? family)
+    private static void TextLine(IContainer container, string text, float points, string? family)
     {
-        container.PaddingHorizontal(layout.MarginMm)
-            .AlignCenter().AlignMiddle()
-            .ScaleToFit()
+        container.AlignCenter().AlignMiddle()
             .Text(text)
             .FontFamily(family ?? "Helvetica")
             .FontSize(points)
@@ -238,12 +288,9 @@ public static class LabelPdfWriter
     /// activates wipes itself, and this line is the last place that could have said
     /// so.
     /// </summary>
-    private static void Detail(
-        IContainer container, string text, LabelLayout layout, float points, string? family)
+    private static void Detail(IContainer container, string text, float points, string? family)
     {
-        container.PaddingHorizontal(layout.MarginMm)
-            .AlignCenter().AlignMiddle()
-            .ScaleToFit()
+        container.AlignCenter().AlignMiddle()
             .Text(text)
             .FontFamily(family ?? "Helvetica")
             .FontSize(points)
@@ -251,43 +298,4 @@ public static class LabelPdfWriter
             .FontColor(Colors.Black);
     }
 
-    /// <summary>
-    /// The largest size at which this text still fits across the stock on one line.
-    /// </summary>
-    private static float FittedSize(string text, LabelLayout layout, float largest, float smallest)
-    {
-        if (text.Length == 0) return smallest;
-
-        float available = layout.WidthMm - (2 * layout.MarginMm);
-        float perPoint = available / (text.Length * AdvanceMmPerPoint);
-
-        return Math.Clamp(perPoint, smallest, largest);
-    }
-
-    /// <summary>
-    /// The one size the whole text block is set at, taken from its longest line.
-    /// </summary>
-    /// <remarks>
-    /// A line is allowed to wrap: forty characters of specification do not fit
-    /// across a 106mm label at a size anybody can read, and the original template
-    /// had DYMO shrink the same line until it did. Set per line, the block reads as
-    /// three different pieces of paper. Set once from the longest line, it reads as
-    /// one label with a wrapped first line.
-    /// </remarks>
-    private static float BlockSize(string first, string second, LabelLayout layout)
-    {
-        int longest = Math.Max(first.Length, second.Length);
-        if (longest == 0) return 8f;
-
-        float available = layout.WidthMm - (2 * layout.MarginMm);
-        float perPoint = available / (longest * AdvanceMmPerPoint);
-
-        // Half the width, so the longest line fills it and wraps rather than
-        // filling it exactly: a line measured to land on the edge is a line that
-        // overflows by a hair on the next machine.
-        return Math.Clamp(perPoint * 0.5f, 5f, 9f);
-    }
-
-    /// <summary>How wide one character is per point of type, in millimetres.</summary>
-    private const float AdvanceMmPerPoint = 0.35f;
 }

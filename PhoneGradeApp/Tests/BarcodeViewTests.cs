@@ -102,14 +102,23 @@ int wide = bars.Skip(character * Stride).Take(ElementsPerCharacter).Count(width 
     [Fact]
     public void TheCodeFillsTheWidthItIsGiven_AtEveryStockSize()
     {
-  // Scaled rather than laid out at a fixed unit, so a narrow label shows the
+        // Scaled rather than laid out at a fixed unit, so a narrow label shows the
         // same code rather than a code running off the side of it.
-   int[] bars = BarcodeView.Elements("*356938035643809*");
+        int[] bars = BarcodeView.Elements("*356938035643809*");
 
         double narrow = BarcodeView.FitWidth(bars, 400);
+        double drawn = bars.Sum(width => narrow * width);
 
-Assert.Equal(400, bars.Sum(width => narrow * width), 1);
-   Assert.True(narrow > 0);
+        // The clear paper a scanner needs is counted, so what fills the width is
+        // the code plus its two quiet zones and not the bars alone. A preview that
+        // drew the bars across the whole sheet would be showing a wider code than
+        // the file carries, which is the one thing a preview of a barcode must not
+        // do.
+        double quiet = 2 * LabelBarcode.QuietZoneUnits * narrow;
+
+        Assert.Equal(400, drawn + quiet, 1);
+        Assert.True(drawn < 400, $"the bars alone fill {drawn:F0} of 400 pixels");
+        Assert.True(narrow > 0);
     }
 
     [Fact]
@@ -128,6 +137,29 @@ Assert.Equal(400, bars.Sum(width => narrow * width), 1);
       Assert.True(total <= 300.001,
           $"a {value.Length} character code draws {total:F0} pixels wide on a 300 pixel sheet");
         }
+    }
+
+    [Fact]
+    public void EveryNarrowBarIsDrawn_NotOnlyTheWideOnes()
+    {
+        // The regression. Inking anything wider than a wide element drew the wide
+        // elements alone, which is roughly half of a Code39 code: the preview showed
+        // a barcode the label file did not contain, and it was the preview an
+        // operator would have compared the printed label against.
+        Code39Element[] elements = BarcodeView.Barcode("*356938035643809*");
+
+        int bars = elements.Count(element => element.IsBar);
+        int wideBars = elements.Count(element => element.IsBar && element.Units > Code39.NarrowUnit);
+
+        Assert.True(bars > wideBars * 2,
+            $"the code has {bars} bars of which {wideBars} are wide; inking only the wide " +
+            "ones draws half a barcode");
+
+        // Every other element of a Code39 character is a space, and no two spaces
+        // run together, which is what tells a scanner where one character stops.
+        foreach (Code39Element element in elements)
+            Assert.True(element.Units is Code39.NarrowUnit or Code39.WideUnit,
+                $"an element is {element.Units} units, which Code39 does not have");
     }
 
     [Fact]

@@ -41,6 +41,73 @@ public static class DymoTemplate
         };
 
     /// <summary>
+    /// The sentinels that depend on the stock and on the barcode mode.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="Sentinels"/> because these cannot be worked out from
+    /// the values alone: whether a code fits depends on how wide the roll is, and
+    /// what goes in it depends on the mode the operator chose. They are named for the
+    /// two barcode objects a template carries, so one file serves every mode: an
+    /// empty barcode object prints nothing, which is how a two barcode template
+    /// prints a label with one code on it.
+    /// </remarks>
+    public const string FirstBarcodeSentinel = "BARCODE1";
+
+    /// <summary>The second barcode object's sentinel.</summary>
+    public const string SecondBarcodeSentinel = "BARCODE2";
+
+    /// <summary>
+    /// What could not be barcoded and is printed as words instead.
+    /// </summary>
+    /// <remarks>
+    /// Its own sentinel so a template can put it on the label as text. On the two
+    /// small multi purpose rolls a fifteen digit identifier is wider than the paper
+    /// at a bar width a scanner reads, and it has to appear somewhere: a label that
+    /// cannot be scanned has to be readable by eye.
+    /// </remarks>
+    public const string SpelledSentinel = "SPELLED";
+
+    /// <summary>
+    /// Every name this app fills, including the ones that depend on the stock.
+    /// </summary>
+    /// <remarks>
+    /// Held apart from <see cref="Sentinels"/> so that a template asking for a
+    /// barcode is not reported as carrying a field this app knows nothing about.
+    /// </remarks>
+    public static IReadOnlyList<string> KnownSentinels { get; } =
+        [.. Sentinels.Keys, FirstBarcodeSentinel, SecondBarcodeSentinel, SpelledSentinel];
+
+    /// <summary>Every sentinel this app can fill, given a stock and a barcode mode.</summary>
+    private static IReadOnlyDictionary<string, Func<LabelFields, string>> ValuesFor(
+        LabelLayout layout, LabelBarcodeMode mode)
+    {
+        var values = new Dictionary<string, Func<LabelFields, string>>(
+            Sentinels, StringComparer.Ordinal);
+
+        values[FirstBarcodeSentinel] =
+            fields => Barcodes(layout, mode, fields).Barred.ElementAtOrDefault(0) ?? "";
+        values[SecondBarcodeSentinel] =
+            fields => Barcodes(layout, mode, fields).Barred.ElementAtOrDefault(1) ?? "";
+        values[SpelledSentinel] =
+            fields => string.Join(" ", Barcodes(layout, mode, fields).Spelled);
+
+        return values;
+    }
+
+    /// <summary>
+    /// What the barcodes carry on this stock in this mode.
+    /// </summary>
+    /// <remarks>
+    /// The label PDF and the preview ask the same question of the same type, so the
+    /// .dymo file cannot come out carrying something different from the label the
+    /// operator was shown.
+    /// </remarks>
+    private static (IReadOnlyList<string> Barred, IReadOnlyList<string> Spelled) Barcodes(
+        LabelLayout layout, LabelBarcodeMode mode, LabelFields fields) =>
+        new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields))
+            .On(layout.Stock, mode, fields.IsIdentifiable);
+
+    /// <summary>
     /// Substitutes the values into the template text.
     ///
     /// The template is read as text on purpose, see the note on the class. Every
@@ -54,13 +121,21 @@ public static class DymoTemplate
     /// values already merged in, which then prints the last device inspected,
     /// forever, on every device after it.
     /// </exception>
+    /// <param name="layout">
+    /// The stock and the barcode mode it goes with, because whether a code fits and
+    /// what it carries are not questions the values alone can answer.
+    /// </param>
     public static DymoFillResult Fill(string templateText, LabelFields fields,
+        LabelLayout? layout = null, LabelBarcodeMode mode = LabelBarcodeMode.Identifier,
         ExportWording? wording = null)
     {
         ExportWording words = wording ?? ExportWording.English;
         var unknown = UnknownFields(templateText).ToList();
 
-        if (!Sentinels.Keys.Any(name => Mentions(templateText, name)))
+        IReadOnlyDictionary<string, Func<LabelFields, string>> values =
+            ValuesFor(layout ?? LabelLayout.Address, mode);
+
+        if (!values.Keys.Any(name => Mentions(templateText, name)))
             throw new InvalidDataException(words.TemplateHasNoFields);
 
         var result = new StringBuilder(templateText.Length + 64);
@@ -69,7 +144,7 @@ public static class DymoTemplate
         while (copied < templateText.Length)
         {
             string? hit = null;
-            foreach (string sentinel in Sentinels.Keys)
+            foreach (string sentinel in values.Keys)
             {
                 if (!templateText.AsSpan(copied).StartsWith(sentinel.AsSpan(), StringComparison.Ordinal))
                     continue;
@@ -87,7 +162,7 @@ public static class DymoTemplate
                 continue;
             }
 
-            result.Append(Escape(Sentinels[hit](fields)));
+            result.Append(Escape(values[hit](fields)));
             copied += hit.Length;
         }
 
@@ -117,7 +192,7 @@ public static class DymoTemplate
       if (element.Name.LocalName is not ("Text" or "DataString")) continue;
 
                 foreach (string word in FieldWords(element.Value))
-     if (!Sentinels.Keys.Any(sentinel => sentinel.StartsWith(word, StringComparison.Ordinal)))
+     if (!KnownSentinels.Any(sentinel => sentinel.StartsWith(word, StringComparison.Ordinal)))
         unknown.Add(word);
        }
         }

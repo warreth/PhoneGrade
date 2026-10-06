@@ -561,6 +561,8 @@ public class DymoTemplateTests
     private static LabelFields Full() => new()
     {
         Battery = "90%",
+        BatteryCycles = "120",
+        Faults = LabelFaults.None,
         Grade = "A",
         Identifier = "356938035643809",
         Color = "Wit",
