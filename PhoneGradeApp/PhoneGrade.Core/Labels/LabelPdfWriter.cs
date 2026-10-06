@@ -72,6 +72,12 @@ public static class LabelPdfWriter
         float body = LabelType.BlockSize(block, size, barred.Count);
         float lockSize = LabelType.LineSize(locks, size, barred.Count, body * LabelType.LocksLargerThanBody, body);
 
+        // Empty paper above the content and, by the same figure, below it, so a roll
+        // bigger than the label's own content carries it in the middle. Nothing on a
+        // 28mm address label, a good deal on a 59mm one.
+        float slack = LabelType.Centring(
+            size, barred.Count, body, block.Count, locks.Length > 0);
+
         Document.Create(document =>
         {
             document.Page(page =>
@@ -125,7 +131,7 @@ public static class LabelPdfWriter
                         // its own offset as well put the second barcode lower than its
                         // place and pushed the words off the bottom of the label.
                         column.Item()
-                            .PaddingTop(Points(index == 0 ? 0f : LabelLayout.GapMm))
+                            .PaddingTop(Points(index == 0 ? slack : LabelLayout.GapMm))
                             .Element(container => Barcode(container, payload, size, barred.Count, family));
                     }
 
@@ -133,16 +139,6 @@ public static class LabelPdfWriter
                     // one size, worked out from the longest: sized line by line the
                     // block reads as three pieces of paper rather than one label.
                     string first = block[0];
-
-                    // Sat in the middle of the room that is left rather than against
-                    // the top of it. A label is read on a shelf, and one whose words
-                    // stop a third of the way up its paper looks like a label that
-                    // ran out of something.
-                    float room = size.TextHeightMm(barred.Count);
-                    float taken = block.Count * body + (block.Contains(locks) && locks.Length > 0
-                        ? body * (LabelType.LocksLargerThanBody - 1)
-                        : 0);
-                    float slack = Math.Max(0f, (room - taken * LabelType.LineHeightInMm) / 2f);
 
                     float above = barred.Count == 0 ? 0f : LabelLayout.GapMm + slack;
 

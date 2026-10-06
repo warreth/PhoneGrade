@@ -24,9 +24,11 @@ public static class LabelType
     /// Set once from the longest line it reads as one label, which is also the only
     /// way the lines are guaranteed to fit the height the barcodes have left.
     ///
-    /// Half the printable width is allowed, so the longest line wraps rather than
-    /// landing exactly on the edge: a line measured to fit precisely is a line that
-    /// overflows by a hair on the next machine.
+    /// The whole printable width is allowed, because the advance above is the width
+    /// the words actually come out at and a line that lands on the edge is a line
+    /// that overflows by a hair somewhere else. A line too long for that wraps, and
+    /// wrapping a rare line of capitals is a smaller fault than setting every label
+    /// at half the size it could be.
     /// </remarks>
     /// <param name="block">The lines the label carries, in the order it says them.</param>
     /// <param name="layout">The stock and the arrangement on it.</param>
@@ -38,7 +40,7 @@ public static class LabelType
 
         float across = longest == 0
             ? LargestBodyPoint
-            : layout.WidthMm / (longest * AdvanceMmPerPoint) * 0.5f;
+            : layout.WidthMm / (longest * AdvanceMmPerPoint);
 
         return Math.Clamp(Math.Min(across, LargestFor(layout, barcodes, block.Count)),
             SmallestBodyPoint, LargestBodyPoint);
@@ -86,6 +88,32 @@ public static class LabelType
     }
 
     /// <summary>
+    /// Empty paper above the content, so a label with room to spare sits in the
+    /// middle of its roll rather than clinging to the top of it.
+    /// </summary>
+    /// <remarks>
+    /// The same figure is also the empty paper below it, which is what makes the
+    /// content centred rather than merely pushed down. It is half of what the text
+    /// block does not need, so a 28mm address label gets none at all and a 59mm
+    /// shipping label gets a quarter of its height above and below.
+    ///
+    /// Pinned to the top instead, a big roll came out as a barcode against the top
+    /// edge, a hand's width of white paper, and then the words, which reads as a
+    /// label that ran out of something.
+    /// </remarks>
+    public static float Centring(
+        LabelLayout layout, int barcodes, float body, int lines, bool locksSet)
+    {
+        float room = layout.TextHeightMm(barcodes);
+
+        // The locks line is set larger than the rest, so it occupies more than one
+        // line height and has to be paid for out of the same room.
+        float taken = lines * body + (locksSet ? body * (LocksLargerThanBody - 1) : 0);
+
+        return Math.Max(0f, (room - taken * LineHeightInMm) / 2f);
+    }
+
+    /// <summary>
     /// How much bigger the locks line is set than the rest of the block.
     /// </summary>
     /// <remarks>
@@ -96,8 +124,22 @@ public static class LabelType
     /// </remarks>
     public const float LocksLargerThanBody = 1.3f;
 
-    /// <summary>How wide one character is per point of type, in millimetres.</summary>
-    private const float AdvanceMmPerPoint = 0.35f;
+    /// <summary>
+    /// How wide one character is per point of type, in millimetres.
+    /// </summary>
+    /// <remarks>
+    /// Measured off a rendered label rather than assumed, because assuming this
+    /// figure is what sets every label in six point type and leaves a 59mm roll
+    /// three quarters empty. In Lato SemiBold at nine point a typical label line
+    /// runs 0.171mm a character and a line of digits runs 0.204; a row of wide
+    /// capitals reaches 0.328 and a row of narrow ones 0.086.
+    ///
+    /// 0.21 is the figure for text a label actually carries, with a little over it.
+    /// The widest thing measured, a line of nothing but wide capitals, is not
+    /// something a phone inspection produces, and sizing for it would set every
+    /// real label smaller than it needs to be.
+    /// </remarks>
+    private const float AdvanceMmPerPoint = 0.21f;
 
     /// <summary>
     /// How tall one line is for one point of type, in millimetres: about a fifth

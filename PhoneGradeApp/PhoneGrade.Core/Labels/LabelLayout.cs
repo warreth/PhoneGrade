@@ -42,8 +42,18 @@ public sealed record LabelLayout(LabelStock Stock)
     /// </remarks>
     public const float MinimumTextMm = 8f;
 
-    /// <summary>The tallest one barcode is drawn, so a big label is not mostly barcode.</summary>
-    public const float LargestBarcodeBandMm = 12f;
+    /// <summary>
+    /// The tallest one barcode is drawn, so a big label is not mostly barcode.
+    /// </summary>
+    /// <remarks>
+    /// Nine millimetres, bars and caption together, which leaves about six and a
+    /// half of bars. That is still a tall code against its width, so it reads, and
+    /// it hands the words a fifth more of a 28mm address label than the twelve
+    /// millimetres this used to take. On a label that small the barcode was half
+    /// the paper and the words were squeezed into what was left, and the line that
+    /// says the phone is locked was the one that lost.
+    /// </remarks>
+    public const float LargestBarcodeBandMm = 9f;
 
     /// <summary>
     /// The shortest, which is a code with room for its caption and nothing to spare.
