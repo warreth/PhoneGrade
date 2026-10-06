@@ -8,8 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version (e.g. 1.1.0)'
+        description: 'Version (e.g. 1.1.0). The tag created is v<version>, so type 1.1.0 rather than v1.1.0.'
         required: true
+      notes:
+        description: 'Release notes, one change per line starting with "- ". Shown in the app after the update installs. Leave empty and the app stays quiet.'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -83,6 +87,33 @@ jobs:
           echo "APP_VERSION=$V" >> "$GITHUB_ENV"
         env:
           GITHUB_REF_NAME: ${{ github.event.release.tag_name || github.ref_name }}
+
+      # The release notes, for the app to show after the update installs itself.
+      #
+      # An update replaces the binaries and restarts, so there is no window open
+      # when the new version lands to say what it is. The notes go into the package
+      # here and the app reads them out on its next start. Without this step the
+      # app has nothing to show and stays quiet, which is the right behaviour for
+      # a release that genuinely changed nothing.
+      - name: Write release notes
+        shell: bash
+        run: |
+          printf '# %s\n\n' "$APP_VERSION" > releasenotes.md
+
+          if [ -n "$(printf '%s' "$INPUTS_NOTES" | tr -d '[:space:]')" ]; then
+            printf '%s\n' "$INPUTS_NOTES" >> releasenotes.md
+          else
+            printf 'No notes were given for this release.\n' >> releasenotes.md
+          fi
+
+          echo "--- releasenotes.md"
+          cat releasenotes.md
+        env:
+          APP_VERSION: ${{ env.APP_VERSION }}
+          # Read from env rather than interpolated into the script: a note
+          # containing a quote or a backtick would otherwise end the string and
+          # be executed as part of the run step.
+          INPUTS_NOTES: ${{ inputs.notes }}
 
       # .NET bootstrap via --framework is Windows-only (per Velopack docs), so
       # macOS and Linux publish self-contained instead.
@@ -315,9 +346,16 @@ jobs:
             --outputDir releases \
             --delta None \
             --icon "$ICON" \
+            --releaseNotes releasenotes.md \
             "${FRAMEWORK_ARGS[@]}"
       - name: Upload to GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: releases/*
+          # The 'v' is added here rather than stripped from the input, so typing
+          # 'v1.1.0' into the dispatch field does not produce the tag 'vv1.1.0'.
           tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+          # The same notes on the release page itself. The copy in the package is
+          # what the app shows after installing; this is what someone reading the
+          # release page sees before deciding to.
+          body: ${{ inputs.notes && format('{0}\n\n{1}', inputs.version, inputs.notes) || format('Release {0}', inputs.version) }}
