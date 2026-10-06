@@ -65,14 +65,14 @@ public class UiTests : IDisposable
         Assert.Equal(90, vm.Progress);
         Assert.Equal(LocalizationManager.GetString("Status_ChoosePayment"), vm.Status);
         Assert.NotEqual("Status_ChoosePayment", vm.Status);
-        Assert.Equal("KLASSE B", vm.SelectedGradeDisplay);
+        Assert.Equal("B", vm.SelectedGradeDisplay);
 
         // User clicks Payment "Marge"
         vm.SetPaymentMethodCommand.Execute("Marge").Subscribe();
         Assert.False(vm.IsPaymentPopupVisible);
         Assert.Equal(100, vm.Progress);
         Assert.Equal(AppWorkflowState.Summary, vm.WorkflowState);
-        Assert.Equal("Marge (0% BTW)", vm.SelectedInvoiceMethodDisplay);
+        Assert.Equal(LocalizationManager.GetString("Payment_Marge"), vm.SelectedInvoiceMethodDisplay);
         Assert.Equal(LocalizationManager.GetString("Status_TestsComplete"), vm.Status);
         Assert.NotEqual("Status_TestsComplete", vm.Status);
 

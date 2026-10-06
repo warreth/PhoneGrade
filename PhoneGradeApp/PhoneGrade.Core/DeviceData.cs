@@ -80,7 +80,6 @@ public class DeviceData : INotifyPropertyChanged
                 _quality = value; 
                 OnPropertyChanged(); 
                 OnPropertyChanged(nameof(SelectedGrade));
-                OnPropertyChanged(nameof(GradeDisplay));
             } 
         } 
     }
@@ -96,7 +95,6 @@ public class DeviceData : INotifyPropertyChanged
                 _payMethod = value; 
                 OnPropertyChanged(); 
                 OnPropertyChanged(nameof(SelectedInvoiceMethod));
-                OnPropertyChanged(nameof(InvoiceMethodDisplay));
             } 
         } 
     }
@@ -108,28 +106,12 @@ public class DeviceData : INotifyPropertyChanged
         set => Quality = value;
     }
 
-    public string GradeDisplay => Quality switch
-    {
-        "A" => "KLASSE A",
-        "B" => "KLASSE B",
-        "C" => "KLASSE C",
-        "NOQUALITY" or "" => "Niet beoordeeld",
-        _ => $"KLASSE {Quality}"
-    };
-
     public string SelectedInvoiceMethod
     {
         get => PayMethod;
         set => PayMethod = value;
     }
 
-    public string InvoiceMethodDisplay => PayMethod switch
-    {
-        "Marge" => "Marge (0% BTW)",
-        "BTW" => "BTW (21%)",
-        "NOPAY" or "" => "Niet opgegeven",
-        _ => PayMethod
-    };
     public string DeviceId { get; set; } = "NODEVICEID";
     public string ProductType { get; set; } = "";          // raw, e.g. iPhone14,2 - used by diagnostics
     public string? IosVersion { get; set; }

@@ -211,6 +211,10 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             // The how-to holds a formatted heading and a list of keys rather
             // than text, so neither re-reads itself when the dictionary swaps.
             AdbTutorialViewModel?.RefreshLocalization();
+            // The grade and invoice method are formatted from the dictionary rather
+            // than stored, so the two summary rows have to be asked to re-read.
+            this.RaisePropertyChanged(nameof(SelectedGradeDisplay));
+            this.RaisePropertyChanged(nameof(SelectedInvoiceMethodDisplay));
         }
     }
     
@@ -775,7 +779,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public string SelectedGradeDisplay => DeviceData.GradeDisplay;
+    public string SelectedGradeDisplay => Services.GradeWording.Grade(DeviceData.Quality);
 
     public string SelectedInvoiceMethod
     {
@@ -792,7 +796,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public string SelectedInvoiceMethodDisplay => DeviceData.InvoiceMethodDisplay;
+    public string SelectedInvoiceMethodDisplay => Services.GradeWording.InvoiceMethod(DeviceData.PayMethod);
 
 
     /// <summary>True once real device data has been read: drives the summary grid.</summary>

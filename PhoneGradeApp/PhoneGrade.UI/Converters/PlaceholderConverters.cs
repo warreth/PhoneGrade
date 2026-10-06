@@ -130,14 +130,7 @@ public class QualityConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str) return LocalizationManager.GetString("Value_NotGraded");
-
-        return str switch
-        {
-            "NOQUALITY" => LocalizationManager.GetString("Value_NotGraded"),
-            "" => LocalizationManager.GetString("Value_NotGraded"),
-            _ => str,
-        };
+        return GradeWording.Grade(value as string);
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -189,15 +182,7 @@ public class PayMethodConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string str || string.IsNullOrWhiteSpace(str) || str == "NOPAY")
-            return LocalizationManager.GetString("Value_NotSet");
-
-        return str switch
-        {
-            "Marge" => LocalizationManager.GetString("Payment_Marge"),
-            "BTW" => LocalizationManager.GetString("Payment_BTW"),
-            _ => str,
-        };
+        return GradeWording.InvoiceMethod(value as string);
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

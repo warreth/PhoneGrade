@@ -1107,28 +1107,30 @@ public class MappersTests
     }
 
     [Fact]
-    public void DeviceData_QualityAndPayMethod_NotifyPropertyChangedAndFormatDisplay()
+    public void DeviceData_QualityAndPayMethod_NotifyTheirOwnNames()
     {
         var data = new DeviceData();
         var changedProps = new List<string>();
         data.PropertyChanged += (s, e) => { if (e.PropertyName != null) changedProps.Add(e.PropertyName); };
 
-        Assert.Equal("Niet beoordeeld", data.GradeDisplay);
-        Assert.Equal("Niet opgegeven", data.InvoiceMethodDisplay);
+        // The model holds the raw values only. Wording is a property of the language
+        // and belongs above the model, so a display property here is what put a Dutch
+        // sentence on an English screen in the first place.
+        Assert.Null(typeof(DeviceData).GetProperty("GradeDisplay"));
+        Assert.Null(typeof(DeviceData).GetProperty("InvoiceMethodDisplay"));
 
-        // Mutate Quality
         data.Quality = "A";
-        Assert.Equal("KLASSE A", data.GradeDisplay);
+        Assert.Equal("A", data.Quality);
         Assert.Contains("Quality", changedProps);
         Assert.Contains("SelectedGrade", changedProps);
-        Assert.Contains("GradeDisplay", changedProps);
 
-        // Mutate PayMethod
         data.PayMethod = "Marge";
-        Assert.Equal("Marge (0% BTW)", data.InvoiceMethodDisplay);
+        Assert.Equal("Marge", data.PayMethod);
         Assert.Contains("PayMethod", changedProps);
         Assert.Contains("SelectedInvoiceMethod", changedProps);
-        Assert.Contains("InvoiceMethodDisplay", changedProps);
+
+        Assert.DoesNotContain("GradeDisplay", changedProps);
+        Assert.DoesNotContain("InvoiceMethodDisplay", changedProps);
     }
 
     [Fact]
