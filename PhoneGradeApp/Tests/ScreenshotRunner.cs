@@ -108,6 +108,15 @@ class ScreenshotRunner
                     faulty.Theme = "Dark";
                     faulty.DeviceData = FaultyPhone();
                     CaptureExport(faulty, outDir, "export-dark-faults.png", 1050, 820);
+
+                    // ============ The label, at the settings it can be set to ============
+                    //
+                    // Six shots, because a preview of a label is only worth having if it
+                    // still looks like a label at the settings an operator can pick. The
+                    // barcode mode and the stock both change how much of the paper the
+                    // words get, and a screenshot of only one setting hides whether the
+                    // faults and the locks still fit at the others.
+                    CaptureLabelSettings(outDir);
                     // The two fallbacks: a phone whose brand has no menu table of its
                     // own, and the generic pair for a phone nothing recognises.
                     guide.AdbTutorialViewModel.SetDevice("Honor", "");
@@ -155,6 +164,82 @@ class ScreenshotRunner
         Capture(new MainWindow { DataContext = vm }, warmup, width, height, arrange, still);
         Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, file), width, height, arrange, still);
         try { File.Delete(warmup); } catch (IOException) { }
+
+        // What the preview decided its own measurements were. The sheet being the
+        // wrong size is a fault a screenshot shows as "too small" and a number says
+        // which of the four things that decide it is at fault.
+        if (vm.ExportViewModel is { } panel && file.StartsWith("label-", StringComparison.Ordinal))
+        {
+            Console.WriteLine(
+                $"{file,-34} sheet {panel.SheetWidth,6:F0}x{panel.SheetHeight,5:F0}px  " +
+                $"band {panel.BarcodeBandHeight,5:F1}px  " +
+                $"type {panel.SpecFontSize,4:F1}/{panel.LockFontSize,4:F1}pt-on-sheet  " +
+                $"text room {panel.TextRoomHeight,5:F1}px  barcodes {panel.LabelBarcodes.Count}");
+        }
+    }
+
+    // The label screen at the settings it can be set to. Each shot is the whole
+    // panel on the report screen, because that is where an operator meets it, and
+    // the sheet is on the left of that panel rather than somewhere a crop can be
+    // taken of it.
+    //
+    // The settings are applied through the view model rather than by writing a
+    // settings file, so the panel is seeded the way the pickers seed it and the
+    // shot shows what clicking through would produce.
+    static void CaptureLabelSettings(string outDir)
+    {
+        void Shot(string file, string? stock, LabelBarcodeMode? barcode,
+            bool cycles = true, bool faults = true, bool locks = true,
+            double width = 1050, double height = 820, string theme = "Dark")
+        {
+            var vm = BuildDemoViewModel();
+            vm.Theme = theme;
+            vm.DeviceData = FaultyPhone();
+
+            // Applied after the panel is open, because opening it reads the settings
+            // and would otherwise overwrite them with whatever came first.
+            CaptureExport(vm, outDir, file, width, height, seed: () =>
+            {
+                if (stock is not null) vm.LabelStockPartNumber = stock;
+                if (barcode is not null) vm.LabelBarcodeMode = barcode.Value;
+                vm.LabelShowBatteryCycles = cycles;
+                vm.LabelShowFaults = faults;
+                vm.LabelShowLocks = locks;
+            });
+        }
+
+        // The roll most shops have, one code, everything on. The baseline.
+        Shot("label-address-identifier.png", "1982991", LabelBarcodeMode.Identifier);
+
+        // Two codes on the same roll: the words sit lower and every one of them has
+        // to still fit, because this is where the faults line gets squeezed out.
+        Shot("label-address-split.png", "1982991", LabelBarcodeMode.Split);
+
+        // A barcode at all, for a till whose scanner cannot read one.
+        Shot("label-address-none.png", "1982991", LabelBarcodeMode.None);
+
+        // The narrower stock: a different sheet shape entirely, and a barcode that
+        // does not fit on it, which has to be said on the panel rather than left as
+        // a missing code.
+        Shot("label-narrow-address.png", "30336", LabelBarcodeMode.Identifier);
+
+        // The tall roll, where the same label has a great deal of room and the words
+        // have to be set larger or the sheet reads as mostly paper.
+        Shot("label-tall-shipping.png", "30256", LabelBarcodeMode.Identifier, width: 1050, height: 620);
+
+        // The locks off. A shop can do this and the panel says so in the wording,
+        // which is the last place that could warn about it.
+        Shot("label-address-no-locks.png", "1982991", LabelBarcodeMode.Identifier, locks: false);
+
+        // A clean phone with two codes: two bands of barcode and one line of words,
+        // which is the case where a fixed layout would look like something is missing.
+        var clean = BuildDemoViewModel();
+        clean.Theme = "Dark";
+        CaptureExport(clean, outDir, "label-address-clean-split.png", 1050, 820, seed: () =>
+        {
+            clean.LabelStockPartNumber = "1982991";
+            clean.LabelBarcodeMode = LabelBarcodeMode.Split;
+        });
     }
 
     // A phone with something wrong on it, which is the case the label's second and

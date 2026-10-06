@@ -816,8 +816,17 @@
             room the label sheet has, and that is what decides whether the sheet is
             drawn at its real size or scaled down to fit.
         -->
+        <!--
+            The column the label preview sits in. Capped so the sheet and the
+            settings card under it line up, and wide enough for the sheet to be
+            worth reading: at 324 the preview of an 89mm address label came out
+            300 pixels across, which is three and a half pixels a millimetre and
+            puts its words at about eleven pixels high. The column has five
+            hundred to give, so the cap was taking space the panel needed for a
+            picture that is too small to check.
+        -->
         <Style Selector="Border.previewColumn">
-            <Setter Property="MaxWidth" Value="324"/>
+            <Setter Property="MaxWidth" Value="460"/>
         </Style>
 
         <!--

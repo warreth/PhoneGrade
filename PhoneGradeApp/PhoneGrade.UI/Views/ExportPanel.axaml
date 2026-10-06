@@ -64,7 +64,14 @@
                                 HorizontalAlignment="Center"
                                 Width="{Binding SheetWidth}"
                                 Height="{Binding SheetHeight}">
-                            <Grid RowDefinitions="*,Auto">
+                            <!--
+                                Row 0 is sized by the barcode and row 1 takes what is
+                                left. The other way round, with the barcode in a star
+                                row, the row shrinks under the barcode's own height
+                                when the words need the room and the two are drawn on
+                                top of each other.
+                            -->
+                            <Grid RowDefinitions="Auto,*">
                                 <!--
                                     The barcode, drawn as bars from the same table
                                     the label file uses, so an identifier that had
@@ -77,14 +84,36 @@
                                     label and the preview has to show the words
                                     sitting lower than they did with one.
                                 -->
+                                <!--
+                                    The barcode band, bars and the value under them.
+                                    The caption belongs inside the band because that
+                                    is where the printed label puts it: as a fourth
+                                    line under the words it had nowhere to go on a
+                                    28mm address label and the locks line came off
+                                    the bottom of the sheet.
+                                -->
                                 <StackPanel Grid.Row="0" Spacing="1"
-                                            Margin="{Binding SideInsetThickness}">
-                                    <views:BarcodeView Value="{Binding LabelBarcode}"
-                                                       IsVisible="{Binding HasLabelBarcode}"
-                                                       Height="{Binding BarcodeBandHeight}"/>
-                                    <views:BarcodeView Value="{Binding LabelBarcodeSecond}"
-                                                       IsVisible="{Binding HasSecondLabelBarcode}"
-                                                       Height="{Binding BarcodeBandHeight}"/>
+                                            Margin="{Binding BandInsetThickness}">
+                                    <Grid Height="{Binding BarcodeBandHeight}"
+                                          IsVisible="{Binding HasLabelBarcode}">
+                                        <views:BarcodeView Value="{Binding LabelBarcode}"
+                                                           BarShare="{Binding BarcodeBarShare}"/>
+                                        <TextBlock Classes="labelSheetBarcode"
+                                                   Text="{Binding LabelBarcode}"
+                                                   FontSize="{Binding CaptionFontSize}"
+                                                   VerticalAlignment="Bottom"
+                                                   HorizontalAlignment="Center"/>
+                                    </Grid>
+                                    <Grid Height="{Binding BarcodeBandHeight}"
+                                          IsVisible="{Binding HasSecondLabelBarcode}">
+                                        <views:BarcodeView Value="{Binding LabelBarcodeSecond}"
+                                                           BarShare="{Binding BarcodeBarShare}"/>
+                                        <TextBlock Classes="labelSheetBarcode"
+                                                   Text="{Binding LabelBarcodeSecond}"
+                                                   FontSize="{Binding CaptionFontSize}"
+                                                   VerticalAlignment="Bottom"
+                                                   HorizontalAlignment="Center"/>
+                                    </Grid>
                                     <TextBlock Classes="labelSheetBarcode"
                                                Text="{Binding LabelSpelled}"
                                                IsVisible="{Binding HasSpelledBarcode}"
@@ -101,6 +130,7 @@
                                     with different faults on it is not a preview.
                                 -->
                                 <StackPanel Grid.Row="1" Spacing="1"
+                                            VerticalAlignment="Center"
                                             Margin="{Binding SideInsetThickness}">
                                     <TextBlock Classes="labelSheetText"
                                                Text="{Binding LabelTextLine}"
@@ -117,15 +147,6 @@
                                                FontSize="{Binding LockFontSize}" FontWeight="Bold"
                                                IsVisible="{Binding HasLabelLocks}"
                                                HorizontalAlignment="Center" TextAlignment="Center"/>
-                                    <!--
-                                        The identifier under the bars, always. A
-                                        barcode nobody can read back is worse than
-                                        none, and this is what it is read against.
-                                    -->
-                                    <TextBlock Classes="labelSheetBarcode"
-                                               Text="{Binding Label.Identifier}"
-                                               FontSize="{Binding DetailFontSize}"
-                                               HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -161,7 +182,11 @@
                                               HorizontalAlignment="Stretch">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="vm:LabelLayoutItem">
-                                                <TextBlock Text="{Binding Label}"/>
+                                                <StackPanel Spacing="1">
+                                                    <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                    <TextBlock Classes="valueHint"
+                                                               Text="{Binding PartNumber}"/>
+                                                </StackPanel>
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
@@ -184,7 +209,7 @@
                                               HorizontalAlignment="Stretch">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="vm:LabelBarcodeItem">
-                                                <TextBlock Text="{Binding TitleKey}"/>
+                                                <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>

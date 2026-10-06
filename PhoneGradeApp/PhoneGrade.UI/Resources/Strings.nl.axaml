@@ -200,6 +200,13 @@
     <x:String x:Key="Export_PreviewScaled">Kleiner getekend dan het label zodat het hier past. De verhouding klopt, het formaat niet.</x:String>
     <x:String x:Key="Export_Stock">Labelvoorraad</x:String>
     <x:String x:Key="Export_StockNote">De rol in de printer, op het artikelnummer waar hij besteld wordt.</x:String>
+    <x:String x:Key="Export_StockPart">Artikel {0}</x:String>
+    <x:String x:Key="LabelStock_1982991">Adreslabel 89 x 28 mm</x:String>
+    <x:String x:Key="LabelStock_1983172">Groot adreslabel 89 x 36 mm</x:String>
+    <x:String x:Key="LabelStock_30334">Universeel 57 x 32 mm</x:String>
+    <x:String x:Key="LabelStock_30336">Klein universeel 54 x 25 mm</x:String>
+    <x:String x:Key="LabelStock_30256">Verzendlabel 102 x 59 mm</x:String>
+    <x:String x:Key="LabelStock_1933081">Plankenlabel 89 x 25 mm</x:String>
     <x:String x:Key="Export_BarcodeTitle">Barcode</x:String>
     <x:String x:Key="Export_BarcodeNote">Wat de barcode bevat. Twee codes nemen twee stroken van het label in, waardoor er minder ruimte overblijft voor de tekst.</x:String>
     <x:String x:Key="Export_BarcodeIdentifier">Alleen identificatie</x:String>
@@ -209,7 +216,7 @@
     <x:String x:Key="Export_BarcodeCombined">Eén code, alles</x:String>
     <x:String x:Key="Export_BarcodeCombinedNote">Eén code met het serienummer en de specificatie samen.</x:String>
     <x:String x:Key="Export_BarcodeNone">Geen barcode</x:String>
-    <x:String x:Key="Export_BarcodeNoneNote">Voor een winkel waarvan de scanner er geen één kan lezen. Het serienummer wordt als tekst gedrukt.</x:String>
+    <x:String x:Key="Export_BarcodeNoneNote">Voor een winkel waarvan de scanner er geen één kan lezen. Het label krijgt alleen zijn woorden.</x:String>
     <x:String x:Key="Export_LabelShowTitle">Op het label</x:String>
     <x:String x:Key="Export_LabelShowCycles">Laadcycli</x:String>
     <x:String x:Key="Export_LabelShowCyclesNote">Hoe vaak de batterij is opgeladen, wat een percentage je niet kan vertellen.</x:String>

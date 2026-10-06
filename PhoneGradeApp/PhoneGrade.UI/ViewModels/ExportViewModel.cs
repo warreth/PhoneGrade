@@ -143,7 +143,30 @@ public sealed class LabelLayoutItem
     /// <summary>The arrangement on that paper, for the renderer that draws it.</summary>
     public LabelLayout Layout => new(Stock);
 
-    /// <summary>As it reads on the picker: the name and the size.</summary>
+    /// <summary>
+    /// The name of the roll, in the language the operator is working in.
+    /// </summary>
+    /// <remarks>
+    /// A key rather than the name Core carries. A shop exporting for a customer
+    /// does not want English headings on a Dutch panel, and the names here are the
+    /// ones a Dutch operator reads off a box of rolls.
+    /// </remarks>
+    public string TitleKey => $"LabelStock_{Stock.PartNumber}";
+
+    /// <summary>
+    /// The part number, which is how a shop orders the roll and how two rolls both
+    /// called "address" are told apart.
+    /// </summary>
+    /// <remarks>
+    /// On a line of its own under the name rather than appended to it. Appended,
+    /// the longest name is cut off inside the picker and the operator cannot read
+    /// the stock they are about to choose.
+    /// </remarks>
+    public string PartKey => $"Export_StockPart";
+
+    public string PartNumber => Stock.PartNumber;
+
+    /// <summary>The name as Core carries it, for anything with no UI to show it.</summary>
     public string Label => Stock.Label;
 
     public override string ToString() => Label;
@@ -342,7 +365,34 @@ public class ExportViewModel : ReactiveObject
     }
 
     /// <summary>How wide the label is drawn on the preview sheet, in pixels.</summary>
-    public double SheetWidth => Math.Min(Layout.PaperWidthMm * PixelsPerMm, MaxSheetWidth);
+    public double SheetWidth
+    {
+        get
+        {
+            double wanted = Layout.PaperWidthMm * PixelsPerMm;
+            double allowed = _available > 0 ? _available : MaxSheetWidth;
+
+            // Never below a width that still shows something: a sheet squeezed to
+            // a sliver because the window is narrow is not a smaller label, it is
+            // no preview at all, and the operator is better served by one that is
+            // too small to read than by none.
+            return Math.Max(NarrowestSheetWidth, Math.Min(wanted, Math.Min(MaxSheetWidth, allowed)));
+        }
+    }
+
+    /// <summary>
+    /// How wide the column the preview sits in actually is, in pixels.
+    /// </summary>
+    /// <remarks>
+    /// Told by the view once it has been laid out, because only the laid out panel
+    /// knows. Without it the sheet was drawn at a fixed width and ran off the side
+    /// of its own column on a narrow window, which is the kiosk size the shop
+    /// actually uses.
+    /// </remarks>
+    private double _available;
+
+    /// <summary>The narrowest a sheet may be drawn before it stops being one.</summary>
+    private const double NarrowestSheetWidth = 120;
 
     /// <summary>
     /// How many preview pixels a millimetre of paper is at the size the sheet is
@@ -359,8 +409,60 @@ public class ExportViewModel : ReactiveObject
     /// <summary>How tall one barcode band is on the sheet, bars and caption together.</summary>
     public double BarcodeBandHeight => Layout.BarcodeBandMm(LabelBarcodes.Count) * SheetScale;
 
+    /// <summary>
+    /// How much of a barcode band the bars take, the rest being the value under them.
+    /// </summary>
+    /// <remarks>
+    /// Measured rather than assumed. The value is set at five and a half points and
+    /// the box a line of it occupies is about a third taller again, so reserving the
+    /// nominal size of the caption left less room than it takes and the value was
+    /// drawn across the bottom of the bars. On a two code label it reached the bars
+    /// of the code below it.
+    /// </remarks>
+    public double BarcodeBarShare
+    {
+        get
+        {
+            double band = BarcodeBandHeight;
+            if (band <= 0) return 0.78;
+
+            double caption = CaptionFontSize * LineBoxOverFontSize;
+
+            return Math.Clamp(1 - (caption / band), 0.4, 0.9);
+        }
+    }
+
+    /// <summary>
+    /// How much taller the box around a line of type is than the type itself.
+    /// </summary>
+    /// <remarks>
+    /// The figure every text layout works on, and it depends on the font's own
+    /// metrics rather than on the size asked for. Lato sits near the usual one and
+    /// a third is what it comes to here.
+    /// </remarks>
+    private const double LineBoxOverFontSize = 1.35;
+
+    /// <summary>
+    /// The size the value under the barcode is set at.
+    /// </summary>
+    /// <remarks>
+    /// The size the printed label uses, which is five and a half points, rather than
+    /// a size chosen to look right here. It is read against the rest of the label so
+    /// a shop sees the proportion it will get: a caption set as large as the
+    /// specification would say the label is something it is not.
+    /// </remarks>
+    public double CaptionFontSize => 5.5f * PointsToPixels;
+
     /// <summary>How much room the words have, which the barcode bands have taken from.</summary>
     public double TextRoomHeight => Layout.TextHeightMm(LabelBarcodes.Count) * SheetScale;
+
+    /// <summary>
+    /// Empty paper above the content, so a roll bigger than the label carries it in
+    /// the middle rather than against its top edge.
+    /// </summary>
+    public double ContentTopOffset =>
+        LabelType.Centring(Layout, LabelBarcodes.Count, LabelBodyPoint,
+            LabelLines.Count, LabelLockLine.Length > 0) * SheetScale;
 
     /// <summary>The size the specification line is set at, scaled to the sheet.</summary>
     public double SpecFontSize => LabelBodyPoint * PointsToPixels;
@@ -393,8 +495,21 @@ public class ExportViewModel : ReactiveObject
         { LabelSpelled, LabelTextLine, LabelDetailLine, LabelLockLine }
         .Where(line => line.Length > 0).ToList();
 
-    /// <summary>Points as preview pixels, at the size this sheet is drawn.</summary>
-    private double PointsToPixels => LabelType.LineHeightInMm * SheetScale;
+    /// <summary>
+    /// Points as preview pixels at the size this sheet is drawn.
+    /// </summary>
+    /// <remarks>
+    /// Millimetres a point is, not the height of a line of type. A font size is the
+    /// size of the letters, and the box a line of them occupies is about a fifth
+    /// taller again, so converting with the line height and then handing the result
+    /// over as a font size made every line a fifth taller than the space that had
+    /// been measured for it. On a 28mm address label that fifth is the difference
+    /// between the locks line fitting and being cut off the bottom.
+    /// </remarks>
+    private double PointsToPixels => MillimetresPerPoint * SheetScale;
+
+    /// <summary>How many millimetres a point of type is, which is 72 to the inch.</summary>
+    private const double MillimetresPerPoint = 25.4 / 72.0;
 
     /// <summary>
     /// The paper the printer cannot reach, as a margin on the sheet.
@@ -408,14 +523,34 @@ public class ExportViewModel : ReactiveObject
         Layout.Stock.SideMarginMm * SheetScale,
         Layout.Stock.TopMarginMm * SheetScale);
 
+    /// <summary>
+    /// The same insets, with the empty paper above the content added on top.
+    /// </summary>
+    /// <remarks>
+    /// A roll taller than the label's own content carries it in the middle. Against
+    /// the top edge instead, a 59mm roll came out as a barcode, a hand's width of
+    /// white, and then the words.
+    /// </remarks>
+    public Thickness BandInsetThickness => new(
+        SideInsetThickness.Left,
+        SideInsetThickness.Top + ContentTopOffset,
+        SideInsetThickness.Right,
+        0d);
+
     /// <summary>How tall it is, at the same ratio as the width, which is what keeps the shape.</summary>
     public double SheetHeight => SheetWidth / Layout.PaperWidthMm * Layout.PaperHeightMm;
 
     /// <summary>
-    /// The widest the sheet may be drawn. Set by the view from the width its column
-    /// actually has, because only the laid out panel knows that.
+    /// The widest the sheet may be drawn.
     /// </summary>
-    public const double MaxSheetWidth = 300;
+    /// <remarks>
+    /// Set from the width the column actually has, and generous, because the sheet
+    /// is the one thing on the panel the operator reads. At 300 pixels an 89mm
+    /// label is drawn at three and a half pixels a millimetre, which puts its
+    /// eight point words at about ten pixels high: the shape was right and the
+    /// words on it were unreadable, which is the one thing a preview cannot be.
+    /// </remarks>
+    public const double MaxSheetWidth = 460;
 
     /// <summary>
     /// Recomputes whether the sheet had to be scaled down, for the line under the
@@ -423,16 +558,39 @@ public class ExportViewModel : ReactiveObject
     /// </summary>
     public void MeasureSheet(double availableWidth)
     {
-        double wanted = Layout.WidthMm * PixelsPerMm;
+        // The paper, because that is what the sheet is drawn as. Measuring the
+        // printable area against it left the last few millimetres of every label
+        // out of the sum, so a stock that fitted exactly reported that it had
+        // been scaled down when it had not.
+        double wanted = Layout.PaperWidthMm * PixelsPerMm;
+
+        bool resized = Math.Abs(_available - availableWidth) > 0.5;
+        _available = availableWidth;
         SheetOverflows = availableWidth > 0 && wanted > availableWidth;
+
+        // This is called on every layout pass, and a pass that fires sixty times a
+        // second must not write sixty property changes a second into a view that
+        // will re-measure and lay out again on the back of it.
+        if (resized)
+        {
+            this.RaisePropertyChanged(nameof(SheetWidth));
+            this.RaisePropertyChanged(nameof(SheetHeight));
+        }
     }
 
     /// <summary>
-    /// 96 dpi, so a millimetre on the preview is a millimetre on the page. Drawn
-    /// at any other ratio and a narrow label would look like a wide one, which is
-    /// the whole thing the preview is there to show.
+    /// How finely the sheet is drawn, chosen so a label fills the room its column
+    /// has rather than sitting small in the middle of it.
     /// </summary>
-    private const double PixelsPerMm = 96.0 / 25.4;
+    /// <remarks>
+    /// At 96 dpi an 89mm address label came out 336 pixels wide in a column with
+    /// room for 400, and 105 pixels high, which is not enough for a barcode band
+    /// and three lines of words: the locks line came off the bottom. The panel
+    /// already says the sheet is not life size whenever it does not fit, so drawing
+    /// it as large as it will go is the better of the two, and the shape is
+    /// unaffected because every measurement is scaled by the same figure.
+    /// </remarks>
+    private const double PixelsPerMm = 120.0 / 25.4;
 
     /// <summary>
     /// What the barcodes carry, in the order they are drawn.
@@ -752,6 +910,10 @@ public class ExportViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(LabelBarcodes));
         this.RaisePropertyChanged(nameof(LabelSpelledBarcodes));
         this.RaisePropertyChanged(nameof(LabelSpelled));
+        this.RaisePropertyChanged(nameof(BarcodeBarShare));
+        this.RaisePropertyChanged(nameof(CaptionFontSize));
+        this.RaisePropertyChanged(nameof(ContentTopOffset));
+        this.RaisePropertyChanged(nameof(BandInsetThickness));
         this.RaisePropertyChanged(nameof(HasLabelBarcode));
         this.RaisePropertyChanged(nameof(HasSecondLabelBarcode));
         this.RaisePropertyChanged(nameof(HasSpelledBarcode));

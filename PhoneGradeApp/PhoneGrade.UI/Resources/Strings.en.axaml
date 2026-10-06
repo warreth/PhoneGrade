@@ -200,6 +200,13 @@
     <x:String x:Key="Export_PreviewScaled">Drawn smaller than the label so it fits here. The shape is right; the size is not.</x:String>
     <x:String x:Key="Export_Stock">Label stock</x:String>
     <x:String x:Key="Export_StockNote">The roll in the printer, by the part number it is ordered under.</x:String>
+    <x:String x:Key="Export_StockPart">Part {0}</x:String>
+    <x:String x:Key="LabelStock_1982991">Address label 89 x 28 mm</x:String>
+    <x:String x:Key="LabelStock_1983172">Large address label 89 x 36 mm</x:String>
+    <x:String x:Key="LabelStock_30334">Multi-purpose 57 x 32 mm</x:String>
+    <x:String x:Key="LabelStock_30336">Small multi-purpose 54 x 25 mm</x:String>
+    <x:String x:Key="LabelStock_30256">Large shipping 102 x 59 mm</x:String>
+    <x:String x:Key="LabelStock_1933081">Durable shelving 89 x 25 mm</x:String>
     <x:String x:Key="Export_BarcodeTitle">Barcode</x:String>
     <x:String x:Key="Export_BarcodeNote">What the barcode carries. Two codes need two bands of the label, which leaves the words less room.</x:String>
     <x:String x:Key="Export_BarcodeIdentifier">Identifier only</x:String>
@@ -209,7 +216,7 @@
     <x:String x:Key="Export_BarcodeCombined">One code, both</x:String>
     <x:String x:Key="Export_BarcodeCombinedNote">One code carrying the serial number and the specification together.</x:String>
     <x:String x:Key="Export_BarcodeNone">No barcode</x:String>
-    <x:String x:Key="Export_BarcodeNoneNote">For a shop whose scanner cannot read one. The serial number is printed as text instead.</x:String>
+    <x:String x:Key="Export_BarcodeNoneNote">For a shop whose scanner cannot read one. The label carries its words and nothing else.</x:String>
     <x:String x:Key="Export_LabelShowTitle">On the label</x:String>
     <x:String x:Key="Export_LabelShowCycles">Charge count</x:String>
     <x:String x:Key="Export_LabelShowCyclesNote">How many times the battery has been charged, which a percentage cannot tell you.</x:String>
