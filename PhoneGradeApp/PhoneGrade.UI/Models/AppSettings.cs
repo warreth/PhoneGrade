@@ -10,7 +10,7 @@ namespace PhoneGrade.UI.Models;
 public class AppSettings
 {
     public string Theme { get; set; } = "Dark";            // "Dark", "Light" or "System"
-    public string Language { get; set; } = "nl";           // "en" (English) or "nl" (Nederlands)
+    public string Language { get; set; } = "nl";           // one of the codes in Services.SupportedLanguages
     public bool AutoActivate { get; set; } = false;
     public bool AutoDetectOnPlug { get; set; } = false;   // User must explicitly click to start inspecting
     public bool AutoStartWebTest { get; set; } = false;   // User must manually scan and run tests
@@ -43,6 +43,22 @@ public class AppSettings
     /// the specification in one, or the two separately.
     /// </summary>
     public LabelBarcodeMode LabelBarcodeMode { get; set; } = LabelBarcodeMode.Identifier;
+
+    /// <summary>
+    /// Which symbology the label's barcode is drawn in.
+    /// </summary>
+    /// <remarks>
+    /// Code39 by default, which is what every till in a phone shop reads and what the
+    /// DYMO template that ships with the app declares. Code128 is denser, so it can
+    /// carry the identifier and the specification in one code where Code39 cannot, and
+    /// it carries lower case letters, so a model name goes on the code as the phone
+    /// spelled it rather than as dashes.
+    ///
+    /// A scanner has to be told to read Code128, so this is asked rather than
+    /// assumed: a barcode in a symbology the shop's own scanner does not read prints,
+    /// looks like a barcode, and scans as nothing.
+    /// </remarks>
+    public LabelCodeSymbology LabelSymbology { get; set; } = LabelCodeSymbology.Code39;
 
     /// <summary>
     /// Whether the charge count is on the label.
@@ -102,6 +118,33 @@ public class AppSettings
     /// stopped by it again.
     /// </summary>
     public bool IntroSeen { get; set; } = false;
+
+    /// <summary>
+    /// The version whose changes were last put in front of the operator.
+    ///
+    /// The changelog used to open by itself when the updater left notes behind, and
+    /// that was the only way it ever opened. Reading the notes from the release makes
+    /// it a panel the operator can ask for, which needs a different question to ask
+    /// "has this build already introduced itself". A version that differs from this
+    /// one has, and that is the only thing that puts the panel up on its own.
+    /// </summary>
+    public string LastSeenVersion { get; set; } = "";
+
+    /// <summary>
+    /// Records that this version has introduced itself, and says whether it had not.
+    /// </summary>
+    public bool MarkVersionSeen(string? version)
+    {
+        string wanted = (version ?? "").Trim();
+        if (wanted.Length == 0) return false;
+
+        bool changed = !string.Equals(LastSeenVersion, wanted, StringComparison.OrdinalIgnoreCase);
+        if (!changed) return false;
+
+        LastSeenVersion = wanted;
+        Save();
+        return true;
+    }
 
     [JsonIgnore]
     private static string SettingsDir =>

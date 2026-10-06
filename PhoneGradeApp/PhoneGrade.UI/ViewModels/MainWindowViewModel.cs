@@ -197,17 +197,24 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    private string _language = "Nederlands";
+    private string _language = SupportedLanguages.NameOf(SupportedLanguages.DefaultCode);
     public string Language
     {
         get => _language;
         set
         {
-            string code = value == "English" ? "en" : "nl";
+            // The dropdown speaks in names and the settings file in codes, so the
+            // name has to be resolved rather than compared against a fixed pair.
+            // An unknown name resolves to Dutch, which is the language the app
+            // starts in anyway, so a stale settings file cannot leave the picker
+            // showing one language and the window drawing another.
+            string code = Services.SupportedLanguages.CodeOf(value);
+            string name = Services.SupportedLanguages.NameOf(code);
+
             _settings.Language = code;
             _settings.Save();
             Services.LocalizationManager.SetLanguage(code);
-            this.RaiseAndSetIfChanged(ref _language, value);
+            this.RaiseAndSetIfChanged(ref _language, name);
             // The how-to holds a formatted heading and a list of keys rather
             // than text, so neither re-reads itself when the dictionary swaps.
             AdbTutorialViewModel?.RefreshLocalization();
@@ -218,7 +225,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
     
-    public string[] LanguageOptions { get; } = { "Nederlands", "English" };
+    /// <summary>Every shipped language, in its own script. Drives the picker in the
+    /// settings drawer and on the introduction screen.</summary>
+    public string[] LanguageOptions { get; } = Services.SupportedLanguages.Names;
 
     private bool _autoActivate;
     public bool AutoActivate
@@ -553,6 +562,28 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Which symbology the label's barcode is drawn in.
+    /// </summary>
+    /// <remarks>
+    /// Its own setting rather than a part of the mode, because the two answer
+    /// different questions: the mode says what the code carries and the symbology says
+    /// how it is written down. A shop that wants one code carrying everything needs
+    /// both of them chosen, and a shop whose scanner only reads Code39 needs the
+    /// other pairing.
+    /// </remarks>
+    public LabelCodeSymbology LabelSymbology
+    {
+        get => _settings.LabelSymbology;
+        set
+        {
+            _settings.LabelSymbology = value;
+            _settings.Save();
+            this.RaisePropertyChanged();
+            ExportViewModel?.ReloadLabelSettings();
+        }
+    }
+
     /// <summary>Called by the export panel's pickers, which own the collections.</summary>
     public void SetLabelStock(LabelStock stock)
     {
@@ -563,6 +594,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         this.RaiseAndSetIfChanged(ref _labelStockPartNumber, stock.PartNumber);
         this.RaisePropertyChanged(nameof(LabelStock));
     }
+
+    /// <summary>Called by the export panel's picker.</summary>
+    public void SetLabelSymbology(LabelCodeSymbology symbology) => LabelSymbology = symbology;
 
     /// <summary>Called by the export panel's picker.</summary>
     public void SetLabelBarcodeMode(LabelBarcodeMode mode)
@@ -861,13 +895,13 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> BackToIdleCommand { get; }
 
     /// <summary>
-    /// What changed in the version that was just installed, and nothing else.
+    /// What changed in the version that is running.
     ///
-    /// An update replaces the binaries and restarts, so there is no window open
-    /// at the moment the new version lands to say what it is. The updater writes
-    /// the notes to disk before applying the update and this takes them on the
-    /// next launch, which is why the panel can be closed and dismissed instead of
-    /// asked about: by the time it appears the update has already happened.
+    /// An update replaces the binaries and restarts, so there is no window open at
+    /// the moment the new version lands to say what it is. The notes are read from the
+    /// release on GitHub, which is where the release workflow writes them, so this
+    /// answers a question an operator can ask on any launch rather than only on the
+    /// launch after an update installed itself.
     /// </summary>
     private bool _isChangelogVisible;
     public bool IsChangelogVisible { get => _isChangelogVisible; set => this.RaiseAndSetIfChanged(ref _isChangelogVisible, value); }
@@ -878,24 +912,63 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private string _changelogNotes = "";
     public string ChangelogNotes { get => _changelogNotes; set => this.RaiseAndSetIfChanged(ref _changelogNotes, value); }
 
-    public ReactiveCommand<Unit, Unit> CloseChangelogCommand { get; }
+    /// <summary>True while the release is being read, so the panel can say so rather than sit empty.</summary>
+    private bool _isChangelogLoading;
+    public bool IsChangelogLoading { get => _isChangelogLoading; set => this.RaiseAndSetIfChanged(ref _isChangelogLoading, value); }
 
     /// <summary>
-    /// Opens the changelog panel if an update left notes behind.
-    ///
-    /// Reading them also clears them, so this runs once per update rather than on
-    /// every launch: an operator who closed the panel and comes back tomorrow does
-    /// not find yesterday's changes waiting again. A release packaged with no
-    /// notes writes no file at all, which is the case that leaves the panel shut.
+    /// Set when there is nothing to show and no way to fetch it: a machine with no
+    /// network that has never opened this panel, or a release with an empty body.
     /// </summary>
-    private void ShowPendingChangelog()
-    {
-        var changelog = ReleaseChangelog.Take();
-        if (changelog is null) return;
+    private bool _changelogUnavailable;
+    public bool ChangelogUnavailable { get => _changelogUnavailable; set => this.RaiseAndSetIfChanged(ref _changelogUnavailable, value); }
 
-        ChangelogVersion = changelog.Version;
-        ChangelogNotes = changelog.Notes;
-        IsChangelogVisible = true;
+    public ReactiveCommand<Unit, Unit> CloseChangelogCommand { get; }
+
+    /// <summary>Opens the panel on demand, rather than only when an update put it there.</summary>
+    public ReactiveCommand<Unit, Unit> OpenChangelogCommand { get; }
+
+    /// <summary>Opens the release page, which carries the same notes with their formatting.</summary>
+    public ReactiveCommand<Unit, Unit> OpenChangelogReleaseCommand { get; }
+
+    /// <summary>
+    /// Shows the notes for the running version, and admits it when there are none.
+    ///
+    /// Whatever is cached goes on screen first, so the panel is never empty while it
+    /// waits, and then the release is read in the background. That order is the point
+    /// of asking GitHub rather than only carrying what the updater left behind: a
+    /// portable copy never has an update to carry notes, and an operator who closed
+    /// the panel last week can open it again.
+    /// </summary>
+    private async System.Threading.Tasks.Task ShowChangelog()
+    {
+        var cached = ReleaseChangelog.Read();
+        if (cached is not null)
+        {
+            ChangelogVersion = cached.Version;
+            ChangelogNotes = cached.Notes;
+            ChangelogUnavailable = false;
+        }
+
+        string version = AutoUpdater.RunningVersion();
+        if (string.IsNullOrWhiteSpace(version)) return;
+
+        ChangelogVersion = version.TrimStart('v');
+        IsChangelogLoading = true;
+
+        var fetched = await ReleaseChangelog.FetchAsync(version);
+        IsChangelogLoading = false;
+
+        if (fetched is null)
+        {
+            // Nothing from the network and nothing cached is the only case where the
+            // panel has to say it has nothing.
+            ChangelogUnavailable = string.IsNullOrWhiteSpace(ChangelogNotes);
+            return;
+        }
+
+        ChangelogNotes = fetched.Notes;
+        ChangelogUnavailable = false;
     }
 
     // Popups kept minimal: only quality & payment, and only when no default is set.
@@ -958,7 +1031,10 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         _licenseClient = licenseClient ?? new LemonSqueezyClient();
         _settings = AppSettings.Load();
         _theme = _settings.Theme;
-        _language = _settings.Language == "en" ? "English" : "Nederlands";
+        // The stored code is resolved through the table, so a language from a
+        // build that carried more of them still lands on the picker as its own
+        // name instead of falling back to a row nobody picked.
+        _language = Services.SupportedLanguages.NameOf(_settings.Language);
         _autoActivate = _settings.AutoActivate;
         _autoDetectOnPlug = _settings.AutoDetectOnPlug;
         _runDiagnostics = _settings.RunDiagnostics;
@@ -1119,8 +1195,25 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         CloseTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = false; });
         BackToIdleCommand = ReactiveCommand.Create(() => { WorkflowState = AppWorkflowState.Idle; });
         CloseChangelogCommand = ReactiveCommand.Create(() => { IsChangelogVisible = false; });
+        // On demand rather than only after an update, and read straight from the
+        // release rather than from whatever the updater happened to leave behind.
+        OpenChangelogCommand = ReactiveCommand.Create(() =>
+        {
+            IsChangelogVisible = true;
+            ChangelogUnavailable = false;
+            _ = ShowChangelog();
+        });
+        OpenChangelogReleaseCommand = ReactiveCommand.Create(() =>
+            Services.PricingLink.Open(ReleaseChangelog.ReleasePageUrl(ChangelogVersion)));
 
-        ShowPendingChangelog();
+        if (_settings.MarkVersionSeen(AutoUpdater.RunningVersion()))
+        {
+            // Only on the launch of a build that has not introduced itself yet. Every
+            // other launch has nothing to interrupt the operator with, and the panel
+            // is one click away in the settings.
+            IsChangelogVisible = true;
+            _ = ShowChangelog();
+        }
 
 
         UsbEventWatcher.UsbDeviceConnected += (s, e) =>

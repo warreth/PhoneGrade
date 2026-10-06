@@ -60,11 +60,19 @@ public class ConnectionSettingsTests
         Assert.DoesNotContain("UsePublicTunnel", afterAdvanced);
     }
 
+    /// <summary>
+    /// The connection heading has to be written out in every language.
+    ///
+    /// A missing key draws the key itself rather than nothing at all, so a
+    /// language that lacks it shows a shopper "Settings_Connection" where the
+    /// section name belongs.
+    /// </summary>
     [Fact]
-    public void TheHeadingIsWrittenOutOnBothLanguages()
+    public void TheHeadingIsWrittenOutInEveryLanguage()
     {
-        foreach (var file in new[] { "Strings.nl.axaml", "Strings.en.axaml" })
+        foreach (var language in PhoneGrade.UI.Services.SupportedLanguages.All)
         {
+            string file = $"Strings.{language.Code}.axaml";
             string strings = RepoPath.Read("PhoneGradeApp", "PhoneGrade.UI", "Resources", file);
 
             Assert.True(strings.Contains("x:Key=\"Settings_Connection\""),

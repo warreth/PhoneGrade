@@ -29,8 +29,16 @@ internal static class DictionarySays
     private static readonly Lazy<IReadOnlyDictionary<string, string>> Dutch = new(() =>
         Load("PhoneGradeApp/PhoneGrade.UI/wwwroot/locales/nl.js"));
 
-    private static readonly Lazy<IReadOnlyDictionary<string, string>> English = new(() =>
-        Load("PhoneGradeApp/PhoneGrade.UI/wwwroot/locales/en.js"));
+    /// <summary>
+    /// Every shipped dictionary, so a step that says the right thing in Dutch is
+    /// checked to say it in all of them. A step asks for one key; the wording
+    /// behind that key is per language, and a language that never got the sentence
+    /// draws the key on the phone.
+    /// </summary>
+    private static readonly Lazy<IReadOnlyDictionary<string, string>[]> All = new(() =>
+        PhoneGrade.UI.Services.SupportedLanguages.Codes
+            .Select(code => Load($"PhoneGradeApp/PhoneGrade.UI/wwwroot/locales/{code}.js"))
+            .ToArray());
 
     /// <summary>
     /// Asserts that <paramref name="source"/> asks the dictionary for a key
@@ -58,9 +66,20 @@ internal static class DictionarySays
 
         foreach (var key in asked)
         {
-            Assert.True(English.Value.ContainsKey(key),
-                $"nl.js has {key} but en.js does not, so an English operator would see the key.");
+            foreach (var (language, dictionary) in ByLanguage())
+            {
+                Assert.True(dictionary.ContainsKey(key),
+                    $"nl.js has {key} but {language.Code}.js does not, so a {language.Name} operator would see the key.");
+            }
         }
+    }
+
+    /// <summary>Each shipped dictionary, paired with the language it belongs to.</summary>
+    private static IEnumerable<(PhoneGrade.UI.Services.SupportedLanguages.Language Language,
+        IReadOnlyDictionary<string, string> Dictionary)> ByLanguage()
+    {
+        var languages = PhoneGrade.UI.Services.SupportedLanguages.All.ToList();
+        return languages.Select((language, index) => (language, All.Value[index]));
     }
 
     private static IReadOnlyDictionary<string, string> Load(string path)

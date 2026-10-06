@@ -1,5 +1,10 @@
 import nl from '../locales/nl.js';
 import en from '../locales/en.js';
+import de from '../locales/de.js';
+import es from '../locales/es.js';
+import fr from '../locales/fr.js';
+import pt from '../locales/pt.js';
+import zh from '../locales/zh.js';
 
 /**
  * What the phone says, and in which language.
@@ -7,7 +12,7 @@ import en from '../locales/en.js';
  * The shell was written in English and the steps underneath it in Dutch, so one
  * screen carried both: "Test Suite Complete" over rows reading "Opnieuw" and
  * "Overgeslagen". Everything an operator reads comes out of here instead, and
- * the two dictionaries hold one language each.
+ * every dictionary holds one language.
  *
  * Which language is not the phone's decision to make. The handset belongs to the
  * customer and can be set to anything at all, while the person reading the
@@ -15,8 +20,13 @@ import en from '../locales/en.js';
  * the query string. The browser's language is the second choice, for the case
  * where the page is opened by hand, and Dutch is what is left when neither
  * carries a language this app has.
+ *
+ * The list below is the same list the desktop keeps in its own language table,
+ * and both are checked against each other by a test: a language in the picker
+ * with no dictionary here would draw raw keys on the phone, and a dictionary
+ * here with no entry in the table could never be reached from the settings.
  */
-const DICTIONARIES = { nl, en };
+const DICTIONARIES = { nl, en, de, es, fr, pt, zh };
 
 const DEFAULT_LOCALE = 'nl';
 

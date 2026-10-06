@@ -1,0 +1,760 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Window Title -->
+    <x:String x:Key="WindowTitle">PhoneGrade</x:String>
+    
+    <!-- Tab Headers -->
+    <x:String x:Key="Tab_Dashboard">概览</x:String>
+    <x:String x:Key="Tab_InteractiveTests">交互式检测</x:String>
+    <x:String x:Key="Tab_Label">标签</x:String>
+    <x:String x:Key="Tab_Settings">设置</x:String>
+    <x:String x:Key="Tab_Logs">日志</x:String>
+    <x:String x:Key="Tab_Troubleshoot">故障排查</x:String>
+    
+    <!-- Dashboard Card Titles -->
+    <x:String x:Key="Card_Status">状态</x:String>
+    <x:String x:Key="Card_Device">设备</x:String>
+    <x:String x:Key="Card_ComponentAudit">OEM 部件审核</x:String>
+    <x:String x:Key="Card_DiagnosticIssues">诊断问题</x:String>
+    <x:String x:Key="Card_WebRunner">网页检测</x:String>
+    
+    <!-- Buttons -->
+    <x:String x:Key="Btn_StartManual">手动开始</x:String>
+    <x:String x:Key="Btn_Refresh">刷新</x:String>
+    <x:String x:Key="Btn_OpenLabel">打开标签</x:String>
+    <x:String x:Key="Btn_StartWebRunner">启动网页检测</x:String>
+    <x:String x:Key="Btn_StopWebRunner">停止网页检测</x:String>
+    <x:String x:Key="Btn_RunDiagnostics">运行诊断</x:String>
+    <x:String x:Key="Btn_CopyReport">复制报告</x:String>
+    <x:String x:Key="Btn_ExportReport">导出报告</x:String>
+    <x:String x:Key="Btn_FixAll">修复全部问题</x:String>
+    <x:String x:Key="Btn_Fix">修复</x:String>
+    <x:String x:Key="Btn_Clear">清除</x:String>
+    <x:String x:Key="Btn_Copy">复制</x:String>
+    <x:String x:Key="Btn_Export">导出</x:String>
+    <x:String x:Key="Btn_OpenFolder">打开文件夹</x:String>
+    
+    <!-- Status Messages -->
+    <x:String x:Key="Status_Ready">请插入 iPhone 或 iPad 开始……</x:String>
+    <x:String x:Key="Status_NoDevice">未找到设备。请更换线缆或接口，或解锁设备后点按“信任”。</x:String>
+    <x:String x:Key="Status_ToolsMissing">无USB工具，诊断</x:String>
+    
+    <!-- Settings -->
+    <x:String x:Key="Settings_Title">设置</x:String>
+    <x:String x:Key="Settings_Theme">主题</x:String>
+    <x:String x:Key="Settings_ThemeDesc">深色、浅色或跟随系统</x:String>
+    <x:String x:Key="Settings_Language">语言</x:String>
+    <x:String x:Key="Settings_LanguageDesc">界面语言</x:String>
+    <x:String x:Key="Settings_AutoDetect">插入时自动检测</x:String>
+    <x:String x:Key="Settings_AutoDetectDesc">检测到设备时自动开始流程</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoring">USB 事件监控</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoringDesc">使用系统原生的 USB 事件即时检测设备（Windows WMI、macOS IOKit、Linux udev）</x:String>
+    
+    <!-- Troubleshoot -->
+    <x:String x:Key="Troubleshoot_Title">设备检测与驱动助手</x:String>
+    <x:String x:Key="Troubleshoot_Desc">如果设备无法识别，请扫描系统，诊断缺失的驱动、权限或守护进程。</x:String>
+    <x:String x:Key="Troubleshoot_Scanning">正在运行诊断，请稍候……</x:String>
+    <x:String x:Key="Troubleshoot_ClickToScan">点按“运行诊断”，扫描系统中的 USB 工具、驱动和已连接设备。</x:String>
+    
+    <!-- Logs -->
+    <x:String x:Key="Logs_SearchPlaceholder">搜索日志……</x:String>
+    <x:String x:Key="Logs_FilterDebug">调试</x:String>
+    <x:String x:Key="Logs_FilterInfo">信息</x:String>
+    <x:String x:Key="Logs_FilterWarning">警告</x:String>
+    <x:String x:Key="Logs_FilterError">错误</x:String>
+    
+    <!-- Component Status -->
+    <x:String x:Key="Component_Read">已读取</x:String>
+    <x:String x:Key="Component_Original">原装</x:String>
+    <x:String x:Key="Component_Mismatch">已更换</x:String>
+    <x:String x:Key="Component_Untrusted">非原装</x:String>
+    <x:String x:Key="Component_Status">状态</x:String>
+
+    <!-- Words for a value the phone never reported -->
+    <x:String x:Key="Value_Unknown">未知</x:String>
+    <x:String x:Key="Value_UnknownDevice">未知设备</x:String>
+    <x:String x:Key="Value_BatteryLevel">电量 {0}%</x:String>
+    <x:String x:Key="Value_Checking">检查中……</x:String>
+    <x:String x:Key="Value_NotSet">未设置</x:String>
+    <x:String x:Key="Value_NotGraded">未定级</x:String>
+    <x:String x:Key="BatteryStatus_Unknown">电池状态未知</x:String>
+    <x:String x:Key="BatteryStatus_Good">正常</x:String>
+    <x:String x:Key="BatteryStatus_Overheated">过热</x:String>
+    <x:String x:Key="BatteryStatus_Defective">故障</x:String>
+    <x:String x:Key="BatteryStatus_Overvoltage">过压</x:String>
+    <x:String x:Key="BatteryStatus_StorageFault">存储故障</x:String>
+    <x:String x:Key="BatteryStatus_TooCold">温度过低</x:String>
+    <x:String x:Key="ActivationLock_On">开启（已锁定）</x:String>
+    <x:String x:Key="ActivationLock_Off">关闭（已解锁）</x:String>
+    
+    <x:String x:Key="Settings_DailyOptions">日常选项</x:String>
+    <x:String x:Key="Settings_GroupOnArrival">设备到店时</x:String>
+    <x:String x:Key="Settings_GroupInteractiveTest">交互式检测</x:String>
+    <x:String x:Key="Settings_GroupAfterwards">检测结束后</x:String>
+    <x:String x:Key="Settings_Quality">默认等级</x:String>
+    <x:String x:Key="Settings_Payment">默认结算方式</x:String>
+    <x:String x:Key="Settings_AutoStartWebTest">自动启动交互式网页检测</x:String>
+    <x:String x:Key="Settings_RequirePwaTest">完成前必须执行 PWA 检测</x:String>
+    <x:String x:Key="Settings_AutoFinishAfterTest">检测后自动完成</x:String>
+    <x:String x:Key="Settings_ShowSummary">打印标签前显示报告</x:String>
+    <x:String x:Key="Settings_Advanced">高级自动化</x:String>
+    <x:String x:Key="Settings_AutoActivate">自动激活（绕过）</x:String>
+    <x:String x:Key="Settings_RunDiagnostics">运行硬件诊断（panic 日志）</x:String>
+    <x:String x:Key="Settings_Enable85Checker">85% 电池检测（标签上标 100%-X）</x:String>
+    <x:String x:Key="Settings_OpenEditor">打印前打开标签编辑器</x:String>
+    <x:String x:Key="Settings_Connection">手机如何打开页面</x:String>
+    <x:String x:Key="Settings_SecureOrigin">通过 USB 线缆（http://localhost）</x:String>
+    <x:String x:Key="Settings_SecureOriginDesc">手机直接在这台电脑上打开检测页面。浏览器信任该地址，因此摄像头、麦克风、运动传感器和定位都能正常使用。这是两种方式中更快的一种，无需联网，插入线缆即可使用，也是系统优先尝试的路线。</x:String>
+    <x:String x:Key="Settings_PublicTunnel">通过互联网（https，安全）</x:String>
+    <x:String x:Key="Settings_PublicTunnelDesc">电脑通过 Cloudflare 打开一个安全的 https 地址，并转发到检测页面。当没有 USB 通道时将使用此方式作为备用，iPhone 始终属于这种情况。两种方式可以同时开启：优先尝试 USB，网络连接作为备用。电脑和手机都需要联网；否则一切都在本地网络内进行，摄像头、麦克风、运动传感器和定位将无法使用。</x:String>
+
+    <!-- Licensing &amp; Subscription -->
+    <x:String x:Key="Settings_LicensingCardTitle">许可与订阅</x:String>
+    <x:String x:Key="Settings_LicenseKey">许可密钥</x:String>
+    <x:String x:Key="Settings_LicenseKeyWatermark">请输入你的 Lemon Squeezy 许可密钥</x:String>
+    <x:String x:Key="Settings_ValidateActivate">验证并激活</x:String>
+    <x:String x:Key="Settings_ManageLicense">管理许可</x:String>
+    <x:String x:Key="Settings_FreeTierStatus">免费版（已用 {0}/10 次）</x:String>
+    <x:String x:Key="Settings_ProTierStatus">专业版（已激活）</x:String>
+    <x:String x:Key="Settings_ActivationSuccess">许可已激活。现在可以无限次扫描。</x:String>
+    <x:String x:Key="Settings_ActivationFailed">激活失败：{0}</x:String>
+    <x:String x:Key="Settings_ActivationInvalid">许可密钥无效。</x:String>
+    <x:String x:Key="Settings_ActivationExpired">此许可已过期。</x:String>
+    <x:String x:Key="Settings_ActivationDeactivated">此许可已被停用。</x:String>
+    <x:String x:Key="Settings_ActivationError">网络错误。请稍后重试。</x:String>
+    <x:String x:Key="Settings_ActivationLimitReached">此密钥允许使用的电脑数量有限，且已全部占用。请在其他工位释放一台电脑，或购买数量更多的套餐。</x:String>
+
+    <!-- Licensing: introduction screen and the status pill in the title bar -->
+    <x:String x:Key="Intro_Title">欢迎使用 PhoneGrade</x:String>
+    <x:String x:Key="Intro_Subtitle">从免费版开始：10 次扫描，无需注册账号。需要更多时可升级专业版，取消次数限制。</x:String>
+    <x:String x:Key="Intro_FreeTierTitle">免费版</x:String>
+    <x:String x:Key="Intro_FreeTierBody">10 次扫描。标题栏中的状态始终显示剩余次数。</x:String>
+    <x:String x:Key="Intro_ProTierTitle">专业版</x:String>
+    <x:String x:Key="Intro_ProTierBody">连接的每台设备都可无限次扫描。</x:String>
+    <x:String x:Key="Intro_ProBadge">无限次</x:String>
+    <x:String x:Key="Intro_StartFree">免费开始</x:String>
+    <x:String x:Key="Intro_PageWelcome">语言与外观</x:String>
+    <x:String x:Key="Intro_WelcomeLead">这些只需设置一次。两者都可以稍后在设置中更改。</x:String>
+    <x:String x:Key="Intro_PagePlan">免费版包含的内容</x:String>
+    <x:String x:Key="Intro_PageWorkflow">检测流程</x:String>
+    <x:String x:Key="Intro_WorkflowLead">四个步骤，每次都相同。其中只有交互式检测需要手机。</x:String>
+    <x:String x:Key="Intro_StepPlug">通过 USB 插入手机并解锁</x:String>
+    <x:String x:Key="Intro_StepRead">PhoneGrade 自行读取硬件，并将读取结果显示在屏幕上</x:String>
+    <x:String x:Key="Intro_StepTest">用手机扫描二维码，运行摄像头、屏幕、传感器和音频检测</x:String>
+    <x:String x:Key="Intro_StepFinish">选定等级，打印标签，把手机交还客户</x:String>
+    <x:String x:Key="Intro_PageImei">网络锁与黑名单检测</x:String>
+    <x:String x:Key="Intro_Next">下一步</x:String>
+    <x:String x:Key="Intro_Back">上一步</x:String>
+    <x:String x:Key="Intro_Skip">跳过</x:String>
+    <x:String x:Key="Intro_SeePricing">查看价格</x:String>
+    <x:String x:Key="Intro_HaveLicense">我已有许可</x:String>
+    <x:String x:Key="Intro_ActivationTitle">激活你的许可</x:String>
+    <x:String x:Key="Licensing_TierFree">剩余 {0} 次扫描</x:String>
+    <x:String x:Key="Licensing_TierPro">专业版 - 已激活</x:String>
+    <x:String x:Key="Licensing_PanelHint">许可与扫描次数</x:String>
+    <x:String x:Key="Licensing_PanelTitle">许可</x:String>
+    <x:String x:Key="Licensing_PanelScansLeft">剩余扫描次数</x:String>
+    <x:String x:Key="Licensing_PanelClose">关闭</x:String>
+    <x:String x:Key="Licensing_PanelSeatsUsed">已使用 {1} 台电脑中的 {0} 台</x:String>
+    <x:String x:Key="Licensing_PanelSeatThis">此电脑（{0}）</x:String>
+    <x:String x:Key="Licensing_PanelSeatsLabel">电脑</x:String>
+    <x:String x:Key="Licensing_PanelNoMachineId">无法识别这台电脑，因此无法在此激活许可。免费扫描仍然可用。</x:String>
+    <x:String x:Key="Licensing_PanelRelease">释放此电脑</x:String>
+    <x:String x:Key="Licensing_PanelReleaseConfirm">确认释放？</x:String>
+    <x:String x:Key="Licensing_PanelReleaseCancel">保留</x:String>
+    <x:String x:Key="Licensing_PanelReleaseHint">释放此电脑后，另一台电脑即可使用同一密钥。之后你可以再次激活该密钥。</x:String>
+    <x:String x:Key="Licensing_PanelReleaseDone">此电脑已释放。在你再次激活该密钥之前，将使用免费版。</x:String>
+    <x:String x:Key="Licensing_PanelReleaseDoneAlready">此电脑已不在该密钥的注册列表中。你正在使用免费版。</x:String>
+
+    <x:String x:Key="Btn_Troubleshoot">USB 与驱动诊断</x:String>
+    <x:String x:Key="Btn_Logs">查看系统日志</x:String>
+    
+    <!-- Summary / Inspection Report -->
+    <x:String x:Key="Summary_Title">检测报告</x:String>
+    <x:String x:Key="Summary_AuditTitle">3UTOOLS 硬件部件审核</x:String>
+    <x:String x:Key="Summary_AuditSubtitle">出厂值与读取值对比</x:String>
+    <x:String x:Key="Summary_ColComponent">部件</x:String>
+    <x:String x:Key="Summary_ColPart">零件</x:String>
+    <x:String x:Key="Summary_ColFactory">出厂值</x:String>
+    <x:String x:Key="Summary_ColRead">读取值</x:String>
+    <!-- The audit rows are far narrower than the report, so the two columns get
+         their own short labels; the full ones would be cut in the middle. -->
+    <x:String x:Key="Active_ColFactory">出厂值</x:String>
+    <x:String x:Key="Active_ColRead">读取值</x:String>
+    <x:String x:Key="Summary_ColStatus">状态</x:String>
+    <x:String x:Key="Summary_BtnPrint">打印 DYMO 标签</x:String>
+    <x:String x:Key="Summary_BtnRetest">重新检测</x:String>
+    <x:String x:Key="Summary_BtnNext">下一台设备（完成）</x:String>
+    <x:String x:Key="Summary_SimLockFree">已解锁（无 SIM 卡锁）</x:String>
+    <x:String x:Key="Summary_SimLocked">SIM 卡已锁定</x:String>
+
+    <!-- ============ Export and printing ============ -->
+    <!-- The panel an operator reaches from the inspection report. It is the only
+         place that knows about labels, reports and the raw numbers, so the summary
+         screen's button opens it and nothing else writes a file. -->
+    <x:String x:Key="Export_Title">导出与打印</x:String>
+    <x:String x:Key="Export_Lead">保存标签、报告和原始数据，或直接打印标签。</x:String>
+    <x:String x:Key="Export_PreviewTitle">标签预览</x:String>
+    <x:String x:Key="Export_PreviewNote">与文件使用相同的数值绘制。缺失的内容显示为占位符。</x:String>
+    <x:String x:Key="Export_PreviewScaled">为适配此处显示，绘制比例小于实际标签。形状正确，尺寸不同。</x:String>
+    <x:String x:Key="Export_Stock">标签规格</x:String>
+    <x:String x:Key="Export_StockNote">打印机中的标签卷，按订购时的料号区分。</x:String>
+    <x:String x:Key="Export_StockPart">料号 {0}</x:String>
+    <x:String x:Key="LabelStock_1982991">地址标签 89 x 28 毫米</x:String>
+    <x:String x:Key="LabelStock_1983172">大号地址标签 89 x 36 毫米</x:String>
+    <x:String x:Key="LabelStock_30334">多用途 57 x 32 毫米</x:String>
+    <x:String x:Key="LabelStock_30336">小号多用途 54 x 25 毫米</x:String>
+    <x:String x:Key="LabelStock_30256">大号运费标签 102 x 59 毫米</x:String>
+    <x:String x:Key="LabelStock_1933081">货架标签 89 x 25 毫米</x:String>
+    <x:String x:Key="Export_BarcodeTitle">条形码</x:String>
+    <x:String x:Key="Export_BarcodeNote">条形码所携带的信息。两个编码需要标签上的两条区域，留给文字的空间会更少。</x:String>
+    <x:String x:Key="Export_BarcodeIdentifier">仅识别码</x:String>
+    <x:String x:Key="Export_BarcodeIdentifierNote">一个编码，仅包含序列号。标签看起来像价签，收银系统识别的是这种。</x:String>
+    <x:String x:Key="Export_BarcodeSplit">两个编码</x:String>
+    <x:String x:Key="Export_BarcodeSplitNote">一个编码放序列号，另一个放存储空间、等级和电池信息，两者都印在标签上。</x:String>
+    <x:String x:Key="Export_BarcodeCombined">一个编码，包含两者</x:String>
+    <x:String x:Key="Export_BarcodeCombinedNote">一个编码同时包含序列号和规格信息。</x:String>
+    <x:String x:Key="Export_BarcodeNone">无条形码</x:String>
+    <x:String x:Key="Export_BarcodeNoneNote">适用于扫描枪无法识别条形码的门店。标签只印文字，不含其他内容。</x:String>
+    <x:String x:Key="Export_BarcodeUnavailable">此条码类型在当前标签卷上不可用。请选择 Code 128，或更宽的标签卷。</x:String>
+    <x:String x:Key="Export_SymbologyTitle">次码类型</x:String>
+    <x:String x:Key="Export_Symbology39">Code 39</x:String>
+    <x:String x:Key="Export_Symbology39Note">手机店里的收银机和扫码枪都已经能读这种条码。它能表示大写字母和少量符号，所以型号名称会以短横线的形式写进条码里。</x:String>
+    <x:String x:Key="Export_Symbology128">Code 128</x:String>
+    <x:String x:Key="Export_Symbology128Note">信息密度更高，因此一个条码可以同时写入序列号和规格，而 Code 39 做不到这一点。您的扫码枪需要设置为可读这种条码。</x:String>
+
+
+ 
+ 
+ 
+ 
+ 
+    <x:String x:Key="Export_LabelShowTitle">标签内容</x:String>
+    <x:String x:Key="Export_LabelShowCycles">充电次数</x:String>
+    <x:String x:Key="Export_LabelShowCyclesNote">电池已充电的次数，百分比无法反映这一信息。</x:String>
+    <x:String x:Key="Export_LabelShowFaults">故障项</x:String>
+    <x:String x:Key="Export_LabelShowFaultsNote">以数量形式列出存在的问题，例如 2 个非 OEM 屏幕。</x:String>
+    <x:String x:Key="Export_LabelShowLocks">FRP 与激活锁</x:String>
+    <x:String x:Key="Export_LabelShowLocksNote">任意一项开启时以更大字号打印。关闭此项会隐藏用于阻止锁定手机售出的提示行。</x:String>
+    <x:String x:Key="Export_LabelPreviewTitle">标签</x:String>
+    <x:String x:Key="Export_LabelPreviewNote">按上方标签卷的尺寸绘制，使用与文件相同的数值。</x:String>
+    <x:String x:Key="Export_LabelTooNarrow">序列号过长，无法在这种标签上生成条形码，因此以文字形式打印。</x:String>
+    <x:String x:Key="Export_LabelNoBarcode">此标签上没有条形码。</x:String>
+    <x:String x:Key="Export_FormatsTitle">导出内容</x:String>
+    <x:String x:Key="Export_FormatsNote">所有勾选项会一次性写入，每一项单独报告结果。</x:String>
+    <x:String x:Key="Export_Printer">打印机</x:String>
+    <x:String x:Key="Export_PrintDialog">系统打印对话框</x:String>
+    <x:String x:Key="Export_PrinterReady">就绪</x:String>
+    <x:String x:Key="Export_PrinterBusy">忙碌</x:String>
+    <x:String x:Key="Export_NoPrinters">未找到打印机。请使用系统打印对话框。</x:String>
+    <x:String x:Key="Export_ScanPrinters">查找打印机</x:String>
+    <x:String x:Key="Export_Copies">份数</x:String>
+    <x:String x:Key="Export_BtnWrite">写入所选项</x:String>
+    <x:String x:Key="Export_BtnPrintLabel">打印标签</x:String>
+    <x:String x:Key="Export_BtnOpenFolder">打开文件夹</x:String>
+    <x:String x:Key="Export_FolderLabel">保存到</x:String>
+    <x:String x:Key="Export_ResultsTitle">写入结果</x:String>
+    <x:String x:Key="Export_BtnOpen">打开</x:String>
+    <x:String x:Key="Export_BtnPrintOne">打印</x:String>
+    <x:String x:Key="Export_Close">关闭</x:String>
+    <x:String x:Key="Export_Busy">正在处理……</x:String>
+
+    <!-- The formats, named and described. The note is what stops somebody
+         picking by extension: a JSON file and a CSV file are both "the numbers". -->
+    <x:String x:Key="Export_FormatDymo">DYMO 标签</x:String>
+    <x:String x:Key="Export_FormatDymoNote">用于 DYMO Label 软件的 .dymo 文件，也可直接发送到 DYMO 打印机打印。</x:String>
+    <x:String x:Key="Export_FormatLabelPdf">标签（PDF）</x:String>
+    <x:String x:Key="Export_FormatLabelPdfNote">同样的标签，输出为 PDF，适用于三种系统上的任意打印机。</x:String>
+    <x:String x:Key="Export_FormatReportPdf">完整报告（PDF）</x:String>
+    <x:String x:Key="Export_FormatReportPdfNote">包含所有读取到的数值，结论置于顶部。可用于存档或向客户展示。</x:String>
+    <x:String x:Key="Export_FormatJson">原始数据（JSON）</x:String>
+    <x:String x:Key="Export_FormatJsonNote">手机报告的全部内容，带版本信息。供你自己的系统使用。</x:String>
+    <x:String x:Key="Export_FormatCsv">原始数据（CSV）</x:String>
+    <x:String x:Key="Export_FormatCsvNote">同样的数值，每个字段一行，用于电子表格。</x:String>
+    <x:String x:Key="Export_NameOf">格式</x:String>
+    <x:String x:Key="Export_PrintFailed">标签无法写入，因此没有打印任何内容。</x:String>
+    <x:String x:Key="Status_Exporting">正在写入文件……</x:String>
+    <x:String x:Key="Status_ExportDone">已将 {0} 个文件写入 {1}</x:String>
+    <x:String x:Key="Status_ExportPartly">已将 {1} 个中的 {0} 个写入 {3}。有 {2} 个无法写入：请查看上方对应行。</x:String>
+    <x:String x:Key="Status_DymoSent">标签已发送到 DYMO。DYMO 报告任务已接收，并非已打印。</x:String>
+    <x:String x:Key="Status_DymoRefused">DYMO 未接收该标签：{0}</x:String>
+
+    <!-- What a failed export, a note on a written one, or a print says. Read at the
+         moment something went wrong, so it comes from here rather than from the
+         code that detected it. -->
+    <x:String x:Key="Status_TemplateMissing">标签模板 {0} 不存在。请在设置中选择其他模板，或清空该设置以使用应用自带的模板。</x:String>
+    <x:String x:Key="Status_TemplateUnreadable">无法读取位于 {0} 的标签模板：{1}</x:String>
+    <x:String x:Key="Status_NoTemplateFound">未找到标签模板（{0}）。已查找以下位置：{1}</x:String>
+    <x:String x:Key="Status_TemplateHasNoFields">标签模板中不包含本应用要填写的任何字段，因此所有标签都会输出相同内容。请重新打开应用自带的模板。</x:String>
+    <x:String x:Key="Status_WriteFailed">写入 {0} 文件失败：{1}</x:String>
+    <x:String x:Key="Status_UnfilledFields">模板还需要 {0}，但没有任何数据可以填写。</x:String>
+    <x:String x:Key="Status_BarcodeReplaced">条形码无法承载的字符已用短横线替换，文字打印在条形码旁边。</x:String>
+    <x:String x:Key="Status_BarcodeWrapped">已添加星号，使条形码可以被读回。</x:String>
+    <x:String x:Key="Status_NoFileAt">{0} 处没有文件。</x:String>
+    <x:String x:Key="Status_NoFolderAt">{0} 处没有文件夹。</x:String>
+    <x:String x:Key="Status_NoPrinterChosen">未选择打印机。</x:String>
+    <x:String x:Key="Status_PrintDialogOpened">已发送到打印对话框。</x:String>
+    <x:String x:Key="Status_PrintNoHandler">系统未安装打印处理程序，因此改为打开文件。请在该程序中打印。</x:String>
+    <x:String x:Key="Status_PrintPreviewOpened">已在预览程序中打开。请在该程序中打印。</x:String>
+    <x:String x:Key="Status_PrintDefaultApp">已在默认程序中打开。请在该程序中打印。</x:String>
+    <x:String x:Key="Status_PrintNotStarted">无法启动打印：{0}</x:String>
+    <x:String x:Key="Status_PrintQueueNeedsDialog">在 Windows 上按名称选择打印机需要通过打印对话框。请改用“打印”。</x:String>
+    <x:String x:Key="Status_PrintSentToQueue">已发送到 {0}。</x:String>
+    <x:String x:Key="Status_PrintToQueueFailed">打印到 {0} 失败：{1}</x:String>
+    <x:String x:Key="Status_FolderOpened">已打开文件夹。</x:String>
+    <x:String x:Key="Status_FolderNotOpened">无法打开文件夹：{0}</x:String>
+    <x:String x:Key="Status_FileOpened">已打开。</x:String>
+    <x:String x:Key="Status_FileNotOpened">无法打开文件：{0}</x:String>
+
+    <!-- The wording inside the report PDFs. A report is a document somebody keeps,
+         so it is written in the language of the shop rather than of the code. -->
+    <x:String x:Key="Export_ReportTitle">检测报告</x:String>
+    <x:String x:Key="Export_ReportGenerated">生成时间</x:String>
+    <x:String x:Key="Export_Confidential">机密</x:String>
+    <x:String x:Key="Export_Verdict">结论</x:String>
+    <x:String x:Key="Export_VerdictClean">未发现故障</x:String>
+    <x:String x:Key="Export_SectionDevice">设备</x:String>
+    <x:String x:Key="Export_SectionBattery">电池</x:String>
+    <x:String x:Key="Export_SectionNetwork">网络</x:String>
+    <x:String x:Key="Export_SectionSecurity">锁定与安全</x:String>
+    <x:String x:Key="Export_SectionComponents">部件原装状态</x:String>
+    <x:String x:Key="Export_SectionTests">交互式检测</x:String>
+    <x:String x:Key="Export_SectionGrading">等级评定</x:String>
+    <x:String x:Key="Export_FieldName">字段</x:String>
+    <x:String x:Key="Export_FieldValue">数值</x:String>
+    <x:String x:Key="Export_NotReported">未报告</x:String>
+    <x:String x:Key="Export_Unknown">未知</x:String>
+    <x:String x:Key="Export_Yes">是</x:String>
+    <x:String x:Key="Export_No">否</x:String>
+    <x:String x:Key="Export_Locked">已锁定</x:String>
+    <x:String x:Key="Export_Unlocked">已解锁</x:String>
+    <x:String x:Key="Export_LabelLine">标签</x:String>
+    <x:String x:Key="Export_ColComponent">部件</x:String>
+    <x:String x:Key="Export_ColRead">读取值</x:String>
+    <x:String x:Key="Export_ColFactory">出厂值</x:String>
+    <x:String x:Key="Export_ColStatus">状态</x:String>
+    <x:String x:Key="Export_ColNotes">备注</x:String>
+    <x:String x:Key="Export_ColTest">检测项</x:String>
+    <x:String x:Key="Export_ColDuration">用时</x:String>
+
+    <!-- Header bar -->
+    <x:String x:Key="Header_Connected">设备已连接</x:String>
+    <x:String x:Key="Header_NoDevice">无设备</x:String>
+    <x:String x:Key="Header_SettingsTooltip">设置与选项</x:String>
+    <x:String x:Key="Btn_Close">关闭</x:String>
+    <x:String x:Key="Btn_Rescan">重新扫描</x:String>
+    <x:String x:Key="Btn_ScanManually">手动扫描</x:String>
+    <x:String x:Key="Btn_StartInspection">开始检测</x:String>
+    <x:String x:Key="Btn_Finish">完成</x:String>
+
+    <!-- Idle screen and the USB trust guide -->
+    <x:String x:Key="TrialLimit_Reached">已达到免费试用上限（10/10）。购买许可后可继续扫描。</x:String>
+    <x:String x:Key="Idle_Title">请通过 USB 连接设备</x:String>
+    <x:String x:Key="Idle_Lead">支持 iPhone、iPad 和 Android 设备。请保持屏幕解锁，并确认“信任此电脑”。</x:String>
+    <x:String x:Key="Idle_DetectedDevices">已检测到的设备：</x:String>
+    <!-- USB debugging how-to. Opened by an Android device on the cable that adb
+         cannot talk to yet, and by nothing else. -->
+    <x:String x:Key="AdbTutorial_Title">开启 USB 调试</x:String>
+    <x:String x:Key="AdbTutorial_Lead">手机已连接，但尚未信任这台电脑。手机本身没有问题，只需要在手机上点按一次。</x:String>
+    <x:String x:Key="AdbTutorial_ManufacturerPrefix">适用于你的 {0}：</x:String>
+    <x:String x:Key="AdbTutorial_DeviceWord">{0} 设备</x:String>
+    <x:String x:Key="AdbTutorial_AndroidDevice">Android 设备</x:String>
+    <x:String x:Key="AdbTutorial_Common_ScreenLock">请解锁屏幕并保持点亮。锁屏状态不会显示该提示。</x:String>
+    <x:String x:Key="AdbTutorial_Common_Authorize">在手机上打开“允许 USB 调试吗？”提示，点按“始终允许来自此电脑”，然后点“确定”。</x:String>
+    <!-- Two steps of their own per brand: where that brand hides the build
+         number, and what it calls the developer menu. -->
+    <x:String x:Key="AdbTutorial_Samsung_Step1">在“设置”>“关于手机”>“软件信息”中，连续点按“版本号”七次</x:String>
+    <x:String x:Key="AdbTutorial_Samsung_Step2">在“设置”>“开发者选项”中，开启“USB 调试”并确认</x:String>
+    <x:String x:Key="AdbTutorial_Xiaomi_Step1">在“设置”>“关于手机”中，连续点按“MIUI 版本”或“HyperOS 版本”七次</x:String>
+    <x:String x:Key="AdbTutorial_Xiaomi_Step2">在“设置”>“更多设置”>“开发者选项”中，开启“USB 调试”并确认</x:String>
+    <x:String x:Key="AdbTutorial_Google_Step1">在“设置”>“关于手机”中，连续点按“版本号”七次</x:String>
+    <x:String x:Key="AdbTutorial_Google_Step2">在“设置”>“系统”>“开发者选项”中，开启“USB 调试”并确认</x:String>
+    <x:String x:Key="AdbTutorial_Motorola_Step1">在“设置”>“关于手机”中，连续点按“版本号”七次</x:String>
+    <x:String x:Key="AdbTutorial_Motorola_Step2">在“设置”>“系统”>“开发者选项”中，开启“USB 调试”并确认</x:String>
+    <x:String x:Key="AdbTutorial_Sony_Step1">在“设置”>“关于手机”中，连续点按“版本号”七次</x:String>
+    <x:String x:Key="AdbTutorial_Sony_Step2">在“设置”>“系统”>“开发者选项”中，开启“USB 调试”并确认</x:String>
+    <x:String x:Key="AdbTutorial_Huawei_Step1">在“设置”>“关于手机”中，连续点按“版本号”七次</x:String>
+    <x:String x:Key="AdbTutorial_Huawei_Step2">在“设置”>“系统”>“开发者选项”中，开启“USB 调试”并确认</x:String>
+    <x:String x:Key="AdbTutorial_OnePlus_Step1">在“设置”>“关于手机”中，连续点按“版本号”七次</x:String>
+    <x:String x:Key="AdbTutorial_OnePlus_Step2">在“设置”>“系统”>“开发者选项”中，开启“USB 调试”并确认</x:String>
+    <!-- The pair for a brand with no table of its own, so a phone nobody
+         anticipated still gets told something true. -->
+    <x:String x:Key="AdbTutorial_Generic_Step1">在“设置”>“关于手机”中，连续点按“版本号”七次</x:String>
+    <x:String x:Key="AdbTutorial_Generic_Step2">在“设置”中打开“开发者选项”，并开启“USB 调试”</x:String>
+    <x:String x:Key="AdbTutorial_Common_Caveat">开启后，请查看手机上是否出现“允许 USB 调试吗？”提示，并点按“始终允许来自此电脑”。</x:String>
+    <x:String x:Key="AdbTutorial_RetryButton">重新查找</x:String>
+    <x:String x:Key="AdbTutorial_Close">关闭</x:String>
+
+    <!-- Inspection in progress -->
+    <x:String x:Key="Active_SpecsTitle">硬件规格</x:String>
+    <x:String x:Key="Spec_Model">手机型号</x:String>
+    <x:String x:Key="Spec_Serial">序列号</x:String>
+    <x:String x:Key="Spec_Storage">存储空间</x:String>
+    <x:String x:Key="Spec_Color">颜色</x:String>
+    <x:String x:Key="Spec_Battery">电池状态</x:String>
+    <x:String x:Key="Spec_Grade">品质等级</x:String>
+    <x:String x:Key="Spec_Memory">内存</x:String>
+    <x:String x:Key="Active_SecurityTitle">安全与状态</x:String>
+    <x:String x:Key="Spec_Imei">IMEI 号</x:String>
+    <x:String x:Key="Spec_FindMy">Find My (iCloud)</x:String>
+    <x:String x:Key="Spec_Blacklist">黑名单状态</x:String>
+    <x:String x:Key="Spec_NotChecked">未检测</x:String>
+    <x:String x:Key="Active_OemTitle">原装部件审核（OEM）</x:String>
+    <x:String x:Key="Active_InteractiveTitle">交互式硬件检测</x:String>
+    <x:String x:Key="Active_InteractiveLead">用设备摄像头扫描二维码，检测显示、触控、摄像头和音频。</x:String>
+
+    <!-- Result screen -->
+    <x:String x:Key="Summary_Imei">IMEI / 序列号：</x:String>
+    <x:String x:Key="Summary_Storage">存储空间：</x:String>
+    <x:String x:Key="Summary_Memory">内存：</x:String>
+    <x:String x:Key="Summary_Color">颜色：</x:String>
+    <x:String x:Key="Summary_Fmi">iCloud (FMI)</x:String>
+    <x:String x:Key="Summary_BatteryHealth">电池状态</x:String>
+    <x:String x:Key="Summary_InvoiceMethod">结算方式</x:String>
+    <x:String x:Key="Summary_SimLock">SIM 卡锁</x:String>
+    <x:String x:Key="Summary_HardwareTests">硬件检测（PWA）</x:String>
+    <x:String x:Key="Summary_ReportTitle">检测报告（偏差与缺陷）</x:String>
+    <x:String x:Key="Summary_ReportNote">仅列出非原装部件以及失败或跳过的检测</x:String>
+    <x:String x:Key="Summary_AuditSection">部件审核（非原装 / 已更换）</x:String>
+    <x:String x:Key="Summary_TestsSection">交互式硬件检测</x:String>
+    <x:String x:Key="Summary_AllOemOriginal">所有部件均为原装（OEM）</x:String>
+    <x:String x:Key="Summary_AllTestsPassed">所有交互式检测均通过</x:String>
+    <x:String x:Key="Report_Failed">未通过</x:String>
+    <x:String x:Key="Report_Skipped">已跳过</x:String>
+    <x:String x:Key="Report_DismissTest">不将此检测写入报告</x:String>
+    <x:String x:Key="Report_Dismissed">项检测未写入报告</x:String>
+    <x:String x:Key="Report_Restore">撤销</x:String>
+
+    <!-- The two questions at the end of an inspection -->
+    <x:String x:Key="QualityPopup_Title">选择品质等级</x:String>
+    <x:String x:Key="QualityPopup_Lead">这台设备检测后的评级，结果会印在标签上。</x:String>
+    <x:String x:Key="PaymentPopup_Title">结算方式</x:String>
+    <x:String x:Key="PaymentPopup_Lead">这台设备的结算方式。</x:String>
+
+    <!-- What changed in the version that just installed itself -->
+    <x:String x:Key="Changelog_Title">PhoneGrade 已更新</x:String>
+    <x:String x:Key="Changelog_Lead">此版本的变更内容。</x:String>
+    <x:String x:Key="Changelog_Close">知道了</x:String>
+
+    <!-- Logs and diagnostics -->
+    <x:String x:Key="Logs_Title">系统日志与工具输出</x:String>
+
+    <!-- Settings page: the topics and their rows -->
+    <x:String x:Key="Settings_Lead">语言、流程与连接。修改会随改动即时保存。</x:String>
+    <x:String x:Key="Settings_Close">关闭</x:String>
+    <x:String x:Key="Settings_CloseTooltip">返回后一层界面</x:String>
+    <x:String x:Key="Settings_SecGeneral">常规</x:String>
+    <x:String x:Key="Settings_SecWorkflow">流程</x:String>
+    <x:String x:Key="Settings_SecConnection">连接</x:String>
+    <x:String x:Key="Settings_SecLicense">许可</x:String>
+    <x:String x:Key="Settings_SecSupport">支持</x:String>
+    <x:String x:Key="Settings_SecAdvanced">高级</x:String>
+    <x:String x:Key="Settings_QualityDesc">检测开始时使用的默认等级。留空则每次检测时都会询问。</x:String>
+    <x:String x:Key="Settings_PaymentDesc">检测开始时使用的默认结算方式。留空则每次检测时都会询问。</x:String>
+    <x:String x:Key="Settings_QualityAsk">每次询问</x:String>
+    <x:String x:Key="Settings_PaymentAsk">每次询问</x:String>
+    <x:String x:Key="Settings_AutoStartWebTestDesc">扫描二维码后立即打开检测页面，无需操作员手动启动。</x:String>
+    <x:String x:Key="Settings_RequirePwaTestDesc">手机上的检测未完成前，无法结束本次检测。</x:String>
+    <x:String x:Key="Settings_AutoFinishAfterTestDesc">手机上的检测回报结果后，自动进入结果界面。</x:String>
+    <x:String x:Key="Settings_ShowSummaryDesc">打印标签前先显示报告，便于更正。</x:String>
+    <x:String x:Key="Settings_TroubleshootCardTitle">USB 与驱动诊断</x:String>
+    <x:String x:Key="Settings_TroubleshootCardDesc">检查本工具所需的工具、驱动和守护进程，并自动修复可修复的部分。</x:String>
+    <x:String x:Key="Settings_LogsCardTitle">系统日志</x:String>
+    <x:String x:Key="Settings_LogsCardDesc">本工具及其辅助程序报告的全部内容，提供筛选和搜索框。</x:String>
+    <x:String x:Key="Settings_AutoActivateDesc">连接设备后无需确认即自动激活，可加快同一台手机的重复检测。</x:String>
+    <x:String x:Key="Settings_RunDiagnosticsDesc">检测过程中读取 panic 日志和其他硬件诊断信息。</x:String>
+    <x:String x:Key="Settings_Enable85CheckerDesc">当电池容量低于设计容量的 85% 时，在标签上作出标记。</x:String>
+    <x:String x:Key="Settings_OpenEditorDesc">打印前打开数据编辑器，以便先更正要打印的数值。</x:String>
+    <x:String x:Key="Settings_DebugMode">调试模式与网络跟踪</x:String>
+    <x:String x:Key="Settings_DebugModeDesc">记录每个请求的详细日志。仅在排查问题时才有用。</x:String>
+
+    <!-- Quality and invoice options, in the wording they are offered in -->
+    <x:String x:Key="Quality_A">A级：与新机无异</x:String>
+    <x:String x:Key="Quality_B">B级：轻微使用痕迹</x:String>
+    <x:String x:Key="Quality_C">C级：明显使用痕迹</x:String>
+    <x:String x:Key="Payment_Marge">毛价（0% 增值税）</x:String>
+    <x:String x:Key="Payment_BTW">含税价（增值税 21%）</x:String>
+
+    <!-- Label editor -->
+    <x:String x:Key="Editor_Title">编辑设备数据</x:String>
+    <x:String x:Key="Editor_Lead">检查并调整将印在标签上的数值。</x:String>
+    <x:String x:Key="Editor_Identity">身份标识</x:String>
+    <x:String x:Key="Editor_Identifier">识别码（IMEI / 序列号）</x:String>
+    <x:String x:Key="Editor_Battery">电池</x:String>
+    <x:String x:Key="Editor_Grading">等级评定</x:String>
+    <x:String x:Key="Editor_Quality">品质</x:String>
+    <x:String x:Key="Editor_Payment">结算方式</x:String>
+    <x:String x:Key="Editor_MetricsTitle">硬件与电池指标</x:String>
+    <x:String x:Key="Editor_Cycles">循环次数</x:String>
+    <x:String x:Key="Editor_DesignMah">设计容量（mAh）</x:String>
+    <x:String x:Key="Editor_CurrentMah">当前容量（mAh）</x:String>
+    <x:String x:Key="Editor_Save">保存并打开标签</x:String>
+    <x:String x:Key="Editor_Unset">未设置</x:String>
+
+    <!-- Status line of the inspection window -->
+    <x:String x:Key="Status_ConnectToStart">请连接设备开始……</x:String>
+    <x:String x:Key="Status_ConnectUsb">请通过 USB 连接设备开始……</x:String>
+    <x:String x:Key="Status_WebStandby">网页检测待命</x:String>
+    <x:String x:Key="Status_LockdownError">无法与设备通信（lockdownd）。</x:String>
+    <x:String x:Key="Status_PairingPending">正在等待 iPhone 上的授权……</x:String>
+    <x:String x:Key="Status_RsaPending">正在等待 Android 上的 RSA 提示……</x:String>
+    <x:String x:Key="Status_Timeout">设备未在规定时间内响应。</x:String>
+    <x:String x:Key="Status_CommsError">与设备通信失败。</x:String>
+    <x:String x:Key="Status_Reconnected">设备已重新连接：数据已重新读取（从 0% 开始）。</x:String>
+    <x:String x:Key="Status_Disconnected">设备已拔出。请重新连接同一台设备以继续。</x:String>
+    <x:String x:Key="Status_Unauthorized">正在等待 Android 上的 RSA 提示。请允许 USB 调试。</x:String>
+    <x:String x:Key="Status_NotTrusted">正在等待 iPhone 上的授权。请解锁并点按“信任”。</x:String>
+    <x:String x:Key="Status_PermissionDenied">权限缺失：请运行 chmod +x，或检查 Gatekeeper 安全提示。</x:String>
+    <x:String x:Key="Status_DriverMissing">缺少 Apple USB 驱动。请安装 iTunes 或 Apple Mobile Device Support。</x:String>
+    <x:String x:Key="Status_DaemonStoppedWin">Apple Mobile Device Service 已停止：请在 Windows 服务中启动它。</x:String>
+    <x:String x:Key="Status_DaemonStoppedUnix">usbmuxd 守护进程未运行：请启动 usbmuxd。</x:String>
+    <x:String x:Key="Status_NoDeviceFound">未找到设备。请检查线缆或解锁设备。</x:String>
+    <x:String x:Key="Status_OneFound">已找到并选中 1 台设备。</x:String>
+    <x:String x:Key="Status_ManyFound">找到 {0} 台设备：请选择一台。</x:String>
+    <x:String x:Key="Status_NoDeviceSelected">未选择设备。</x:String>
+    <x:String x:Key="Status_TrialLimit">已达到免费试用上限（10/10）。购买许可后可继续扫描。</x:String>
+    <x:String x:Key="Status_Checking">正在检查连接……</x:String>
+    <x:String x:Key="Status_Unreachable">无法访问设备：请更换线缆或接口。</x:String>
+    <x:String x:Key="Status_Activating">正在激活设备（绕过）……</x:String>
+    <x:String x:Key="Status_ReadingData">正在读取设备数据……</x:String>
+    <x:String x:Key="Status_SpecsRead">规格已读取。请运行交互式检测，然后点按“完成”。</x:String>
+    <x:String x:Key="Status_Error">错误：{0}</x:String>
+    <x:String x:Key="Status_GradeDowngraded">无法给出 A 级（缺少所需接口）。已自动降为 B 级。</x:String>
+    <x:String x:Key="Status_ChoosePayment">请选择结算方式……</x:String>
+    <x:String x:Key="Status_TestsComplete">检测已完成。请检查结果并打印标签。</x:String>
+    <x:String x:Key="Status_PwaRequired">必须完成 PWA 硬件检测。请先运行交互式检测。</x:String>
+    <x:String x:Key="Status_ChooseQuality">请选择品质等级……</x:String>
+    <x:String x:Key="Status_LabelGenerating">正在生成标签……</x:String>
+    <x:String x:Key="Status_ExportingCsv">正在写入 CSV 文件……</x:String>
+    <x:String x:Key="Status_ExportingPdf">正在写入 PDF 报告……</x:String>
+    <x:String x:Key="Status_ExportCsvSuccess">CSV 已写入：{0}</x:String>
+    <x:String x:Key="Status_ExportPdfSuccess">PDF 已写入：{0}</x:String>
+    <x:String x:Key="Status_ExportFailed">导出失败：{0}</x:String>
+    <x:String x:Key="Status_LabelFailed">标签生成失败：{0}</x:String>
+    <x:String x:Key="Status_NoLabel">尚未生成标签。</x:String>
+
+    <!-- Web test session on the phone -->
+    <x:String x:Key="Session_Connected">设备已连接，可进行网页检测（{0}）</x:String>
+    <x:String x:Key="Session_TestRunning">检测进行中：{0}（{1}%）</x:String>
+    <x:String x:Key="Session_TestDone">检测完成：{0} -> {1}</x:String>
+    <x:String x:Key="Session_WebRunnerError">网页检测程序错误：{0}</x:String>
+    <x:String x:Key="Session_QrError">二维码错误：{0}</x:String>
+    <x:String x:Key="Session_Finished">网页检测结束：已完成 {1} 项中的 {0} 项。</x:String>
+    <x:String x:Key="Session_Ready">手机上的网页检测已就绪。</x:String>
+    <x:String x:Key="Session_NextStep">下一项检测</x:String>
+    <x:String x:Key="Session_Started">网页检测已开始，正在进行 {0}。</x:String>
+    <x:String x:Key="Session_InProgress">网页检测进行中：{0}（已完成 {2} 项中的 {1} 项）。</x:String>
+    <x:String x:Key="Session_TestsPlain">交互式检测：{0} 项通过，{1} 项失败（{2}）</x:String>
+    <x:String x:Key="Session_TestsSkipped">交互式检测：{0} 项通过，{1} 项失败，{2} 项跳过（{3}）</x:String>
+    <x:String x:Key="Session_FailedSkipped">交互式硬件检测结束：{0} 项失败，{1} 项跳过</x:String>
+    <x:String x:Key="Session_Failed">交互式硬件检测结束：{0} 项失败</x:String>
+    <x:String x:Key="Session_SkippedOnly">交互式硬件检测结束：{0} 项检测已跳过</x:String>
+    <x:String x:Key="Session_AllPassed">交互式硬件检测：全部通过！</x:String>
+    <x:String x:Key="Session_Done">交互式硬件检测结束</x:String>
+
+    <!-- Which route the web runner address took -->
+    <x:String x:Key="Route_Usb">扫描二维码，通过 USB 打开：{0}</x:String>
+    <x:String x:Key="Route_Internet">扫描二维码或通过网络打开：{0}</x:String>
+    <x:String x:Key="Route_Local">扫描二维码或直接打开：{0}</x:String>
+
+    <!-- Why the web test address is not a secure connection -->
+    <x:String x:Key="Connect_OpeningUsb">正在建立 USB 安全连接……</x:String>
+    <x:String x:Key="Connect_OpeningInternet">正在建立网络安全连接……</x:String>
+    <x:String x:Key="Connect_StartFailed">无法建立网络安全连接：{0}</x:String>
+    <x:String x:Key="Connect_NoConnector">无法建立网络安全连接：缺少通道程序（cloudflared）。</x:String>
+    <x:String x:Key="Connect_GaveUp">暂时不再尝试建立网络安全连接：通道程序停止的次数过多。</x:String>
+    <x:String x:Key="Connect_NoAddress">无法建立网络安全连接。通道程序提示：{0}</x:String>
+    <x:String x:Key="Connect_SecureOff">安全连接已关闭</x:String>
+    <x:String x:Key="Connect_FailedOne">无安全连接：无法打开 {0}</x:String>
+    <x:String x:Key="Connect_FailedMany">无安全连接：无法打开 {0}</x:String>
+    <x:String x:Key="Connect_RestrictedApis">因此摄像头、麦克风、运动传感器和定位无法使用。</x:String>
+    <x:String x:Key="Connect_RouteUsb">USB 通道</x:String>
+    <x:String x:Key="Connect_RouteInternet">网络安全连接</x:String>
+    <x:String x:Key="Connect_Joiner">和</x:String>
+
+    <!-- What the phone could not find -->
+    <x:String x:Key="Api_MissingDetails">此设备缺少必需的浏览器接口“{0}”。</x:String>
+    <x:String x:Key="Api_MissingNotes">PWA 未能找到此必需的硬件接口。</x:String>
+
+    <!-- IMEI API Settings -->
+    <x:String x:Key="Settings_ImeiInfoGuide">设置指南</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep1">在 imei.info 上创建账号</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep2">点击侧边栏中的“API Manage”，复制你的 API 密钥（例如 e0d7c26f-5cc7-5644-863c-8992083dfeac）。</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep3">将 API 密钥粘贴到上方输入框，然后点击“Save”。</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep4">在网站上进入“Add Credits”，为账号充值。</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhyTitle">为什么需要你自己的密钥</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhy">IMEI 检测通过你自己的 imei.info 账号执行，因此在下方粘贴的密钥属于你本人，并保存在本机的设置文件中。PhoneGrade 不附带密钥。</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhyCredits">每项检测都按其旁边标明的价格从该账号余额中扣费，因此请在首次检测前充值。</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenDashboard">打开 imei.info 控制台</x:String>
+    <x:String x:Key="Settings_ImeiInfoSaveKey">保存 API 密钥</x:String>
+    <x:String x:Key="Settings_ImeiInfoTestKey">测试 API 密钥</x:String>
+    <x:String x:Key="Settings_ImeiInfoChecks">自动执行的检测项目</x:String>
+    <x:String x:Key="Settings_ImeiInfoChecksDesc">选择每台设备要执行的检测项目。价格按每项检测以美元计。</x:String>
+    <x:String x:Key="Settings_ImeiInfoCostCalculator">费用计算器</x:String>
+    <x:String x:Key="Settings_ImeiInfoCostCalculatorDesc">根据设备数量估算每月费用。</x:String>
+    <x:String x:Key="Settings_ImeiInfoAppleDevices">Apple 设备 / 每月</x:String>
+    <x:String x:Key="Settings_ImeiInfoAndroidDevices">Android 设备 / 每月</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKey">API 密钥</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeyDesc">用于自动检测的 imei.info API 密钥。</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedMonthlyCost">预计每月费用：{0} 美元</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedPerDevice">预计每台费用：{0} 美元</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyInvalid">API 密钥无效：{0}</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyValid">API 密钥有效。余额：{0} 美元</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyTesting">正在测试 API 密钥……</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyEmpty">密钥为空</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyUnknownError">未知错误</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeySaved">API 密钥已保存</x:String>
+
+    <!-- IMEI Check Labels (per check price) -->
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0.200</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0.420</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0.600</x:String>
+
+    <!-- IMEI check names and descriptions -->
+    <x:String x:Key="Settings_SecImeiApi">IMEI API 配置</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeyWatermark">在此粘贴你的 API 密钥（例如 e0d7c26f-5cc7-5644-863c-8992083dfeac）</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmi">APPLE: Carrier &amp; Lock Status &amp; FMI</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - 返回 Apple 设备的运营商名称、SIM 卡锁状态和 Find My iPhone（FMI）状态。</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimple">BLACKLIST: Simple Check</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - 仅返回黑名单基础状态（正常或已被列入黑名单）。</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremium">BLACKLIST: Premium Check</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - 返回详细信息：IMEI、型号名称、制造商、型号编号、列入黑名单的操作方、列入日期、列入原因、黑名单状态、列入黑名单的国家、通用名单状态。</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnox">GENERIC: Samsung Info Check &amp; Knox Info</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - 返回 Samsung 设备信息，包括型号、序列号、保修状态和 Knox 保修位状态。</x:String>
+
+    <!-- Introduction screen: IMEI checks (BYOK) -->
+    <x:String x:Key="Intro_ImeiTitle">IMEI 检测（自带密钥）</x:String>
+    <x:String x:Key="Intro_ImeiBody">PhoneGrade 通过 imei.info 检测网络锁、FMI、黑名单和 Knox 状态。本功能采用自带密钥（BYOK）方式：在 imei.info 创建账号、充值，然后把自己的 API 密钥粘贴到设置中。每项检测单独计费（0.200 至 0.600 美元），你可以选择哪些检测自动执行。</x:String>
+    <x:String x:Key="Intro_ImeiConfigureButton">在设置中配置 IMEI API</x:String>
+    <x:String x:Key="Settings_ImeiInfoWatermarkDefault">10</x:String>
+
+    <!-- System diagnostics -->
+    <x:String x:Key="Troubleshoot_ScanError">诊断错误：{0}</x:String>
+    <x:String x:Key="Troubleshoot_FixStarting">正在应用修复……</x:String>
+    <x:String x:Key="Troubleshoot_FixApplied">修复已应用。正在重新扫描……</x:String>
+    <x:String x:Key="Troubleshoot_FixManual">无法自动完成修复。请查看解决步骤。</x:String>
+    <x:String x:Key="Troubleshoot_FixError">应用修复时出错：{0}</x:String>
+    <x:String x:Key="Troubleshoot_Fixing">正在修复：{0}……</x:String>
+
+    <!-- What each check says on the diagnostics panel -->
+    <x:String x:Key="Diag_StatusAllOk">所有诊断检查均已通过。系统已可检测 iOS 和 Android 设备。</x:String>
+    <x:String x:Key="Diag_StatusIosOnly">iOS 检测已就绪。Android 检测不可用（参见检查项）。</x:String>
+    <x:String x:Key="Diag_StatusAndroidOnly">Android 检测已就绪。iOS 检测不可用（参见检查项）。</x:String>
+    <x:String x:Key="Diag_StatusNone">缺少关键驱动或工具，无法检测设备。</x:String>
+
+    <x:String x:Key="Diag_SeverityPass">通过</x:String>
+    <x:String x:Key="Diag_SeverityWarning">警告</x:String>
+    <x:String x:Key="Diag_SeverityFail">失败</x:String>
+    <x:String x:Key="Diag_SeverityInfo">信息</x:String>
+
+    <x:String x:Key="Diag_CategoryIOS">iOS</x:String>
+    <x:String x:Key="Diag_CategoryAndroid">Android</x:String>
+    <x:String x:Key="Diag_CategoryConnection">连接</x:String>
+    <x:String x:Key="Diag_CategoryService">服务</x:String>
+    <x:String x:Key="Diag_CategoryHardware">硬件</x:String>
+
+    <x:String x:Key="Diag_TitleIdeviceIdFound">idevice_id 可执行文件</x:String>
+    <x:String x:Key="Diag_TitleIdeviceIdMissing">缺少 idevice_id</x:String>
+    <x:String x:Key="Diag_TitleIdeviceinfoFound">ideviceinfo 可执行文件</x:String>
+    <x:String x:Key="Diag_TitleIdeviceinfoMissing">缺少 ideviceinfo</x:String>
+    <x:String x:Key="Diag_TitleAdbFound">Android Debug Bridge (adb)</x:String>
+    <x:String x:Key="Diag_TitleAdbMissing">缺少 adb 可执行文件</x:String>
+    <x:String x:Key="Diag_TitleTunnel">通道连接器（cloudflared）</x:String>
+    <x:String x:Key="Diag_TitleAppleMultiplexing">Apple Multiplexing Service</x:String>
+    <x:String x:Key="Diag_TitleAppleUsbService">Apple USB 服务</x:String>
+    <x:String x:Key="Diag_TitleAppleDriverQuery">Apple 驱动查询</x:String>
+    <x:String x:Key="Diag_TitleUsbmuxdFound">usbmuxd 守护进程</x:String>
+    <x:String x:Key="Diag_TitleUsbmuxdStopped">usbmuxd 未运行</x:String>
+    <x:String x:Key="Diag_TitleUsbBusScan">USB 总线扫描</x:String>
+    <x:String x:Key="Diag_TitleUsbDetection">物理 USB 检测</x:String>
+
+    <x:String x:Key="Diag_MsgAvailableVersion">位置：{0}（版本：{1}）</x:String>
+    <x:String x:Key="Diag_MsgAvailable">位置：{0}</x:String>
+    <x:String x:Key="Diag_MsgAvailableWith">位置：{0}（{1}）</x:String>
+    <x:String x:Key="Diag_MsgIdeviceIdFailed">无法执行 idevice_id。解析路径：{0}。详情：{1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceIdExitCode">无法执行 idevice_id。解析路径：{0}。退出代码：{1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceinfoFailed">无法执行位于 {0} 的 ideviceinfo。详情：{1}</x:String>
+    <x:String x:Key="Diag_MsgIdeviceinfoExitCode">无法执行位于 {0} 的 ideviceinfo。退出代码：{1}</x:String>
+    <x:String x:Key="Diag_MsgAdbFailed">无法执行 adb。解析路径：{0}</x:String>
+    <x:String x:Key="Diag_MsgNoTunnel">未找到通道连接器，因此没有线缆路径的手机将使用普通网络地址。</x:String>
+    <x:String x:Key="Diag_MsgServiceActiveAmds">Apple Mobile Device Service 正在运行，正在监听 iOS 设备。</x:String>
+    <x:String x:Key="Diag_MsgServiceActivePortable">便携版 usbmuxd 守护进程正在运行，正在监听 iOS 设备。</x:String>
+    <x:String x:Key="Diag_MsgNoService">Apple Mobile Device Service 和 usbmuxd 守护进程当前都未运行。</x:String>
+    <x:String x:Key="Diag_MsgServiceQueryFailed">无法查询服务状态：{0}</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdSocket">usbmuxd 正在运行：其套接字位于 /var/run/usbmuxd。</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdProcess">usbmuxd 以进程 {0} 运行。</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdStopped">未找到 usbmuxd 守护进程的套接字。iOS USB 多路复用未启用。</x:String>
+    <x:String x:Key="Diag_MsgUsbScanFailed">USB 扫描异常：{0}</x:String>
+    <x:String x:Key="Diag_MsgDevicesFound">在 USB 总线上找到 {0} 台移动设备。</x:String>
+    <x:String x:Key="Diag_MsgNoUsbDevice">物理 USB 总线上未检测到手机。</x:String>
+
+    <x:String x:Key="Diag_ResolveIdeviceWin">将 idevice_id.exe 放入“idevice-tools”目录，或为 Windows 安装 libimobiledevice。</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceMac">在终端中运行：'brew install libimobiledevice'。</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceLinux">在终端中运行：'sudo apt-get install libimobiledevice-utils'。</x:String>
+    <x:String x:Key="Diag_ResolveIdeviceinfo">请确认已安装完整的 libimobiledevice 组件。</x:String>
+    <x:String x:Key="Diag_ResolveAdbWin">安装 Android SDK Platform-Tools，或将 adb.exe 复制到 idevice-tools 目录。</x:String>
+    <x:String x:Key="Diag_ResolveAdbMac">在终端中运行：'brew install android-platform-tools'。</x:String>
+    <x:String x:Key="Diag_ResolveAdbLinux">在终端中运行：'sudo apt-get install adb'。</x:String>
+    <x:String x:Key="Diag_ResolveTunnel">安装通道连接器，或将 cloudflared 放入“idevice-tools”目录。</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdPortable">启动便携版 usbmuxd 后台守护进程。</x:String>
+    <x:String x:Key="Diag_ResolveAppleService">下载并安装轻量版 Apple 驱动和 usbmuxd 守护进程。</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdMac">请确认 usbmuxd 正在运行，或重启电脑。</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdLinux">运行：'sudo systemctl start usbmuxd' 或 'sudo usbmuxd -f -v'。</x:String>
+    <x:String x:Key="Diag_ResolveUsbCable">检查 USB 线缆，尝试直接插在电脑上的另一个 USB 接口（不要用集线器），并解锁手机，如出现提示请点按“信任”。</x:String>
+
+    <!-- Colour names. The device data holds the key, and each of these is one
+         key in one language. The Dutch values are the ones the app shipped
+         with, moved here so nothing on screen or on paper has to be Dutch by
+         accident. -->
+    <x:String x:Key="Color_Black">黑色</x:String>
+    <x:String x:Key="Color_White">白色</x:String>
+    <x:String x:Key="Color_Red">红色</x:String>
+    <x:String x:Key="Color_Orange">橙色</x:String>
+    <x:String x:Key="Color_Gold">金色</x:String>
+    <x:String x:Key="Color_Green">绿色</x:String>
+    <x:String x:Key="Color_Blue">蓝色</x:String>
+    <x:String x:Key="Color_LightBlue">浅蓝色</x:String>
+    <x:String x:Key="Color_Purple">紫色</x:String>
+    <x:String x:Key="Color_Pink">粉色</x:String>
+    <x:String x:Key="Color_Grey">灰色</x:String>
+    <x:String x:Key="Color_Silver">银色</x:String>
+    <x:String x:Key="Color_RoseGold">玫瑰金</x:String>
+    <x:String x:Key="Color_SpaceGrey">深空灰</x:String>
+    <x:String x:Key="Color_MidnightGreen">午夜色绿</x:String>
+    <x:String x:Key="Color_PacificBlue">太平洋蓝</x:String>
+    <x:String x:Key="Color_Graphite">石墨色</x:String>
+    <x:String x:Key="Color_SierraBlue">塞拉蓝</x:String>
+    <x:String x:Key="Color_AlpineGreen">阿尔卑斯绿</x:String>
+    <x:String x:Key="Color_Midnight">午夜色</x:String>
+    <x:String x:Key="Color_Starlight">星光色</x:String>
+    <x:String x:Key="Color_Coral">珊瑚色</x:String>
+    <x:String x:Key="Color_Obsidian">黑曜石色</x:String>
+    <x:String x:Key="Color_Porcelain">瓷白色</x:String>
+    <x:String x:Key="Color_Hazel">榛果色</x:String>
+    <x:String x:Key="Color_Rose">玫瑰色</x:String>
+    <x:String x:Key="Color_Charcoal">炭黑色</x:String>
+    <x:String x:Key="Color_Mint">薄荷色</x:String>
+    <x:String x:Key="Color_Navy">藏青色</x:String>
+    <x:String x:Key="Color_Sage">鼠尾草绿</x:String>
+    <x:String x:Key="Color_Olive">橄榄绿</x:String>
+    <x:String x:Key="Color_Cream">奶油色</x:String>
+    <x:String x:Key="Color_Beige">米色</x:String>
+    <x:String x:Key="Color_Brown">棕色</x:String>
+    <x:String x:Key="Color_Teal">蓝绿色</x:String>
+    <x:String x:Key="Color_Lilac">丁香紫</x:String>
+    <x:String x:Key="Color_Lavender">薰衣草紫</x:String>
+    <x:String x:Key="Color_Violet">紫罗兰色</x:String>
+    <x:String x:Key="Color_Titanium">钛金色</x:String>
+    <x:String x:Key="Color_Sand">沙色</x:String>
+    <x:String x:Key="Color_Clear">透明</x:String>
+    <x:String x:Key="Color_Unknown">未知</x:String>
+
+    <x:String x:Key="Changelog_Loading">正在读取版本说明。</x:String>
+    <x:String x:Key="Changelog_None">此版本没有版本说明，也无法联网获取。发布页面上有同样的列表。</x:String>
+    <x:String x:Key="Changelog_Release">在 GitHub 上查看</x:String>
+    <x:String x:Key="Changelog_CardTitle">此版本的变更内容</x:String>
+    <x:String x:Key="Changelog_CardDesc">从 GitHub 读取的版本说明。</x:String>
+    <x:String x:Key="Changelog_Open">查看变更内容</x:String>
+</ResourceDictionary>

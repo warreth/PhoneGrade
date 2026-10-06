@@ -20,6 +20,7 @@ namespace PhoneGrade.UI.Tests.Web;
 /// rather than assumed, because a status line in the wrong language is the sort
 /// of thing nobody reports and everybody sees.
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public class ConnectionWordingTests
 {
     /// <summary>Stands in for the connector's own output, which is quoted.</summary>
@@ -277,30 +278,35 @@ public class ConnectionWordingTests
     }
 
     /// <summary>
-    /// A sentence written for one language and forgotten in the other only ever
-    /// shows up on a machine set to it, so the two are read against each other
-    /// rather than against a third copy kept in the test. The placeholders are
-    /// compared for the same reason: a translator dropping the {0} leaves the
-    /// connector's complaint out of the sentence entirely.
+    /// A sentence written for one language and forgotten in the others only ever
+    /// shows up on a machine set to it, so every language is read against Dutch
+    /// rather than against a copy kept in the test. The placeholders are compared
+    /// for the same reason: a translator dropping the {0} leaves the connector's
+    /// complaint out of the sentence entirely.
     /// </summary>
     [Fact]
     public void NoConnectSentenceIsCarriedOverUntranslated()
     {
         Dictionary<string, string> dutch = Entries("Strings.nl.axaml");
-        Dictionary<string, string> english = Entries("Strings.en.axaml");
 
         string[] keys = dutch.Keys
             .Where(key => key.StartsWith("Connect_", StringComparison.Ordinal))
             .ToArray();
         Assert.NotEmpty(keys);
 
-        foreach (string key in keys)
+        foreach (var language in PhoneGrade.UI.Services.SupportedLanguages.All)
         {
-            Assert.False(string.IsNullOrWhiteSpace(dutch[key]), $"{key} is empty in Dutch");
-            Assert.False(string.IsNullOrWhiteSpace(english[key]), $"{key} is empty in English");
-            Assert.True(dutch[key] != english[key], $"{key} was never translated");
+            Dictionary<string, string> values = Entries($"Strings.{language.Code}.axaml");
 
-            Assert.Equal(Placeholders(dutch[key]), Placeholders(english[key]));
+            foreach (string key in keys)
+            {
+                Assert.False(string.IsNullOrWhiteSpace(values[key]), $"{key} is empty in {language.Name}");
+                if (language.Code == "nl") continue;
+
+                Assert.True(dutch[key] != values[key], $"{key} was never translated into {language.Name}");
+
+                Assert.Equal(Placeholders(dutch[key]), Placeholders(values[key]));
+            }
         }
     }
 

@@ -7,35 +7,38 @@ namespace PhoneGrade.UI.Services;
 
 /// <summary>
 /// Manages runtime language switching by swapping merged resource dictionaries.
-/// Call SetLanguage("en") or SetLanguage("nl") to dynamically update all DynamicResource bindings.
+/// Call SetLanguage("nl") or any other code from
+/// <see cref="SupportedLanguages"/> to update all DynamicResource bindings.
+///
+/// Which languages exist is <see cref="SupportedLanguages"/>' business, not this
+/// class's. This one only loads the dictionary that was asked for, and the list of
+/// them is a single table so a language is added in one place.
 /// </summary>
 public static class LocalizationManager
 {
     private static IResourceProvider? _currentLanguageDictionary;
-    private static string _currentLanguage = "nl";
+    private static string _currentLanguage = SupportedLanguages.DefaultCode;
 
+    /// <summary>The code in use, which is what the phone suite is told as well.</summary>
     public static string CurrentLanguage => _currentLanguage;
 
     /// <summary>
-    /// Load and apply a language resource dictionary at runtime.
-    /// Supported: "en" (English), "nl" (Nederlands).
+    /// Loads and applies a language resource dictionary at runtime. A code this
+    /// build does not carry becomes Dutch rather than leaving the previous
+    /// dictionary on screen: a setting written by a build with more languages must
+    /// not end up as an empty panel.
     /// </summary>
     public static void SetLanguage(string languageCode)
     {
-        if (string.IsNullOrWhiteSpace(languageCode))
-            languageCode = "nl";
+        string wanted = SupportedLanguages.Normalize(languageCode);
 
-        languageCode = languageCode.ToLowerInvariant();
-        if (languageCode != "en" && languageCode != "nl")
-            languageCode = "nl";
-
-        if (_currentLanguage == languageCode && _currentLanguageDictionary != null)
+        if (_currentLanguage == wanted && _currentLanguageDictionary != null)
         {
             // Already loaded
             return;
         }
 
-        _currentLanguage = languageCode;
+        _currentLanguage = wanted;
 
         if (Application.Current?.Resources == null)
             return;
@@ -48,7 +51,7 @@ public static class LocalizationManager
         }
 
         // Load the new language resource dictionary
-        var resourceUri = new Uri($"avares://PhoneGrade.UI/Resources/Strings.{languageCode}.axaml");
+        var resourceUri = new Uri($"avares://PhoneGrade.UI/Resources/Strings.{wanted}.axaml");
         try
         {
             var newDict = (ResourceDictionary)AvaloniaXamlLoader.Load(resourceUri);

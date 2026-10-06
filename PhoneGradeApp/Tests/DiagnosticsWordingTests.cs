@@ -19,6 +19,7 @@ namespace Tests;
 // which draws the key itself on screen, and a key written in only one of the
 // two files, which leaves one language reading the other's words.
 
+[Collection(LanguageCollection.Name)]
 public class DiagnosticsWordingTests
 {
     /// <summary>
@@ -29,16 +30,19 @@ public class DiagnosticsWordingTests
     /// the wording tests here invent keys on purpose to see what an undefined
     /// one does, and are the one source left out.
     /// </summary>
+    /// Every language the app ships has to carry the wording the panel asks for.
+    /// </summary>
     [Fact]
-    public void EveryDiagnosticKeyHasBothLanguages()
+    public void EveryDiagnosticKeyIsDefinedInEveryLanguage()
     {
         string[] asked = WordingKeysTheCodeAsksFor();
 
         Assert.True(asked.Length > 10,
             $"Only {asked.Length} wording keys were found in the sources, so this scan is not reading them.");
 
-        foreach (string file in new[] { "Strings.nl.axaml", "Strings.en.axaml" })
+        foreach (var language in PhoneGrade.UI.Services.SupportedLanguages.All)
         {
+            string file = $"Strings.{language.Code}.axaml";
             string[] defined = KeysOf(file);
             string[] missing = asked.Where(key => !defined.Contains(key)).ToArray();
 

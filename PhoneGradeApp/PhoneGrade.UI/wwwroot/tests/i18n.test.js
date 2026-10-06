@@ -6,7 +6,20 @@ import path from 'node:path';
 
 import nl from '../locales/nl.js';
 import en from '../locales/en.js';
+import de from '../locales/de.js';
+import es from '../locales/es.js';
+import fr from '../locales/fr.js';
+import pt from '../locales/pt.js';
+import zh from '../locales/zh.js';
 import { t, setLocale, locale, resolveLocale, initLocale, applyStaticText } from '../modules/i18n.js';
+
+/**
+ * Every shipped dictionary, in the order the desktop lists them. The list is
+ * spelled out here rather than read off the folder so a dictionary file that
+ * nobody wired into i18n.js is a test failure instead of a language that exists
+ * on disk and can never be chosen.
+ */
+const DICTIONARIES = { nl, en, de, es, fr, pt, zh };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const wwwroot = path.resolve(here, '..');
@@ -68,44 +81,76 @@ function fakeElement(dataset, textContent = '') {
     };
 }
 
-test('the two dictionaries carry the same keys, and none of them is blank', () => {
-    const nlKeys = Object.keys(nl).sort();
-    const enKeys = Object.keys(en).sort();
+test('every dictionary carries the same keys, and none of them is blank', () => {
+    const reference = Object.keys(nl).sort();
 
-    assert.deepEqual(nlKeys, enKeys,
-        'a key in one language and not the other is a sentence that would show up as its own key');
+    for (const [name, dict] of Object.entries(DICTIONARIES)) {
+        assert.deepEqual(Object.keys(dict).sort(), reference,
+            `${name}.js carries a different set of keys than nl.js, and a key in one language and not the other is a sentence that would show up as its own key`);
 
-    for (const [name, dict] of [['nl', nl], ['en', en]]) {
         for (const [key, value] of Object.entries(dict)) {
             assert.equal(typeof value, 'string', `${name}.js: ${key} is not a sentence`);
             assert.notEqual(value.trim(), '', `${name}.js: ${key} is empty`);
         }
     }
 
-    assert.ok(nlKeys.length >= 30,
-        `only ${nlKeys.length} keys found, the shell on its own is thirty odd sentences`);
+    assert.ok(reference.length >= 30,
+        `only ${reference.length} keys found, the shell on its own is thirty odd sentences`);
 });
 
-test('the two dictionaries are not one dictionary written out twice', () => {
-    // Same keys would still pass if en.js were a copy of nl.js, and every
-    // English operator would be reading Dutch.
-    const identical = Object.keys(nl).filter(key => nl[key] === en[key]);
+test('every dictionary holds the same number of placeholders as the Dutch one', () => {
+    // A translator who drops a {0} leaves the value out of the sentence entirely,
+    // and nothing else in the suite notices: the sentence renders, it just no
+    // longer says what it was about.
+    const placeholders = (text) => (String(text).match(/\{\w+\}/g) || []).sort();
 
-    assert.ok(identical.length < Object.keys(nl).length / 2,
-        `${identical.length} of ${Object.keys(nl).length} sentences are the same in both`);
+    for (const [name, dict] of Object.entries(DICTIONARIES)) {
+        for (const key of Object.keys(nl)) {
+            assert.deepEqual(placeholders(dict[key]), placeholders(nl[key]),
+                `${name}.js: ${key} does not carry the same placeholders as nl.js`);
+        }
+    }
+});
+
+test('no dictionary is a copy of the Dutch one', () => {
+    // Same keys would still pass the checks above if a language were a copy of
+    // nl.js, and every operator in that language would be reading Dutch.
+    for (const [name, dict] of Object.entries(DICTIONARIES)) {
+        if (name === 'nl') continue;
+
+        const identical = Object.keys(nl).filter(key => nl[key] === dict[key]);
+
+        assert.ok(identical.length < Object.keys(nl).length / 2,
+            `${name}.js has ${identical.length} of ${Object.keys(nl).length} sentences the same as Dutch`);
+    }
+
     assert.equal(nl['results.title'], 'Testsuite voltooid');
     assert.equal(en['results.title'], 'Test Suite Complete');
 });
 
-test('every sentence the source asks for exists in both languages', () => {
+test('every sentence the source asks for exists in every language', () => {
     const asked = keysAskedFor();
 
     assert.ok(asked.size >= 20, `the scan found only ${asked.size} keys, it is not reading the page`);
 
     for (const key of asked) {
-        assert.ok(Object.prototype.hasOwnProperty.call(nl, key), `nl.js does not carry ${key}`);
-        assert.ok(Object.prototype.hasOwnProperty.call(en, key), `en.js does not carry ${key}`);
+        for (const [name, dict] of Object.entries(DICTIONARIES)) {
+            assert.ok(Object.prototype.hasOwnProperty.call(dict, key), `${name}.js does not carry ${key}`);
+        }
     }
+});
+
+test('every language on disk is wired in, and every wired language is on disk', () => {
+    // The dictionary a language needs and the one i18n.js loads have to be the
+    // same set. A file nobody imported is a language that exists and can never be
+    // reached; an import with no file behind it is a crash on startup.
+    const onDisk = readdirSync(path.join(wwwroot, 'locales'))
+        .filter(name => name.endsWith('.js'))
+        .map(name => name.replace(/\.js$/, ''))
+        .sort();
+
+    assert.deepEqual(onDisk, Object.keys(DICTIONARIES).sort(),
+        'the dictionaries in wwwroot/locales and the ones i18n.js loads are not the same set');
 });
 
 test('an operator who asked for nothing gets Dutch', () => {
@@ -130,10 +175,10 @@ test('asking for English gives the English wording', () => {
 });
 
 test('a language this app does not carry falls back to Dutch', () => {
-    // A German phone read by a Dutch operator should read Dutch, not English,
+    // A Norwegian phone read by a Dutch operator should read Dutch, not English,
     // which is only one step away from the tag and nothing else.
-    assert.equal(resolveLocale('de-DE'), 'nl');
-    assert.equal(resolveLocale('fr'), 'nl');
+    assert.equal(resolveLocale('nb-NO'), 'nl');
+    assert.equal(resolveLocale('sv-SE'), 'nl');
     assert.equal(resolveLocale(''), 'nl');
     assert.equal(resolveLocale(undefined), 'nl');
 });
@@ -143,6 +188,22 @@ test('a regional tag is reduced to the language behind it', () => {
     assert.equal(resolveLocale('NL-be'), 'nl');
     assert.equal(resolveLocale('en-GB'), 'en');
     assert.equal(resolveLocale('nl-NL-x-private'), 'nl');
+    assert.equal(resolveLocale('de-AT'), 'de');
+    assert.equal(resolveLocale('fr-CA'), 'fr');
+    assert.equal(resolveLocale('pt-BR'), 'pt');
+    assert.equal(resolveLocale('zh-Hans-CN'), 'zh');
+    assert.equal(resolveLocale('zh-TW'), 'zh'); // simplified is what the app carries
+});
+
+test('every language the app carries can be asked for', () => {
+    for (const name of Object.keys(DICTIONARIES)) {
+        assert.equal(resolveLocale(name), name, `${name} is in the dictionary list but cannot be selected`);
+        setLocale(name);
+        assert.equal(locale(), name);
+        assert.notEqual(t('shell.welcome'), name, `${name}.js does not carry the welcome sentence`);
+    }
+
+    setLocale('nl');
 });
 
 test('the language on the URL beats the language of the phone', () => {
@@ -151,7 +212,10 @@ test('the language on the URL beats the language of the phone', () => {
     assert.equal(initLocale('?sessionId=x&lang=en', 'nl-BE'), 'en');
     assert.equal(initLocale('?lang=nl', 'en-US'), 'nl');
     assert.equal(initLocale('', 'en-US'), 'en');
-    assert.equal(initLocale('', 'fr-FR'), 'nl');
+    assert.equal(initLocale('', 'fr-FR'), 'fr');
+    assert.equal(initLocale('?lang=de', 'nl-BE'), 'de');
+    assert.equal(initLocale('?lang=zh', ''), 'zh');
+    assert.equal(initLocale('', 'sv-SE'), 'nl'); // not a language this build carries
 
     setLocale('nl');
 });

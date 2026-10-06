@@ -14,6 +14,7 @@ using PhoneGrade.UI.Services;
 using PhoneGrade.UI.ViewModels;
 using PhoneGrade.UI.Views;
 using Xunit;
+using PhoneGrade.Tests;
 
 namespace Tests;
 
@@ -26,6 +27,7 @@ namespace Tests;
 // panel that is not scrollable. None of those show up in a return value, so all
 // of these are measured on the window after it has been laid out.
 
+[Collection(LanguageCollection.Name)]
 public class ExportPanelTests : IDisposable
 {
     private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"export-panel-{Guid.NewGuid():N}");
@@ -179,7 +181,7 @@ public class ExportPanelTests : IDisposable
         {
             DeviceData = new DeviceData
             {
-                Identifier = "356938035643809", Model = "13 Pro", Color = "Wit",
+                Identifier = "356938035643809", Model = "13 Pro", Color = ColorKeys.White,
                 Storage = "256GB", BatteryHealth = "68", Quality = "A", PayMethod = "Marge",
             },
         };
@@ -346,7 +348,7 @@ public class ExportPanelTests : IDisposable
         // holds. A hardcoded sentence is not in the dictionary under any key, which
         // is exactly what this catches, and it stays Dutch forever.
         HashSet<string> dictionary = new(StringComparer.Ordinal);
-        foreach (string language in new[] { "en", "nl" })
+        foreach (string language in PhoneGrade.UI.Services.SupportedLanguages.Codes)
         {
             var loaded = (ResourceDictionary)AvaloniaXamlLoader.Load(
                 new Uri($"avares://PhoneGrade.UI/Resources/Strings.{language}.axaml"));
@@ -371,7 +373,7 @@ public class ExportPanelTests : IDisposable
 
     private static DeviceData Demo() => new()
     {
-        Identifier = "356938035643809", Model = "13 Pro", Color = "Wit",
+        Identifier = "356938035643809", Model = "13 Pro", Color = ColorKeys.White,
         Storage = "256GB", BatteryHealth = "90", Quality = "A", PayMethod = "Marge",
     };
 

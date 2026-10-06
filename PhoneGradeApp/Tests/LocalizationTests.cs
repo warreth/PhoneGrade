@@ -4,21 +4,41 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
+using Avalonia.Markup.Xaml;
 using PhoneGrade.Tests;
 using Xunit;
 
 namespace PhoneGrade.UI.Tests.Web;
 
 /// <summary>
-/// Both language files have to carry the same keys.
+/// Every language file has to carry the same keys.
 ///
 /// A missing key does not throw anywhere: the binding simply draws nothing, so an
 /// English operator ends up with blank rows in the settings drawer and nobody
 /// notices until it ships. Two of them were in fact missing before this.
+///
+/// Dutch is the reference. It is the product's own language, so it is the one
+/// every other file is read against, and the one an unusable answer falls back to.
 /// </summary>
+[Collection(LanguageCollection.Name)]
 public class LocalizationTests
 {
-    private static readonly string[] Files = { "Strings.nl.axaml", "Strings.en.axaml" };
+    private const string Reference = "Strings.nl.axaml";
+    /// <summary>
+    /// Every dictionary that has to exist, in the order the app lists them.
+    ///
+    /// Read from the shipped language table rather than written out here, so a new
+    /// language is covered by these tests from the moment it is added and a
+    /// dictionary that is not wired into the picker is a failure instead of a file
+    /// nobody opens. <see cref="EveryShippedLanguageHasItsOwnDictionary"/> is what
+    /// holds the two sides to each other.
+    /// </summary>
+    private static string[] Files => PhoneGrade.UI.Services.SupportedLanguages.All
+        .Select(language => $"Strings.{language.Code}.axaml")
+        .ToArray();
 
     private static string[] Keys(string file) =>
         XDocument.Load(RepoPath.Get("PhoneGradeApp", "PhoneGrade.UI", "Resources", file))
@@ -29,14 +49,129 @@ public class LocalizationTests
             .ToArray();
 
     [Fact]
-    public void BothLanguagesDefineTheSameKeys()
+    public void EveryLanguageDefinesTheSameKeysAsDutch()
     {
-        string[] dutch = Keys(Files[0]);
-        string[] english = Keys(Files[1]);
+        string[] reference = Keys(Reference);
 
+        foreach (string file in Files.Where(file => file != Reference))
+        {
+            Assert.Equal(
+                reference.OrderBy(key => key, StringComparer.Ordinal),
+                Keys(file).OrderBy(key => key, StringComparer.Ordinal));
+        }
+    }
+
+    /// <summary>
+    /// The shipped table and the dictionaries on disk are the same set, in both
+    /// directions.
+    ///
+    /// A language in the picker with no file behind it draws raw keys on every
+    /// screen the moment an operator picks it, and nothing else in this file would
+    /// notice: the parity checks only look at files that exist. A dictionary on disk
+    /// with no entry in the table is the other direction of the same fault, and it
+    /// is one a build can carry without anyone being able to reach the language.
+    /// </summary>
+    [Fact]
+    public void EveryShippedLanguageHasItsOwnDictionary()
+    {
+        var onDisk = Directory
+            .GetFiles(RepoPath.Get("PhoneGradeApp", "PhoneGrade.UI", "Resources"), "Strings.*.axaml")
+            .Select(Path.GetFileName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        var shipped = Files.OrderBy(name => name, StringComparer.Ordinal).ToArray();
+
+        Assert.Equal(shipped, onDisk);
+    }
+
+    /// <summary>
+    /// Every shipped dictionary loads as a resource dictionary and answers for
+    /// every key the Dutch one carries.
+    ///
+    /// Loading through Avalonia rather than parsing the file as XML is the point: a
+    /// dictionary with a typo in its root element parses as XML perfectly well and
+    /// only fails once the loader is handed it, which is the moment a window opens
+    /// without any wording on it.
+    /// </summary>
+    [AvaloniaFact]
+    public void EveryShippedDictionaryLoadsAndAnswersForEveryKey()
+    {
+        string[] keys = Keys(Reference);
+
+        foreach (string language in PhoneGrade.UI.Services.SupportedLanguages.Codes)
+        {
+            var loaded = (ResourceDictionary)AvaloniaXamlLoader.Load(
+                new Uri($"avares://PhoneGrade.UI/Resources/Strings.{language}.axaml"));
+
+            Assert.Equal(keys.Length, loaded.Count);
+            foreach (string key in keys)
+            {
+                Assert.True(loaded.TryGetResource(key, null, out object? value),
+                    $"Strings.{language}.axaml does not load {key}");
+                Assert.False(string.IsNullOrWhiteSpace(value as string),
+                    $"{language} leaves {key} empty");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Switching the language settles on one the build carries, and the manager
+    /// reports the same code that goes out to the phone suite.
+    ///
+    /// A language this build does not carry becomes Dutch rather than leaving the
+    /// previous dictionary on screen, because a settings file written by a build
+    /// with more languages is exactly what arrives otherwise.
+    /// </summary>
+    [AvaloniaFact]
+    public void SwitchingToALanguageThisBuildDoesNotCarryFallsBackToDutch()
+    {
+        foreach (string language in PhoneGrade.UI.Services.SupportedLanguages.Codes)
+        {
+            PhoneGrade.UI.Services.LocalizationManager.SetLanguage(language);
+            Assert.Equal(language, PhoneGrade.UI.Services.LocalizationManager.CurrentLanguage);
+        }
+
+        PhoneGrade.UI.Services.LocalizationManager.SetLanguage("sv");
         Assert.Equal(
-            dutch.OrderBy(key => key, StringComparer.Ordinal),
-            english.OrderBy(key => key, StringComparer.Ordinal));
+            PhoneGrade.UI.Services.SupportedLanguages.DefaultCode,
+            PhoneGrade.UI.Services.LocalizationManager.CurrentLanguage);
+
+        PhoneGrade.UI.Services.LocalizationManager.SetLanguage("");
+        Assert.Equal(
+            PhoneGrade.UI.Services.SupportedLanguages.DefaultCode,
+            PhoneGrade.UI.Services.LocalizationManager.CurrentLanguage);
+
+        PhoneGrade.UI.Services.LocalizationManager.SetLanguage(
+            PhoneGrade.UI.Services.SupportedLanguages.DefaultCode);
+    }
+
+    /// <summary>
+    /// The name shown in the picker and the code that gets saved have to be two
+    /// ends of the same thing.
+    ///
+    /// The dropdown speaks in names and the settings file in codes, and nothing
+    /// checks that a name resolves: a name that resolved to nothing would save an
+    /// empty language, and the next launch would come up in Dutch with the picker
+    /// still showing the language that was picked.
+    /// </summary>
+    [Fact]
+    public void EveryNameInThePickerResolvesToItsOwnCodeAndBack()
+    {
+        foreach (var language in PhoneGrade.UI.Services.SupportedLanguages.All)
+        {
+            Assert.Equal(language.Code,
+                PhoneGrade.UI.Services.SupportedLanguages.CodeOf(language.Name));
+            Assert.Equal(language.Name,
+                PhoneGrade.UI.Services.SupportedLanguages.NameOf(language.Code));
+        }
+
+        // The two names a saved file could plausibly hold from an older build.
+        Assert.Equal("en", PhoneGrade.UI.Services.SupportedLanguages.CodeOf("English"));
+        Assert.Equal("nl", PhoneGrade.UI.Services.SupportedLanguages.CodeOf("Nederlands"));
+        Assert.Equal(
+            PhoneGrade.UI.Services.SupportedLanguages.DefaultCode,
+            PhoneGrade.UI.Services.SupportedLanguages.CodeOf("Klingon"));
     }
 
     [Fact]
@@ -116,25 +251,48 @@ public class LocalizationTests
 
     /// <summary>
     /// The line that says why no phone is being found is drawn in a pill about
-    /// 180 pixels wide, which at this font size is roughly thirty two
+    /// 180 pixels wide, which at this font size is roughly thirty two Latin
     /// characters: everything past that is cut off with an ellipsis, so an
     /// instruction written after the first sentence never reaches the operator.
     /// It has to fit inside the pill and it has to name the button that opens
     /// the diagnostics, which used to be a tab that does not exist.
+    ///
+    /// Two budgets rather than one. Chinese carries one character per idea, so it
+    /// reaches the same meaning in nine characters where Dutch needs thirty two;
+    /// holding it to the Latin budget would either demand a sentence with padding
+    /// in it or force a translation that says less. What matters is that the
+    /// sentence fits and names the diagnostics, and a language that is not written
+    /// in Latin script says the latter in its own word for it rather than in ours.
     /// </summary>
     [Fact]
     public void TheMissingToolsStatusFitsItsPillAndPointsAtTheDiagnostics()
     {
-        const int budget = 32;
-
-        foreach (string file in Files)
+        foreach (var language in PhoneGrade.UI.Services.SupportedLanguages.All)
         {
+            string file = $"Strings.{language.Code}.axaml";
             string status = Value(file, "Status_ToolsMissing");
+
+            // A character in a CJK sentence is about as wide as a full Latin word,
+            // which is why the pill fits fewer of them. Counted the same way for
+            // every language that is not written in Latin script.
+            int budget = language.Code == "zh" ? 16 : 32;
 
             Assert.True(status.Length <= budget,
                 $"{file} writes {status.Length} characters where the pill shows about {budget}: {status}");
+        }
+
+        // The instruction has to point at the diagnostics. In the languages written
+        // in Latin script that is checked on the letters of the word, because that
+        // is what the operator has to recognise on screen. Chinese cannot contain
+        // them, so for that one language the check is that the sentence was
+        // translated at all: a Chinese reader sees 诊断, which is the same button.
+        foreach (string file in Files.Where(file => !file.Contains(".zh.")))
+        {
+            string status = Value(file, "Status_ToolsMissing");
             Assert.Contains("diagnos", status.ToLowerInvariant());
         }
+
+        Assert.Contains("诊断", Value("Strings.zh.axaml", "Status_ToolsMissing"));
     }
 
     /// <summary>
@@ -169,7 +327,7 @@ public class LocalizationTests
         }
 
         Assert.True(literals.Count == 0,
-            "these belong in Strings.nl.axaml / Strings.en.axaml:\n" + string.Join("\n", literals));
+            "these belong in the Strings dictionaries:\n" + string.Join("\n", literals));
     }
 
     [Fact]
@@ -219,34 +377,63 @@ public class LocalizationTests
 
     /// <summary>
     /// Every sentence that carries a value has to carry the same number of
-    /// placeholders in both languages.
+    /// placeholders in every language.
     ///
     /// These are format strings filled in at runtime with the queue name, the file
     /// path or the platform's own reason. A translation that drops {0} is not a
     /// typo, it is a status line that reads "DYMO_LabelWriter" with no sentence
     /// around it, or a FormatException that blanks the line that said why the
-    /// export failed. The English set is the reference for how many there are.
+    /// export failed. Dutch is the reference for how many there are.
     /// </summary>
     [Fact]
-    public void EveryWordingWithAPlaceholderHasTheSameCountInBothLanguages()
+    public void EveryWordingWithAPlaceholderHasTheSameCountInEveryLanguage()
     {
-        Dictionary<string, string> english = Values(Files[1]);
-        Dictionary<string, string> dutch = Values(Files[0]);
+        Dictionary<string, string> reference = Values(Reference);
 
         var problems = new List<string>();
-        foreach (KeyValuePair<string, string> entry in english)
+        foreach (string file in Files.Where(file => file != Reference))
         {
-            int wanted = Placeholders(entry.Value);
-            if (wanted == 0) continue;
+            Dictionary<string, string> values = Values(file);
 
-            if (!dutch.TryGetValue(entry.Key, out string? other)) continue;
+            foreach (KeyValuePair<string, string> entry in reference)
+            {
+                int wanted = Placeholders(entry.Value);
+                if (wanted == 0) continue;
 
-            int got = Placeholders(other);
-            if (got != wanted)
-                problems.Add($"{entry.Key} has {got} in Dutch and {wanted} in English");
+                if (!values.TryGetValue(entry.Key, out string? other)) continue;
+
+                int got = Placeholders(other);
+                if (got != wanted)
+                    problems.Add($"{entry.Key} has {got} in {file} and {wanted} in Dutch");
+            }
         }
 
         Assert.True(problems.Count == 0, string.Join("; ", problems));
+    }
+
+    /// <summary>
+    /// A language cannot be a copy of Dutch with a different file name.
+    ///
+    /// The parity checks above pass on a copied file: the keys are the same and
+    /// the placeholders are the same. What gives it away is the wording, and an
+    /// operator picking Spanish and reading Dutch would have no way to tell the
+    /// app had not heard them.
+    /// </summary>
+    [Fact]
+    public void NoLanguageIsDutchWrittenOutAgain()
+    {
+        Dictionary<string, string> dutch = Values(Reference);
+        int count = dutch.Count;
+
+        foreach (string file in Files.Where(file => file != Reference))
+        {
+            Dictionary<string, string> values = Values(file);
+            int identical = dutch.Count(entry => values.TryGetValue(entry.Key, out string? other)
+                                                && other == entry.Value);
+
+            Assert.True(identical < count / 2,
+                $"{file} has {identical} of {count} sentences the same as Dutch");
+        }
     }
 
     private static Dictionary<string, string> Values(string file) =>
