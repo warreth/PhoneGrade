@@ -92,25 +92,6 @@ you hold yourself, and most refurbishers never turn them on.
 **Store:** <https://store.phonegrade.app>
 **Questions and feature requests:** hello@phonegrade.app
 
-## Requirements
-## Requirements
-
-**Computer:** Windows 10 or 11, macOS 11 or newer, or Linux x64. Needs the .NET 8
-runtime; the macOS and Linux builds are self contained. Android platform tools for
-Android phones, libimobiledevice for iPhones and iPads, both installable from within
-the app.
-**Computer:** Windows 10 or 11, macOS 11 or newer, or Linux x64. Needs the .NET 8
-runtime; the macOS and Linux builds are self contained. Android platform tools for
-Android phones, libimobiledevice for iPhones and iPads, both installable from within
-the app.
-
-**Phone:** iOS 13 or newer or Android 8 or newer, a USB cable, and unlocked with
-"Trust This Computer" confirmed. On Android also USB debugging on and File Transfer
-selected.
-**Phone:** iOS 13 or newer or Android 8 or newer, a USB cable, and unlocked with
-"Trust This Computer" confirmed. On Android also USB debugging on and File Transfer
-selected.
-
 ## Privacy
 ## Privacy
 
@@ -122,54 +103,5 @@ No cloud service and no telemetry upload. The only local server listens on your 
 machine. Camera and microphone streams never leave the phone being tested, only
 results do. Exports and audit files stay in your local app data folder. IMEI API keys
 stay on the machine that entered them.
-
-## Building from source
-## Building from source
-
-Requires the .NET 8 SDK and Node.
-Requires the .NET 8 SDK and Node.
-
-```
-dotnet build PhoneGradeApp/PhoneGrade.sln -c Release
-dotnet test PhoneGradeApp/Tests/Tests.csproj -c Release --no-build
-node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
-```
-```
-dotnet build PhoneGradeApp/PhoneGrade.sln -c Release
-dotnet test PhoneGradeApp/Tests/Tests.csproj -c Release --no-build
-node --test "PhoneGradeApp/PhoneGrade.UI/wwwroot/tests/*.test.js"
-```
-
-The desktop app is Avalonia on .NET 8. The interactive test suite is a PWA served by
-a local Kestrel host on port 5055, reached from the phone over a USB loopback tunnel
-where the platform allows it and a secure tunnel where it does not. The suite speaks
-Dutch and English, and follows the language the desktop passes it, so the phone and
-the desk read the same words.
-The desktop app is Avalonia on .NET 8. The interactive test suite is a PWA served by
-a local Kestrel host on port 5055, reached from the phone over a USB loopback tunnel
-where the platform allows it and a secure tunnel where it does not. The suite speaks
-Dutch and English, and follows the language the desktop passes it, so the phone and
-the desk read the same words.
-
-The browser suite has its own screenshot tool, run by hand rather than as part of the
-test suite, which renders the real windows to PNG through Avalonia headless with Skia
-and seeds demo view models so screens show content without hardware attached:
-The browser suite has its own screenshot tool, run by hand rather than as part of the
-test suite, which renders the real windows to PNG through Avalonia headless with Skia
-and seeds demo view models so screens show content without hardware attached:
-
-```
-dotnet run --project PhoneGradeApp/Tests -c Release --no-build -- <outputDir> [section] [en|nl]
-```
-```
-dotnet run --project PhoneGradeApp/Tests -c Release --no-build -- <outputDir> [section] [en|nl]
-```
-
-`section` is one of `main`, `lic`, `flow`, `settings`, or omitted for all. It writes
-about forty shots in both themes, at kiosk and narrow sizes, with `en` or `nl` as the
-interface language.
-`section` is one of `main`, `lic`, `flow`, `settings`, or omitted for all. It writes
-about forty shots in both themes, at kiosk and narrow sizes, with `en` or `nl` as the
-interface language.
 
 ## Licence
