@@ -64,6 +64,7 @@ public static class LabelWriter
         string? TemplatePath = null,
         LabelLayout? Layout = null,
         LabelBarcodeMode Barcode = LabelBarcodeMode.Identifier,
+        LabelCodeSymbology? Symbology = null,
         bool FlagLowBattery = true,
         LabelContent? Content = null,
         ReportWording? Wording = null,
@@ -125,6 +126,11 @@ public static class LabelWriter
     {
         ExportWording messages = request.Messages ?? ExportWording.English;
 
+        // The label PDF is drawn here, so it uses the symbology the operator chose.
+        // The .dymo file cannot: DYMO draws that file rather than this app, so its
+        // barcode objects keep the symbology the template declares.
+        LabelCodeSymbology drawn = request.Symbology ?? LabelCodeSymbology.Code39;
+
         // The two PDFs share a stem and must not share a file name: a label and a
         // full report are different documents, and one of them overwriting the
         // other is how an operator ends up filing a receipt-sized label as the
@@ -135,7 +141,7 @@ public static class LabelWriter
             return format switch
             {
                 ExportFormat.DymoLabel => DymoLabel(path, fields, layout, request.Barcode, request.TemplatePath, messages),
-                ExportFormat.LabelPdf => LabelPdf(path, fields, layout, request.Barcode),
+                ExportFormat.LabelPdf => LabelPdf(path, fields, layout, request.Barcode, drawn),
                 ExportFormat.ReportPdf => ReportPdf(path, data, request.Wording),
                 ExportFormat.Json => Json(path, data),
                 ExportFormat.Csv => Csv(path, data),
@@ -167,7 +173,8 @@ public static class LabelWriter
 
         // The template is filled in one pass by the same code that decides what the
         // barcodes carry, so the .dymo file cannot come out with something on it
-        // that the label PDF and the preview do not also have.
+        // that the label PDF and the preview do not also have. Its symbology is the
+        // one the template declares, which is what the file has to carry.
         DymoFillResult filled = DymoTemplate.Fill(template, fields, layout, mode, messages);
 
         File.WriteAllText(path, filled.Text, new System.Text.UTF8Encoding(false));
@@ -181,10 +188,11 @@ public static class LabelWriter
     }
 
     private static Outcome LabelPdf(
-        string path, LabelFields fields, LabelLayout layout, LabelBarcodeMode mode)
+        string path, LabelFields fields, LabelLayout layout, LabelBarcodeMode mode,
+        LabelCodeSymbology symbology)
     {
         ReportFonts.Ensure();
-        LabelPdfWriter.Write(path, fields, layout, mode);
+        LabelPdfWriter.Write(path, fields, layout, mode, symbology);
         return new Outcome(ExportFormat.LabelPdf, path, true, null);
     }
 

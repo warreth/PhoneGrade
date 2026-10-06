@@ -121,23 +121,60 @@ public enum LabelBarcodeMode
     /// One barcode carrying the identifier and the specification together.
     /// </summary>
     /// <remarks>
-    /// Kept because it was asked for, and honest about the fact that Code39 cannot
-    /// put it on any of these rolls. The identifier alone is 271 units and its two
-    /// quiet zones are twenty more, and the finest bar a 12 dots per millimetre
-    /// raster can draw that is still wide enough to be read is three dots, so the
-    /// identifier by itself is 72.8mm of an 81.5mm address label. Adding the
-    /// specification makes it 468 units, which is 117mm of paper, and the widest
-    /// stock here has 94mm of printable width.
+    /// The single code a shop that works entirely from its labels wants: scanned once
+    /// and the whole device arrives typed. It is not offered unless it can be drawn
+    /// as bars that a scanner reads, because a code squeezed into the space left is
+    /// not a barcode: it comes out as a row of grey the scanner shrugs at, which is
+    /// worse than no code because the operator believes it was read.
     ///
-    /// So on every roll in <see cref="LabelStock.All"/> the combined value is
-    /// printed as words instead, and the settings page says so rather than letting
-    /// an operator find out from a label. Carrying both in one readable code needs a
-    /// denser symbology than Code39, which is a different piece of work.
+    /// In Code39 it cannot be drawn on any roll in <see cref="LabelStock.All"/>: the
+    /// identifier alone is 271 units and the two together are 431, and at the narrowest
+    /// bar the symbology is specified at that is 85.7mm of an 81.5mm address label. In
+    /// Code128 the same value is about 69mm and does fit, which is what
+    /// <see cref="LabelCode.Available"/> decides, so the setting is offered when the
+    /// symbology can carry it and greyed out with the reason when it cannot.
     /// </remarks>
     Combined,
 
     /// <summary>Two barcodes: the identifier alone, and the specification alone.</summary>
     Split,
+}
+
+/// <summary>
+/// Which symbology the barcode is drawn in.
+/// </summary>
+/// <remarks>
+/// Code39 is what every till and every phone shop scanner already reads, and it is
+/// what the DYMO template that ships with the app declares, so it stays the
+/// default. It is also why one code cannot carry both the identifier and the
+/// specification: fifteen units a character, and the two together are 431 of them
+/// before the quiet zones, which is 85.7mm of an 81.5mm address label at the
+/// narrowest bar the symbology is specified at.
+///
+/// Code128 carries the same value in about 69mm, because it reads a pair of digits
+/// as one value and an identifier is nothing but digits. So a shop whose scanner
+/// reads Code128 gets the combined code, and one whose scanner does not keeps the
+/// two codes separately, which every scanner reads and which costs a little more
+/// paper.
+///
+/// The choice is asked rather than guessed because a barcode in a symbology the
+/// shop's own scanner does not read is worth nothing at all: it prints, it looks
+/// like a barcode, and it reads as nothing.
+/// </remarks>
+public enum LabelCodeSymbology
+{
+    /// <summary>Code39, which every shop scanner reads.</summary>
+    Code39,
+
+    /// <summary>
+    /// Code128, which is denser and carries more characters.
+    /// </summary>
+    /// <remarks>
+    /// A scanner has to be told to read it. A till set to Code39 alone reads a
+    /// Code128 code as nothing and says so with a beep, which is the failure an
+    /// operator will believe rather than investigate.
+    /// </remarks>
+    Code128,
 }
 
 /// <summary>
@@ -183,16 +220,21 @@ public sealed record LabelCode(string Identifier, string Specification)
     /// label as text instead. The decision lives here rather than in a renderer so
     /// the preview, the PDF and the .dymo file cannot disagree about it.
     /// </remarks>
-    public static bool Fits(LabelStock stock, string value)
+    public static bool Fits(
+        LabelStock stock, string value, LabelCodeSymbology symbology = LabelCodeSymbology.Code39)
     {
         if (string.IsNullOrEmpty(value)) return true;
 
         // The width the code comes out at once rounded to whole dots, which is the
         // width it is actually printed at and therefore the only one a scanner will
         // ever see.
-        return LabelBarcode.DrawnNarrowMm(value, stock.PrintableWidthMm)
+        return LabelBarcode.DrawnNarrowMm(value, symbology, stock.PrintableWidthMm)
             >= LabelBarcode.NarrowestNarrowMm;
     }
+
+    /// <summary>The same, in Code39, which is what the .dymo template declares.</summary>
+    public static bool Fits(LabelStock stock, string value) =>
+        Fits(stock, value, LabelCodeSymbology.Code39);
 
     /// <summary>
     /// The payloads for one mode, as the barcodes actually carry them.
@@ -212,23 +254,73 @@ public sealed record LabelCode(string Identifier, string Specification)
     /// encode the same thing.
     /// </remarks>
     /// <param name="mode">What the operator chose.</param>
+    /// <param name="symbology">Which symbology the bars are drawn in.</param>
     /// <param name="identifiable">
     /// Whether the identifier can be encoded at all. A phone whose serial could not
     /// be read must not get a barcode of its placeholder.
     /// </param>
-    public IReadOnlyList<string> Payloads(LabelBarcodeMode mode, bool identifiable)
+    public IReadOnlyList<string> Payloads(
+        LabelBarcodeMode mode, LabelCodeSymbology symbology, bool identifiable)
     {
         if (mode == LabelBarcodeMode.None || !identifiable) return [string.Empty];
 
-        string identifier = LabelBarcode.Encode(Identifier, out _) ?? string.Empty;
-        string specification = LabelBarcode.Encode(Scannable(Specification), out _) ?? string.Empty;
+        string identifier = LabelBarcode.Encode(Identifier, symbology, out _) ?? string.Empty;
+        string specification = Scannable(Specification, symbology);
+
+        // On its own code the specification is wrapped like any other value, because
+        // on its own code it is a barcode and needs a reader to be able to find its
+        // end. On the combined code it is the tail of one and carries no markers of
+        // its own: Code39 wrapping it put a second pair of asterisks in the middle of
+        // the value where a reader would take them for data.
+        //
+        // The two halves of the combined code are separated by a space, because a
+        // reader has to be able to tell where the identifier stops and the
+        // specification starts, and fifteen digits followed by letters with nothing
+        // between them is one string rather than two. A space is carried by both
+        // symbologies and costs one character.
+        string combined = specification.Length > 0
+            ? $"{identifier.Trim('*')} {specification}"
+            : identifier;
 
         return mode switch
         {
             LabelBarcodeMode.Identifier => [identifier],
-            LabelBarcodeMode.Combined => [identifier + specification],
-            _ => [identifier, specification],
+            LabelBarcodeMode.Combined => [combined],
+            _ => [identifier, LabelBarcode.Encode(specification, symbology, out _) ?? ""],
         };
+    }
+
+    /// <summary>
+    /// Whether a mode can put bars on the paper at all on this stock.
+    /// </summary>
+    /// <remarks>
+    /// What decides whether a setting is offered or greyed out. It answers for the
+    /// combined code in particular, which is the one mode that cannot be drawn as
+    /// Code39 on any of these rolls: offered in Code128, where it fits, and greyed
+    /// out in Code39 with the reason the panel shows.
+    ///
+    /// Answered from the widest payload the mode draws rather than from the count of
+    /// barcodes, because that is what decides whether the paper takes them. Two codes
+    /// that each fit can still be wrong for a mode that draws one very wide code, and
+    /// counting them would say the mode is fine.
+    /// </remarks>
+    /// <param name="stock">The roll in the printer.</param>
+    /// <param name="mode">What the operator is choosing.</param>
+    /// <param name="symbology">Which symbology it would be drawn in.</param>
+    /// <param name="identifiable">
+    /// Whether the identifier can be encoded at all. A phone whose serial could not
+    /// be read has nothing to barcode either way, so the mode is not held against it.
+    /// </param>
+    public bool Available(
+        LabelStock stock, LabelBarcodeMode mode, LabelCodeSymbology symbology,
+        bool identifiable = true)
+    {
+        if (mode == LabelBarcodeMode.None) return true;
+        if (!identifiable) return true;
+
+        return Payloads(mode, symbology, identifiable)
+            .Where(payload => payload.Length > 0)
+            .All(payload => Fits(stock, payload, symbology));
     }
 
     /// <summary>
@@ -243,37 +335,53 @@ public sealed record LabelCode(string Identifier, string Specification)
     /// stocks where a fifteen digit identifier does not fit.
     /// </remarks>
     /// <param name="mode">What the operator chose.</param>
+    /// <param name="symbology">Which symbology the bars are drawn in.</param>
     /// <param name="identifiable">
     /// Whether the identifier can be encoded at all. A phone whose serial could not
     /// be read must not get a barcode of its placeholder.
     /// </param>
     public (IReadOnlyList<string> Barred, IReadOnlyList<string> Spelled) On(
-        LabelStock stock, LabelBarcodeMode mode, bool identifiable)
+        LabelStock stock, LabelBarcodeMode mode, LabelCodeSymbology symbology, bool identifiable)
     {
-        var all = Payloads(mode, identifiable).Where(payload => payload.Length > 0).ToList();
+        var all = Payloads(mode, symbology, identifiable)
+            .Where(payload => payload.Length > 0).ToList();
 
-        return (all.Where(payload => Fits(stock, payload)).ToList(),
-                all.Where(payload => !Fits(stock, payload)).ToList());
+        return (all.Where(payload => Fits(stock, payload, symbology)).ToList(),
+                all.Where(payload => !Fits(stock, payload, symbology)).ToList());
     }
+
+    /// <summary>The same, in Code39, which is what the .dymo template declares.</summary>
+    public (IReadOnlyList<string> Barred, IReadOnlyList<string> Spelled) On(
+        LabelStock stock, LabelBarcodeMode mode, bool identifiable) =>
+        On(stock, mode, LabelCodeSymbology.Code39, identifiable);
 
     /// <summary>
     /// The specification in the form a barcode can carry.
     /// </summary>
     /// <remarks>
-    /// Capitals, spaces and the few symbols Code39 has. Anything outside that set
-    /// becomes a dash rather than being dropped, so the length of the code is known
-    /// before it is drawn and the paper either fits it or does not.
+    /// What it can be depends on the symbology, so this is asked of the one the
+    /// label is actually drawn in rather than of a fixed alphabet.
+    ///
+    /// In Code39 that is capitals, spaces and seven symbols, so a model written
+    /// "iPhone 13 Pro" comes back as dashes. In Code128 it is every printable ASCII
+    /// character, so the same string goes on the code with its lower case letters
+    /// intact, which is both shorter to scan and truer to what the phone said.
+    ///
+    /// Anything outside the set becomes a dash rather than being dropped, so the
+    /// length of the code is known before it is drawn and the paper either fits it or
+    /// does not. A code whose length was only known after it was drawn is a code the
+    /// fit test could not have been run against.
     ///
     /// The display line runs through here rather than the other way round. The words
     /// on a label are for whoever picks the phone up next, and they are spelled the
     /// way the phone spells them. The code is for a scanner.
     /// </remarks>
-    private static string Scannable(string specification)
+    private static string Scannable(string specification, LabelCodeSymbology symbology)
     {
         var capitals = new System.Text.StringBuilder(specification.Length);
 
         foreach (char character in specification.ToUpperInvariant())
-            capitals.Append(Code39.CanEncode(character.ToString()) ? character : '-');
+            capitals.Append(LabelBarcode.CanCarry(character, symbology) ? character : '-');
 
         return capitals.ToString().Trim();
     }

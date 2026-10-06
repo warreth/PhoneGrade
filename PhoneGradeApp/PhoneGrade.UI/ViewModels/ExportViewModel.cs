@@ -182,6 +182,8 @@ public sealed class LabelLayoutItem
 public sealed class LabelBarcodeItem : ReactiveObject
 {
     private bool _isSelected;
+    private bool _isAvailable = true;
+    private bool _isKnown;
 
     private LabelBarcodeItem(LabelBarcodeMode mode, string titleKey, string noteKey)
     {
@@ -195,6 +197,122 @@ public sealed class LabelBarcodeItem : ReactiveObject
     public string TitleKey { get; }
 
     public string NoteKey { get; }
+
+    /// <summary>
+    /// Whether this mode can put bars on the paper at all, as bars.
+    /// </summary>
+    /// <remarks>
+    /// The one mode that can be unavailable is the combined one, and only in Code39,
+    /// where the identifier and the specification together are wider than any roll in
+    /// the list. An unavailable mode is shown rather than hidden, with the reason in
+    /// the panel: a shop that has just bought a Code128 scanner needs to find the
+    /// setting and see why it is grey, not find that it does not exist.
+    ///
+    /// Held on the item for the same reason the tick is: the picker binds to a fixed
+    /// list and a view cannot ask a Core type whether a value fits a roll.
+    /// </remarks>
+    public bool IsAvailable
+    {
+        get => _isAvailable;
+        private set
+        {
+            if (!this.RaiseAndSetIfChanged(ref _isAvailable, value)) return;
+
+            this.RaisePropertyChanged(nameof(IsClosed));
+            this.RaisePropertyChanged(nameof(RowStrength));
+            this.RaisePropertyChanged(nameof(ShowUnavailableReason));
+        }
+    }
+
+    /// <summary>
+    /// Whether this row cannot be chosen, which is what greys it.
+    /// </summary>
+    /// <remarks>
+    /// Its own property rather than a negated binding in the view. The class is
+    /// applied through <c>Classes.closed</c>, and a binding of the form
+    /// <c>!IsAvailable</c> is not something the class syntax evaluates: the row came
+    /// out identical in both symbologies, which is exactly the pair of screenshots
+    /// that was taken to catch it.
+    /// </remarks>
+    public bool IsClosed => !IsAvailable;
+
+    /// <summary>
+    /// How strongly this row is drawn.
+    /// </summary>
+    /// <remarks>
+    /// Bound straight onto the row rather than reached through a class, because a
+    /// class bound to a property inside a drop down's own item template is a style
+    /// that has to survive being re-templated, and this one did not: the row came
+    /// out at full strength in the pair of screenshots taken to check it. A number
+    /// on the row cannot be lost that way.
+    /// </remarks>
+    public double RowStrength => IsAvailable ? 1.0 : 0.72;
+
+    /// <summary>
+    /// Why this row is shut, in a form short enough to sit inside it.
+    /// </summary>
+    public string UnavailableKey => "Export_BarcodeUnavailable";
+
+    /// <summary>
+    /// Whether the panel should say why this mode is unavailable, rather than just
+    /// greying it out.
+    /// </summary>
+    /// <remarks>
+    /// Only worth saying when it would do any good. On the small rolls a phone's
+    /// identifier is printed as words whatever the mode, so greying out the identifier
+    /// alone would be claiming a setting cannot be used when in fact half of it is
+    /// already on the label as text.
+    /// </remarks>
+    public bool ShowUnavailableReason => IsClosed;
+
+    /// <summary>
+    /// Recomputes which modes the stock and the symbology in force allow.
+    /// </summary>
+    /// <remarks>
+    /// Called whenever the roll or the symbology changes, because those are the two
+    /// things that decide it. The two measures are not the same question and both are
+    /// needed: whether anything can be drawn as bars decides whether the setting is
+    /// offered, and whether it can be drawn as bars decides whether the words have to
+    /// carry it.
+    /// </remarks>
+    internal static void RefreshFor(
+        LabelStock stock, LabelCodeSymbology symbology, LabelCode code, bool identifiable)
+    {
+        foreach (LabelBarcodeItem item in All)
+        {
+            // One question, and which way it is answered depends on the mode.
+            //
+            // For every mode but the combined one, a value too wide for bars is
+            // printed as words instead, and the label still says what the mode
+            // promised. A fifteen digit identifier does not fit as bars on the two
+            // small rolls, so the identifier mode is printed as text there with a
+            // warning above it. That is a setting that works, in a smaller form, and
+            // closing its row would tell the operator it cannot be used at all.
+            //
+            // The combined mode is the exception, because there is no smaller form
+            // of it: its whole point is one code carrying both halves, and printed as
+            // words it is not what was chosen. So it is offered exactly when it can
+            // be drawn, which is what puts the symbology picker and this row in the
+            // same card.
+            bool offered = code.Available(stock, item.Mode, symbology, identifiable);
+
+            bool available = item.Mode switch
+            {
+                LabelBarcodeMode.None => true,
+                LabelBarcodeMode.Combined => offered,
+                _ => offered
+                    || code.On(stock, item.Mode, symbology, identifiable).Barred.Count > 0,
+            };
+
+            bool unchanged = item._isKnown && item._isAvailable == available;
+
+            item.IsAvailable = available;
+
+            if (unchanged) continue;
+
+            item._isKnown = true;
+        }
+    }
 
     /// <summary>
     /// Whether this is the chosen mode, for the picker's tick.
@@ -234,6 +352,63 @@ public sealed class LabelBarcodeItem : ReactiveObject
     internal static void Select(LabelBarcodeMode mode)
     {
         foreach (LabelBarcodeItem item in All) item.IsSelected = item.Mode == mode;
+    }
+}
+
+/// <summary>
+/// Which symbology the label's barcode is drawn in, as a choice on the panel.
+/// </summary>
+/// <remarks>
+/// Its own list rather than reusing <see cref="LabelBarcodeItem"/>, because a
+/// symbology is not a mode: every mode is available in every symbology, and what
+/// changes is whether the combined mode fits and whether the shop's scanner can
+/// read it at all.
+/// </remarks>
+public sealed class LabelSymbologyItem : ReactiveObject
+{
+    private bool _isSelected;
+
+    private LabelSymbologyItem(LabelCodeSymbology symbology, string titleKey, string noteKey)
+    {
+        Symbology = symbology;
+        TitleKey = titleKey;
+        NoteKey = noteKey;
+    }
+
+    public LabelCodeSymbology Symbology { get; }
+
+    public string TitleKey { get; }
+
+    public string NoteKey { get; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        internal set => this.RaiseAndSetIfChanged(ref _isSelected, value);
+    }
+
+    /// <summary>
+    /// The symbologies, in the order they are offered.
+    /// </summary>
+    /// <remarks>
+    /// Code39 first because it is what every till reads and what the shipped DYMO
+    /// template declares, so a shop that changes nothing gets a label every scanner
+    /// in the building reads. Code128 is the second choice because it is the one that
+    /// lets a single code carry the whole device.
+    /// </remarks>
+    public static IReadOnlyList<LabelSymbologyItem> All { get; } =
+    [
+        new(LabelCodeSymbology.Code39, "Export_Symbology39", "Export_Symbology39Note"),
+        new(LabelCodeSymbology.Code128, "Export_Symbology128", "Export_Symbology128Note"),
+    ];
+
+    public static LabelSymbologyItem For(LabelCodeSymbology symbology) =>
+        All.FirstOrDefault(item => item.Symbology == symbology) ?? All[0];
+
+    /// <summary>Moves the tick onto one item and off the others.</summary>
+    internal static void Select(LabelCodeSymbology symbology)
+    {
+        foreach (LabelSymbologyItem item in All) item.IsSelected = item.Symbology == symbology;
     }
 }
 
@@ -288,6 +463,8 @@ public class ExportViewModel : ReactiveObject
     private string _folder = ExportService.ExportDir;
     private LabelLayoutItem? _stock;
     private LabelBarcodeItem? _barcode;
+
+    private LabelSymbologyItem? _symbology;
     private PrinterOption? _printer;
     private DymoPrintResult? _lastDymoPrint;
     private int _copies = 1;
@@ -326,6 +503,7 @@ public class ExportViewModel : ReactiveObject
             LabelStock.All.Select(stock => new LabelLayoutItem(stock)));
 
         BarcodeModes = new ObservableCollection<LabelBarcodeItem>(LabelBarcodeItem.All);
+        Symbologies = new ObservableCollection<LabelSymbologyItem>(LabelSymbologyItem.All);
         Printers = new ObservableCollection<PrinterOption>();
         Results = new ObservableCollection<ExportResultItem>();
 
@@ -337,6 +515,8 @@ public class ExportViewModel : ReactiveObject
             ?? Layouts[0];
         Barcode = LabelBarcodeItem.For(main.LabelBarcodeMode);
         LabelBarcodeItem.Select(Barcode.Mode);
+        Symbology = LabelSymbologyItem.For(main.LabelSymbology);
+        LabelSymbologyItem.Select(Symbology.Symbology);
 
         // The formats live in a collection rather than in properties, so a tick cannot
         // raise a property change on its own. The subject is how a tickbox tells
@@ -601,8 +781,8 @@ public class ExportViewModel : ReactiveObject
     /// the space out entirely rather than drawing an empty band.
     /// </summary>
     public IReadOnlyList<string> LabelBarcodes => new LabelCode(
-            Label.Identifier, LabelLayout.ScannableLine(Label))
-        .On(Layout.Stock, BarcodeMode, Label.IsIdentifiable).Barred;
+            Label.Identifier, LabelLayout.ScannableLine(Label, LabelSymbology))
+        .On(Layout.Stock, BarcodeMode, LabelSymbology, Label.IsIdentifiable).Barred;
 
     /// <summary>
     /// The values that will not fit a barcode on this stock, and are printed as
@@ -615,8 +795,8 @@ public class ExportViewModel : ReactiveObject
     /// a barcode that the file will not have is worse than no preview.
     /// </remarks>
     public IReadOnlyList<string> LabelSpelledBarcodes => new LabelCode(
-            Label.Identifier, LabelLayout.ScannableLine(Label))
-        .On(Layout.Stock, BarcodeMode, Label.IsIdentifiable).Spelled;
+            Label.Identifier, LabelLayout.ScannableLine(Label, LabelSymbology))
+        .On(Layout.Stock, BarcodeMode, LabelSymbology, Label.IsIdentifiable).Spelled;
 
     /// <summary>The identifier alone, which is the first barcode in every mode.</summary>
     public string LabelBarcode => LabelBarcodes.Count > 0 ? LabelBarcodes[0] : "";
@@ -635,6 +815,21 @@ public class ExportViewModel : ReactiveObject
 
     /// <summary>What the barcode carries, as the setting holds it.</summary>
     public LabelBarcodeMode BarcodeMode => Barcode?.Mode ?? _main.LabelBarcodeMode;
+
+    /// <summary>
+    /// Which symbology the bars are drawn in, as the files and the preview want it.
+    /// </summary>
+    /// <remarks>
+    /// Read from the picker and falling back to the settings, so a panel opened before
+    /// the picker has settled still describes the label the export will write. The
+    /// .dymo file ignores it and follows its own template, which is the right way
+    /// round: DYMO draws that file rather than this app.
+    /// </remarks>
+    public LabelCodeSymbology LabelSymbology =>
+        Symbology?.Symbology ?? _main.LabelSymbology;
+
+    /// <summary>The symbologies, as the picker holds them.</summary>
+    public ObservableCollection<LabelSymbologyItem> Symbologies { get; }
 
     public ObservableCollection<ExportOption> Options { get; }
 
@@ -758,9 +953,48 @@ public class ExportViewModel : ReactiveObject
         set
         {
             if (Equals(_barcode, value) || value is null) return;
-            _barcode = value;
-            LabelBarcodeItem.Select(value.Mode);
-            _main.SetLabelBarcodeMode(value.Mode);
+
+            // A mode that cannot be drawn as bars on this roll is not a choice the
+            // panel accepts, and the picker has already greyed it out. A settings
+            // file naming one anyway, from an older version of the app or from a shop
+            // that changed the roll since, falls back to the identifier alone rather
+            // than writing a label whose barcode does not scan.
+            LabelBarcodeItem wanted = value;
+            LabelBarcodeItem use = wanted.IsAvailable ? wanted : LabelBarcodeItem.For(LabelBarcodeMode.Identifier);
+
+            if (!ReferenceEquals(wanted, use))
+            {
+                this.RaiseAndSetIfChanged(ref _barcode, use, nameof(Barcode));
+                LabelBarcodeItem.Select(use.Mode);
+            }
+            else
+            {
+                _barcode = value;
+                LabelBarcodeItem.Select(value.Mode);
+            }
+
+            _main.SetLabelBarcodeMode(use.Mode);
+            RaiseLabelChanged();
+        }
+    }
+
+    /// <summary>
+    /// Which symbology the barcode is drawn in, as the picker holds it.
+    /// </summary>
+    /// <remarks>
+    /// A setting rather than a per export choice, for the same reason the mode is
+    /// one: the symbology decides whether a code can be drawn at all, and a label
+    /// whose contents move under the operator's hand is a label they cannot trust.
+    /// </remarks>
+    public LabelSymbologyItem? Symbology
+    {
+        get => _symbology;
+        set
+        {
+            if (Equals(_symbology, value) || value is null) return;
+            _symbology = value;
+            LabelSymbologyItem.Select(value.Symbology);
+            _main.SetLabelSymbology(value.Symbology);
             RaiseLabelChanged();
         }
     }
@@ -814,7 +1048,7 @@ public class ExportViewModel : ReactiveObject
     /// or a missing model before the label is on a device, rather than after.
     /// </summary>
     public LabelFields Label => LabelFields.From(
-        _main.DeviceData, _main.Enable85PercentChecker, content: _main.LabelContent);
+        _main.DeviceData, _main.Enable85PercentChecker, content: _main.LabelContent,);
 
     /// <summary>The first line of the preview: what the device is and what it is worth.</summary>
     public string LabelTextLine => LabelLayout.TextLine(Label);
@@ -899,6 +1133,15 @@ public class ExportViewModel : ReactiveObject
     /// </summary>
     private void RaiseLabelChanged()
     {
+        // Before anything is read off the panel. The barcodes on the sheet are laid
+        // out for a symbology, and a mode that cannot be drawn in it has to be off the
+        // picker by the time anything binds to it, or the panel briefly shows a
+        // setting it is about to grey out.
+        LabelBarcodeItem.RefreshFor(
+            Layout.Stock, LabelSymbology,
+            new LabelCode(Label.Identifier, LabelLayout.ScannableLine(Label, LabelSymbology)),
+            Label.IsIdentifiable);
+
         this.RaisePropertyChanged(nameof(Label));
         this.RaisePropertyChanged(nameof(LabelTextLine));
         this.RaisePropertyChanged(nameof(LabelDetailLine));
@@ -919,6 +1162,8 @@ public class ExportViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(HasSpelledBarcode));
         this.RaisePropertyChanged(nameof(Barcode));
         this.RaisePropertyChanged(nameof(BarcodeMode));
+        this.RaisePropertyChanged(nameof(Symbology));
+        this.RaisePropertyChanged(nameof(LabelSymbology));
         this.RaisePropertyChanged(nameof(LabelShowBatteryCycles));
         this.RaisePropertyChanged(nameof(LabelShowFaults));
         this.RaisePropertyChanged(nameof(LabelShowLocks));
@@ -938,8 +1183,17 @@ public class ExportViewModel : ReactiveObject
         Stock = Layouts.FirstOrDefault(item =>
             string.Equals(item.Stock.PartNumber, _main.LabelStockPartNumber, StringComparison.OrdinalIgnoreCase))
             ?? Layouts[0];
-        Barcode = LabelBarcodeItem.For(_main.LabelBarcodeMode);
-        LabelBarcodeItem.Select(Barcode.Mode);
+        Symbology = LabelSymbologyItem.For(_main.LabelSymbology);
+        LabelSymbologyItem.Select(Symbology.Symbology);
+
+        // Set straight rather than through the setter. The setter writes the mode back
+        // to the settings, and a roll that has just changed can leave the mode the
+        // operator had chosen unable to be drawn. Writing it back from here would
+        // quietly replace their choice with a different one, and do it without the
+        // panel showing anything having changed.
+        _barcode = LabelBarcodeItem.For(_main.LabelBarcodeMode);
+        LabelBarcodeItem.Select(_barcode.Mode);
+
         RaiseLabelChanged();
     }
 
@@ -983,17 +1237,20 @@ public class ExportViewModel : ReactiveObject
             var wanted = Options.Where(option => option.Selected).Select(option => option.Format).ToHashSet();
             string stem = LabelWriter.FileStem(_main.DeviceData);
 
+            // Named throughout. The request has eleven parameters and gained one more
+            // when the barcode symbology became the operator's choice, which silently
+            // turned four positional arguments here into the wrong ones.
             LabelWriter.Batch batch = await LabelWriter.WriteAsync(_main.DeviceData, new LabelWriter.Request(
-                new HashSet<ExportFormat>(wanted),
-                Folder,
-                stem,
-                _main.LabelTemplatePath,
-                Layout,
-                BarcodeMode,
-                _main.Enable85PercentChecker,
-                _main.LabelContent,
-                ReportWordingBuilder.Current(),
-                ExportWordingBuilder.Current()));
+                Formats: new HashSet<ExportFormat>(wanted),
+                Folder: Folder,
+                FileName: stem,
+                TemplatePath: _main.LabelTemplatePath,
+                Layout: Layout,
+                Barcode: BarcodeMode,
+                FlagLowBattery: _main.Enable85PercentChecker,
+                Content: _main.LabelContent,
+                Wording: ReportWordingBuilder.Current(),
+                Messages: ExportWordingBuilder.Current(),));
 
             Show(batch);
 
@@ -1088,10 +1345,15 @@ public class ExportViewModel : ReactiveObject
             string stem = LabelWriter.FileStem(_main.DeviceData);
 
             LabelWriter.Batch batch = await LabelWriter.WriteAsync(_main.DeviceData, new LabelWriter.Request(
-                new HashSet<ExportFormat> { ExportFormat.LabelPdf }, scratch, stem,
-                _main.LabelTemplatePath, Layout, BarcodeMode,
-                _main.Enable85PercentChecker, _main.LabelContent,
-                Messages: ExportWordingBuilder.Current()));
+                Formats: new HashSet<ExportFormat> { ExportFormat.LabelPdf },
+                Folder: scratch,
+                FileName: stem,
+                TemplatePath: _main.LabelTemplatePath,
+                Layout: Layout,
+                Barcode: BarcodeMode,
+                FlagLowBattery: _main.Enable85PercentChecker,
+                Content: _main.LabelContent,
+                Messages: ExportWordingBuilder.Current(),));
 
             LabelWriter.Outcome? pdf = batch.Files.FirstOrDefault(file => file.Succeeded);
             if (pdf?.Path is not { Length: > 0 } path)
@@ -1147,9 +1409,15 @@ public class ExportViewModel : ReactiveObject
         if (File.Exists(path)) return path;
 
         LabelWriter.Batch batch = await LabelWriter.WriteAsync(_main.DeviceData, new LabelWriter.Request(
-            new HashSet<ExportFormat> { format }, Folder, stem, _main.LabelTemplatePath, Layout,
-            BarcodeMode, _main.Enable85PercentChecker, _main.LabelContent,
-            Messages: ExportWordingBuilder.Current()));
+            Formats: new HashSet<ExportFormat> { format },
+            Folder: Folder,
+            FileName: stem,
+            TemplatePath: _main.LabelTemplatePath,
+            Layout: Layout,
+            Barcode: BarcodeMode,
+            FlagLowBattery: _main.Enable85PercentChecker,
+            Content: _main.LabelContent,
+            Messages: ExportWordingBuilder.Current(),));
 
         LabelWriter.Outcome? written = batch.Files.FirstOrDefault(file => file.Succeeded);
         if (written?.Path is { Length: > 0 } writtenPath)

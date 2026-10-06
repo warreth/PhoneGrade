@@ -114,7 +114,7 @@ public static class Code39
     /// the next; without it two characters run together and the whole value comes
     /// back as one long run.
     /// </remarks>
-    public static IEnumerable<Code39Element> Elements(string value)
+    public static IEnumerable<BarcodeElement> Elements(string value)
     {
         bool first = true;
 
@@ -138,8 +138,3 @@ public static class Code39
     /// <summary>A wide element is three, which is the ratio the standard is read at.</summary>
     public const int WideUnit = 3;
 }
-
-/// <summary>One bar or space of a Code39 code, and how wide it is drawn.</summary>
-/// <param name="IsBar">Whether there is ink. A space is paper.</param>
-/// <param name="Units">How many narrow elements wide it is.</param>
-public readonly record struct Code39Element(bool IsBar, int Units);

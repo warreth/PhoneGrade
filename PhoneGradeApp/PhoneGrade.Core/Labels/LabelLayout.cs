@@ -126,17 +126,18 @@ public sealed record LabelLayout(LabelStock Stock)
     /// what the person at the counter already said out loud. What is left is
     /// sixteen characters, which is 256 units and fits the stock with room to spare.
     /// </remarks>
-    public static string ScannableLine(LabelFields fields)
+    public static string ScannableLine(
+        LabelFields fields, LabelCodeSymbology symbology = LabelCodeSymbology.Code39)
     {
         string battery = fields.Battery.Split(' ')[0].Replace("%", string.Empty);
 
         return Scannable(string.Join(" ",
             new[] { fields.Storage, fields.Grade, battery }
-                .Where(part => part.Length > 0)));
+                .Where(part => part.Length > 0)), symbology);
     }
 
     /// <summary>
-    /// Text in the capitals, spaces and symbols a Code39 barcode can carry.
+    /// Text in the characters the symbology in force can carry.
     /// </summary>
     /// <remarks>
     /// Anything outside that set becomes a dash rather than being dropped, so the
@@ -144,12 +145,12 @@ public sealed record LabelLayout(LabelStock Stock)
     /// or does not. A dash is at least honest about there having been something
     /// there, which is not what an empty gap says.
     /// </remarks>
-    private static string Scannable(string text)
+    private static string Scannable(string text, LabelCodeSymbology symbology = LabelCodeSymbology.Code39)
     {
         var capitals = new System.Text.StringBuilder(text.Length);
 
         foreach (char character in text.ToUpperInvariant())
-            capitals.Append(Code39.CanEncode(character.ToString()) ? character : '-');
+            capitals.Append(LabelBarcode.CanCarry(character, symbology) ? character : '-');
 
         return capitals.ToString().Trim();
     }
@@ -201,9 +202,10 @@ public sealed record LabelLayout(LabelStock Stock)
     /// one barcode label.
     /// </summary>
     public IReadOnlyDictionary<string, string> DymoValues(
-        LabelFields fields, LabelCode code, LabelBarcodeMode mode)
+        LabelFields fields, LabelCode code, LabelBarcodeMode mode,
+        LabelCodeSymbology symbology = LabelCodeSymbology.Code39)
     {
-        var payloads = code.Payloads(mode, fields.IsIdentifiable);
+        var payloads = code.Payloads(mode, symbology, fields.IsIdentifiable);
 
         return new Dictionary<string, string>
         {

@@ -31,11 +31,16 @@ public static class LabelPdfWriter
     /// What the barcode carries. Identifiers only by default, because a barcode
     /// that does not scan to a serial is a barcode that gets a phone mislaid.
     /// </param>
+    /// <param name="symbology">
+    /// Which symbology the bars are drawn in. Code39 by default, which is what
+    /// every shop scanner reads and what the DYMO template declares.
+    /// </param>
     public static void Write(
         string path,
         LabelFields fields,
         LabelLayout? layout = null,
-        LabelBarcodeMode mode = LabelBarcodeMode.Identifier)
+        LabelBarcodeMode mode = LabelBarcodeMode.Identifier,
+        LabelCodeSymbology symbology = LabelCodeSymbology.Code39)
     {
         // Done here rather than left to the caller. Setting the licence up is one
         // line but it is the one line that has to happen before the document is
@@ -50,8 +55,8 @@ public static class LabelPdfWriter
         // where a fifteen digit identifier is simply wider than the paper. Squeezing
         // it in would produce grey rather than bars, and an operator who scans that
         // and gets nothing believes the phone has no identifier.
-        var (barred, spelled) = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields))
-            .On(size.Stock, mode, fields.IsIdentifiable);
+        var (barred, spelled) = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields, symbology))
+            .On(size.Stock, mode, symbology, fields.IsIdentifiable);
 
         string spec = LabelLayout.TextLine(fields);
         string detail = LabelLayout.DetailLine(fields);
@@ -132,7 +137,8 @@ public static class LabelPdfWriter
                         // place and pushed the words off the bottom of the label.
                         column.Item()
                             .PaddingTop(Points(index == 0 ? slack : LabelLayout.GapMm))
-                            .Element(container => Barcode(container, payload, size, barred.Count, family));
+                            .Element(container => Barcode(
+                                container, payload, size, barred.Count, family, symbology));
                     }
 
                     // The text, below however many barcodes there were. Every line at
@@ -162,17 +168,18 @@ public static class LabelPdfWriter
     /// <summary>
     /// One barcode: the bars, and the value under them.
     ///
-    /// Code39 is drawn here rather than handed to a barcode library because it is
-    /// nine elements of fixed widths per character, and a dependency that draws it
-    /// would be a hundred times the size of the twenty lines that do. The widths
-    /// come from the standard's own table: nine patterns of wide and narrow, three
-    /// of them wide, and a narrow gap between one character and the next.
+    /// The bars are drawn here rather than handed to a barcode library because they
+    /// are a list of widths out of the standard's own table, and a dependency that
+    /// draws them would be a hundred times the size of the twenty lines that do. The
+    /// symbology arrives as a flag and never as a branch: everything below works in
+    /// units, and which units they are was decided by whoever built the list.
     ///
     /// The caption is what a barcode is read against. A code nobody can read back
     /// is worse than no code, because the operator believes it was scanned.
     /// </summary>
     private static void Barcode(
-        IContainer container, string value, LabelLayout size, int count, string? family)
+        IContainer container, string value, LabelLayout size, int count, string? family,
+        LabelCodeSymbology symbology)
     {
         // The bar width is rounded to whole dots before anything else uses it, so
         // that the picture and the box it is handed are the same width. Rounding
@@ -181,7 +188,7 @@ public static class LabelPdfWriter
         // band, a sixth of the width it was measured at, because the layout engine
         // scaled it to fit. Rounded down rather than to the nearest, so the code is
         // never wider than the paper it was measured against.
-        int narrowDots = PngWriter.DotsFor(LabelBarcode.NarrowMm(value, size.WidthMm));
+        int narrowDots = PngWriter.DotsFor(LabelBarcode.NarrowMm(value, symbology, size.WidthMm));
         float narrow = PngWriter.MmOf(narrowDots);
 
         float band = size.BarcodeBandMm(count);
@@ -199,9 +206,9 @@ public static class LabelPdfWriter
             // printer fault rather than a drawing one.
             column.Item().Height(Points(bars)).AlignCenter()
                 .Element(box => box
-                    .Width(Points(LabelBarcode.WidthMm(value, narrow)))
+                    .Width(Points(LabelBarcode.WidthMm(value, symbology, narrow)))
                     .Height(Points(bars))
-                    .Image(Bars(value, narrowDots, bars)));
+                    .Image(Bars(value, symbology, narrowDots, bars)));
 
             column.Item().AlignCenter().AlignMiddle().Text(value)
                 .FontFamily(family ?? "Helvetica")
@@ -245,12 +252,13 @@ public static class LabelPdfWriter
     /// around it, because the picture is given an exact width and the layout engine
     /// will not leave the margin a scanner needs unless it is asked to.
     /// </remarks>
-    private static byte[] Bars(string value, int narrowDots, float heightMm)
+    private static byte[] Bars(
+        string value, LabelCodeSymbology symbology, int narrowDots, float heightMm)
     {
         int high = PngWriter.DotsFor(heightMm);
 
         return PngWriter.Barcode(
-            Code39.Elements(value).ToList(), narrowDots,
+            LabelBarcode.ElementsOf(value, symbology).ToList(), narrowDots,
             quietEachSide: LabelBarcode.QuietZoneUnits * narrowDots, high);
     }
 

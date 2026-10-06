@@ -56,6 +56,59 @@ public static class DymoTemplate
     /// <summary>The second barcode object's sentinel.</summary>
     public const string SecondBarcodeSentinel = "BARCODE2";
 
+    /// <summary>The element a template declares its symbology in.</summary>
+    public const string FormatElement = "BarcodeFormat";
+
+    /// <summary>
+    /// What the template declares, as a symbology this app knows.
+    /// </summary>
+    /// <remarks>
+    /// Asked of the template rather than of the settings, and that is the whole reason
+    /// this exists. A .dymo file carries the symbology inside its barcode objects, and
+    /// DYMO's own software draws the file rather than this app: putting a Code128
+    /// payload into a template that declares Code39 produces a file that is well
+    /// formed and prints a barcode the shop's scanner cannot read.
+    ///
+    /// A template that declares neither of the two symbologies this app can write is
+    /// reported as Code39, because that is the one every template in the wild
+    /// declares and guessing the other way would silently misreport the file.
+    /// </remarks>
+    /// <param name="templateText">The template as it is on disk.</param>
+    public static LabelCodeSymbology DeclaredSymbology(string templateText)
+    {
+        // Only the barcode objects' own declarations, so a mention of the word in a
+        // text field somewhere in the file cannot decide what the codes are.
+        foreach (string declared in FormatElements(templateText))
+            if (declared.Contains("128", StringComparison.OrdinalIgnoreCase))
+                return LabelCodeSymbology.Code128;
+
+        return LabelCodeSymbology.Code39;
+    }
+
+    /// <summary>
+    /// Whether this app can write the symbology a template declares.
+    /// </summary>
+    /// <remarks>
+    /// False for a template that asks for something else, such as QR or EAN. Such a
+    /// template is not a failure: the operator gets the label they configured and the
+    /// app says plainly that its own settings do not apply to it, rather than
+    /// substituting a payload the template will draw differently.
+    /// </remarks>
+    public static bool Supports(LabelCodeSymbology symbology) =>
+        symbology is LabelCodeSymbology.Code39 or LabelCodeSymbology.Code128;
+
+    /// <summary>What each BarcodeFormat element says.</summary>
+    private static IEnumerable<string> FormatElements(string templateText)
+    {
+        foreach (System.Text.RegularExpressions.Match element in
+                 System.Text.RegularExpressions.Regex.Matches(
+                     templateText,
+                     @"<(?:[A-Za-z0-9]+:)?BarcodeFormat\b[^>]*>(?<value>.*?)</(?:[A-Za-z0-9]+:)?BarcodeFormat>",
+                     System.Text.RegularExpressions.RegexOptions.Singleline |
+                     System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            yield return element.Groups["value"].Value;
+    }
+
     /// <summary>
     /// What could not be barcoded and is printed as words instead.
     /// </summary>
@@ -79,17 +132,17 @@ public static class DymoTemplate
 
     /// <summary>Every sentinel this app can fill, given a stock and a barcode mode.</summary>
     private static IReadOnlyDictionary<string, Func<LabelFields, string>> ValuesFor(
-        LabelLayout layout, LabelBarcodeMode mode)
+        LabelLayout layout, LabelBarcodeMode mode, LabelCodeSymbology symbology)
     {
         var values = new Dictionary<string, Func<LabelFields, string>>(
             Sentinels, StringComparer.Ordinal);
 
         values[FirstBarcodeSentinel] =
-            fields => Barcodes(layout, mode, fields).Barred.ElementAtOrDefault(0) ?? "";
+            fields => Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(0) ?? "";
         values[SecondBarcodeSentinel] =
-            fields => Barcodes(layout, mode, fields).Barred.ElementAtOrDefault(1) ?? "";
+            fields => Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(1) ?? "";
         values[SpelledSentinel] =
-            fields => string.Join(" ", Barcodes(layout, mode, fields).Spelled);
+            fields => string.Join(" ", Barcodes(layout, mode, symbology, fields).Spelled);
 
         return values;
     }
@@ -103,9 +156,10 @@ public static class DymoTemplate
     /// operator was shown.
     /// </remarks>
     private static (IReadOnlyList<string> Barred, IReadOnlyList<string> Spelled) Barcodes(
-        LabelLayout layout, LabelBarcodeMode mode, LabelFields fields) =>
-        new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields))
-            .On(layout.Stock, mode, fields.IsIdentifiable);
+        LabelLayout layout, LabelBarcodeMode mode, LabelCodeSymbology symbology,
+        LabelFields fields) =>
+        new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields, symbology))
+            .On(layout.Stock, mode, symbology, fields.IsIdentifiable);
 
     /// <summary>
     /// Substitutes the values into the template text.
@@ -125,6 +179,14 @@ public static class DymoTemplate
     /// The stock and the barcode mode it goes with, because whether a code fits and
     /// what it carries are not questions the values alone can answer.
     /// </param>
+    /// <param name="symbology">
+    /// Not taken. The symbology is read from the template and cannot be set from
+    /// outside, which is the only way to be right: DYMO draws this file rather than
+    /// this app, so a payload encoded for a symbology the template does not declare
+    /// prints as a barcode the shop's scanner cannot read. A setting that could
+    /// override it would be a setting whose only correct value happened to be the one
+    /// already in force.
+    /// </param>
     public static DymoFillResult Fill(string templateText, LabelFields fields,
         LabelLayout? layout = null, LabelBarcodeMode mode = LabelBarcodeMode.Identifier,
         ExportWording? wording = null)
@@ -133,7 +195,7 @@ public static class DymoTemplate
         var unknown = UnknownFields(templateText).ToList();
 
         IReadOnlyDictionary<string, Func<LabelFields, string>> values =
-            ValuesFor(layout ?? LabelLayout.Address, mode);
+            ValuesFor(layout ?? LabelLayout.Address, mode, DeclaredSymbology(templateText));
 
         if (!values.Keys.Any(name => Mentions(templateText, name)))
             throw new InvalidDataException(words.TemplateHasNoFields);

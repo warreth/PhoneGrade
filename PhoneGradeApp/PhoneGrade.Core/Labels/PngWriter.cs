@@ -46,18 +46,18 @@ public static class PngWriter
     /// </param>
     /// <param name="height">How many dots high.</param>
     public static byte[] Barcode(
-        IReadOnlyList<Code39Element> elements, int narrow, int quietEachSide, int height)
+        IReadOnlyList<BarcodeElement> elements, int narrow, int quietEachSide, int height)
     {
         narrow = Math.Max(1, narrow);
 
         int content = 0;
-        foreach (Code39Element element in elements) content += element.Units * narrow;
+        foreach (BarcodeElement element in elements) content += element.Units * narrow;
 
         int width = content + (2 * quietEachSide);
         var pixels = new bool[width * height];
 
         int x = quietEachSide;
-        foreach (Code39Element element in elements)
+        foreach (BarcodeElement element in elements)
         {
             int span = element.Units * narrow;
             for (int i = 0; i < span && x < width; i++, x++)
