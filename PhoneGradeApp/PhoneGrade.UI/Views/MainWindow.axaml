@@ -1357,6 +1357,46 @@
             </Border>
         </Panel>
 
+        <!-- ==================== Changelog after an update ==================== -->
+        <!--
+            Shown once, on the launch after an update installed itself. The update
+            replaces the binaries and restarts, so there is no window open at the
+            moment the new version appears; the updater writes the release notes to
+            disk first and this reads them here.
+
+            Below the intro rather than above it: an operator seeing this has
+            already installed, so it is not the first thing they need, and putting
+            it on top would bury the first-run screen the one launch where the
+            first-run screen actually belongs.
+        -->
+        <Panel IsVisible="{Binding IsChangelogVisible}" ZIndex="90">
+            <Rectangle Fill="{DynamicResource OverlayColor}"/>
+            <Border Classes="card" Width="520" MaxHeight="620" VerticalAlignment="Center" HorizontalAlignment="Center"
+                    BoxShadow="0 24 60 0 #66000000" Padding="24">
+                <StackPanel Spacing="14">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{DynamicResource Changelog_Title}" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock Text="{DynamicResource Changelog_Lead}" Classes="settingDesc"/>
+                    </StackPanel>
+
+                    <!-- The notes as written, in a read-only block. Not a WebView:
+                         three lines of release notes do not justify a scripting
+                         surface inside a kiosk application. -->
+                    <Border Classes="card" Background="{DynamicResource CardDeepColor}"
+                            Padding="14" MaxHeight="420">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <TextBlock Text="{Binding ChangelogNotes}"
+                                       FontSize="13" TextWrapping="Wrap" LineHeight="20"/>
+                        </ScrollViewer>
+                    </Border>
+
+                    <Button Classes="kioskPrimary" Height="48"
+                            Command="{Binding CloseChangelogCommand}"
+                            Content="{DynamicResource Changelog_Close}"/>
+                </StackPanel>
+            </Border>
+        </Panel>
+
         <!-- ==================== First-run introduction (top of everything) ==================== -->
         <views:IntroView IsVisible="{Binding IsIntroVisible}" ZIndex="100"/>
 

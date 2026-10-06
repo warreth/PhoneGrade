@@ -856,6 +856,44 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> CloseTroubleshootModalCommand { get; }
     public ReactiveCommand<Unit, Unit> BackToIdleCommand { get; }
 
+    /// <summary>
+    /// What changed in the version that was just installed, and nothing else.
+    ///
+    /// An update replaces the binaries and restarts, so there is no window open
+    /// at the moment the new version lands to say what it is. The updater writes
+    /// the notes to disk before applying the update and this takes them on the
+    /// next launch, which is why the panel can be closed and dismissed instead of
+    /// asked about: by the time it appears the update has already happened.
+    /// </summary>
+    private bool _isChangelogVisible;
+    public bool IsChangelogVisible { get => _isChangelogVisible; set => this.RaiseAndSetIfChanged(ref _isChangelogVisible, value); }
+
+    private string _changelogVersion = "";
+    public string ChangelogVersion { get => _changelogVersion; set => this.RaiseAndSetIfChanged(ref _changelogVersion, value); }
+
+    private string _changelogNotes = "";
+    public string ChangelogNotes { get => _changelogNotes; set => this.RaiseAndSetIfChanged(ref _changelogNotes, value); }
+
+    public ReactiveCommand<Unit, Unit> CloseChangelogCommand { get; }
+
+    /// <summary>
+    /// Opens the changelog panel if an update left notes behind.
+    ///
+    /// Reading them also clears them, so this runs once per update rather than on
+    /// every launch: an operator who closed the panel and comes back tomorrow does
+    /// not find yesterday's changes waiting again. A release packaged with no
+    /// notes writes no file at all, which is the case that leaves the panel shut.
+    /// </summary>
+    private void ShowPendingChangelog()
+    {
+        var changelog = ReleaseChangelog.Take();
+        if (changelog is null) return;
+
+        ChangelogVersion = changelog.Version;
+        ChangelogNotes = changelog.Notes;
+        IsChangelogVisible = true;
+    }
+
     // Popups kept minimal: only quality & payment, and only when no default is set.
     private bool _isQualityPopupVisible;
     public bool IsQualityPopupVisible { get => _isQualityPopupVisible; set => this.RaiseAndSetIfChanged(ref _isQualityPopupVisible, value); }
@@ -1076,6 +1114,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         OpenTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = true; IsSettingsDrawerOpen = false; });
         CloseTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = false; });
         BackToIdleCommand = ReactiveCommand.Create(() => { WorkflowState = AppWorkflowState.Idle; });
+        CloseChangelogCommand = ReactiveCommand.Create(() => { IsChangelogVisible = false; });
+
+        ShowPendingChangelog();
 
 
         UsbEventWatcher.UsbDeviceConnected += (s, e) =>

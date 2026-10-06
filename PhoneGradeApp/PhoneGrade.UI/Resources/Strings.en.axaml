@@ -412,6 +412,11 @@
     <x:String x:Key="PaymentPopup_Title">Invoice method</x:String>
     <x:String x:Key="PaymentPopup_Lead">How this device is invoiced.</x:String>
 
+    <!-- What changed in the version that just installed itself -->
+    <x:String x:Key="Changelog_Title">PhoneGrade updated</x:String>
+    <x:String x:Key="Changelog_Lead">What changed in this version.</x:String>
+    <x:String x:Key="Changelog_Close">Got it</x:String>
+
     <!-- Logs and diagnostics -->
     <x:String x:Key="Logs_Title">System logs &amp; tool output</x:String>
 

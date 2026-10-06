@@ -22,6 +22,12 @@ public static class AutoUpdater
             var update = await mgr.CheckForUpdatesAsync();
             if (update is null) return;
 
+            // The release notes are written before the update is applied, because
+            // applying it replaces this binary and restarts the process. Whatever
+            // is not on disk by then is gone, and the operator gets a new version
+            // with no idea what changed in it.
+            RecordNotes(update);
+
             await mgr.DownloadUpdatesAsync(update);
             mgr.ApplyUpdatesAndRestart(update);
         }
@@ -29,5 +35,39 @@ public static class AutoUpdater
         {
             // Offline, rate limit, incomplete release assets: never block startup.
         }
+    }
+
+    /// <summary>
+    /// Saves the notes of the version about to be installed.
+    ///
+    /// Velopack carries both a Markdown and an HTML form on the release. The
+    /// Markdown is kept because it is what a person wrote; <see cref="ReleaseChangelog"/>
+    /// flattens either into plain lines for a read-only text block. A release
+    /// packaged without notes carries an empty string, and an empty string is
+    /// not written at all, so an update that ships no notes does not put an empty
+    /// panel in front of the operator on the next start.
+    /// </summary>
+    private static void RecordNotes(UpdateInfo update)
+    {
+        string version = "";
+        string? notes = null;
+
+        try
+        {
+            var target = update.TargetFullRelease;
+            if (target is null) return;
+
+            version = target.Version?.ToString() ?? "";
+            notes = string.IsNullOrWhiteSpace(target.NotesMarkdown)
+                ? target.NotesHTML
+                : target.NotesMarkdown;
+        }
+        catch
+        {
+            // A release entry the updater cannot read fully is still worth
+            // installing; only the note about it is lost.
+        }
+
+        PhoneGrade.Core.ReleaseChangelog.Record(version, notes);
     }
 }

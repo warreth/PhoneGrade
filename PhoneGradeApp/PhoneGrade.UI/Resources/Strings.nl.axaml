@@ -413,6 +413,11 @@
     <x:String x:Key="PaymentPopup_Title">Factuurmethode</x:String>
     <x:String x:Key="PaymentPopup_Lead">Hoe dit toestel wordt gefactureerd.</x:String>
 
+    <!-- Wat er veranderde in de versie die zichzelf net heeft geinstalleerd -->
+    <x:String x:Key="Changelog_Title">PhoneGrade is bijgewerkt</x:String>
+    <x:String x:Key="Changelog_Lead">Wat er in deze versie is veranderd.</x:String>
+    <x:String x:Key="Changelog_Close">Begrepen</x:String>
+
     <!-- Logs and diagnostics -->
     <x:String x:Key="Logs_Title">Systeemlogboeken &amp; Tool Output</x:String>
 
