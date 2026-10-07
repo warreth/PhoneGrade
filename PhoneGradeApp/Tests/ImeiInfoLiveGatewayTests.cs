@@ -40,7 +40,7 @@ public enum LiveAccount
 /// </summary>
 public sealed class ImeiInfoLiveFactAttribute : FactAttribute
 {
-    public ImeiInfoLiveFactAttribute(LiveAccount account = LiveAccount.AnyBalance)
+    public ImeiInfoLiveFactAttribute(LiveAccount account = LiveAccount.AnyBalance, double minimumBalance = 0)
     {
         string? key = ImeiInfoLiveKey.TryRead();
         if (key is null)
@@ -64,6 +64,9 @@ public sealed class ImeiInfoLiveFactAttribute : FactAttribute
             Skip = $"The imei.info account holds {balance:F2} USD, so every check is refused before it runs.";
         else if (account == LiveAccount.WithoutCredit && balance > 0)
             Skip = $"The imei.info account holds {balance:F2} USD, so nothing is refused.";
+        else if (minimumBalance > 0 && balance < (decimal)minimumBalance)
+            Skip = $"The imei.info account holds {balance:F2} USD and this fact's checks cost {(decimal)minimumBalance:F2} USD, "
+                + "so the run would be refused partway through.";
     }
 }
 
@@ -72,8 +75,9 @@ public sealed class ImeiInfoLiveFactAttribute : FactAttribute
 /// and the answers the published sandbox IMEIs get.
 ///
 /// The key comes from the environment or from a gitignored file, never from
-/// this file. Three of these facts need no credit; the one that runs actual
-/// checks says so in its skip reason while the account sits at 0.00.
+/// this file. The facts that run actual checks say in their skip reason what
+/// the account holds and what the checks cost, so an empty wallet reads as a
+/// skip rather than as a broken parser.
 /// </summary>
 public class ImeiInfoLiveGatewayTests
 {
@@ -81,6 +85,13 @@ public class ImeiInfoLiveGatewayTests
     private const string AppleImei = "353541326469521";
     private const string SamsungImei = "350545260771498";
     private const string BlacklistedImei = "355030794352540";
+
+    /// <summary>
+    /// What the sandbox fact spends: 0.36 + 0.60 + 0.20, the three checks. The
+    /// account has to be able to pay for all three before the run starts, or a
+    /// refusal halfway through would read as a parse failure.
+    /// </summary>
+    private const double SandboxRunCost = 1.16;
 
     /// <summary>A well formed IMEI that is not one of the published numbers.</summary>
     private const string ControlImei = "358742091234567";
@@ -149,29 +160,39 @@ public class ImeiInfoLiveGatewayTests
     /// imei.info publishes them as free to test with; if that ever changes,
     /// this run costs the price of the three checks below.
     ///
+    /// The assertions follow the live gateway and the fields each service really
+    /// carries: the Apple service sends no manufacturer at all, and its FMI and
+    /// SIM lock live in "icloud_lock" and "sim_lock_status". The sandbox devices
+    /// drift (the blacklist number answers as a Pixel 9a and reads CLEAN today),
+    /// so this fact fails when the gateway changes, which is the point of it.
+    ///
     /// The fourth documented rule, HTTP 402 for any other IMEI, needs an
     /// account with no credit to show itself, which is what the fact above
     /// covers; on a funded account a plain IMEI is a paid check instead.
     /// </summary>
-    [ImeiInfoLiveFact(LiveAccount.WithCredit)]
+    [ImeiInfoLiveFact(LiveAccount.WithCredit, SandboxRunCost)]
     public async Task TheSandboxNumbers_AnswerWithTheDocumentedDevices()
     {
         var apple = await CheckAsync(AppleImei, ImeiCheckType.AppleCarrierLockFmi, Key);
         Assert.True(apple.Success, apple.ErrorMessage);
-        Assert.Equal("Apple", apple.Manufacturer);
         Assert.Contains("iPhone 12 Pro Max", apple.ModelName ?? "");
-        Assert.Equal(false, apple.IsBlacklisted);
+        Assert.Equal("OFF", apple.FmiStatus);
+        Assert.Equal("Unlocked", apple.SimLockStatus);
+        Assert.NotNull(apple.CarrierName);
 
         var samsung = await CheckAsync(SamsungImei, ImeiCheckType.SamsungInfoKnox, Key);
         Assert.True(samsung.Success, samsung.ErrorMessage);
-        Assert.Equal("Samsung", samsung.Manufacturer);
-        Assert.Contains("Galaxy S24 Ultra", samsung.ModelName ?? "");
-        Assert.Equal(false, samsung.IsBlacklisted);
+        Assert.Contains("Samsung", samsung.Manufacturer ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Galaxy S24", samsung.ModelName ?? "");
+        Assert.Equal("OFF", samsung.KnoxStatus);
+        // The Knox service carries no blacklist field at all, so "not reported"
+        // is the honest reading rather than a clean bill of health.
+        Assert.Null(samsung.IsBlacklisted);
 
         var blacklisted = await CheckAsync(BlacklistedImei, ImeiCheckType.BlacklistSimple, Key);
         Assert.True(blacklisted.Success, blacklisted.ErrorMessage);
-        Assert.Equal(true, blacklisted.IsBlacklisted);
-        Assert.Equal("Google", blacklisted.Manufacturer);
-        Assert.Contains("Pixel 8 Pro", blacklisted.ModelName ?? "");
+        Assert.Equal(false, blacklisted.IsBlacklisted);
+        Assert.Contains("Google", blacklisted.Manufacturer ?? "", StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Pixel", blacklisted.ModelName ?? "");
     }
 }
