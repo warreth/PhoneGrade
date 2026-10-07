@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using PhoneGrade.Core.Diagnostics;
@@ -334,7 +335,12 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
         public const int kCFNumberSInt16Type = 3;
         public const int kCFNumberSInt32Type = 4;
         public const int kCFStringEncodingUTF8 = 0x08000100;
-        public static readonly IntPtr kCFRunLoopDefaultMode = IntPtr.Zero;
+
+        // The run loop mode is the CFString named "kCFRunLoopDefaultMode". The
+        // framework exports a constant, but reading an exported symbol from
+        // managed code is fragile, and CFString comparison is by contents, so a
+        // created string of the same name is the same mode.
+        public static IntPtr kCFRunLoopDefaultMode => CFSTR("kCFRunLoopDefaultMode");
 
         [DllImport(LibraryName, EntryPoint = "CFRunLoopGetCurrent")]
         public static extern IntPtr CFRunLoopGetCurrent();
@@ -351,14 +357,41 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
         [DllImport(LibraryName, EntryPoint = "CFStringGetCStringPtr")]
         public static extern IntPtr CFStringGetCStringPtr(IntPtr str, int encoding);
 
+        [DllImport(LibraryName, EntryPoint = "CFStringCreateWithCString")]
+        public static extern IntPtr CFStringCreateWithCString(IntPtr alloc, string str, int encoding);
+
         [DllImport(LibraryName, EntryPoint = "CFRelease")]
         public static extern void CFRelease(IntPtr cf);
     }
 
-    // Helper to create CFString constants
+    // Helper to create CFString constants.
+    //
+    // IORegistryEntryCreateCFProperty takes each registry key as a CFString, and the
+    // stub that returned IntPtr.Zero here meant every one of those properties came
+    // back null: no vendor, product, location or name on macOS. The strings are
+    // cached on purpose, one creation per name per process, because they are read
+    // on every USB event and the key handed to IOKit has to stay alive anyway.
+    private static readonly Dictionary<string, IntPtr> CFStringCache = new();
+
     private static IntPtr CFSTR(string str)
     {
-        // For simplicity, we'll use a static cache
-        return IntPtr.Zero; // In real implementation, use CFStringCreateWithCString
+        lock (CFStringCache)
+        {
+            if (CFStringCache.TryGetValue(str, out IntPtr cached))
+            {
+                return cached;
+            }
+
+            IntPtr created = CoreFoundation.CFStringCreateWithCString(
+                IntPtr.Zero, str, CoreFoundation.kCFStringEncodingUTF8);
+            if (created == IntPtr.Zero)
+            {
+                throw new InvalidOperationException(
+                    $"CFStringCreateWithCString refused '{str}'");
+            }
+
+            CFStringCache[str] = created;
+            return created;
+        }
     }
 }
