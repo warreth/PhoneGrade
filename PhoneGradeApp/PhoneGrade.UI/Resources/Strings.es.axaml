@@ -778,5 +778,8 @@
     <x:String x:Key="Intro_LiabilityCap">En todo lo que la ley permita, el autor no responde de lo que se derive de usarlo o de no usarlo. Eso incluye el móvil examinado, el beneficio perdido, los registros perdidos, un cliente que deja de comprarte, y cualquier reclamación de un cliente o un tercero. Para un cliente de pago, el total se limita a la suscripción del año en que nació la reclamación.</x:String>
     <x:String x:Key="Intro_LiabilityGrade">Un grado son unas comprobaciones automáticas y un conjunto de reglas publicado. No es una certificación ni una inspección hecha por una persona. Decidir qué pagar a alguien en base a eso es tu decisión.</x:String>
     <x:String x:Key="Intro_Finish">Terminar</x:String>
+
+    <x:String x:Key="Licensing_PanelSeatsFree">{0} puestos libres en esta clave</x:String>
+    <x:String x:Key="Licensing_PanelSeatFreeOne">{0} puesto libre en esta clave</x:String>
 </ResourceDictionary>
 

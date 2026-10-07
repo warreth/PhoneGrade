@@ -37,11 +37,20 @@ phone is missing a hardware API it advertises.
 
 ## Pricing
 
-| Plan | Price | What you get |
-| --- | --- | --- |
-| Free | Free, forever | 10 scans, no account needed |
-| Pro | EUR 400 per year | Unlimited scans on every device, every station |
-| Custom | On request | Volume terms and invoicing |
+| Plan | Price | Computers | What you get |
+| --- | --- | --- | --- |
+| Free | Free, forever | 1 | The whole application, 10 scans, no account |
+| Starter | EUR 399 per year | Up to 2 | Unlimited scans, every device on both computers |
+| Pro | EUR 799 per year | Up to 5 | Unlimited scans, and a second location on the same key |
+| Custom | On request | As many as you run | Volume terms, purchase orders, invoicing, training |
+
+A computer means one installation: a desktop or a laptop at one test station. The app
+shows the count on the licence panel, so you can see how many are taken and how many are
+still free before you add a bench.
+
+The three paid plans differ only in how many computers a key covers. The seat limit
+comes from the licence itself rather than from this application, so changing a price or
+adding a plan is not something you have to wait for a new build for.
 
 One price, not a bill per check. Nothing is metered: testing a device again because
 you are unsure costs nothing. IMEI, blacklist, carrier lock and Knox lookups are not

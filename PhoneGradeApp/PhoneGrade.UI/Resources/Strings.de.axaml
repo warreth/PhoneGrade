@@ -783,4 +783,7 @@
     <x:String x:Key="Intro_LiabilityCap">Soweit gesetzlich zulässig, haftet der Autor nicht für Schäden aus der Benutzung oder aus der Nichtbenutzung. Das betrifft das geprüfte Telefon, entgangenen Gewinn, verlorene Aufzeichnungen, einen Kunden, der nicht mehr bei Ihnen kauft, und jede Forderung eines Kunden oder Dritten. Für zahlende Kunden ist die Summe auf das Abonnement des Jahres begrenzt, in dem die Forderung entstanden ist.</x:String>
     <x:String x:Key="Intro_LiabilityGrade">Ein Grade sind automatisierte Prüfungen und ein veröffentlichter Regelsatz. Er ist keine Zertifizierung und keine Prüfung durch einen Menschen. Zu entscheiden, was Sie jemandem auf dieser Grundlage zahlen, ist Ihre Entscheidung.</x:String>
     <x:String x:Key="Intro_Finish">Fertig</x:String>
+
+    <x:String x:Key="Licensing_PanelSeatsFree">{0} Plätze auf diesem Schlüssel frei</x:String>
+    <x:String x:Key="Licensing_PanelSeatFreeOne">{0} Platz auf diesem Schlüssel frei</x:String>
 </ResourceDictionary>

@@ -116,6 +116,35 @@ public class LicensingViewModel : ReactiveObject, IDisposable
     public bool HasSeatNumbers => MachineLimit > 0;
 
     /// <summary>
+    /// Seats the key's plan still has free, for a second computer to take.
+    ///
+    /// Floored at zero. A vendor reporting more machines in use than the plan allows is
+    /// a thing that happens when a plan is downgraded and the old seats are still live,
+    /// and showing minus one of them reads as a bug in the application rather than as a
+    /// plan that has fewer places than machines attached to it.
+    /// </summary>
+    public int SeatsFree => HasSeatNumbers ? Math.Max(MachineLimit - MachineCount, 0) : 0;
+
+    /// <summary>True when the plan has a seat left, so the wording can say there is room.</summary>
+    public bool HasSeatFree => SeatsFree > 0;
+
+    /// <summary>
+    /// How many free seats are left, in words.
+    ///
+    /// Only says something while the plan has room and the key is not full, because
+    /// "0 seats free" beside "2 of 5 in use" is a subtraction the operator can already
+    /// do, and the number that matters is the one where there is nowhere left to put a
+    /// second bench.
+    /// </summary>
+    public string FreeSeatsText =>
+        !HasSeatNumbers || !HasSeatFree
+            ? ""
+            : string.Format(
+                LocalizationManager.GetString(
+                    SeatsFree == 1 ? "Licensing_PanelSeatFreeOne" : "Licensing_PanelSeatsFree"),
+                SeatsFree);
+
+    /// <summary>
     /// One line per seat this app knows about, with the current machine marked.
     ///
     /// The vendor hands back a single instance per call rather than the key's
@@ -208,6 +237,9 @@ public class LicensingViewModel : ReactiveObject, IDisposable
         this.RaisePropertyChanged(nameof(MachineLimit));
         this.RaisePropertyChanged(nameof(HasSeatNumbers));
         this.RaisePropertyChanged(nameof(SeatUsageText));
+        this.RaisePropertyChanged(nameof(SeatsFree));
+        this.RaisePropertyChanged(nameof(HasSeatFree));
+        this.RaisePropertyChanged(nameof(FreeSeatsText));
         this.RaisePropertyChanged(nameof(SeatLines));
         this.RaisePropertyChanged(nameof(CanReleaseSeat));
         this.RaisePropertyChanged(nameof(CannotIdentifyMachine));

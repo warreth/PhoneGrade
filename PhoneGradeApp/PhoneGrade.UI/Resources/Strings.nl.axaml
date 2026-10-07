@@ -777,4 +777,7 @@
     <x:String x:Key="Intro_LiabilityCap">Voor zover de wet toestaat, is de auteur niet aansprakelijk voor schade die ontstaat door het gebruik ervan of door het niet gebruiken ervan. Dat geldt voor de geteste telefoon, verloren winst, verloren administratie, een klant die niet meer koopt, en elke claim van een klant of derde. Voor een betalende klant is het totaal begrensd op het abonnement voor het jaar waarin de vordering ontstond.</x:String>
     <x:String x:Key="Intro_LiabilityGrade">Een grade is geautomatiseerde controles en een gepubliceerde set regels. Het is geen certificering en geen inspectie door een mens. Beslissen wat je iemand op basis daarvan betaalt is jouw beslissing.</x:String>
     <x:String x:Key="Intro_Finish">Afronden</x:String>
+
+    <x:String x:Key="Licensing_PanelSeatsFree">{0} plaatsen over op deze sleutel</x:String>
+    <x:String x:Key="Licensing_PanelSeatFreeOne">{0} plaats over op deze sleutel</x:String>
 </ResourceDictionary>

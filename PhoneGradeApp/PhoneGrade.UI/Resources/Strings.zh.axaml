@@ -783,4 +783,7 @@
     <x:String x:Key="Intro_LiabilityCap">在法律允许的最大范围内，作者不对因使用它或不使用它而产生的损坏负责。这包括被检测的手机、利润损失、记录丢失、不再向你购买的客户，以及客户或第三方提出的任何索赔对付费客户，全部责任以索赔发生那一年的订阅费用为上限。</x:String>
     <x:String x:Key="Intro_LiabilityGrade">一个等级是自动检查加上一套公开的规则。它不是认证，也不是有人上手做的检测。基于它决定付给某人多少钱，是你的决定。</x:String>
     <x:String x:Key="Intro_Finish">完成</x:String>
+
+    <x:String x:Key="Licensing_PanelSeatsFree">这把密钥还剩 {0} 个名额</x:String>
+    <x:String x:Key="Licensing_PanelSeatFreeOne">这把密钥还剩 {0} 个名额</x:String>
 </ResourceDictionary>

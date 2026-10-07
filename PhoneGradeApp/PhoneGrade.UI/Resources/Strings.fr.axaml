@@ -783,4 +783,7 @@
     <x:String x:Key="Intro_LiabilityCap">Dans les limites permises par la loi, l'auteur n'est pas responsable de ce qui découle de son usage ou de son non-usage. Cela comprend le téléphone examiné, le manque à gagner, les enregistrements perdus, un client qui ne vous achète plus, et toute demande d'un client ou d'un tiers. Pour un client payant, le total est plafonné à l'abonnement de l'année où la réclamation est née.</x:String>
     <x:String x:Key="Intro_LiabilityGrade">Un grade est le résultat de contrôles automatisés et d'un jeu de règles publié. Ce n'est ni une certification ni un examen par une personne. Décider de ce que vous payez à quelqu'un sur cette base est votre décision.</x:String>
     <x:String x:Key="Intro_Finish">Terminer</x:String>
+
+    <x:String x:Key="Licensing_PanelSeatsFree">{0} postes restants sur cette clé</x:String>
+    <x:String x:Key="Licensing_PanelSeatFreeOne">{0} poste restant sur cette clé</x:String>
 </ResourceDictionary>

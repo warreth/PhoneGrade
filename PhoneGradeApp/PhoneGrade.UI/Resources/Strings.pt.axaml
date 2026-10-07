@@ -783,4 +783,7 @@
     <x:String x:Key="Intro_LiabilityCap">Na máxima extensão que a lei permita, o autor não responde pelo que resulte de o usar ou de não o usar. Isso inclui o telemóvel em teste, o lucro perdido, os registos perdidos, um cliente que deixa de comprar, e qualquer reclamação de um cliente ou de um terceiro. Para um cliente pagador, o total fica limitado à subscrição do ano em que a reclamação arose.</x:String>
     <x:String x:Key="Intro_LiabilityGrade">Uma classe é o resultado de verificações automáticas e de um conjunto de regras publicado. Não é uma certificação nem uma inspeção feita por uma pessoa. Decidir o que pagar a alguém com base nisso é sua decisão.</x:String>
     <x:String x:Key="Intro_Finish">Terminar</x:String>
+
+    <x:String x:Key="Licensing_PanelSeatsFree">{0} lugares livres nesta chave</x:String>
+    <x:String x:Key="Licensing_PanelSeatFreeOne">{0} lugar livre nesta chave</x:String>
 </ResourceDictionary>

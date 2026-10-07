@@ -1503,6 +1503,16 @@
                             <TextBlock Grid.Column="1" Text="{Binding Licensing.SeatUsageText}"
                                        FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </Grid>
+
+                        <!-- How many of those seats are still free. The line above
+                             answers how many are taken; this answers the question that
+                             follows it, which is whether the second bench has room.
+                             Hidden at zero, because "2 of 5 in use" beside "0 seats
+                             left" says the same thing twice and the full state is
+                             already reported above. -->
+                        <TextBlock Text="{Binding Licensing.FreeSeatsText}"
+                                   Classes="dim" FontSize="11"
+                                   IsVisible="{Binding Licensing.HasSeatFree}"/>
                     </StackPanel>
 
                     <!-- Which seat is this one. Shown whenever there is a seat, not

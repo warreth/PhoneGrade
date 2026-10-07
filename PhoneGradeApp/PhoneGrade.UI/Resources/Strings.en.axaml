@@ -776,5 +776,8 @@
     <x:String x:Key="Intro_LiabilityCap">To the fullest extent the law allows, the author is not liable for damage arising from using it or from not using it. That covers the phone under test, lost profit, lost records, a customer who stops buying from you, and any claim by a customer or a third party. For a paying customer the total is capped at the subscription fee for the year the claim arose in.</x:String>
     <x:String x:Key="Intro_LiabilityGrade">A grade is automated checks and a published set of rules. It is not a certification and not an inspection by a person. Deciding what to pay someone on the strength of it is your decision.</x:String>
     <x:String x:Key="Intro_Finish">Finish</x:String>
+
+    <x:String x:Key="Licensing_PanelSeatsFree">{0} seats left on this key</x:String>
+    <x:String x:Key="Licensing_PanelSeatFreeOne">{0} seat left on this key</x:String>
 </ResourceDictionary>
 
