@@ -36,8 +36,12 @@ public static class ImeiInfoApiService
     private static readonly Dictionary<string, Dictionary<ImeiCheckType, int>> ServiceIdCache = new();
     private static readonly object CacheLock = new();
 
-    private const int PollAttempts = 5;
-    private static readonly TimeSpan PollDelay = TimeSpan.FromMilliseconds(250);
+    /* The gateway's own envelope says a check can take about twenty seconds
+     * ("processing_countdown": 20), so the polling waits about that long. At the
+     * old five attempts of a quarter second apiece, a check that was merely
+     * queued was reported as unfinished after a second and a quarter. */
+    private const int PollAttempts = 20;
+    private static readonly TimeSpan PollDelay = TimeSpan.FromSeconds(1);
 
     /// <summary>Types of checks available via imei.info API.</summary>
     public enum ImeiCheckType
