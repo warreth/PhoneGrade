@@ -351,6 +351,68 @@ body.test-running .app-footer,
     color: #ffffff;
 }
 
+/* The condition questionnaire. One question per screen, answered hundreds of
+ * times a day, often one-handed with the other hand holding the phone. The
+ * targets are tall enough to hit without looking twice, the question sits
+ * above them in one line where possible, and the only way back is the Back
+ * button: there is deliberately no skip, so a missing answer is impossible
+ * rather than merely unlikely. */
+.cosmetic {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg) var(--spacing-md);
+    max-width: 560px;
+    margin: 0 auto;
+}
+
+.cosmetic__count {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+}
+
+.cosmetic__question {
+    margin: 0;
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.cosmetic__hint {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+}
+
+.cosmetic__options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.cosmetic__option {
+    min-height: 64px;
+    font-size: 17px;
+}
+
+.cosmetic__option--picked {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+.cosmetic__back {
+    margin-top: var(--spacing-md);
+    height: 44px;
+    font-size: 14px;
+}
+
 .disclaimer {
     text-align: center;
     color: var(--color-text-tertiary);

@@ -107,7 +107,8 @@ public static class LabelFaultReader
         var failed = new List<string>();
         if (tests && data.InteractiveTests?.Tests is { } suite)
             foreach (InteractiveTestResult test in suite)
-                if (test.Status == TestStatus.Failed) failed.Add(test.Name);
+                if (test.Status == TestStatus.Failed)
+                    failed.Add(string.IsNullOrWhiteSpace(test.LabelCode) ? test.Name : test.LabelCode);
 
         var blockages = new List<string>();
         if (locks)

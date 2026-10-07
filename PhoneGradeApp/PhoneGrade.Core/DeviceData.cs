@@ -252,6 +252,18 @@ public class InteractiveTestResult
     public Dictionary<string, object>? Details { get; set; }
 
     /// <summary>
+    /// The short code the label prints for this row when it failed.
+    ///
+    /// Set by the phone for rows whose name does not clip to a label code on
+    /// its own: two rows can share the start of a name ("Volume up", "Volume
+    /// down") while needing different codes ("VOLUP", "VOLDN"). Rows from
+    /// older runs carry nothing here, and then the reader falls back to
+    /// shortening the name the way it always has.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("labelCode")]
+    public string? LabelCode { get; set; }
+
+    /// <summary>
     /// Set by the operator when this row has to stay out of the inspection
     /// report. Cleared again when a new run delivers the row, because a fresh
     /// measurement overrules what was decided about the old one.

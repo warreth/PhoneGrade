@@ -12,6 +12,7 @@ import { CameraTest } from './modules/CameraTest.js';
 import { SensorTest } from './modules/SensorTest.js';
 import { LocationTest } from './modules/LocationTest.js';
 import { VibrationTest } from './modules/VibrationTest.js';
+import { CosmeticTest } from './modules/CosmeticTest.js';
 import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 import { CapabilityScanner } from './modules/CapabilityScanner.js';
 import { applyStoredResults, firstPendingIndex, canResume, describeResume } from './modules/SuiteProgress.js';
@@ -372,7 +373,11 @@ class TestRunner {
             new CameraTest(),
             new SensorTest(),
             new LocationTest(),
-            new VibrationTest()
+            new VibrationTest(),
+            // Last on purpose. It asks the operator to look at the phone in
+            // their hand, which only makes sense once every measurement is
+            // done and the phone is free to be turned over.
+            new CosmeticTest()
         ];
         this.currentTestIndex = -1;
         this.isRunning = false;
@@ -547,7 +552,11 @@ class TestRunner {
                     status: result.status,
                     notes: result.notes,
                     durationMs: result.durationMs,
-                    details: result.details
+                    details: result.details,
+                    // Only the questionnaire sets one. It rides along so the
+                    // label can print a short code while the report keeps the
+                    // full question, and nothing else changes shape.
+                    labelCode: result.labelCode
                 });
             }
 

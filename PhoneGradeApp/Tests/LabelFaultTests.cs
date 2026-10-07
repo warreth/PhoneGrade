@@ -102,6 +102,51 @@ public class LabelFaultTests
         Assert.DoesNotContain("TRILMOTOR", faults.Summary);
     }
 
+    [Fact]
+    public void ARowWithALabelCodePrintsTheCodeRatherThanItsName()
+    {
+        // Two rows can share the start of a name while needing different codes:
+        // "Volume up" and "Volume down" both clip to VOLUME. The phone says
+        // which code each row wears, and the label believes the row.
+        var phone = Clean();
+        phone.InteractiveTests = new InteractiveTestSuiteResult
+        {
+            SessionId = "S",
+            Tests =
+            [
+                new InteractiveTestResult { Id = "cosmetic-volume-up", Name = "Volume up", Status = TestStatus.Failed, LabelCode = "VOLUP" },
+                new InteractiveTestResult { Id = "cosmetic-volume-down", Name = "Volume down", Status = TestStatus.Failed, LabelCode = "VOLDN" },
+                new InteractiveTestResult { Id = "cosmetic-back", Name = "Back", Status = TestStatus.Failed, LabelCode = "BACK" },
+            ],
+        };
+
+        LabelFaults faults = LabelFaultReader.From(phone);
+
+        Assert.Equal(["VOLUP", "VOLDN", "BACK"], faults.FailedTests);
+        Assert.Equal("VOLUP VOLDN BACK", faults.Summary);
+    }
+
+    [Fact]
+    public void ARowWithoutALabelCodeFallsBackToShorteningItsName()
+    {
+        // Rows from before the phone learned to send codes carry nothing, and
+        // they must read exactly as they always have rather than disappearing.
+        var phone = Clean();
+        phone.InteractiveTests = new InteractiveTestSuiteResult
+        {
+            SessionId = "S",
+            Tests =
+            [
+                new InteractiveTestResult { Id = "mic", Name = "Microfoon", Status = TestStatus.Failed },
+                new InteractiveTestResult { Id = "x", Name = "  ", Status = TestStatus.Failed },
+            ],
+        };
+
+        LabelFaults faults = LabelFaultReader.From(phone);
+
+        Assert.Equal("MICROF", faults.Summary.Split(' ')[0]);
+    }
+
     [Theory]
     [InlineData(TestStatus.Passed, false)]
     [InlineData(TestStatus.Failed, true)]
