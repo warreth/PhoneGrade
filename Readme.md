@@ -10,7 +10,7 @@
 ## What it does
 
 Plug a phone in over USB. PhoneGrade reads what the handset reports about itself,
-runs eleven interactive hardware tests in the phone's own browser through a QR code,
+runs fourteen interactive tests in the phone's own browser through a QR code,
 gives the device a grade from A to C, then prints a label and a report you can hand
 a customer.
 
@@ -21,9 +21,10 @@ IMEI, activation lock and Find My, carrier and SIM status.
 phone publishes about itself. **Integrity on Android:** bootloader, vbmeta, system
 image, warranty bit and factory reset protection.
 
-**Eleven interactive tests:** touchscreen coverage across 112 cells, force touch,
+**Fourteen interactive tests:** touchscreen coverage across 112 cells, force touch,
 display and dead pixels, rotation, earpiece and loudspeaker, microphone, SIM and
-calling, every camera lens, motion sensors, GPS, vibration.
+calling, every camera lens, motion sensors, GPS, vibration, power and biometric
+unlock, and the condition and buttons the operator confirms by eye.
 
 **Output:** DYMO labels, label PDF, full inspection report as PDF, CSV and JSON
 exports, and a local audit record per inspection.
