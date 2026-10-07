@@ -19,8 +19,12 @@ public static class DeviceReportJson
     /// <summary>
     /// Bumped when a field changes meaning or disappears, never for a new field.
     /// A reader checks this before trusting anything else in the file.
+    ///
+    /// 2: the battery section no longer carries VoltageMv or TemperatureDeciCelsius.
+    /// The app stopped reading them, and an export that keeps emitting a field the
+    /// tool cannot fill would read as a measurement.
     /// </summary>
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
 
     public static string Serialize(DeviceData data)
     {
@@ -57,8 +61,6 @@ public static class DeviceReportJson
             CycleCount = data.BatteryCycleCount,
             DesignCapacityMah = data.BatteryDesignCapacity,
             CurrentCapacityMah = data.BatteryCurrentCapacity,
-            VoltageMv = data.BatteryVoltage,
-            TemperatureDeciCelsius = data.BatteryTemperature,
             SerialNumber = data.BatterySerialNumber,
             FactorySerialNumber = data.OriginalBatterySerialNumber,
         },
@@ -238,20 +240,12 @@ public static class DeviceReportJson
         [JsonPropertyOrder(5)]
         public int CurrentCapacityMah { get; set; }
 
-        [JsonPropertyName("voltageMv")]
-        [JsonPropertyOrder(6)]
-        public int VoltageMv { get; set; }
-
-        [JsonPropertyName("temperatureDeciCelsius")]
-        [JsonPropertyOrder(7)]
-        public int TemperatureDeciCelsius { get; set; }
-
         [JsonPropertyName("serialNumber")]
-        [JsonPropertyOrder(8)]
+        [JsonPropertyOrder(6)]
         public string SerialNumber { get; set; } = "";
 
         [JsonPropertyName("factorySerialNumber")]
-        [JsonPropertyOrder(9)]
+        [JsonPropertyOrder(7)]
         public string FactorySerialNumber { get; set; } = "";
     }
 

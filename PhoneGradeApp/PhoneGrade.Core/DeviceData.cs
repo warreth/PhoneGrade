@@ -126,8 +126,6 @@ public class DeviceData : INotifyPropertyChanged
     public int BatteryDesignCapacity { get; set; }
     public int BatteryCurrentCapacity { get; set; }
     public string BatterySerialNumber { get; set; } = "";
-    public int BatteryVoltage { get; set; } = 0;
-    public int BatteryTemperature { get; set; } = 0;
 
     // Factory / original component serials
     public string OriginalBatterySerialNumber { get; set; } = "";

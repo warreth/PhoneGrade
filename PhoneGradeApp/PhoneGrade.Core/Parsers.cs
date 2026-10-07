@@ -358,37 +358,6 @@ public static class Parsers
         return null;
     }
 
-    /// <summary>
-    /// Extracts battery voltage in millivolts from <c>dumpsys battery</c> output.
-    /// Looks for "voltage:" line. Returns 0 when not found.
-    /// </summary>
-    public static int ParseAndroidBatteryVoltage(string? dumpsysBattery)
-    {
-        if (string.IsNullOrWhiteSpace(dumpsysBattery)) return 0;
-
-        var match = Regex.Match(dumpsysBattery, @"^\s*voltage:\s*(\d+)", RegexOptions.Multiline | RegexOptions.IgnoreCase);
-        if (match.Success && int.TryParse(match.Groups[1].Value, out int voltage))
-            return voltage;
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Extracts battery temperature in tenths of a degree Celsius from <c>dumpsys battery</c> output.
-    /// Looks for "temperature:" line. Returns 0 when not found.
-    /// The value is typically in tenths of a degree (e.g., 280 = 28.0°C).
-    /// </summary>
-    public static int ParseAndroidBatteryTemperature(string? dumpsysBattery)
-    {
-        if (string.IsNullOrWhiteSpace(dumpsysBattery)) return 0;
-
-        var match = Regex.Match(dumpsysBattery, @"^\s*temperature:\s*(\d+)", RegexOptions.Multiline | RegexOptions.IgnoreCase);
-        if (match.Success && int.TryParse(match.Groups[1].Value, out int temp))
-            return temp;
-
-        return 0;
-    }
-
     /// <summary>Cleans and normalizes serial numbers, decoding ASCII hex or base64 if needed.</summary>
     public static string CleanSerial(string? raw)
     {

@@ -284,8 +284,6 @@ public class ParsersTests
 
         // Extended battery metrics from dumpsys
         Assert.Null(data.BatteryCycleCount);   // this handset's dumpsys carries no cycle count
-        Assert.Equal(3764, data.BatteryVoltage);
-        Assert.Equal(280, data.BatteryTemperature);
 
         // Network MAC addresses (not in sample output, should be empty)
         Assert.Equal("", data.WifiMacAddress);
@@ -708,32 +706,6 @@ public class ParsersTests
     public void ParseAndroidBatteryCycleCount_KeepsARealZeroAsZero()
     {
         Assert.Equal(0, Parsers.ParseAndroidBatteryCycleCount("  cycle count: 0\n"));
-    }
-
-    [Theory]
-    [InlineData("  voltage: 3764\n", 3764)]
-    [InlineData("  voltage: 4200\n", 4200)]
-    public void ParseAndroidBatteryVoltage_ReadsVoltage(string dumpsys, int expected)
-        => Assert.Equal(expected, Parsers.ParseAndroidBatteryVoltage(dumpsys));
-
-    [Fact]
-    public void ParseAndroidBatteryVoltage_ReturnsZeroWhenMissing()
-    {
-        string dumpsys = "  level: 50\n  health: 2\n  temperature: 280\n";
-        Assert.Equal(0, Parsers.ParseAndroidBatteryVoltage(dumpsys));
-    }
-
-    [Theory]
-    [InlineData("  temperature: 280\n", 280)]
-    [InlineData("  temperature: 315\n", 315)]
-    public void ParseAndroidBatteryTemperature_ReadsTemperature(string dumpsys, int expected)
-        => Assert.Equal(expected, Parsers.ParseAndroidBatteryTemperature(dumpsys));
-
-    [Fact]
-    public void ParseAndroidBatteryTemperature_ReturnsZeroWhenMissing()
-    {
-        string dumpsys = "  level: 50\n  health: 2\n  voltage: 3800\n";
-        Assert.Equal(0, Parsers.ParseAndroidBatteryTemperature(dumpsys));
     }
 }
 

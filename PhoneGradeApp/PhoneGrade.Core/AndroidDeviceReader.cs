@@ -48,12 +48,6 @@ public sealed record AndroidDeviceFacts
     /// <summary>Battery cycle count, null when the handset reports none.</summary>
     public int? BatteryCycleCount { get; init; }
 
-    /// <summary>Battery voltage in millivolts from dumpsys battery.</summary>
-    public int BatteryVoltage { get; init; } = 0;
-
-    /// <summary>Battery temperature in tenths of a degree Celsius from dumpsys battery.</summary>
-    public int BatteryTemperature { get; init; } = 0;
-
     /// <summary>Wi-Fi MAC address from /sys/class/net/wlan0/address.</summary>
     public string WifiMacAddress { get; init; } = "";
 
@@ -202,8 +196,6 @@ public sealed class AndroidDeviceReader
             Imei2 = Parsers.ParseAndroidImei(imei2Raw),
 
             BatteryCycleCount = Parsers.ParseAndroidBatteryCycleCount(battery),
-            BatteryVoltage = Parsers.ParseAndroidBatteryVoltage(battery),
-            BatteryTemperature = Parsers.ParseAndroidBatteryTemperature(battery),
 
             WifiMacAddress = ReadMac(wifiRaw, wifiRefused),
             BluetoothMacAddress = ReadMac(btRaw, btRefused),
@@ -346,8 +338,6 @@ public sealed class AndroidDeviceReader
 
         // Extended battery metrics from dumpsys
         data.BatteryCycleCount = facts.BatteryCycleCount;
-        data.BatteryVoltage = facts.BatteryVoltage;
-        data.BatteryTemperature = facts.BatteryTemperature;
 
         data.WithheldReads.AddRange(facts.Withheld);
 

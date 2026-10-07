@@ -51,8 +51,6 @@ public static class CsvReport
             ("Cycles", data.BatteryCycleCount?.ToString(CultureInfo.InvariantCulture) ?? ""),
             ("Design capacity mAh", data.BatteryDesignCapacity.ToString(CultureInfo.InvariantCulture)),
             ("Current capacity mAh", data.BatteryCurrentCapacity.ToString(CultureInfo.InvariantCulture)),
-            ("Voltage mV", data.BatteryVoltage.ToString(CultureInfo.InvariantCulture)),
-            ("Temperature 0.1C", data.BatteryTemperature.ToString(CultureInfo.InvariantCulture)),
             ("Serial number", data.BatterySerialNumber),
             ("Factory serial number", data.OriginalBatterySerialNumber),
         })

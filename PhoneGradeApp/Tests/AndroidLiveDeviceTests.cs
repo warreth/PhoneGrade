@@ -136,12 +136,7 @@ public class AndroidLiveDeviceTests
         var data = AndroidDeviceReader.ToDeviceData(await ReadFactsAsync());
 
         Assert.Equal(100, data.BatteryLevel);
-        Assert.Equal(4444, data.BatteryVoltage);
-
-        // The battery warms up between captures, so the reading is taken from the
-        // capture rather than pinned to a number that only held while recording.
-        Assert.Equal(Parsers.ParseAndroidBatteryTemperature(Answer("dumpsys battery")), data.BatteryTemperature);
-        Assert.InRange(data.BatteryTemperature, 200, 400);
+        Assert.Equal("Good", data.BatteryHealth);
     }
 
     /// <summary>
