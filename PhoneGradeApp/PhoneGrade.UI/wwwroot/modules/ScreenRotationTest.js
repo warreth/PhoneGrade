@@ -93,17 +93,48 @@ export class ScreenRotationTest extends DeviceTest {
         const startTime = Date.now();
 
         return new Promise((resolve) => {
+            let stopped = false;
+            let pollTimer = null;
+
+            /* Detaches the listener and marks the test as no longer running. Both the
+             * timeout below and the button come through here, so neither can finish the
+             * test twice and leave a status that disagrees with the report. */
+            const settle = () => {
+                if (stopped) return;
+                stopped = true;
+                clearTimeout(pollTimer);
+
+                if (isModernApi) {
+                    window.screen.orientation.removeEventListener('change', handleOrientationChange);
+                } else {
+                    window.removeEventListener('orientationchange', handleOrientationChange);
+                }
+            };
+
+            /* The operator is asked to rotate the phone and then has nothing to do but
+             * watch the clock. Thirty seconds is a long time to stand there when the
+             * rotation is never going to arrive, and a device with auto-rotate switched
+             * off would otherwise be recorded as a failure it did not deserve. So the
+             * test says what it found instead.
+             *
+             * Offered inside the promise because settle has to exist before the button
+             * can reach it. Offered above it, the button marked the test failed and
+             * then threw on a resolve that was not in scope. */
+            this.offerFaultButton(container, t('rotation.faultButton'), () => {
+                this.fail(t('rotation.failed'));
+                settle();
+                resolve();
+            });
+
             const checkComplete = () => {
+                if (stopped) return;
+
                 const elapsed = Date.now() - startTime;
                 const progress = 10 + (elapsed / testDuration) * 80;
                 this.reportProgress(wsClient, Math.min(progress, 90), t('rotation.waiting'));
 
                 if (elapsed >= testDuration || this.transitionCount >= 2) {
-                    if (isModernApi) {
-                        window.screen.orientation.removeEventListener('change', handleOrientationChange);
-                    } else {
-                        window.removeEventListener('orientationchange', handleOrientationChange);
-                    }
+                    settle();
 
                     if (this.transitionCount >= 1) {
                         this.pass(t('rotation.passed', { count: this.transitionCount }));
@@ -115,7 +146,7 @@ export class ScreenRotationTest extends DeviceTest {
 
                     resolve();
                 } else {
-                    setTimeout(checkComplete, 500);
+                    pollTimer = setTimeout(checkComplete, 500);
                 }
             };
 

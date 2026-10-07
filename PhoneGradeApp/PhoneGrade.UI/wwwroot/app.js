@@ -446,14 +446,16 @@ class TestRunner {
      *
      * Several tests only settle from a user gesture (permission prompts, capture
      * buttons, GPS fix). If that gesture never happens the suite used to stall on
-     * `await test.run(...)` and no result ever reached the desktop. Two guards
-     * release it: a 90 s failsafe, and the hold-to-skip button, which settles the
-     * same promise the instant an operator skips.
+     * `await test.run(...)` and no result ever reached the desktop. A 90 s
+     * failsafe releases it.
+     *
+     * The operator's own way out is the button each such test draws for itself, and it
+     * is the button that produced the result rather than merely abandoning it. A global
+     * one covering the whole suite was tried and removed: it could not be worded for a
+     * specific piece of hardware, and it blurred the difference between a device that
+     * is broken and a test nobody ran.
      */
     async runTestSafely(test, container) {
-        let settleSkip;
-        this._skipSettler = () => settleSkip && settleSkip();
-
         // Each step states how long it needs rather than sharing one ceiling. A
         // step that measures two things needs longer, and a fixed 90 s would cut
         // its second half off and report a fail for hardware it never finished.
@@ -471,7 +473,6 @@ class TestRunner {
                     resolve();
                 }, budgetMs);
             }),
-            new Promise((resolve) => { settleSkip = resolve; })
         ]);
 
         try {
@@ -479,7 +480,6 @@ class TestRunner {
         } finally {
             clearTimeout(this._runFailsafe);
             this._runFailsafe = null;
-            this._skipSettler = null;
             if (test.status === 'running') {
                 test.fail(t('runner.testEndedWithoutResult'));
             }
@@ -818,60 +818,4 @@ window.addEventListener('DOMContentLoaded', async () => {
     // otherwise sit in localStorage until the network drops and comes back.
     await wsClient.syncOfflineQueue();
 
-    // Hold-to-skip functionality (requires 2-second hold)
-    const skipBtn = document.getElementById('skip-test-btn');
-    if (skipBtn) {
-        let holdTimer = null;
-        let holdProgress = 0;
-        let holdInterval = null;
-        const holdDuration = 2000;
-        const originalText = skipBtn.textContent;
-
-        const startHold = () => {
-            holdProgress = 0;
-            skipBtn.textContent = t('runner.holdToSkip', { pct: 0 });
-            skipBtn.style.background = '#94a3b8';
-            
-            holdTimer = setTimeout(() => {
-                if (window.testRunner && window.testRunner.isRunning) {
-                    const test = window.testRunner.tests[window.testRunner.currentTestIndex];
-                    if (test) {
-                        test.skip();
-                        // skip() only records the status; the runner is still awaiting
-                        // run(), so settle it or the suite never advances.
-                        if (window.testRunner._skipSettler) window.testRunner._skipSettler();
-                    }
-                }
-                skipBtn.textContent = t('runner.skipped');
-                skipBtn.style.background = '#64748b';
-                setTimeout(() => {
-                    skipBtn.textContent = originalText;
-                    skipBtn.style.background = '';
-                }, 1000);
-            }, holdDuration);
-
-            holdInterval = setInterval(() => {
-                holdProgress += 50;
-                const pct = Math.round((holdProgress / holdDuration) * 100);
-                skipBtn.textContent = t('runner.holdToSkip', { pct });
-            }, 50);
-        };
-
-        const cancelHold = () => {
-            if (holdTimer) clearTimeout(holdTimer);
-            if (holdInterval) clearInterval(holdInterval);
-            holdTimer = null;
-            holdInterval = null;
-            holdProgress = 0;
-            skipBtn.textContent = originalText;
-            skipBtn.style.background = '';
-        };
-
-        skipBtn.addEventListener('mousedown', startHold);
-        skipBtn.addEventListener('touchstart', startHold);
-        skipBtn.addEventListener('mouseup', cancelHold);
-        skipBtn.addEventListener('mouseleave', cancelHold);
-        skipBtn.addEventListener('touchend', cancelHold);
-        skipBtn.addEventListener('touchcancel', cancelHold);
-    }
 });

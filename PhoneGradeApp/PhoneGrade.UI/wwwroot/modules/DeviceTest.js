@@ -113,6 +113,40 @@ export class DeviceTest {
     }
 
     /**
+     * Offer the operator a way to record that the thing being tested is not working.
+     *
+     * Added to the tests that otherwise leave somebody watching a countdown. It is the
+     * same thing the microphone test has always done with its own button, moved into the
+     * base class so a test does not have to invent one, and so every such test is
+     * worded for its own hardware rather than for the runner.
+     *
+     * Pressing it settles the test as a failure, which is the point: a phone whose
+     * rotation never fires is a finding, and an operator waiting thirty seconds for a
+     * result they already know is not going to give one.
+     *
+     * @param {HTMLElement} container - Where to render the button
+     * @param {string} label - What has stopped working, in the operator's words
+     * @param {() => void} onPress - What to do when it is pressed
+     */
+    offerFaultButton(container, label, onPress) {
+        const button = document.createElement('button');
+        button.className = 'btn btn-danger step-block';
+        button.style.marginTop = '16px';
+        button.textContent = label;
+
+        // One press, one result. A second press after the test has settled would write
+        // a second status onto a finished test, which is the sort of thing that shows
+        // up as a result that disagrees with the report.
+        button.addEventListener('click', () => {
+            button.disabled = true;
+            onPress();
+        }, { once: true });
+
+        container.appendChild(button);
+        return button;
+    }
+
+    /**
      * Mark test as skipped.
      * @param {string} reason - Why the test was skipped
      */

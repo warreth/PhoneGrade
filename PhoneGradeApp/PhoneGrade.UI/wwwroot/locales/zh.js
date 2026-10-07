@@ -214,6 +214,7 @@ export default {
     'microphone.micSelectionHint': '选择要测试的麦克风。部分设备有多个麦克风。',
     'microphone.testSelected': '测试所选麦克风',
     'microphone.noSelection': '未选择麦克风',
+    'rotation.faultButton': '旋转不起作用',
     'rotation.name': '屏幕旋转',
     'rotation.description': '旋转设备以检测方向感应',
     'rotation.starting': '正在开始旋转测试……',

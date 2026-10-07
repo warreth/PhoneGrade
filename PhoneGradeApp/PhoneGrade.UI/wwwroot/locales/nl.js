@@ -214,6 +214,7 @@ export default {
     'microphone.micSelectionHint': 'Kies de microfoon die je wilt testen. Sommige toestellen hebben meerdere microfoons.',
     'microphone.testSelected': 'Geselecteerde microfoon testen',
     'microphone.noSelection': 'Geen microfoon geselecteerd',
+    'rotation.faultButton': 'Rotatie werkt niet',
     'rotation.name': 'Schermrotatie',
     'rotation.description': 'Draai het toestel om de oriëntatieherkenning te testen',
     'rotation.starting': 'Rotatietest starten...',

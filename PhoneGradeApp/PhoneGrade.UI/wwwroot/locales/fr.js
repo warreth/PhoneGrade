@@ -214,6 +214,7 @@ export default {
     'microphone.micSelectionHint': 'Choisissez le microphone que vous voulez tester. Certains appareils ont plusieurs microphones.',
     'microphone.testSelected': 'Tester le microphone sélectionné',
     'microphone.noSelection': 'Aucun microphone sélectionné',
+    'rotation.faultButton': 'La rotation ne fonctionne pas',
     'rotation.name': 'Rotation de l\'écran',
     'rotation.description': 'Faites pivoter l\'appareil pour tester la détection de l\'orientation',
     'rotation.starting': 'Démarrage du test de rotation...',
