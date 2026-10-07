@@ -320,7 +320,7 @@
     <x:String x:Key="Export_SectionSecurity">锁定与安全</x:String>
     <x:String x:Key="Export_SectionComponents">部件原装状态</x:String>
     <x:String x:Key="Export_SectionTests">交互式检测</x:String>
-    <x:String x:Key="Export_SectionGrading">等级评定</x:String>
+    <x:String x:Key="Export_SectionGrading">等级</x:String>
     <x:String x:Key="Export_FieldName">字段</x:String>
     <x:String x:Key="Export_FieldValue">数值</x:String>
     <x:String x:Key="Export_NotReported">未报告</x:String>
@@ -393,11 +393,11 @@
     <x:String x:Key="Spec_Storage">存储空间</x:String>
     <x:String x:Key="Spec_Color">颜色</x:String>
     <x:String x:Key="Spec_Battery">电池状态</x:String>
-    <x:String x:Key="Spec_Grade">品质等级</x:String>
+    <x:String x:Key="Spec_Grade">等级</x:String>
     <x:String x:Key="Spec_Memory">内存</x:String>
     <x:String x:Key="Active_SecurityTitle">安全与状态</x:String>
     <x:String x:Key="Spec_Imei">IMEI 号</x:String>
-    <x:String x:Key="Spec_FindMy">Find My (iCloud)</x:String>
+    <x:String x:Key="Spec_FindMy">查找 (iCloud)</x:String>
     <x:String x:Key="Spec_Blacklist">黑名单状态</x:String>
     <x:String x:Key="Spec_NotChecked">未检测</x:String>
     <x:String x:Key="Active_OemTitle">原装部件审核（OEM）</x:String>
@@ -427,7 +427,7 @@
     <x:String x:Key="Report_Restore">撤销</x:String>
 
     <!-- The two questions at the end of an inspection -->
-    <x:String x:Key="QualityPopup_Title">选择品质等级</x:String>
+    <x:String x:Key="QualityPopup_Title">选择等级</x:String>
     <x:String x:Key="QualityPopup_Lead">这台设备检测后的评级，结果会印在标签上。</x:String>
     <x:String x:Key="PaymentPopup_Title">结算方式</x:String>
     <x:String x:Key="PaymentPopup_Lead">这台设备的结算方式。</x:String>
@@ -482,8 +482,8 @@
     <x:String x:Key="Editor_Identity">身份标识</x:String>
     <x:String x:Key="Editor_Identifier">识别码（IMEI / 序列号）</x:String>
     <x:String x:Key="Editor_Battery">电池</x:String>
-    <x:String x:Key="Editor_Grading">等级评定</x:String>
-    <x:String x:Key="Editor_Quality">品质</x:String>
+    <x:String x:Key="Editor_Grading">等级</x:String>
+    <x:String x:Key="Editor_Quality">等级</x:String>
     <x:String x:Key="Editor_Payment">结算方式</x:String>
     <x:String x:Key="Editor_MetricsTitle">硬件与电池指标</x:String>
     <x:String x:Key="Editor_Cycles">循环次数</x:String>
@@ -524,7 +524,7 @@
     <x:String x:Key="Status_ChoosePayment">请选择结算方式……</x:String>
     <x:String x:Key="Status_TestsComplete">检测已完成。请检查结果并打印标签。</x:String>
     <x:String x:Key="Status_PwaRequired">必须完成 PWA 硬件检测。请先运行交互式检测。</x:String>
-    <x:String x:Key="Status_ChooseQuality">请选择品质等级……</x:String>
+    <x:String x:Key="Status_ChooseQuality">请选择等级……</x:String>
     <x:String x:Key="Status_LabelGenerating">正在生成标签……</x:String>
     <x:String x:Key="Status_ExportingCsv">正在写入 CSV 文件……</x:String>
     <x:String x:Key="Status_ExportingPdf">正在写入 PDF 报告……</x:String>
@@ -661,7 +661,7 @@
     <x:String x:Key="Diag_TitleIdeviceinfoMissing">缺少 ideviceinfo</x:String>
     <x:String x:Key="Diag_TitleAdbFound">Android Debug Bridge (adb)</x:String>
     <x:String x:Key="Diag_TitleAdbMissing">缺少 adb 可执行文件</x:String>
-    <x:String x:Key="Diag_TitleTunnel">通道连接器（cloudflared）</x:String>
+    <x:String x:Key="Diag_TitleTunnel">隧道连接器（cloudflared）</x:String>
     <x:String x:Key="Diag_TitleAppleMultiplexing">Apple Multiplexing Service</x:String>
     <x:String x:Key="Diag_TitleAppleUsbService">Apple USB 服务</x:String>
     <x:String x:Key="Diag_TitleAppleDriverQuery">Apple 驱动查询</x:String>
@@ -678,7 +678,7 @@
     <x:String x:Key="Diag_MsgIdeviceinfoFailed">无法执行位于 {0} 的 ideviceinfo。详情：{1}</x:String>
     <x:String x:Key="Diag_MsgIdeviceinfoExitCode">无法执行位于 {0} 的 ideviceinfo。退出代码：{1}</x:String>
     <x:String x:Key="Diag_MsgAdbFailed">无法执行 adb。解析路径：{0}</x:String>
-    <x:String x:Key="Diag_MsgNoTunnel">未找到通道连接器，因此没有线缆路径的手机将使用普通网络地址。</x:String>
+    <x:String x:Key="Diag_MsgNoTunnel">未找到隧道连接器，因此没有线缆路径的手机将使用普通网络地址。</x:String>
     <x:String x:Key="Diag_MsgServiceActiveAmds">Apple Mobile Device Service 正在运行，正在监听 iOS 设备。</x:String>
     <x:String x:Key="Diag_MsgServiceActivePortable">便携版 usbmuxd 守护进程正在运行，正在监听 iOS 设备。</x:String>
     <x:String x:Key="Diag_MsgNoService">Apple Mobile Device Service 和 usbmuxd 守护进程当前都未运行。</x:String>
@@ -697,7 +697,7 @@
     <x:String x:Key="Diag_ResolveAdbWin">安装 Android SDK Platform-Tools，或将 adb.exe 复制到 idevice-tools 目录。</x:String>
     <x:String x:Key="Diag_ResolveAdbMac">在终端中运行：'brew install android-platform-tools'。</x:String>
     <x:String x:Key="Diag_ResolveAdbLinux">在终端中运行：'sudo apt-get install adb'。</x:String>
-    <x:String x:Key="Diag_ResolveTunnel">安装通道连接器，或将 cloudflared 放入“idevice-tools”目录。</x:String>
+    <x:String x:Key="Diag_ResolveTunnel">安装隧道连接器，或将 cloudflared 放入“idevice-tools”目录。</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdPortable">启动便携版 usbmuxd 后台守护进程。</x:String>
     <x:String x:Key="Diag_ResolveAppleService">下载并安装轻量版 Apple 驱动和 usbmuxd 守护进程。</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdMac">请确认 usbmuxd 正在运行，或重启电脑。</x:String>
