@@ -362,6 +362,102 @@ public class ImeiInfoApiServiceTests
     }
 
     [Fact]
+    public async Task CheckAsync_LiveAppleShape_ReadsTheCarrierSimAndFmiFields()
+    {
+        // Captured from the live gateway on 7 October 2026. The Apple carrier
+        // service names its fields differently from every fixture above, and a
+        // parser that only knew the aliases reported an unlocked phone with
+        // Find My off as four empty fields.
+        string appleResult = """
+        {
+          "model_name": "iPhone 12 Pro Max 512GB Graphite [A2342] [iPhone13,4]",
+          "icloud_lock": "OFF",
+          "locked_carrier": "2303 - Multi-Mode Unlock",
+          "sim_lock_status": "Unlocked",
+          "device_is_unlocked": "true",
+          "warranty_status": "Out Of Warranty"
+        }
+        """;
+
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Done(appleResult, service: "APPLE: Carrier & Lock Status & FMI")
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync(AppleImei, ImeiCheckType.AppleCarrierLockFmi, _apiKey, client);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.Equal("iPhone 12 Pro Max 512GB Graphite [A2342] [iPhone13,4]", result.ModelName);
+        Assert.Equal("OFF", result.FmiStatus);
+        Assert.Equal("Unlocked", result.SimLockStatus);
+        Assert.Equal("2303 - Multi-Mode Unlock", result.CarrierName);
+    }
+
+    [Fact]
+    public async Task CheckAsync_LiveSamsungShape_ReadsTheDescriptionAndKnoxGuard()
+    {
+        // Captured live the same day: the Samsung service has no model_name and
+        // no knox_status, and answer the retailer-facing names instead.
+        string samsungResult = """
+        {
+          "manufacturer": "Samsung Electronics Vietnam Thai Nguyen Co., Ltd. (SEVT)",
+          "model_description": "Galaxy S24+ 256GB (T-Mobile)",
+          "carrier": "T-Mobile United States",
+          "knox_guard": "OFF",
+          "warranty_status": "Warranty Expired"
+        }
+        """;
+
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Done(samsungResult, service: "GENERIC: Samsung Info Check & Knox Info")
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync("350545260771498", ImeiCheckType.SamsungInfoKnox, _apiKey, client);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.Equal("Samsung Electronics Vietnam Thai Nguyen Co., Ltd. (SEVT)", result.Manufacturer);
+        Assert.Equal("Galaxy S24+ 256GB (T-Mobile)", result.ModelName);
+        Assert.Equal("T-Mobile United States", result.CarrierName);
+        Assert.Equal("OFF", result.KnoxStatus);
+        Assert.Equal("Warranty Expired", result.WarrantyStatus);
+    }
+
+    [Fact]
+    public async Task CheckAsync_LiveBlacklistShape_TrimsThePaddedFields()
+    {
+        // Captured live: the blacklist service pads its strings with a leading
+        // space, which would otherwise land in the report and on the label.
+        string blacklistResult = """
+        {
+          "imei": " 355030794352540",
+          "manufacturer": " GOOGLE",
+          "model": " Pixel 9a",
+          "blacklist_status": " CLEAN",
+          "device_is_clean": "true"
+        }
+        """;
+
+        var stub = new StubHandler
+        {
+            Services = ServicesJson(),
+            Check = (_, _) => Done(blacklistResult, service: "BLACKLIST: Simple Check")
+        };
+        using var client = ClientFor(stub);
+
+        var result = await CheckAsync(BlacklistedImei, ImeiCheckType.BlacklistSimple, _apiKey, client);
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.Equal("GOOGLE", result.Manufacturer);
+        Assert.Equal("Pixel 9a", result.ModelName);
+        Assert.Equal(false, result.IsBlacklisted);
+    }
+
+    [Fact]
     public async Task CheckAsync_PendingResponse_PollsSearchHistoryUntilDone()
     {
         var stub = new StubHandler
@@ -452,7 +548,7 @@ public class ImeiInfoApiServiceTests
     public async Task CheckAsync_AnIdWithoutAStatus_IsNotAQueueId()
     {
         // The id of a finished payload must not be mistaken for a history id,
-        // which would cost five polls for an entry that was never queued.
+        // which would cost a full round of polls for an entry that was never queued.
         var stub = new StubHandler
         {
             Services = ServicesJson(),

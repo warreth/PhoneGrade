@@ -595,8 +595,13 @@ public static class ImeiInfoApiService
         if (!string.IsNullOrWhiteSpace(blacklistedOn) && DateTime.TryParse(blacklistedOn, out var when))
             result.BlacklistedOn = when;
 
-        // Carrier and SIM lock
-        result.CarrierName = GetString(node, "original_carrier") ?? GetString(node, "carrier");
+        // Carrier and SIM lock. The Apple service sends the carrier it is locked
+        // to as "locked_carrier" and the lock state as "sim_lock_status", with a
+        // plain "device_is_unlocked" flag beside it; the other services use the
+        // names read first here.
+        result.CarrierName = GetString(node, "original_carrier")
+            ?? GetString(node, "carrier")
+            ?? GetString(node, "locked_carrier");
 
         if (node.TryGetProperty("carrier_lock", out var lockNode))
         {
@@ -609,13 +614,23 @@ public static class ImeiInfoApiService
         }
         else
         {
-            result.SimLockStatus = GetString(node, "sim_lock") ?? GetString(node, "simlock_status");
+            result.SimLockStatus = GetString(node, "sim_lock")
+                ?? GetString(node, "simlock_status")
+                ?? GetString(node, "sim_lock_status");
+
+            if (result.SimLockStatus is null)
+            {
+                string? unlocked = GetString(node, "device_is_unlocked");
+                if (unlocked is "true" or "false")
+                    result.SimLockStatus = unlocked == "true" ? "Unlocked" : "Locked";
+            }
         }
 
-        // Find My iPhone / activation lock
+        // Find My iPhone / activation lock. The Apple service calls it "icloud_lock".
         result.FmiStatus = GetString(node, "fmi_status")
             ?? GetString(node, "find_my_iphone")
-            ?? GetString(node, "icloud_status");
+            ?? GetString(node, "icloud_status")
+            ?? GetString(node, "icloud_lock");
 
         if (result.FmiStatus is null && node.TryGetProperty("activation_lock", out var fmiNode))
         {
@@ -627,11 +642,18 @@ public static class ImeiInfoApiService
                 result.FmiStatus = fmiNode.GetString();
         }
 
-        // Device identity
-        result.ModelName = GetString(node, "model_name") ?? GetString(node, "model");
-        result.Manufacturer = GetString(node, "manufacturer") ?? GetString(node, "brand");
-        result.ModelNumber = GetString(node, "model_number") ?? GetString(node, "model_code");
-        result.KnoxStatus = GetString(node, "knox_status") ?? GetString(node, "knox");
+        // Device identity. The services name the device differently: the Apple
+        // one sends "model_name", the blacklist one "model", and the Samsung one
+        // "model_description". The gateway pads some of these with spaces, which
+        // would otherwise travel into the report.
+        result.ModelName = Trimmed(GetString(node, "model_name")
+            ?? GetString(node, "model")
+            ?? GetString(node, "model_description"));
+        result.Manufacturer = Trimmed(GetString(node, "manufacturer") ?? GetString(node, "brand"));
+        result.ModelNumber = Trimmed(GetString(node, "model_number") ?? GetString(node, "model_code"));
+        result.KnoxStatus = GetString(node, "knox_status")
+            ?? GetString(node, "knox")
+            ?? GetString(node, "knox_guard");
         result.WarrantyStatus = GetString(node, "warranty_status") ?? GetString(node, "warranty");
     }
 
@@ -850,6 +872,14 @@ public static class ImeiInfoApiService
         node.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
+
+    /// <summary>
+    /// A gateway string with the padding stripped. Some services answer with a
+    /// leading space (" GOOGLE", " Pixel 9a"), and it would otherwise land in the
+    /// report and on the label.
+    /// </summary>
+    private static string? Trimmed(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? value : value.Trim();
 
     private static bool TryGetInt(JsonElement node, string property, out int value)
     {
