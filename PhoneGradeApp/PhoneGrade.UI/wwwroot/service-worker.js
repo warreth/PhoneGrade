@@ -1,4 +1,4 @@
-const CACHE_NAME = 'phonegrade-v3';
+const CACHE_NAME = 'phonegrade-v4';
 const ASSETS = [
     '/',
     '/manifest.json',
@@ -17,7 +17,8 @@ const ASSETS = [
     '/modules/MicrophoneTest.js',
     '/modules/SpeakerTest.js',
     '/modules/CameraTest.js',
-    '/modules/SensorTest.js'
+    '/modules/SensorTest.js',
+    '/modules/PowerLockTest.js'
 ];
 
 self.addEventListener('install', (e) => {

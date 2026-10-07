@@ -12,6 +12,7 @@ import { CameraTest } from './modules/CameraTest.js';
 import { SensorTest } from './modules/SensorTest.js';
 import { LocationTest } from './modules/LocationTest.js';
 import { VibrationTest } from './modules/VibrationTest.js';
+import { PowerLockTest } from './modules/PowerLockTest.js';
 import { CosmeticTest } from './modules/CosmeticTest.js';
 import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 import { CapabilityScanner } from './modules/CapabilityScanner.js';
@@ -374,6 +375,9 @@ class TestRunner {
             new SensorTest(),
             new LocationTest(),
             new VibrationTest(),
+            // The power step turns the screen off on purpose, so it runs before
+            // the visual checks rather than between them.
+            new PowerLockTest(),
             // Last on purpose. It asks the operator to look at the phone in
             // their hand, which only makes sense once every measurement is
             // done and the phone is free to be turned over.
