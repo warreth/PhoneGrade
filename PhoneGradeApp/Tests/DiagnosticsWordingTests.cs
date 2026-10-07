@@ -59,9 +59,9 @@ public class DiagnosticsWordingTests
 
         Assert.Contains("iOS niet beschikbaar", panel.OverallStatus);
 
-        Assert.Equal("Tunnelverbinding (cloudflared)", panel.Checks[0].Title);
+        Assert.Equal("Tunnelconnector (cloudflared)", panel.Checks[0].Title);
         Assert.Contains("gewone netwerkadres", panel.Checks[0].Message);
-        Assert.Contains("Installeer de tunnelverbinding", panel.Checks[0].Resolution);
+        Assert.Contains("Installeer de tunnelconnector", panel.Checks[0].Resolution);
         Assert.Equal("Verbinding", panel.Checks[0].CategoryLabel);
         Assert.Equal("Waarschuwing", panel.Checks[0].SeverityLabel);
 

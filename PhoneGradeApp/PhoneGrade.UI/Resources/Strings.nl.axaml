@@ -10,7 +10,7 @@
     <x:String x:Key="Tab_Label">Label</x:String>
     <x:String x:Key="Tab_Settings">Instellingen</x:String>
     <x:String x:Key="Tab_Logs">Logs</x:String>
-    <x:String x:Key="Tab_Troubleshoot">Troubleshoot</x:String>
+    <x:String x:Key="Tab_Troubleshoot">Diagnose</x:String>
     
     <!-- Dashboard Card Titles -->
     <x:String x:Key="Card_Status">STATUS</x:String>
@@ -21,23 +21,23 @@
     
     <!-- Buttons -->
     <x:String x:Key="Btn_StartManual">Start handmatig</x:String>
-    <x:String x:Key="Btn_Refresh">Verversen</x:String>
+    <x:String x:Key="Btn_Refresh">Vernieuwen</x:String>
     <x:String x:Key="Btn_OpenLabel">Open label</x:String>
     <x:String x:Key="Btn_StartWebRunner">Start Web Runner</x:String>
     <x:String x:Key="Btn_StopWebRunner">Stop Web Runner</x:String>
-    <x:String x:Key="Btn_RunDiagnostics">Voer Diagnose Uit</x:String>
-    <x:String x:Key="Btn_CopyReport">Kopieer Rapport</x:String>
-    <x:String x:Key="Btn_ExportReport">Exporteer Rapport</x:String>
-    <x:String x:Key="Btn_FixAll">Los Alles Op</x:String>
+    <x:String x:Key="Btn_RunDiagnostics">Diagnose uitvoeren</x:String>
+    <x:String x:Key="Btn_CopyReport">Rapport kopiëren</x:String>
+    <x:String x:Key="Btn_ExportReport">Rapport exporteren</x:String>
+    <x:String x:Key="Btn_FixAll">Alles oplossen</x:String>
     <x:String x:Key="Btn_Fix">Oplossen</x:String>
     <x:String x:Key="Btn_Clear">Wissen</x:String>
     <x:String x:Key="Btn_Copy">Kopieer</x:String>
     <x:String x:Key="Btn_Export">Exporteer</x:String>
-    <x:String x:Key="Btn_OpenFolder">Open Map</x:String>
+    <x:String x:Key="Btn_OpenFolder">Map openen</x:String>
     
     <!-- Status Messages -->
-    <x:String x:Key="Status_Ready">Plug een iPhone/iPad in om te starten...</x:String>
-    <x:String x:Key="Status_NoDevice">Geen toestel gevonden. Kabel/poort proberen of toestel ontgrendelen en 'Vertrouwen' tikken.</x:String>
+    <x:String x:Key="Status_Ready">Sluit een iPhone/iPad aan om te starten...</x:String>
+    <x:String x:Key="Status_NoDevice">Geen toestel gevonden. Probeer een andere kabel of poort, of ontgrendel het toestel en tik op 'Vertrouw'.</x:String>
     <x:String x:Key="Status_ToolsMissing">Geen USB-tools: diagnose starten</x:String>
     
     <!-- Settings -->
@@ -45,17 +45,17 @@
     <x:String x:Key="Settings_Theme">Thema</x:String>
     <x:String x:Key="Settings_ThemeDesc">Donker, licht of volgens systeem</x:String>
     <x:String x:Key="Settings_Language">Taal</x:String>
-    <x:String x:Key="Settings_LanguageDesc">Interface taal</x:String>
+    <x:String x:Key="Settings_LanguageDesc">Taal van de app</x:String>
     <x:String x:Key="Settings_AutoDetect">Start automatisch bij insteken</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Zodra een toestel gedetecteerd wordt, draait het hele proces vanzelf</x:String>
-    <x:String x:Key="Settings_UsbEventMonitoring">USB-gebeurtenis monitoring</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoring">USB-gebeurtenissen volgen</x:String>
     <x:String x:Key="Settings_UsbEventMonitoringDesc">Gebruik native OS USB-gebeurtenissen voor directe toesteldetectie (Windows WMI, macOS IOKit, Linux udev)</x:String>
     
     <!-- Troubleshoot -->
-    <x:String x:Key="Troubleshoot_Title">APPARAAT DETECTIE &amp; DRIVER ASSISTENT</x:String>
-    <x:String x:Key="Troubleshoot_Desc">Als een toestel niet wordt herkend, scan het systeem om ontbrekende drivers, permissies of daemons te diagnosticeren.</x:String>
+    <x:String x:Key="Troubleshoot_Title">TOESTELDETECTIE &amp; DRIVERASSISTENT</x:String>
+    <x:String x:Key="Troubleshoot_Desc">Als een toestel niet wordt herkend, scan het systeem om ontbrekende drivers, rechten of daemons op te sporen.</x:String>
     <x:String x:Key="Troubleshoot_Scanning">Diagnose wordt uitgevoerd, even geduld...</x:String>
-    <x:String x:Key="Troubleshoot_ClickToScan">Klik op Voer Diagnose Uit om je systeem te scannen op USB tools, drivers en aangesloten apparaten.</x:String>
+    <x:String x:Key="Troubleshoot_ClickToScan">Klik op Diagnose uitvoeren om je systeem te scannen op USB-hulpmiddelen, drivers en aangesloten toestellen.</x:String>
     
     <!-- Logs -->
     <x:String x:Key="Logs_SearchPlaceholder">Zoek logs...</x:String>
@@ -85,14 +85,14 @@
     <x:String x:Key="BatteryStatus_Overvoltage">Overspanning</x:String>
     <x:String x:Key="BatteryStatus_StorageFault">Storing</x:String>
     <x:String x:Key="BatteryStatus_TooCold">Te koud</x:String>
-    <x:String x:Key="ActivationLock_On">AAN (gelocked)</x:String>
-    <x:String x:Key="ActivationLock_Off">UIT (vrij)</x:String>
+    <x:String x:Key="ActivationLock_On">AAN (vergrendeld)</x:String>
+    <x:String x:Key="ActivationLock_Off">UIT (ontgrendeld)</x:String>
     
     <x:String x:Key="Settings_DailyOptions">DAGELIJKSE OPTIES</x:String>
     <x:String x:Key="Settings_GroupOnArrival">Wanneer een toestel aankomt</x:String>
     <x:String x:Key="Settings_GroupInteractiveTest">De interactieve test</x:String>
     <x:String x:Key="Settings_GroupAfterwards">Na de inspectie</x:String>
-    <x:String x:Key="Settings_Quality">Standaard Kwaliteit</x:String>
+    <x:String x:Key="Settings_Quality">Standaardgrade</x:String>
     <x:String x:Key="Settings_Payment">Standaard Factuurmethode</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Automatisch interactieve webtest starten</x:String>
     <x:String x:Key="Settings_RequirePwaTest">PWA Test Verplicht voor afronden</x:String>
@@ -112,7 +112,7 @@
     <!-- Licensing & Subscription -->
     <x:String x:Key="Settings_LicensingCardTitle">Licentie en abonnement</x:String>
     <x:String x:Key="Settings_LicenseKey">Licentiesleutel</x:String>
-    <x:String x:Key="Settings_LicenseKeyWatermark">Voer uw Lemon Squeezy licentiesleutel in</x:String>
+    <x:String x:Key="Settings_LicenseKeyWatermark">Voer je Lemon Squeezy-licentiesleutel in</x:String>
     <x:String x:Key="Settings_ValidateActivate">Valideren en activeren</x:String>
     <x:String x:Key="Settings_ManageLicense">Licentie beheren</x:String>
     <x:String x:Key="Settings_FreeTierStatus">Gratis versie ({0}/10 scans gebruikt)</x:String>
@@ -135,26 +135,26 @@
     <x:String x:Key="Intro_ProBadge">Onbeperkt</x:String>
     <x:String x:Key="Intro_StartFree">Gratis starten</x:String>
     <x:String x:Key="Intro_PageWelcome">Taal en weergave</x:String>
-    <x:String x:Key="Intro_WelcomeLead">Kies dit een keer. Beide zijn later aan te passen bij Instellingen.</x:String>
+    <x:String x:Key="Intro_WelcomeLead">Stel dit één keer in. Beide zijn later aan te passen bij Instellingen.</x:String>
     <x:String x:Key="Intro_PagePlan">Wat de gratis versie je geeft</x:String>
     <x:String x:Key="Intro_PageWorkflow">Hoe een inspectie verloopt</x:String>
     <x:String x:Key="Intro_WorkflowLead">Vier stappen, elke keer hetzelfde. Alleen de interactieve test heeft de telefoon zelf nodig.</x:String>
     <x:String x:Key="Intro_StepPlug">Sluit de telefoon aan via USB en ontgrendel hem</x:String>
     <x:String x:Key="Intro_StepRead">PhoneGrade leest de hardware zelf uit en toont wat het heeft gevonden</x:String>
-    <x:String x:Key="Intro_StepTest">Scan de QR-code met de telefoon voor de camera-, scherm-, sensor- en audiotoets</x:String>
-    <x:String x:Key="Intro_StepFinish">Kies de kwaliteit, druk het label af en geef de telefoon terug</x:String>
-    <x:String x:Key="Intro_PageImei">Carrier lock en blacklist controles</x:String>
+    <x:String x:Key="Intro_StepTest">Scan de QR-code met de telefoon voor de camera-, scherm-, sensor- en audiotests</x:String>
+    <x:String x:Key="Intro_StepFinish">Kies de grade, druk het label af en geef de telefoon terug</x:String>
+    <x:String x:Key="Intro_PageImei">Providerlock en blacklistcontroles</x:String>
     <x:String x:Key="Intro_Next">Volgende</x:String>
     <x:String x:Key="Intro_Back">Terug</x:String>
     <x:String x:Key="Intro_Skip">Overslaan</x:String>
-    <x:String x:Key="Intro_SeePricing">Bekijk prijzen</x:String>
+    <x:String x:Key="Intro_SeePricing">Bekijk de prijzen</x:String>
     <x:String x:Key="Intro_HaveLicense">Ik heb al een licentie</x:String>
     <x:String x:Key="Intro_ActivationTitle">Activeer je licentie</x:String>
     <x:String x:Key="Licensing_TierFree">{0} scans over</x:String>
-    <x:String x:Key="Licensing_TierPro">Pro - Actief</x:String>
+    <x:String x:Key="Licensing_TierPro">Pro - actief</x:String>
     <x:String x:Key="Licensing_PanelHint">Licentie en scans</x:String>
     <x:String x:Key="Licensing_PanelTitle">Licentie</x:String>
-    <x:String x:Key="Licensing_PanelScansLeft">Scans resterend</x:String>
+    <x:String x:Key="Licensing_PanelScansLeft">Resterende scans</x:String>
     <x:String x:Key="Licensing_PanelClose">Sluiten</x:String>
     <x:String x:Key="Licensing_PanelSeatsUsed">{0} van {1} computers in gebruik</x:String>
     <x:String x:Key="Licensing_PanelSeatThis">Deze computer ({0})</x:String>
@@ -162,19 +162,19 @@
     <x:String x:Key="Licensing_PanelNoMachineId">Deze computer kan niet worden herkend, dus hier kan geen licentie worden geactiveerd. De gratis scans blijven werken.</x:String>
     <x:String x:Key="Licensing_PanelRelease">Deze computer vrijmaken</x:String>
     <x:String x:Key="Licensing_PanelReleaseConfirm">Echt vrijmaken?</x:String>
-    <x:String x:Key="Licensing_PanelReleaseCancel">Behouden</x:String>
+    <x:String x:Key="Licensing_PanelReleaseCancel">Niet vrijmaken</x:String>
     <x:String x:Key="Licensing_PanelReleaseHint">Maakt deze computer vrij zodat een andere dezelfde sleutel kan gebruiken. Je kunt de sleutel daarna opnieuw activeren.</x:String>
     <x:String x:Key="Licensing_PanelReleaseDone">Deze computer is vrijgemaakt. Je bent op de gratis versie tot je de sleutel opnieuw activeert.</x:String>
     <x:String x:Key="Licensing_PanelReleaseDoneAlready">Deze computer stond niet meer bij de sleutel. Je bent op de gratis versie.</x:String>
 
-    <x:String x:Key="Btn_Troubleshoot">USB en Driver Diagnose</x:String>
-    <x:String x:Key="Btn_Logs">Systeemlogboeken Bekijken</x:String>
+    <x:String x:Key="Btn_Troubleshoot">USB- en driverdiagnose</x:String>
+    <x:String x:Key="Btn_Logs">Systeemlogboeken bekijken</x:String>
 
     <!-- Summary / Inspection Report -->
     <x:String x:Key="Summary_Title">INSPECTIERAPPORT</x:String>
-    <x:String x:Key="Summary_AuditTitle">3UTOOLS HARDWARE COMPONENTEN AUDIT</x:String>
-    <x:String x:Key="Summary_AuditSubtitle">Vergelijking Fabriekswaarde vs Gelezen Waarde</x:String>
-    <x:String x:Key="Summary_ColComponent">Onderdeel</x:String>
+    <x:String x:Key="Summary_AuditTitle">3UTOOLS HARDWARE-ONDERDELEN AUDIT</x:String>
+    <x:String x:Key="Summary_AuditSubtitle">Vergelijking fabriekswaarde en gelezen waarde</x:String>
+    <x:String x:Key="Summary_ColComponent">Component</x:String>
     <x:String x:Key="Summary_ColPart">Onderdeel</x:String>
     <x:String x:Key="Summary_ColFactory">Fabriekswaarde (Ex-factory)</x:String>
     <x:String x:Key="Summary_ColRead">Gelezen Waarde (Read)</x:String>
@@ -242,7 +242,7 @@
     <x:String x:Key="Export_PrinterBusy">bezet</x:String>
     <x:String x:Key="Export_NoPrinters">Geen printer gevonden. Gebruik het afdrukvenster van het systeem.</x:String>
     <x:String x:Key="Export_ScanPrinters">Printers zoeken</x:String>
-    <x:String x:Key="Export_Copies">Aantal</x:String>
+    <x:String x:Key="Export_Copies">Exemplaren</x:String>
     <x:String x:Key="Export_BtnWrite">Geselecteerde schrijven</x:String>
     <x:String x:Key="Export_BtnPrintLabel">Label afdrukken</x:String>
     <x:String x:Key="Export_BtnOpenFolder">Map openen</x:String>
@@ -263,7 +263,7 @@
     <x:String x:Key="Export_FormatReportPdf">Volledig rapport als PDF</x:String>
     <x:String x:Key="Export_FormatReportPdfNote">Elke gelezen waarde, met het oordeel bovenaan. Om te bewaren of aan een klant te tonen.</x:String>
     <x:String x:Key="Export_FormatJson">Ruwe getallen als JSON</x:String>
-    <x:String x:Key="Export_FormatJsonNote">Alles wat het toestel gemeld heeft, met versienummer. Voor uw eigen systeem.</x:String>
+    <x:String x:Key="Export_FormatJsonNote">Alles wat het toestel gemeld heeft, met versienummer. Voor je eigen systeem.</x:String>
     <x:String x:Key="Export_FormatCsv">Ruwe getallen als CSV</x:String>
     <x:String x:Key="Export_FormatCsvNote">Dezelfde getallen, een rij per veld, voor een rekenblad.</x:String>
     <x:String x:Key="Export_NameOf">Formaat</x:String>
@@ -282,14 +282,14 @@
     <x:String x:Key="Status_NoTemplateFound">Er is geen labelsjabloon ({0}) gevonden. Gezocht in: {1}</x:String>
     <x:String x:Key="Status_TemplateHasNoFields">Het labelsjabloon bevat geen van de velden die deze app vult, dus elk label zou hetzelfde worden. Open het sjabloon uit de app opnieuw.</x:String>
     <x:String x:Key="Status_WriteFailed">Het schrijven van het bestand {0} is mislukt: {1}</x:String>
-    <x:String x:Key="Status_UnfilledFields">Het sjabloon vraagt ook om {0}, en dat vult niets.</x:String>
-    <x:String x:Key="Status_BarcodeReplaced">Tekens die de barcode niet kan dragen zijn vervangen door een streepje, en de tekst staat ernaast.</x:String>
+    <x:String x:Key="Status_UnfilledFields">Het sjabloon vraagt ook om {0}, maar dat wordt door niets gevuld.</x:String>
+    <x:String x:Key="Status_BarcodeReplaced">Tekens die de barcode niet kan dragen, zijn vervangen door een streepje, en de tekst staat ernaast.</x:String>
     <x:String x:Key="Status_BarcodeWrapped">Er zijn sterretjes toegevoegd zodat de barcode teruggelezen kan worden.</x:String>
     <x:String x:Key="Status_NoFileAt">Op {0} staat geen bestand.</x:String>
     <x:String x:Key="Status_NoFolderAt">Op {0} staat geen map.</x:String>
     <x:String x:Key="Status_NoPrinterChosen">Er is geen printer gekozen.</x:String>
     <x:String x:Key="Status_PrintDialogOpened">Naar het afdrukvenster gestuurd.</x:String>
-    <x:String x:Key="Status_PrintNoHandler">Er is geen afdrukkoppeling geinstalleerd, dus het bestand is in plaats daarvan geopend. Druk het daar af.</x:String>
+    <x:String x:Key="Status_PrintNoHandler">Er is geen afdrukkoppeling geïnstalleerd, dus het bestand is in plaats daarvan geopend. Druk het daar af.</x:String>
     <x:String x:Key="Status_PrintPreviewOpened">Geopend in Voorbeeld. Druk het daar af.</x:String>
     <x:String x:Key="Status_PrintDefaultApp">Geopend in de standaardtoepassing. Druk het daar af.</x:String>
     <x:String x:Key="Status_PrintNotStarted">Afdrukken kon niet worden gestart: {0}</x:String>
@@ -314,15 +314,15 @@
     <x:String x:Key="Export_SectionSecurity">Vergrendeling en beveiliging</x:String>
     <x:String x:Key="Export_SectionComponents">Originele onderdelen</x:String>
     <x:String x:Key="Export_SectionTests">Interactieve tests</x:String>
-    <x:String x:Key="Export_SectionGrading">Waardering</x:String>
+    <x:String x:Key="Export_SectionGrading">Grade</x:String>
     <x:String x:Key="Export_FieldName">Veld</x:String>
     <x:String x:Key="Export_FieldValue">Waarde</x:String>
     <x:String x:Key="Export_NotReported">Niet gemeld</x:String>
     <x:String x:Key="Export_Unknown">Onbekend</x:String>
     <x:String x:Key="Export_Yes">Ja</x:String>
     <x:String x:Key="Export_No">Nee</x:String>
-    <x:String x:Key="Export_Locked">Vast</x:String>
-    <x:String x:Key="Export_Unlocked">Vrij</x:String>
+    <x:String x:Key="Export_Locked">Vergrendeld</x:String>
+    <x:String x:Key="Export_Unlocked">Ontgrendeld</x:String>
     <x:String x:Key="Export_LabelLine">Label</x:String>
     <x:String x:Key="Export_ColComponent">Onderdeel</x:String>
     <x:String x:Key="Export_ColRead">Gelezen</x:String>
@@ -345,38 +345,38 @@
     <!-- Idle screen and the USB trust guide -->
     <x:String x:Key="TrialLimit_Reached">Gratis proefversie limiet bereikt (10/10). Koop een licentie om door te gaan met scannen.</x:String>
     <x:String x:Key="Idle_Title">Sluit een toestel aan via USB</x:String>
-    <x:String x:Key="Idle_Lead">Ondersteunt iPhone, iPad en Android toestellen. Zorg dat het scherm ontgrendeld is en bevestig 'Vertrouw deze computer'.</x:String>
-    <x:String x:Key="Idle_DetectedDevices">Gedetecteerde apparaten:</x:String>
+    <x:String x:Key="Idle_Lead">Ondersteunt iPhone-, iPad- en Android-toestellen. Zorg dat het scherm ontgrendeld is en bevestig 'Vertrouw deze computer'.</x:String>
+    <x:String x:Key="Idle_DetectedDevices">Gedetecteerde toestellen:</x:String>
     <!-- USB-foutopsporing uitleg. Alleen geopend door een Android-toestel op
          de kabel waar adb nog niet mee kan praten, en door niets anders. -->
     <x:String x:Key="AdbTutorial_Title">USB-foutopsporing inschakelen</x:String>
-    <x:String x:Key="AdbTutorial_Lead">De telefoon is verbonden, maar vertrouwt deze computer nog niet. De telefoon zelf is prima; er moet een keer op de telefoon worden getikt.</x:String>
-    <x:String x:Key="AdbTutorial_ManufacturerPrefix">Voor uw {0}:</x:String>
+    <x:String x:Key="AdbTutorial_Lead">De telefoon is verbonden, maar vertrouwt deze computer nog niet. De telefoon zelf is prima; één tik op de telefoon is genoeg.</x:String>
+    <x:String x:Key="AdbTutorial_ManufacturerPrefix">Voor je {0}:</x:String>
     <x:String x:Key="AdbTutorial_DeviceWord">{0}-toestel</x:String>
     <x:String x:Key="AdbTutorial_AndroidDevice">Android-toestel</x:String>
     <x:String x:Key="AdbTutorial_Common_ScreenLock">Ontgrendel het scherm en laat het aan. Een vergrendeld scherm toont de vraag niet.</x:String>
-    <x:String x:Key="AdbTutorial_Common_Authorize">Open de melding "USB-foutopsporing toestaan?" op de telefoon, tik "Altijd toestaan vanaf deze computer" aan en daarna op OK.</x:String>
+    <x:String x:Key="AdbTutorial_Common_Authorize">Open de melding "USB-foutopsporing toestaan?" op de telefoon, tik op "Altijd toestaan vanaf deze computer" en daarna op OK.</x:String>
     <!-- Twee eigen stappen per merk: waar dat merk de build-nummer verbergt,
          en hoe het het ontwikkelaarmenu noemt. -->
     <x:String x:Key="AdbTutorial_Samsung_Step1">Ga naar Instellingen &gt; Over de telefoon &gt; Software-informatie en tik zeven keer op "Build-nummer"</x:String>
-    <x:String x:Key="AdbTutorial_Samsung_Step2">Ga naar Instellingen &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Samsung_Step2">Ga naar Instellingen &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan en bevestig</x:String>
     <x:String x:Key="AdbTutorial_Xiaomi_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "MIUI-versie" of "HyperOS-versie"</x:String>
-    <x:String x:Key="AdbTutorial_Xiaomi_Step2">Ga naar Instellingen &gt; Extra instellingen &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Xiaomi_Step2">Ga naar Instellingen &gt; Extra instellingen &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan en bevestig</x:String>
     <x:String x:Key="AdbTutorial_Google_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
-    <x:String x:Key="AdbTutorial_Google_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Google_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan en bevestig</x:String>
     <x:String x:Key="AdbTutorial_Motorola_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
-    <x:String x:Key="AdbTutorial_Motorola_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Motorola_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan en bevestig</x:String>
     <x:String x:Key="AdbTutorial_Sony_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
-    <x:String x:Key="AdbTutorial_Sony_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Sony_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan en bevestig</x:String>
     <x:String x:Key="AdbTutorial_Huawei_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
-    <x:String x:Key="AdbTutorial_Huawei_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_Huawei_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan en bevestig</x:String>
     <x:String x:Key="AdbTutorial_OnePlus_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
-    <x:String x:Key="AdbTutorial_OnePlus_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan</x:String>
+    <x:String x:Key="AdbTutorial_OnePlus_Step2">Ga naar Instellingen &gt; Systeem &gt; Ontwikkelaarsopties en zet "USB-foutopsporing" aan en bevestig</x:String>
     <!-- Het paar voor een merk zonder eigen tabel, zodat een telefoon waar
          niemand aan gedacht heeft toch iets kloppends te horen krijgt. -->
     <x:String x:Key="AdbTutorial_Generic_Step1">Ga naar Instellingen &gt; Over de telefoon en tik zeven keer op "Build-nummer"</x:String>
     <x:String x:Key="AdbTutorial_Generic_Step2">Open "Ontwikkelaarsopties" in de instellingen en zet "USB-foutopsporing" aan</x:String>
-    <x:String x:Key="AdbTutorial_Common_Caveat">Na inschakelen, controleer de telefoon op de melding "USB-foutopsporing toestaan?" en tik "Altijd toestaan vanaf deze computer".</x:String>
+    <x:String x:Key="AdbTutorial_Common_Caveat">Na inschakelen, controleer de telefoon op de melding "USB-foutopsporing toestaan?" en tik op "Altijd toestaan vanaf deze computer".</x:String>
     <x:String x:Key="AdbTutorial_RetryButton">Opnieuw zoeken</x:String>
     <x:String x:Key="AdbTutorial_Close">Sluiten</x:String>
 
@@ -387,14 +387,14 @@
     <x:String x:Key="Spec_Storage">Opslag</x:String>
     <x:String x:Key="Spec_Color">Kleur</x:String>
     <x:String x:Key="Spec_Battery">Batterijconditie</x:String>
-    <x:String x:Key="Spec_Grade">Kwaliteitsklasse</x:String>
+    <x:String x:Key="Spec_Grade">Grade</x:String>
     <x:String x:Key="Spec_Memory">Geheugen</x:String>
     <x:String x:Key="Active_SecurityTitle">BEVEILIGING &amp; STATUS</x:String>
-    <x:String x:Key="Spec_Imei">IMEI Nummer</x:String>
+    <x:String x:Key="Spec_Imei">IMEI-nummer</x:String>
     <x:String x:Key="Spec_FindMy">Find My (iCloud)</x:String>
-    <x:String x:Key="Spec_Blacklist">Blacklist Status</x:String>
+    <x:String x:Key="Spec_Blacklist">Blackliststatus</x:String>
     <x:String x:Key="Spec_NotChecked">Niet gecontroleerd</x:String>
-    <x:String x:Key="Active_OemTitle">ORIGINELE ONDERDELEN AUDIT (OEM)</x:String>
+    <x:String x:Key="Active_OemTitle">AUDIT ORIGINELE ONDERDELEN (OEM)</x:String>
     <x:String x:Key="Active_InteractiveTitle">INTERACTIEVE HARDWARETEST</x:String>
     <x:String x:Key="Active_InteractiveLead">Scan met de camera van het toestel om display, touch, camera en audio te testen:</x:String>
 
@@ -406,11 +406,11 @@
     <x:String x:Key="Summary_Fmi">iCloud (FMI)</x:String>
     <x:String x:Key="Summary_BatteryHealth">Batterijconditie</x:String>
     <x:String x:Key="Summary_InvoiceMethod">Factuurmethode</x:String>
-    <x:String x:Key="Summary_SimLock">SIM Lock</x:String>
-    <x:String x:Key="Summary_HardwareTests">Hardware Tests (PWA)</x:String>
+    <x:String x:Key="Summary_SimLock">SIM-lock</x:String>
+    <x:String x:Key="Summary_HardwareTests">Hardwaretests (PWA)</x:String>
     <x:String x:Key="Summary_ReportTitle">INSPECTIERAPPORT (AFWIJKINGEN &amp; DEFECTEN)</x:String>
-    <x:String x:Key="Summary_ReportNote">Enkel niet-originele onderdelen en mislukte of overgeslagen tests</x:String>
-    <x:String x:Key="Summary_AuditSection">ONDERDELEN AUDIT (NIET-OEM / VERVANGEN)</x:String>
+    <x:String x:Key="Summary_ReportNote">Alleen niet-originele onderdelen en mislukte of overgeslagen tests</x:String>
+    <x:String x:Key="Summary_AuditSection">ONDERDELEN-AUDIT (NIET-OEM / VERVANGEN)</x:String>
     <x:String x:Key="Summary_TestsSection">INTERACTIEVE HARDWARETESTS</x:String>
     <x:String x:Key="Summary_AllOemOriginal">Alle onderdelen zijn origineel (OEM)</x:String>
     <x:String x:Key="Summary_AllTestsPassed">Alle interactieve tests zijn geslaagd</x:String>
@@ -421,7 +421,7 @@
     <x:String x:Key="Report_Restore">Ongedaan maken</x:String>
 
     <!-- The two questions at the end of an inspection -->
-    <x:String x:Key="QualityPopup_Title">Kies de kwaliteit</x:String>
+    <x:String x:Key="QualityPopup_Title">Kies de grade</x:String>
     <x:String x:Key="QualityPopup_Lead">Hoe dit toestel uit de inspectie komt. De keuze komt op het label te staan.</x:String>
     <x:String x:Key="PaymentPopup_Title">Factuurmethode</x:String>
     <x:String x:Key="PaymentPopup_Lead">Hoe dit toestel wordt gefactureerd.</x:String>
@@ -432,7 +432,7 @@
     <x:String x:Key="Changelog_Close">Sluiten</x:String>
 
     <!-- Logs and diagnostics -->
-    <x:String x:Key="Logs_Title">Systeemlogboeken &amp; Tool Output</x:String>
+    <x:String x:Key="Logs_Title">Systeemlogboeken en uitvoer van hulpmiddelen</x:String>
 
     <!-- Settings page: the topics and their rows -->
     <x:String x:Key="Settings_Lead">Taal, werkwijze en verbinding. Wijzigingen worden direct opgeslagen.</x:String>
@@ -444,29 +444,29 @@
     <x:String x:Key="Settings_SecLicense">Licentie</x:String>
     <x:String x:Key="Settings_SecSupport">Hulp</x:String>
     <x:String x:Key="Settings_SecAdvanced">Geavanceerd</x:String>
-    <x:String x:Key="Settings_QualityDesc">De klasse waar een inspectie mee begint. Een lege keuze vraagt bij elke inspectie.</x:String>
+    <x:String x:Key="Settings_QualityDesc">De grade waar een inspectie mee begint. Een lege keuze vraagt bij elke inspectie.</x:String>
     <x:String x:Key="Settings_PaymentDesc">De factuurmethode waar een inspectie mee begint. Een lege keuze vraagt bij elke inspectie.</x:String>
     <x:String x:Key="Settings_QualityAsk">Elke keer vragen</x:String>
     <x:String x:Key="Settings_PaymentAsk">Elke keer vragen</x:String>
-    <x:String x:Key="Settings_AutoStartWebTestDesc">Opent de testpagina zodra de code is gescand, zodat de operateur niets hoeft te starten.</x:String>
+    <x:String x:Key="Settings_AutoStartWebTestDesc">Opent de testpagina zodra de code is gescand, zodat de operator niets hoeft te starten.</x:String>
     <x:String x:Key="Settings_RequirePwaTestDesc">De inspectie kan niet worden afgerond voordat de test op de telefoon heeft gedraaid.</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTestDesc">Gaat vanzelf naar het resultaatscherm zodra de test op de telefoon terugmeldt.</x:String>
     <x:String x:Key="Settings_ShowSummaryDesc">Toont het rapport voordat het label wordt afgedrukt, zodat het nog kan worden gecorrigeerd.</x:String>
     <x:String x:Key="Settings_TroubleshootCardTitle">USB- en driverdiagnose</x:String>
-    <x:String x:Key="Settings_TroubleshootCardDesc">Controleert de tools, de drivers en de diensten die dit gereedschap nodig heeft, en repareert wat het kan.</x:String>
+    <x:String x:Key="Settings_TroubleshootCardDesc">Controleert de hulpmiddelen, de drivers en de diensten die deze app nodig heeft, en repareert wat het kan.</x:String>
     <x:String x:Key="Settings_LogsCardTitle">Systeemlogboeken</x:String>
-    <x:String x:Key="Settings_LogsCardDesc">Alles wat het gereedschap en zijn hulpmiddelen hebben gemeld, met een filter en een zoekvak.</x:String>
+    <x:String x:Key="Settings_LogsCardDesc">Alles wat de app en haar hulpmiddelen hebben gemeld, met een filter en een zoekvak.</x:String>
     <x:String x:Key="Settings_AutoActivateDesc">Activeert een aangesloten toestel zonder te vragen, wat een reeks van hetzelfde toestel versnelt.</x:String>
     <x:String x:Key="Settings_RunDiagnosticsDesc">Leest de panic-logboeken en andere hardwarediagnose tijdens het inspecteren.</x:String>
-    <x:String x:Key="Settings_Enable85CheckerDesc">Markeret een batterij onder 85 procent van de ontwerpcapaciteit op het label.</x:String>
+    <x:String x:Key="Settings_Enable85CheckerDesc">Markeert een batterij onder 85 procent van de ontwerpcapaciteit op het label.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Opent de gegevenseditor voordat er wordt afgedrukt, zodat de waarden eerst kunnen worden gecorrigeerd.</x:String>
-    <x:String x:Key="Settings_DebugMode">Debug Modus &amp; Netwerk Tracing</x:String>
+    <x:String x:Key="Settings_DebugMode">Debugmodus en netwerk-tracing</x:String>
     <x:String x:Key="Settings_DebugModeDesc">Schrijft uitgebreide logs van elk verzoek. Alleen nuttig bij het oplossen van een probleem.</x:String>
 
     <!-- Quality and invoice options, in the wording they are offered in -->
-    <x:String x:Key="Quality_A">A - Zo goed als nieuw</x:String>
-    <x:String x:Key="Quality_B">B - Licht gebruikte sporen</x:String>
-    <x:String x:Key="Quality_C">C - Duidelijke sporen</x:String>
+    <x:String x:Key="Quality_A">A - zo goed als nieuw</x:String>
+    <x:String x:Key="Quality_B">B - lichte gebruikssporen</x:String>
+    <x:String x:Key="Quality_C">C - duidelijke gebruikssporen</x:String>
     <x:String x:Key="Payment_Marge">Marge (0% btw)</x:String>
     <x:String x:Key="Payment_BTW">Btw (21%)</x:String>
 
@@ -476,14 +476,14 @@
     <x:String x:Key="Editor_Identity">Identiteit</x:String>
     <x:String x:Key="Editor_Identifier">Identifier (IMEI / serienummer)</x:String>
     <x:String x:Key="Editor_Battery">Batterij</x:String>
-    <x:String x:Key="Editor_Grading">Beoordeling</x:String>
-    <x:String x:Key="Editor_Quality">Kwaliteit</x:String>
-    <x:String x:Key="Editor_Payment">Betaalmethode</x:String>
-    <x:String x:Key="Editor_MetricsTitle">Hardware &amp; Batterij Metrics</x:String>
+    <x:String x:Key="Editor_Grading">Grade</x:String>
+    <x:String x:Key="Editor_Quality">Grade</x:String>
+    <x:String x:Key="Editor_Payment">Factuurmethode</x:String>
+    <x:String x:Key="Editor_MetricsTitle">Hardware en batterij</x:String>
     <x:String x:Key="Editor_Cycles">Laadcycli</x:String>
     <x:String x:Key="Editor_DesignMah">Design mAh</x:String>
     <x:String x:Key="Editor_CurrentMah">Huidig mAh</x:String>
-    <x:String x:Key="Editor_Save">Opslaan &amp; label openen</x:String>
+    <x:String x:Key="Editor_Save">Opslaan en label openen</x:String>
     <x:String x:Key="Editor_Unset">Niet ingesteld</x:String>
 
     <!-- Statusregel van het inspectievenster -->
@@ -493,8 +493,8 @@
     <x:String x:Key="Status_LockdownError">Verbindingsfout met toestel (lockdownd).</x:String>
     <x:String x:Key="Status_PairingPending">Wachten op toestemming op iPhone...</x:String>
     <x:String x:Key="Status_RsaPending">Wachten op RSA-autorisatie op Android...</x:String>
-    <x:String x:Key="Status_Timeout">Time-out bij communicatie.</x:String>
-    <x:String x:Key="Status_CommsError">Communicatiefout met toestel.</x:String>
+    <x:String x:Key="Status_Timeout">Het toestel antwoordde niet op tijd.</x:String>
+    <x:String x:Key="Status_CommsError">Communicatie met het toestel mislukt.</x:String>
     <x:String x:Key="Status_Reconnected">Toestel heraangesloten: data herladen (vanaf 0%).</x:String>
     <x:String x:Key="Status_Disconnected">Toestel losgekoppeld. Sluit hetzelfde toestel opnieuw aan om verder te gaan.</x:String>
     <x:String x:Key="Status_Unauthorized">Wachten op RSA-autorisatie op Android. Accepteer USB-foutopsporing.</x:String>
@@ -502,7 +502,7 @@
     <x:String x:Key="Status_PermissionDenied">Rechten ontbreken: voer chmod +x uit of controleer de Gatekeeper-waarschuwing.</x:String>
     <x:String x:Key="Status_DriverMissing">Apple USB Driver ontbreekt. Installeer iTunes of Apple Mobile Device Support.</x:String>
     <x:String x:Key="Status_DaemonStoppedWin">Apple Mobile Device Service is gestopt: start de Windows-service 'Apple Mobile Device Service'.</x:String>
-    <x:String x:Key="Status_DaemonStoppedUnix">usbmuxd daemon draait niet: start usbmuxd.</x:String>
+    <x:String x:Key="Status_DaemonStoppedUnix">De usbmuxd-daemon draait niet: start usbmuxd.</x:String>
     <x:String x:Key="Status_NoDeviceFound">Geen toestel gevonden. Controleer de kabel of ontgrendel het toestel.</x:String>
     <x:String x:Key="Status_OneFound">Eén toestel gevonden en geselecteerd.</x:String>
     <x:String x:Key="Status_ManyFound">{0} toestellen gevonden: kies er één.</x:String>
@@ -514,11 +514,11 @@
     <x:String x:Key="Status_ReadingData">Toesteldata uitlezen…</x:String>
     <x:String x:Key="Status_SpecsRead">Specificaties gelezen. Voer de interactieve test uit en klik op 'Afronden'.</x:String>
     <x:String x:Key="Status_Error">Fout: {0}</x:String>
-    <x:String x:Key="Status_GradeDowngraded">Klasse A is niet toegestaan (ontbrekende API's). Automatisch verlaagd naar B.</x:String>
+    <x:String x:Key="Status_GradeDowngraded">Grade A is niet toegestaan (ontbrekende API's). Automatisch verlaagd naar B.</x:String>
     <x:String x:Key="Status_ChoosePayment">Kies de factuurmethode...</x:String>
     <x:String x:Key="Status_TestsComplete">Testen voltooid. Controleer de resultaten en print het label.</x:String>
-    <x:String x:Key="Status_PwaRequired">PWA hardwaretest is verplicht. Voer eerst de interactieve test uit.</x:String>
-    <x:String x:Key="Status_ChooseQuality">Kies de kwaliteit...</x:String>
+    <x:String x:Key="Status_PwaRequired">PWA-hardwaretest is verplicht. Voer eerst de interactieve test uit.</x:String>
+    <x:String x:Key="Status_ChooseQuality">Kies de grade...</x:String>
     <x:String x:Key="Status_LabelGenerating">Label genereren…</x:String>
     <x:String x:Key="Status_ExportingCsv">CSV-bestand schrijven…</x:String>
     <x:String x:Key="Status_ExportingPdf">PDF-rapport schrijven…</x:String>
@@ -532,8 +532,8 @@
     <x:String x:Key="Session_Connected">Toestel verbonden voor webtest ({0})</x:String>
     <x:String x:Key="Session_TestRunning">Test bezig: {0} ({1}%)</x:String>
     <x:String x:Key="Session_TestDone">Test afgerond: {0} -&gt; {1}</x:String>
-    <x:String x:Key="Session_WebRunnerError">Web runner fout: {0}</x:String>
-    <x:String x:Key="Session_QrError">QR fout: {0}</x:String>
+    <x:String x:Key="Session_WebRunnerError">Webtest-fout: {0}</x:String>
+    <x:String x:Key="Session_QrError">QR-fout: {0}</x:String>
     <x:String x:Key="Session_Finished">Webtest klaar: {0} van {1} tests afgerond.</x:String>
     <x:String x:Key="Session_Ready">Webtest staat klaar op de telefoon.</x:String>
     <x:String x:Key="Session_NextStep">volgende stap</x:String>
@@ -573,17 +573,17 @@
 
     <!-- Systeemdiagnose -->
     <x:String x:Key="Troubleshoot_ScanError">Diagnosefout: {0}</x:String>
-    <x:String x:Key="Troubleshoot_FixStarting">Fix wordt toegepast...</x:String>
-    <x:String x:Key="Troubleshoot_FixApplied">Fix toegepast. Opnieuw scannen...</x:String>
-    <x:String x:Key="Troubleshoot_FixManual">De fix kon niet automatisch worden voltooid. Bekijk de stappen.</x:String>
-    <x:String x:Key="Troubleshoot_FixError">Fout bij het toepassen van de fix: {0}</x:String>
-    <x:String x:Key="Troubleshoot_Fixing">Bezig met fixen: {0}...</x:String>
+    <x:String x:Key="Troubleshoot_FixStarting">Oplossing wordt toegepast...</x:String>
+    <x:String x:Key="Troubleshoot_FixApplied">Opgelost. Opnieuw scannen...</x:String>
+    <x:String x:Key="Troubleshoot_FixManual">Dit kon niet automatisch worden opgelost. Bekijk de stappen.</x:String>
+    <x:String x:Key="Troubleshoot_FixError">Fout bij het oplossen: {0}</x:String>
+    <x:String x:Key="Troubleshoot_Fixing">Bezig met oplossen: {0}...</x:String>
 
     <!-- Wat elke controle op het diagnosepaneel zegt -->
     <x:String x:Key="Diag_StatusAllOk">Alle controles geslaagd. Het systeem is klaar om iOS- en Android-toestellen te herkennen.</x:String>
     <x:String x:Key="Diag_StatusIosOnly">iOS-herkenning gereed. Android niet beschikbaar (zie de controles).</x:String>
     <x:String x:Key="Diag_StatusAndroidOnly">Android-herkenning gereed. iOS niet beschikbaar (zie de controles).</x:String>
-    <x:String x:Key="Diag_StatusNone">Kritieke drivers of tools ontbreken. Toestellen kunnen niet worden herkend.</x:String>
+    <x:String x:Key="Diag_StatusNone">Kritieke drivers of hulpmiddelen ontbreken. Toestellen kunnen niet worden herkend.</x:String>
 
     <x:String x:Key="Diag_SeverityPass">Geslaagd</x:String>
     <x:String x:Key="Diag_SeverityWarning">Waarschuwing</x:String>
@@ -602,13 +602,13 @@
     <x:String x:Key="Diag_TitleIdeviceinfoMissing">ideviceinfo ontbreekt</x:String>
     <x:String x:Key="Diag_TitleAdbFound">Android Debug Bridge (adb)</x:String>
     <x:String x:Key="Diag_TitleAdbMissing">adb ontbreekt</x:String>
-    <x:String x:Key="Diag_TitleTunnel">Tunnelverbinding (cloudflared)</x:String>
+    <x:String x:Key="Diag_TitleTunnel">Tunnelconnector (cloudflared)</x:String>
     <x:String x:Key="Diag_TitleAppleMultiplexing">Apple multiplexingdienst</x:String>
     <x:String x:Key="Diag_TitleAppleUsbService">Apple USB-dienst</x:String>
-    <x:String x:Key="Diag_TitleAppleDriverQuery">Apple driver opvragen</x:String>
+    <x:String x:Key="Diag_TitleAppleDriverQuery">Apple-driver opvragen</x:String>
     <x:String x:Key="Diag_TitleUsbmuxdFound">usbmuxd-dienst</x:String>
     <x:String x:Key="Diag_TitleUsbmuxdStopped">usbmuxd draait niet</x:String>
-    <x:String x:Key="Diag_TitleUsbBusScan">USB-bus scannen</x:String>
+    <x:String x:Key="Diag_TitleUsbBusScan">USB-busscan</x:String>
     <x:String x:Key="Diag_TitleUsbDetection">Fysieke USB-herkenning</x:String>
 
     <x:String x:Key="Diag_MsgAvailableVersion">Beschikbaar op: {0} (versie: {1})</x:String>
@@ -619,7 +619,7 @@
     <x:String x:Key="Diag_MsgIdeviceinfoFailed">Kon ideviceinfo niet uitvoeren op {0}. Details: {1}</x:String>
     <x:String x:Key="Diag_MsgIdeviceinfoExitCode">Kon ideviceinfo niet uitvoeren op {0}. Uitvoercode: {1}</x:String>
     <x:String x:Key="Diag_MsgAdbFailed">Kon adb niet uitvoeren. Gevonden pad: {0}</x:String>
-    <x:String x:Key="Diag_MsgNoTunnel">Geen tunnelverbinding gevonden, dus een toestel zonder kabelroute krijgt het gewone netwerkadres.</x:String>
+    <x:String x:Key="Diag_MsgNoTunnel">Geen tunnelconnector gevonden, dus een toestel zonder kabelroute krijgt het gewone netwerkadres.</x:String>
     <x:String x:Key="Diag_MsgServiceActiveAmds">De Apple Mobile Device Service is actief en luistert naar iOS-toestellen.</x:String>
     <x:String x:Key="Diag_MsgServiceActivePortable">De draagbare usbmuxd-dienst is actief en luistert naar iOS-toestellen.</x:String>
     <x:String x:Key="Diag_MsgNoService">Noch de Apple Mobile Device Service, noch de usbmuxd-dienst is actief.</x:String>
@@ -638,7 +638,7 @@
     <x:String x:Key="Diag_ResolveAdbWin">Installeer Android SDK Platform-Tools of kopieer adb.exe naar de map idevice-tools.</x:String>
     <x:String x:Key="Diag_ResolveAdbMac">Voer in Terminal 'brew install android-platform-tools' uit.</x:String>
     <x:String x:Key="Diag_ResolveAdbLinux">Voer in de terminal 'sudo apt-get install adb' uit.</x:String>
-    <x:String x:Key="Diag_ResolveTunnel">Installeer de tunnelverbinding, of plaats cloudflared in de map 'idevice-tools'.</x:String>
+    <x:String x:Key="Diag_ResolveTunnel">Installeer de tunnelconnector, of plaats cloudflared in de map 'idevice-tools'.</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdPortable">Start de draagbare usbmuxd-dienst op de achtergrond.</x:String>
     <x:String x:Key="Diag_ResolveAppleService">Download en installeer de lichte Apple-driver en de usbmuxd-dienst.</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdMac">Zorg dat usbmuxd draait, of start de computer opnieuw op.</x:String>
@@ -646,33 +646,33 @@
     <x:String x:Key="Diag_ResolveUsbCable">Controleer de USB-kabel, probeer een andere USB-poort direct op de computer (geen hub), ontgrendel de telefoon en tik op 'Vertrouwen' als dat wordt gevraagd.</x:String>
 
     <!-- IMEI API Instellingen -->
-    <x:String x:Key="Settings_ImeiInfoGuide">Setup Handleiding</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuide">Installatiegids</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep1">Maak een account aan op imei.info</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideStep2">Klik op 'API Beheren' in de zijbalk en kopieer je API-sleutel (bijv., e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep2">Klik op 'API Manage' in de zijbalk en kopieer je API-sleutel (bijv., e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep3">Plak de API-sleutel in het invoerveld hierboven en klik op Opslaan.</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideStep4">Ga op de website naar 'Credits Toevoegen' om saldo toe te voegen.</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep4">Ga op de website naar 'Add Credits' om saldo toe te voegen.</x:String>
     <x:String x:Key="Settings_ImeiInfoWhyTitle">Waarom je hier je eigen sleutel nodig hebt</x:String>
     <x:String x:Key="Settings_ImeiInfoWhy">IMEI-checks lopen via je eigen imei.info-account, dus de sleutel die je hieronder plakt is van jou en blijft in het instellingenbestand van deze computer staan. PhoneGrade levert er geen mee.</x:String>
-    <x:String x:Key="Settings_ImeiInfoWhyCredits">Elke check wordt van het saldo van dat account afgeschreven tegen de prijs die erbij staat, dus voeg credits toe voordat de eerste check draait.</x:String>
-    <x:String x:Key="Settings_ImeiInfoOpenDashboard">Open imei.info Dashboard</x:String>
-    <x:String x:Key="Settings_ImeiInfoSaveKey">API Sleutel Opslaan</x:String>
-    <x:String x:Key="Settings_ImeiInfoTestKey">API Sleutel Testen</x:String>
-    <x:String x:Key="Settings_ImeiInfoChecks">Automatisch Uit Te Voeren Checks</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhyCredits">Elke check wordt van het saldo van dat account afgeschreven tegen de prijs die erbij staat, dus waardeer je saldo op voordat de eerste check draait.</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenDashboard">imei.info-dashboard openen</x:String>
+    <x:String x:Key="Settings_ImeiInfoSaveKey">API-sleutel opslaan</x:String>
+    <x:String x:Key="Settings_ImeiInfoTestKey">API-sleutel testen</x:String>
+    <x:String x:Key="Settings_ImeiInfoChecks">Automatisch uit te voeren checks</x:String>
     <x:String x:Key="Settings_ImeiInfoChecksDesc">Selecteer welke checks automatisch op elk toestel uitgevoerd moeten worden. Prijzen zijn per check in USD.</x:String>
-    <x:String x:Key="Settings_ImeiInfoCostCalculator">Kosten Calculator</x:String>
+    <x:String x:Key="Settings_ImeiInfoCostCalculator">Kostencalculator</x:String>
     <x:String x:Key="Settings_ImeiInfoCostCalculatorDesc">Schat maandelijkse kosten op basis van toestelvolume.</x:String>
-    <x:String x:Key="Settings_ImeiInfoAppleDevices">Apple Toestellen / Maand</x:String>
-    <x:String x:Key="Settings_ImeiInfoAndroidDevices">Android Toestellen / Maand</x:String>
-    <x:String x:Key="Settings_ImeiInfoApiKey">API Sleutel</x:String>
-    <x:String x:Key="Settings_ImeiInfoApiKeyDesc">Jouw imei.info API sleutel voor geautomatiseerde checks.</x:String>
-    <x:String x:Key="Settings_ImeiInfoEstimatedMonthlyCost">Geschatte Maandelijkse Kosten: {0} USD</x:String>
-    <x:String x:Key="Settings_ImeiInfoEstimatedPerDevice">Geschatte Kosten Per Toestel: {0} USD</x:String>
-    <x:String x:Key="Settings_ImeiInfoKeyInvalid">Ongeldige API Sleutel: {0}</x:String>
-    <x:String x:Key="Settings_ImeiInfoKeyValid">API Sleutel Geldig. Saldo: {0} USD</x:String>
-    <x:String x:Key="Settings_ImeiInfoKeyTesting">API Sleutel Testen...</x:String>
+    <x:String x:Key="Settings_ImeiInfoAppleDevices">Apple-toestellen per maand</x:String>
+    <x:String x:Key="Settings_ImeiInfoAndroidDevices">Android-toestellen per maand</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKey">API-sleutel</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeyDesc">Je imei.info API-sleutel voor geautomatiseerde checks.</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedMonthlyCost">Geschatte maandelijkse kosten: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedPerDevice">Geschatte kosten per toestel: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyInvalid">Ongeldige API-sleutel: {0}</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyValid">API-sleutel geldig. Saldo: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyTesting">API-sleutel testen...</x:String>
     <x:String x:Key="Settings_ImeiInfoKeyEmpty">Lege sleutel</x:String>
     <x:String x:Key="Settings_ImeiInfoKeyUnknownError">Onbekende fout</x:String>
-    <x:String x:Key="Settings_ImeiInfoApiKeySaved">API sleutel opgeslagen</x:String>
+    <x:String x:Key="Settings_ImeiInfoApiKeySaved">API-sleutel opgeslagen</x:String>
 
     <!-- IMEI Check Labels (prijs per check) -->
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
@@ -681,21 +681,21 @@
     <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0.600</x:String>
 
     <!-- IMEI check namen en beschrijvingen -->
-    <x:String x:Key="Settings_SecImeiApi">IMEI API Configuratie</x:String>
+    <x:String x:Key="Settings_SecImeiApi">IMEI-API-configuratie</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeyWatermark">Plak hier je API-sleutel (bijv. e0d7c26f-5cc7-5644-863c-8992083dfeac)</x:String>
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmi">APPLE: Carrier &amp; Lock Status &amp; FMI</x:String>
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - Geeft providernaam, SIM-lockstatus en Find My iPhone (FMI)-status voor Apple toestellen.</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistSimple">BLACKLIST: Simpele Check</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - Geeft alleen de basis blackliststatus (schoon of geblacklist).</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistPremium">BLACKLIST: Premium Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Geeft gedetailleerde info: IMEI, Modelnaam, Fabrikant, Modelnummer, Geblacklist Door, Geblacklist Op, Blacklist Reden, Blacklist Status, Geblacklist Land, Algemene Lijst Status.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Geeft gedetailleerde info: IMEI, Model Name, Manufacturer, Model Number, Blacklisted By, Blacklisted On, Blacklist Reason, Blacklist Status, Blacklisted Country, General List Status.</x:String>
     <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnox">GENERIC: Samsung Info Check &amp; Knox Info</x:String>
-    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Geeft Samsung toestelinformatie inclusief model, serienummer, garantie en Knox garantie bit status.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Geeft Samsung toestelinformatie inclusief model, serienummer, garantie en Knox warranty bit-status.</x:String>
 
     <!-- Introductiescherm: IMEI controles (BYOK) -->
-    <x:String x:Key="Intro_ImeiTitle">IMEI controles (BYOK)</x:String>
-    <x:String x:Key="Intro_ImeiBody">PhoneGrade controleert carrier lock, FMI, blacklist en Knox status via imei.info. Dit is een Bring Your Own Key systeem: maak een account aan bij imei.info, voeg credits toe en plak je eigen API-sleutel bij Instellingen. Elke check heeft een eigen prijs (van $0.200 tot $0.600) en je kiest zelf welke checks automatisch draaien.</x:String>
-    <x:String x:Key="Intro_ImeiConfigureButton">IMEI API instellen bij Instellingen</x:String>
+    <x:String x:Key="Intro_ImeiTitle">IMEI-controles (BYOK)</x:String>
+    <x:String x:Key="Intro_ImeiBody">PhoneGrade controleert carrier lock, FMI, blacklist en Knox status via imei.info. Dit is een Bring Your Own Key systeem: maak een account aan bij imei.info, waardeer je saldo op en plak je eigen API-sleutel bij Instellingen. Elke check heeft een eigen prijs (van $0.200 tot $0.600) en je kiest zelf welke checks automatisch draaien.</x:String>
+    <x:String x:Key="Intro_ImeiConfigureButton">IMEI-API instellen bij Instellingen</x:String>
     <x:String x:Key="Settings_ImeiInfoWatermarkDefault">10</x:String>
 
     <!-- Colour names. The device data holds the key, and each of these is one
