@@ -1,4 +1,5 @@
 using System.Reflection;
+using PhoneGrade.UI.Models;
 using Velopack;
 using Velopack.Sources;
 
@@ -50,11 +51,54 @@ public static class AutoUpdater
         }
     }
 
-    public static async Task CheckAndApplyAsync()
+    /// <summary>
+    /// Whether this build is itself a beta.
+    ///
+    /// Read off the version rather than asked, so a shop that installed a beta by hand
+    /// keeps receiving betas even after it has turned the setting off. Turning it off
+    /// means "stop offering me new ones", not "downgrade me and hide what I am".
+    ///
+    /// A shop on a beta that switches the setting off goes back to the stable line on
+    /// its next update. There is no way back down from inside the app, and pretending
+    /// otherwise would need an installer that moves someone backwards, which is a
+    /// downgrade with all the risk of one.
+    /// </summary>
+    public static bool IsPrerelease() => IsPrereleaseVersion(RunningVersion());
+
+    /// <summary>Whether a version string names a prerelease, by the SemVer rule.</summary>
+    public static bool IsPrereleaseVersion(string? version) =>
+        !string.IsNullOrWhiteSpace(version) && version.Contains('-', StringComparison.Ordinal);
+
+    /// <summary>
+    /// Whether to look at the beta channel as well as the stable one.
+    /// </summary>
+    /// <remarks>
+    /// An either way, not an override, and the order matters. A shop that ticked the
+    /// box wants betas. A shop already running one keeps wanting them after unticking,
+    /// because the alternative is a silent drop back onto the stable line with nothing
+    /// on screen saying so, which is a worse outcome than being on a build the shop
+    /// already chose to run.
+    ///
+    /// Only a shop that was never offered a beta and never asked for one stays off it.
+    /// </remarks>
+    public static bool WantsPrereleases(AppSettings? settings) =>
+        IsPrerelease() || (settings?.IncludePrereleases ?? false);
+
+    /// <summary>
+    /// Checks for an update and installs it.
+    ///
+    /// The third argument to GithubSource is whether prereleases count. It is the shop's
+    /// own choice, not the author's: a shop that asked for beta gets beta, and a shop
+    /// that did not is never offered one. That is the whole safety of a test channel,
+    /// because a prerelease is not a stable build that happens to be new.
+    /// </summary>
+    public static async Task CheckAndApplyAsync(AppSettings? settings = null)
     {
         try
         {
-            var mgr = new UpdateManager(new GithubSource(RepoUrl, null, false));
+            bool wantsPrereleases = WantsPrereleases(settings);
+
+            var mgr = new UpdateManager(new GithubSource(RepoUrl, null, wantsPrereleases));
             if (!mgr.IsInstalled) return; // dev run or portable zip: nothing to update
 
             var update = await mgr.CheckForUpdatesAsync();

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
+using PhoneGrade.UI.Models;
 
 namespace PhoneGrade.UI;
 
@@ -15,7 +16,11 @@ sealed class Program
         // Must run before anything else, or the installed app won't respond to
         // install/update arguments.
         Velopack.VelopackApp.Build().Run();
-        _ = AutoUpdater.CheckAndApplyAsync(); // fire and forget: never block startup
+        // The settings are read here rather than handed in, because this runs before
+        // Avalonia exists and there is no view model to ask yet. Load() returns the same
+        // instance the rest of the app uses, so the updater and the settings screen are
+        // reading the same answer about whether this shop wants betas.
+        _ = AutoUpdater.CheckAndApplyAsync(AppSettings.Load()); // fire and forget: never block startup
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

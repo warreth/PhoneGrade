@@ -236,6 +236,37 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set { _settings.AutoActivate = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _autoActivate, value); }
     }
 
+    private bool _includePrereleases;
+
+    /// <summary>
+    /// Whether this shop wants to be offered beta builds.
+    /// </summary>
+    /// <remarks>
+    /// The row underneath says what a beta is, because a shop working a counter should
+    /// not have to guess. It is off on a fresh install and on every existing one, since
+    /// a missing key reads as false.
+    ///
+    /// Turning it on is the whole of the beta channel from this side. The build side is
+    /// a prerelease tag, which the release workflow puts on a separate channel, so the
+    /// only thing this does is say whether to look at that channel at all.
+    /// </remarks>
+    public bool IncludePrereleases
+    {
+        get => _includePrereleases;
+        set
+        {
+            _settings.IncludePrereleases = value;
+            _settings.Save();
+            this.RaiseAndSetIfChanged(ref _includePrereleases, value);
+
+            // Look for the beta straight away rather than at the next start, so the
+            // effect of the tick is not something the operator has to restart to find
+            // out. It goes through the same path a normal update takes, including the
+            // catch-all that swallows an offline machine.
+            if (value) _ = AutoUpdater.CheckAndApplyAsync(_settings);
+        }
+    }
+
     private bool _autoDetectOnPlug;
     public bool AutoDetectOnPlug
     {
@@ -1116,6 +1147,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         // name instead of falling back to a row nobody picked.
         _language = Services.SupportedLanguages.NameOf(_settings.Language);
         _autoActivate = _settings.AutoActivate;
+        _includePrereleases = _settings.IncludePrereleases;
         _autoDetectOnPlug = _settings.AutoDetectOnPlug;
         _runDiagnostics = _settings.RunDiagnostics;
         _enable85PercentChecker = _settings.Enable85PercentChecker;

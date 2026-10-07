@@ -120,6 +120,20 @@ public class AppSettings
     public bool IntroSeen { get; set; } = false;
 
     /// <summary>
+    /// Whether to be offered beta builds.
+    ///
+    /// Off unless somebody ticks it, and a shop that has ticked it says so here where
+    /// the updater reads it, rather than the author pushing betas at whoever answers.
+    /// A prerelease is a build nobody outside whoever wrote it has tested, and this is
+    /// the only thing standing between that and a shop working a counter.
+    ///
+    /// Turning it off stops new betas being offered. It does not downgrade anybody: the
+    /// next update is the newest stable, and there is no path back from inside the app,
+    /// because that would need an installer moving someone backwards.
+    /// </summary>
+    public bool IncludePrereleases { get; set; } = false;
+
+    /// <summary>
     /// The version whose changes were last put in front of the operator.
     ///
     /// The changelog used to open by itself when the updater left notes behind, and

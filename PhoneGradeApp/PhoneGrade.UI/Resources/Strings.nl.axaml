@@ -750,6 +750,8 @@
     <x:String x:Key="Changelog_Release">Bekijk het op GitHub</x:String>
     <x:String x:Key="Changelog_CardTitle">Wat er in deze versie is veranderd</x:String>
     <x:String x:Key="Changelog_CardDesc">De opmerkingen van de release, opgehaald van GitHub.</x:String>
+    <x:String x:Key="Settings_IncludePrereleases">Bètabuilds</x:String>
+    <x:String x:Key="Settings_IncludePrereleasesDesc">Bied bètabuilds aan naast de stabiele. Een bèta is een eerdere build, dus er kan nog iets in zitten dat niet werkt. Je blijft ook stabiele updates krijgen, en dit later uitzetten stopt de bèta zonder iets aan je huidige versie te veranderen.</x:String>
     <x:String x:Key="Changelog_Open">Toon wat er is veranderd</x:String>
 
     <!-- ==================== Licence agreement ==================== -->

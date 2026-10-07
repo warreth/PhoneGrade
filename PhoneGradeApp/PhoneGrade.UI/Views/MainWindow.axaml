@@ -1079,6 +1079,20 @@
                                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- The beta channel. Off on a fresh install and on
+                                     every existing one, so a shop has to ask for it
+                                     rather than being opted into it by an update.
+                                     Updates replace the binaries and restart, so
+                                     ticking it looks for the beta right away. -->
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_IncludePrereleases}"
+                                                  IsChecked="{Binding IncludePrereleases}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0"
+                                                   Text="{DynamicResource Settings_IncludePrereleasesDesc}"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ============ Advanced: things that change how the tool behaves ============ -->

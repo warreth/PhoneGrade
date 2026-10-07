@@ -756,6 +756,8 @@
     <x:String x:Key="Changelog_Release">在 GitHub 上查看</x:String>
     <x:String x:Key="Changelog_CardTitle">此版本的变更内容</x:String>
     <x:String x:Key="Changelog_CardDesc">从 GitHub 读取的版本说明。</x:String>
+    <x:String x:Key="Settings_IncludePrereleases">测试版构建</x:String>
+    <x:String x:Key="Settings_IncludePrereleasesDesc">除稳定版外也提供测试版构建。测试版是更早的构建，其中可能仍有无法正常使用的功能。你仍会继续收到稳定版更新，以后关闭此选项即可停止收到测试版，而不会改变当前已安装的版本。</x:String>
     <x:String x:Key="Changelog_Open">查看变更内容</x:String>
 
     <!-- ==================== Licence agreement ==================== -->

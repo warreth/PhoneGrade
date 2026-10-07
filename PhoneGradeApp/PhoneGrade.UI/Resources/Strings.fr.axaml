@@ -756,6 +756,8 @@
     <x:String x:Key="Changelog_Release">Voir sur GitHub</x:String>
     <x:String x:Key="Changelog_CardTitle">Ce qui a changé dans cette version</x:String>
     <x:String x:Key="Changelog_CardDesc">Les notes de la version, lues sur GitHub.</x:String>
+    <x:String x:Key="Settings_IncludePrereleases">Versions bêta</x:String>
+    <x:String x:Key="Settings_IncludePrereleasesDesc">Proposer les versions bêta en plus des versions stables. Une bêta est une version antérieure, elle peut donc encore contenir quelque chose qui ne fonctionne pas encore. Vous continuez à recevoir les mises à jour stables, et désactiver ceci plus tard arrête les bêta sans changer votre version installée.</x:String>
     <x:String x:Key="Changelog_Open">Voir les changements</x:String>
 
     <!-- ==================== Licence agreement ==================== -->

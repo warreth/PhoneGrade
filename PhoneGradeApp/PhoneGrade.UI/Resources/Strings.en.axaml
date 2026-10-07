@@ -749,6 +749,8 @@
     <x:String x:Key="Changelog_Release">See it on GitHub</x:String>
     <x:String x:Key="Changelog_CardTitle">What changed in this version</x:String>
     <x:String x:Key="Changelog_CardDesc">The notes from the release, read from GitHub.</x:String>
+    <x:String x:Key="Settings_IncludePrereleases">Beta builds</x:String>
+    <x:String x:Key="Settings_IncludePrereleasesDesc">Offer beta builds as well as stable ones. A beta is an earlier build, so it may still have something in it that does not work yet. You keep getting stable updates as well, and turning this off later stops the betas without changing what you have.</x:String>
     <x:String x:Key="Changelog_Open">Show what changed</x:String>
 
     <!-- ==================== Licence agreement ==================== -->
