@@ -77,7 +77,7 @@
     <x:String x:Key="Value_BatteryLevel">Charge {0} %</x:String>
     <x:String x:Key="Value_Checking">Vérification...</x:String>
     <x:String x:Key="Value_NotSet">Non défini</x:String>
-    <x:String x:Key="Value_NotGraded">Non évalué</x:String>
+    <x:String x:Key="Value_NotGraded">Pas de grade</x:String>
     <x:String x:Key="BatteryStatus_Unknown">État de la batterie inconnu</x:String>
     <x:String x:Key="BatteryStatus_Good">Bonne</x:String>
     <x:String x:Key="BatteryStatus_Overheated">Surchauffée</x:String>
@@ -92,7 +92,7 @@
     <x:String x:Key="Settings_GroupOnArrival">À l'arrivée d'un appareil</x:String>
     <x:String x:Key="Settings_GroupInteractiveTest">Le test interactif</x:String>
     <x:String x:Key="Settings_GroupAfterwards">Après l'inspection</x:String>
-    <x:String x:Key="Settings_Quality">Qualité par défaut</x:String>
+    <x:String x:Key="Settings_Quality">Grade par défaut</x:String>
     <x:String x:Key="Settings_Payment">Mode de facturation par défaut</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Démarrer automatiquement le test web interactif</x:String>
     <x:String x:Key="Settings_RequirePwaTest">Exiger le test PWA avant de terminer</x:String>
@@ -151,7 +151,7 @@
     <x:String x:Key="Intro_HaveLicense">J'ai déjà une licence</x:String>
     <x:String x:Key="Intro_ActivationTitle">Activez votre licence</x:String>
     <x:String x:Key="Licensing_TierFree">{0} scans restants</x:String>
-    <x:String x:Key="Licensing_TierPro">Pro - Active</x:String>
+    <x:String x:Key="Licensing_TierPro">Pro - actif</x:String>
     <x:String x:Key="Licensing_PanelHint">Licence et scans</x:String>
     <x:String x:Key="Licensing_PanelTitle">Licence</x:String>
     <x:String x:Key="Licensing_PanelScansLeft">Scans restants</x:String>
@@ -320,7 +320,7 @@
     <x:String x:Key="Export_SectionSecurity">Verrouillages et sécurité</x:String>
     <x:String x:Key="Export_SectionComponents">Composants d'origine</x:String>
     <x:String x:Key="Export_SectionTests">Tests interactifs</x:String>
-    <x:String x:Key="Export_SectionGrading">Évaluation</x:String>
+    <x:String x:Key="Export_SectionGrading">Grade</x:String>
     <x:String x:Key="Export_FieldName">Champ</x:String>
     <x:String x:Key="Export_FieldValue">Valeur</x:String>
     <x:String x:Key="Export_NotReported">Non signalé</x:String>
@@ -393,11 +393,11 @@
     <x:String x:Key="Spec_Storage">Stockage</x:String>
     <x:String x:Key="Spec_Color">Couleur</x:String>
     <x:String x:Key="Spec_Battery">État de la batterie</x:String>
-    <x:String x:Key="Spec_Grade">Classe de qualité</x:String>
+    <x:String x:Key="Spec_Grade">Grade</x:String>
     <x:String x:Key="Spec_Memory">Mémoire</x:String>
     <x:String x:Key="Active_SecurityTitle">SÉCURITÉ &amp; STATUT</x:String>
     <x:String x:Key="Spec_Imei">Numéro IMEI</x:String>
-    <x:String x:Key="Spec_FindMy">Find My (iCloud)</x:String>
+    <x:String x:Key="Spec_FindMy">Localiser (iCloud)</x:String>
     <x:String x:Key="Spec_Blacklist">État de la blacklist</x:String>
     <x:String x:Key="Spec_NotChecked">Non vérifié</x:String>
     <x:String x:Key="Active_OemTitle">AUDIT DES PIÈCES D'ORIGINE (OEM)</x:String>
@@ -427,7 +427,7 @@
     <x:String x:Key="Report_Restore">Annuler</x:String>
 
     <!-- The two questions at the end of an inspection -->
-    <x:String x:Key="QualityPopup_Title">Choisissez la qualité</x:String>
+    <x:String x:Key="QualityPopup_Title">Choisissez le grade</x:String>
     <x:String x:Key="QualityPopup_Lead">Comment cet appareil est évalué après l'inspection. La valeur finit sur l'étiquette.</x:String>
     <x:String x:Key="PaymentPopup_Title">Mode de facturation</x:String>
     <x:String x:Key="PaymentPopup_Lead">Comment cet appareil est facturé.</x:String>
@@ -450,7 +450,7 @@
     <x:String x:Key="Settings_SecLicense">Licence</x:String>
     <x:String x:Key="Settings_SecSupport">Assistance</x:String>
     <x:String x:Key="Settings_SecAdvanced">Avancé</x:String>
-    <x:String x:Key="Settings_QualityDesc">La classe avec laquelle une inspection démarre. Un choix vide pose la question à chaque inspection.</x:String>
+    <x:String x:Key="Settings_QualityDesc">Le grade avec lequel une inspection démarre. Un choix vide pose la question à chaque inspection.</x:String>
     <x:String x:Key="Settings_PaymentDesc">Le mode de facturation avec lequel une inspection démarre. Un choix vide pose la question à chaque inspection.</x:String>
     <x:String x:Key="Settings_QualityAsk">Demander à chaque fois</x:String>
     <x:String x:Key="Settings_PaymentAsk">Demander à chaque fois</x:String>
@@ -482,8 +482,8 @@
     <x:String x:Key="Editor_Identity">Identité</x:String>
     <x:String x:Key="Editor_Identifier">Identifiant (IMEI / n° de série)</x:String>
     <x:String x:Key="Editor_Battery">Batterie</x:String>
-    <x:String x:Key="Editor_Grading">Évaluation</x:String>
-    <x:String x:Key="Editor_Quality">Qualité</x:String>
+    <x:String x:Key="Editor_Grading">Grade</x:String>
+    <x:String x:Key="Editor_Quality">Grade</x:String>
     <x:String x:Key="Editor_Payment">Mode de facturation</x:String>
     <x:String x:Key="Editor_MetricsTitle">Mesures matériel &amp; batterie</x:String>
     <x:String x:Key="Editor_Cycles">Cycles de charge</x:String>
@@ -520,11 +520,11 @@
     <x:String x:Key="Status_ReadingData">Lecture des données de l'appareil…</x:String>
     <x:String x:Key="Status_SpecsRead">Caractéristiques lues. Lancez le test interactif et cliquez sur Terminer.</x:String>
     <x:String x:Key="Status_Error">Erreur : {0}</x:String>
-    <x:String x:Key="Status_GradeDowngraded">La classe A n'est pas autorisée (API manquantes). Réduite automatiquement à B.</x:String>
+    <x:String x:Key="Status_GradeDowngraded">Le grade A n'est pas autorisé (API manquantes). Réduite automatiquement à B.</x:String>
     <x:String x:Key="Status_ChoosePayment">Choisissez le mode de facturation...</x:String>
     <x:String x:Key="Status_TestsComplete">Tests terminés. Vérifiez les résultats et imprimez l'étiquette.</x:String>
     <x:String x:Key="Status_PwaRequired">Le test matériel PWA est obligatoire. Lancez d'abord le test interactif.</x:String>
-    <x:String x:Key="Status_ChooseQuality">Choisissez la qualité...</x:String>
+    <x:String x:Key="Status_ChooseQuality">Choisissez le grade...</x:String>
     <x:String x:Key="Status_LabelGenerating">Génération de l'étiquette…</x:String>
     <x:String x:Key="Status_ExportingCsv">Écriture du fichier CSV…</x:String>
     <x:String x:Key="Status_ExportingPdf">Écriture du rapport PDF…</x:String>
@@ -735,9 +735,9 @@
     <x:String x:Key="Color_Hazel">Noisette</x:String>
     <x:String x:Key="Color_Rose">Vieux rose</x:String>
     <x:String x:Key="Color_Charcoal">Charbon</x:String>
-    <x:String x:Key="Color_Mint">Mint</x:String>
-    <x:String x:Key="Color_Navy">Navy</x:String>
-    <x:String x:Key="Color_Sage">Sage</x:String>
+    <x:String x:Key="Color_Mint">Menthe</x:String>
+    <x:String x:Key="Color_Navy">Bleu marine</x:String>
+    <x:String x:Key="Color_Sage">Sauge</x:String>
     <x:String x:Key="Color_Olive">Olive</x:String>
     <x:String x:Key="Color_Cream">Crème</x:String>
     <x:String x:Key="Color_Beige">Beige</x:String>
