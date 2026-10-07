@@ -10,21 +10,21 @@
     <x:String x:Key="Tab_Label">Label</x:String>
     <x:String x:Key="Tab_Settings">Einstellungen</x:String>
     <x:String x:Key="Tab_Logs">Logs</x:String>
-    <x:String x:Key="Tab_Troubleshoot">Troubleshoot</x:String>
+    <x:String x:Key="Tab_Troubleshoot">Diagnose</x:String>
     
     <!-- Dashboard Card Titles -->
     <x:String x:Key="Card_Status">STATUS</x:String>
     <x:String x:Key="Card_Device">GERÄT</x:String>
     <x:String x:Key="Card_ComponentAudit">OEM KOMPONENTENPRÜFUNG</x:String>
     <x:String x:Key="Card_DiagnosticIssues">DIAGNOSTISCHE PROBLEME</x:String>
-    <x:String x:Key="Card_WebRunner">WEB TEST RUNNER</x:String>
+    <x:String x:Key="Card_WebRunner">WEBTEST</x:String>
     
     <!-- Buttons -->
     <x:String x:Key="Btn_StartManual">Manuell starten</x:String>
     <x:String x:Key="Btn_Refresh">Aktualisieren</x:String>
     <x:String x:Key="Btn_OpenLabel">Etikett öffnen</x:String>
-    <x:String x:Key="Btn_StartWebRunner">Web Runner starten</x:String>
-    <x:String x:Key="Btn_StopWebRunner">Web Runner stoppen</x:String>
+    <x:String x:Key="Btn_StartWebRunner">Webtest starten</x:String>
+    <x:String x:Key="Btn_StopWebRunner">Webtest stoppen</x:String>
     <x:String x:Key="Btn_RunDiagnostics">Diagnose ausführen</x:String>
     <x:String x:Key="Btn_CopyReport">Bericht kopieren</x:String>
     <x:String x:Key="Btn_ExportReport">Bericht exportieren</x:String>
@@ -38,7 +38,7 @@
     <!-- Status Messages -->
     <x:String x:Key="Status_Ready">Stecken Sie ein iPhone/iPad ein, um zu starten...</x:String>
     <x:String x:Key="Status_NoDevice">Kein Gerät gefunden. Prüfen Sie Kabel/Port oder entsperren Sie das Gerät und tippen Sie auf "Vertrauen".</x:String>
-    <x:String x:Key="Status_ToolsMissing">Keine USB-Tools: Diagnose</x:String>
+    <x:String x:Key="Status_ToolsMissing">USB-Tools fehlen: Diagnose</x:String>
     
     <!-- Settings -->
     <x:String x:Key="Settings_Title">EINSTELLUNGEN</x:String>
@@ -53,7 +53,7 @@
     
     <!-- Troubleshoot -->
     <x:String x:Key="Troubleshoot_Title">GERÄTEERKENNUNG &amp; TREIBER-ASSISTENT</x:String>
-    <x:String x:Key="Troubleshoot_Desc">Wenn ein Gerät nicht erkannt wird, durchsuchen Sie das System, um fehlende Treiber, Berechtigungen oder Dienste zu diagnostizieren.</x:String>
+    <x:String x:Key="Troubleshoot_Desc">Wenn ein Gerät nicht erkannt wird, durchsuchen Sie das System, um fehlende Treiber, Berechtigungen oder Dienste aufzuspüren.</x:String>
     <x:String x:Key="Troubleshoot_Scanning">Diagnose läuft, bitte warten...</x:String>
     <x:String x:Key="Troubleshoot_ClickToScan">Klicken Sie auf "Diagnose ausführen", um das System nach USB-Tools, Treibern und angeschlossenen Geräten zu durchsuchen.</x:String>
     
@@ -397,7 +397,7 @@
     <x:String x:Key="Spec_Memory">Arbeitsspeicher</x:String>
     <x:String x:Key="Active_SecurityTitle">SICHERHEIT &amp; STATUS</x:String>
     <x:String x:Key="Spec_Imei">IMEI-Nummer</x:String>
-    <x:String x:Key="Spec_FindMy">Find My (iCloud)</x:String>
+    <x:String x:Key="Spec_FindMy">Wo ist? (iCloud)</x:String>
     <x:String x:Key="Spec_Blacklist">Blacklist-Status</x:String>
     <x:String x:Key="Spec_NotChecked">Nicht geprüft</x:String>
     <x:String x:Key="Active_OemTitle">ORIGINALTEILE-PRÜFUNG (OEM)</x:String>
@@ -459,10 +459,10 @@
     <x:String x:Key="Settings_AutoFinishAfterTestDesc">Wechselt von selbst zum Ergebnisbildschirm, sobald der Test auf dem Telefon zurückmeldet.</x:String>
     <x:String x:Key="Settings_ShowSummaryDesc">Zeigt den Bericht vor dem Etikettendruck, damit er noch korrigiert werden kann.</x:String>
     <x:String x:Key="Settings_TroubleshootCardTitle">USB- und Treiberdiagnose</x:String>
-    <x:String x:Key="Settings_TroubleshootCardDesc">Prüft die Werkzeuge, Treiber und Dienste, die dieses Werkzeug braucht, und repariert, was es kann.</x:String>
+    <x:String x:Key="Settings_TroubleshootCardDesc">Prüft die Werkzeuge, Treiber und Dienste, die diese App braucht, und repariert, was es kann.</x:String>
     <x:String x:Key="Settings_LogsCardTitle">Systemprotokolle</x:String>
-    <x:String x:Key="Settings_LogsCardDesc">Alles, was das Werkzeug und seine Hilfsprogramme gemeldet haben, mit Filter und Suchfeld.</x:String>
-    <x:String x:Key="Settings_AutoActivateDesc">Aktiviert ein angeschlossenes Gerät ohne Nachfrage, das beschleunigt eine Serie desselben Telefons.</x:String>
+    <x:String x:Key="Settings_LogsCardDesc">Alles, was die App und ihre Hilfsprogramme gemeldet haben, mit Filter und Suchfeld.</x:String>
+    <x:String x:Key="Settings_AutoActivateDesc">Aktiviert ein angeschlossenes Gerät ohne Nachfrage, das beschleunigt eine Reihe gleicher Telefone.</x:String>
     <x:String x:Key="Settings_RunDiagnosticsDesc">Liest die Panic-Logs und weitere Hardwarediagnosen während der Prüfung.</x:String>
     <x:String x:Key="Settings_Enable85CheckerDesc">Markiert auf dem Etikett einen Akku unter 85 Prozent seiner Nennkapazität.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Öffnet den Dateneditor vor dem Druck, damit die gedruckten Werte zuerst korrigiert werden können.</x:String>
@@ -470,9 +470,9 @@
     <x:String x:Key="Settings_DebugModeDesc">Schreibt ausführliche Protokolle zu jeder Anfrage. Nur nützlich beim Suchen nach einem Problem.</x:String>
 
     <!-- Quality and invoice options, in the wording they are offered in -->
-    <x:String x:Key="Quality_A">A - Wie neu</x:String>
-    <x:String x:Key="Quality_B">B - Leichte Gebrauchsspuren</x:String>
-    <x:String x:Key="Quality_C">C - Deutliche Gebrauchsspuren</x:String>
+    <x:String x:Key="Quality_A">A - wie neu</x:String>
+    <x:String x:Key="Quality_B">B - leichte Gebrauchsspuren</x:String>
+    <x:String x:Key="Quality_C">C - deutliche Gebrauchsspuren</x:String>
     <x:String x:Key="Payment_Marge">Marge (0% MwSt.)</x:String>
     <x:String x:Key="Payment_BTW">MwSt. (21%)</x:String>
 
@@ -538,7 +538,7 @@
     <x:String x:Key="Session_Connected">Gerät für den Webtest verbunden ({0})</x:String>
     <x:String x:Key="Session_TestRunning">Test läuft: {0} ({1}%)</x:String>
     <x:String x:Key="Session_TestDone">Test abgeschlossen: {0} -&gt; {1}</x:String>
-    <x:String x:Key="Session_WebRunnerError">Web-Runner-Fehler: {0}</x:String>
+    <x:String x:Key="Session_WebRunnerError">Webtest-Fehler: {0}</x:String>
     <x:String x:Key="Session_QrError">QR-Fehler: {0}</x:String>
     <x:String x:Key="Session_Finished">Webtest fertig: {0} von {1} Tests abgeschlossen.</x:String>
     <x:String x:Key="Session_Ready">Der Webtest ist auf dem Telefon bereit.</x:String>
@@ -586,7 +586,7 @@
     <x:String x:Key="Settings_ImeiInfoWhyTitle">Warum Sie einen eigenen Schlüssel brauchen</x:String>
     <x:String x:Key="Settings_ImeiInfoWhy">IMEI-Prüfungen laufen über Ihr eigenes imei.info-Konto, deshalb gehört der Schlüssel, den Sie unten einfügen, Ihnen und bleibt in der Einstellungsdatei dieses Computers. PhoneGrade wird nicht mit einem ausgeliefert.</x:String>
     <x:String x:Key="Settings_ImeiInfoWhyCredits">Jede Prüfung wird dem Guthaben dieses Kontos zum daneben angegebenen Preis belastet, deshalb fügen Sie vor der ersten Prüfung Guthaben hinzu.</x:String>
-    <x:String x:Key="Settings_ImeiInfoOpenDashboard">Open imei.info Dashboard</x:String>
+    <x:String x:Key="Settings_ImeiInfoOpenDashboard">imei.info-Dashboard öffnen</x:String>
     <x:String x:Key="Settings_ImeiInfoSaveKey">API-Schlüssel speichern</x:String>
     <x:String x:Key="Settings_ImeiInfoTestKey">API-Schlüssel testen</x:String>
     <x:String x:Key="Settings_ImeiInfoChecks">Automatisch auszuführende Prüfungen</x:String>
@@ -732,12 +732,12 @@
     <x:String x:Key="Color_Coral">Koralle</x:String>
     <x:String x:Key="Color_Obsidian">Obsidian</x:String>
     <x:String x:Key="Color_Porcelain">Porzellan</x:String>
-    <x:String x:Key="Color_Hazel">Hazel</x:String>
+    <x:String x:Key="Color_Hazel">Haselnuss</x:String>
     <x:String x:Key="Color_Rose">Rosé</x:String>
     <x:String x:Key="Color_Charcoal">Anthrazit</x:String>
-    <x:String x:Key="Color_Mint">Mint</x:String>
-    <x:String x:Key="Color_Navy">Navy</x:String>
-    <x:String x:Key="Color_Sage">Sage</x:String>
+    <x:String x:Key="Color_Mint">Minze</x:String>
+    <x:String x:Key="Color_Navy">Marineblau</x:String>
+    <x:String x:Key="Color_Sage">Salbei</x:String>
     <x:String x:Key="Color_Olive">Oliv</x:String>
     <x:String x:Key="Color_Cream">Creme</x:String>
     <x:String x:Key="Color_Beige">Beige</x:String>
