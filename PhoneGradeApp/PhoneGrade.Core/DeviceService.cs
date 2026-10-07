@@ -470,24 +470,23 @@ public static class DeviceService
     {
         // 1. Probe iOS devices via idevice_id
         var (stdout, stderr, exitCode) = await ToolRunner.ExecuteAsync("idevice_id", "-l");
-
+        string[] iosDevices = [];
         if (exitCode == 0 && !string.IsNullOrWhiteSpace(stdout))
         {
-            var list = stdout.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                             .Select(s => s.Trim())
-                             .Where(s => s.Length > 0)
-                             .ToArray();
-            if (list.Length > 0)
-            {
-                // Discovered iOS devices (logging suppressed to avoid polling spam)
-                return (list, stdout, ConnectionState.Connected);
-            }
+            iosDevices = stdout.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                               .Select(s => s.Trim())
+                               .Where(s => s.Length > 0)
+                               .ToArray();
         }
 
-        // 2. Probe Android devices via adb devices
+        // 2. Probe Android devices via adb devices.
+        //
+        // This runs even when an iPhone answered above. The iOS answer used to
+        // return from here, so a bench with both handsets on the cable only ever
+        // saw the iPhone and the Android half of the list was unreachable.
         try
         {
-            var (adbOut, adbErr, adbExit) = await ToolRunner.ExecuteAsync("adb", "devices");
+            var (adbOut, _, adbExit) = await ToolRunner.ExecuteAsync("adb", "devices");
 
             // Read through the same parser the USB event stream uses, so a phone
             // sitting on the RSA prompt cannot be "authorizing" for the how-to
@@ -498,19 +497,27 @@ public static class DeviceService
             {
                 if (adbState.AnyAuthorized)
                 {
-                    // Discovered Android devices (logging suppressed)
-                    return (androidDevices, adbOut, ConnectionState.Connected);
+                    // Discovered iOS and Android devices (logging suppressed)
+                    return ([.. iosDevices, .. androidDevices], stdout + "\n" + adbOut, ConnectionState.Connected);
                 }
 
                 if (adbState.AnyUnauthorized)
                 {
-                    return ([], adbOut, ConnectionState.Unauthorized);
+                    // The iPhone, if there is one, stays on the list: only the
+                    // Android side has a prompt waiting.
+                    return (iosDevices, stdout + "\n" + adbOut, ConnectionState.Unauthorized);
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // ADB probe failed (suppressed)
+        }
+
+        if (iosDevices.Length > 0)
+        {
+            // Discovered iOS devices (logging suppressed to avoid polling spam)
+            return (iosDevices, stdout, ConnectionState.Connected);
         }
 
         // 3. Check if stderr indicates specific daemon or permission errors for iOS
