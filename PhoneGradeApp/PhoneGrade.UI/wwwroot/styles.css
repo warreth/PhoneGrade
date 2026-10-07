@@ -200,11 +200,50 @@ body {
 /* When test is running, hide header, footer, test-list to be 100% full screen */
 body.test-running .app-header,
 body.test-running .app-footer,
-body.test-running .test-footer,
 #test-screen.test-running #test-list,
 #test-screen.test-running .test-header,
 #test-screen.test-running .progress-bar {
     display: none !important;
+}
+
+/* The skip button is not chrome. It sits outside the test container on purpose so a
+   test that fills the screen cannot cover it, and it was hidden here along with the
+   header and the list, which made it unreachable during every single test. The promise
+   on the website is that any step can be skipped by holding this button, and it could
+   not be pressed at all.
+
+   Kept visible, and only padded rather than overlaid: a translucent button sitting on
+   top of the touch grid would swallow taps aimed at the grid, and the grid is the thing
+   the operator is being asked to swipe. It lives below the container instead, so it
+   takes its own row at the bottom and never covers a test. */
+#test-screen.test-running .test-footer {
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-sm, 8px);
+    border-top: 1px solid var(--color-border, #e2e8f0);
+    background: var(--color-bg-primary, #fff);
+
+    /* Pinned to the bottom of the viewport. The test container is position: fixed and
+       covers the whole window, so the footer in normal flow sits underneath it and the
+       button is on screen but nothing can be pressed.
+
+       The z-index has to clear the container's, which is 9999. That number is there to
+       put a running test above the header and the list, and this rule was written before
+       anything needed to sit above a running test, so 20 lost. */
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+}
+
+/* The container stops short of the footer instead of running behind it. Without this the
+   two overlap, and the touch grid under the button is dead to a tap that was meant for
+   the grid. 66px is the button's 48 plus its padding either side and the border. */
+#test-screen.test-running .test-container {
+    bottom: 66px;
+    height: auto;
 }
 
 #test-screen.test-running .main-content {
