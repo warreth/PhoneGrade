@@ -126,8 +126,3 @@ licence grants one either: the marks are not part of what was licensed.
 
 Questions about this policy: hello@phonegrade.app.
 
----
-
-This policy is written in plain English on purpose. If any part of it is unclear, ask
-before you act on it. A mark that is used in good faith is much easier to resolve than
-one that is used and then disputed afterwards.

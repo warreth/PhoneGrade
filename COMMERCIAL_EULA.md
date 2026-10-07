@@ -270,8 +270,3 @@ Notices must be sent to hello@phonegrade.app. Questions about this document, abo
 Subscription, or about anything in the Software should go to the same address, and the
 Licensor will answer a question in plain language.
 
----
-
-**If any part of this document is unclear, or you think it is wrong, say so before you
-sign.** Terms nobody questions tend to be terms nobody reads, and a clause that was
-genuinely confusing is a clause that may not bind you.

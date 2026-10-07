@@ -247,6 +247,32 @@ public sealed class LicenceAgreementTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void TheTrademarkPolicyIsPresentAndSaysTheAuthorKeepsTheMarks()
+    {
+        // The document the commercial terms point at as well, so all four are read from
+        // disk rather than trusted to exist because the link above them resolves.
+        string policy = File.ReadAllText(RepositoryFile("TRADEMARK_POLICY.md"));
+
+        Assert.Contains(LicenceTerms.Author, policy);
+        Assert.Contains("PhoneGrade", policy);
+
+        // The two prohibitions that matter, named by the headings the document actually
+        // uses rather than by wording taken from another one. Reselling is the business
+        // terms' business; what a trademark policy forbids is using the marks on
+        // something you distribute, and stripping the credit.
+        foreach (string heading in new[]
+        {
+            "What you may not do without written permission",
+            "Attribution requirements",
+        })
+        {
+            Assert.True(
+                policy.Contains(heading, StringComparison.OrdinalIgnoreCase),
+                $"the trademark policy is missing the section: {heading}");
+        }
+    }
+
+    [AvaloniaFact]
     public void TheCommercialTermsArePresentAndCarryALiabilityCap()
     {
         // The document a paying customer is sent to. If the cap is missing from the

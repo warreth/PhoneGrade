@@ -12,7 +12,7 @@ namespace PhoneGrade.Core.Licensing;
 ///
 /// The key is derived with PBKDF2 (Rfc2898DeriveBytes) from the machine fingerprint
 /// and a hardcoded salt baked into the binary. This is deliberate tamper resistance
-/// for an published source tree, not secrecy: anyone can read the source, but editing
+/// for a published source tree, not secrecy: anyone can read the source, but editing
 /// settings.json or sys_cache.dat without the key yields a token that decrypts to
 /// nothing, and the store then falls back to the other location.
 ///
