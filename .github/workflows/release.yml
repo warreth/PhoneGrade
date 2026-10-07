@@ -1,5 +1,18 @@
 name: Release installers
 
+# How a build is triggered, and what each one means.
+#
+#   push a tag            the ordinary path. Push v1.2.0 and it builds 1.2.0.
+#   publish a release     the ordinary path, for a release made in the GitHub UI.
+#   run it by hand        the repair path. Type a tag that already exists and the
+#                         installers land on that release rather than making a
+#                         second one, which is what makes a failed build
+#                         recoverable without leaving two releases for one version.
+#
+# The hand-run path exists because the common case is: make the release, watch the
+# action go red, fix it, run it again. Before this, running it again made a new tag
+# and a second release for the same version, and the updater saw two.
+
 on:
   push:
     tags: ['v*']
@@ -7,20 +20,197 @@ on:
     types: [published]
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version (e.g. 1.1.0). The tag created is v<version>, so type 1.1.0 rather than v1.1.0.'
-        required: true
-      notes:
-        description: 'Release notes, one change per line starting with "- ". Shown in the app after the update installs. Leave empty and the app stays quiet.'
+      tag:
+        description: >-
+          Tag to build, with or without the leading v: 1.2.0 or v1.2.0. If the tag
+          already exists the installers are added to that release. If it does not,
+          the release is created. Leave empty to rebuild the tag that last failed.
         required: false
         type: string
+      prerelease:
+        description: >-
+          Mark the release as a prerelease and put the installers on the beta
+          channel, so only shops that asked for beta in the app are offered it.
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
 
 jobs:
+  # Works out what this run is for before anything is built: the tag, whether that tag
+  # is already there, the version the packages will carry, and whether this is a beta.
+  #
+  # A job of its own rather than the first step of the build, for one reason. Deciding
+  # whether the tag exists and pushing it is something that must happen once. Done from
+  # inside the four-way matrix, all four runners ask the repository the same question at
+  # the same moment, all four see "no", and all four push, and the second one to arrive
+  # fails the whole run on a tag that the first one already created.
+  #
+  # Everything downstream reads the answers from here, so the tag the packages are
+  # versioned from and the tag the installers are uploaded against cannot drift apart.
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.versions.outputs.tag }}
+      tag_exists: ${{ steps.versions.outputs.tag_exists }}
+      prerelease: ${{ steps.versions.outputs.prerelease }}
+      app_version: ${{ steps.versions.outputs.app_version }}
+      channel_suffix: ${{ steps.versions.outputs.channel_suffix }}
+      release_exists: ${{ steps.notes.outputs.release_exists }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Work out the version, the tag and the channel
+        id: versions
+        shell: bash
+        env:
+          # Through the environment rather than into the script text, so a version
+          # containing a quote or a backtick cannot end a string and be executed.
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+          REF: ${{ github.ref }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          # Which tag is this build for? Three ways in, and they all end at the same
+          # question.
+          #
+          # A hand run names the tag, with or without the leading v, because both are
+          # what people type. Leaving it empty means "the tag this workflow was last
+          # building", which is the common case: you pressed run again because the
+          # previous run went red.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # Empty means "the tag this workflow was last building", which is the common
+            # case: you pressed run again because the previous run went red. A hand run
+            # starts on a branch rather than on a tag, so refs/heads/ is what is left
+            # when nothing was typed, and it fails the version check below rather than
+            # becoming a release named after a branch.
+            TAG="${INPUT_TAG:-$REF}"
+            IS_PRERELEASE="$INPUT_PRERELEASE"
+          else
+            if [ "$EVENT_NAME" = "release" ]; then
+              TAG="$RELEASE_TAG"
+            else
+              TAG="$REF"
+            fi
+            IS_PRERELEASE="$RELEASE_PRERELEASE"
+          fi
+
+          # refs/tags/ off a pushed tag, and a leading v either way, so all three routes
+          # arrive at the same shape and are checked once.
+          TAG="${TAG#refs/heads/}"
+          TAG="${TAG#refs/tags/}"
+          TAG="${TAG#v}"
+          TAG="v$TAG"
+
+          # Anything without a number at the front is a branch name that reached this
+          # workflow by some route. Better to stop than to cut a release named after it.
+          case "$TAG" in
+            v[0-9]*) ;;
+            *) echo "ERROR: '$TAG' is not a version tag" >&2; exit 1 ;;
+          esac
+
+          # Does the tag already exist? Whether it does decides whether this run attaches
+          # to a release or makes one, and it is also what the notes step reads from.
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            TAG_EXISTS=true
+          else
+            TAG_EXISTS=false
+          fi
+
+          # Single source of truth for the version: the tag, 'v' stripped.
+          # vpk requires 3-part SemVer2, so '5.0' is padded to '5.0.0' and a prerelease
+          # suffix ('5.0-beta1') becomes '5.0.0-beta1'.
+          V="${TAG#v}"
+          S=""
+          case "$V" in *-*) S="${V#*-}"; V="${V%%-*}";; esac
+          case "$V" in
+            *.*.*) ;;
+            *.*)  V="$V.0" ;;
+            *)    V="$V.0.0" ;;
+          esac
+          [ -n "$S" ] && V="$V-$S"
+
+          # A prerelease build goes on the beta channel. The suffix is appended to the
+          # platform channel rather than replacing it, so a beta for Windows is win-beta
+          # and is never offered to a shop on linux-beta.
+          #
+          # A tag that says -beta1 is a prerelease whether or not the box was ticked.
+          # Reading it off the tag means a hand-run build that forgets the box still
+          # lands somewhere nobody stable is watching.
+          case "$TAG" in *-*) IS_PRERELEASE=true ;; esac
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            CHANNEL_SUFFIX="-beta"
+          else
+            CHANNEL_SUFFIX=""
+          fi
+
+          # The tag is created here rather than in the matrix, which is the reason this
+          # job exists. A tag that is not there yet has to point at something, and the
+          # commit this run was started from is that something: the commit the branch was
+          # on when the tag was pushed or the release was made.
+          if [ "$TAG_EXISTS" != "true" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG"
+            TAG_EXISTS=true
+            echo "created $TAG at $GITHUB_SHA"
+          else
+            echo "$TAG already exists, adding the installers to it"
+          fi
+
+          {
+            echo "tag=$TAG"
+            echo "tag_exists=$TAG_EXISTS"
+            echo "prerelease=$IS_PRERELEASE"
+            echo "app_version=$V"
+            echo "channel_suffix=$CHANNEL_SUFFIX"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "tag:            $TAG"
+          echo "already existed: $TAG_EXISTS"
+          echo "version:        $V"
+          echo "prerelease:     $IS_PRERELEASE"
+          echo "channel suffix: ${CHANNEL_SUFFIX:-(none)}"
+
+      # Whether a release already exists for this tag, as opposed to whether the tag
+      # does. The prepare step above creates the tag when it is missing, so after it has
+      # run the tag always exists and the tag no longer tells us anything about whether
+      # this run is repairing an existing release or making the first one. That question
+      # decides two things: whether notes can be read, and whether the upload step may
+      # write a placeholder body.
+      #
+      # Read once here rather than four times in the matrix, so the answers cannot
+      # differ between runners.
+      - name: Check for a release on this tag
+        id: notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.versions.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            RELEASE_EXISTS=true
+          else
+            RELEASE_EXISTS=false
+          fi
+
+          echo "release_exists=$RELEASE_EXISTS" >> "$GITHUB_OUTPUT"
+          echo "release on $TAG: $RELEASE_EXISTS"
+
   release:
+    needs: prepare
     strategy:
+      # Every system finishes even when one of them fails. Fail-fast is on by
+      # default, so one red test step cancelled the other two and a run only
+      # ever named the first system to break, which costs a push per system to
+      # find out what the others were doing.
       fail-fast: false
       matrix:
         include:
@@ -45,75 +235,88 @@ jobs:
             packDir: publish-linux
             mainExe: PhoneGrade.UI
     runs-on: ${{ matrix.os }}
+    env:
+      # Named once here rather than written as ${{ needs.prepare.outputs.x }} in every
+      # step below. There are four runners, and a tag that reads one way in the notes
+      # step and another way in the upload is the sort of thing that only shows up after
+      # the release is public.
+      TAG: ${{ needs.prepare.outputs.tag }}
+      TAG_EXISTS: ${{ needs.prepare.outputs.tag_exists }}
+      IS_PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+      APP_VERSION: ${{ needs.prepare.outputs.app_version }}
+      CHANNEL_SUFFIX: ${{ needs.prepare.outputs.channel_suffix }}
+      RELEASE_EXISTS: ${{ needs.prepare.outputs.release_exists }}
     steps:
+      # Full history, not a shallow clone. Creating a tag for a release that does not
+      # exist yet needs the branch it points at, and a depth-1 clone of a tag does not
+      # carry it.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      # Pin vpk to the same version as the Velopack NuGet package; mixing
-      # versions is unsupported and breaks updates.
-      - name: Install vpk (Velopack CLI)
-        run: dotnet tool install --global vpk --version 1.2.0 || dotnet tool update --global vpk --version 1.2.0
-
-      # Single source of truth for the version: tag name (push/release events,
-      # 'v' prefix stripped) or the dispatch input. Used both to stamp the
-      # assembly and to version the packages.
-      - name: Compute version
-        shell: bash
-        run: |
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            V="${{ inputs.version }}"
-            V="${V#v}"   # tolerate 'v5.0' typed into the input
-            case "$V" in
-              ''|*[!0-9.]*) echo "ERROR: invalid version '$V'" >&2; exit 1 ;;
-            esac
-          else
-            # Tags may carry prerelease suffixes (v5.0-beta1); pass through.
-            V="${GITHUB_REF_NAME#v}"
-          fi
-          # vpk requires 3-part SemVer2; pad '5.0' to '5.0.0', keep any
-          # prerelease suffix ('5.0-beta1' becomes '5.0.0-beta1').
-          S=""
-          case "$V" in *-*) S="${V#*-}"; V="${V%%-*}";; esac
-          case "$V" in
-            *.*.*) ;;
-            *.*)  V="$V.0" ;;
-            *)    V="$V.0.0" ;;
-          esac
-          [ -n "$S" ] && V="$V-$S"
-          echo "APP_VERSION=$V" >> "$GITHUB_ENV"
-        env:
-          GITHUB_REF_NAME: ${{ github.event.release.tag_name || github.ref_name }}
-
-      # The release notes, for the app to show after the update installs itself.
+      # The release's own notes, read rather than typed.
       #
-      # An update replaces the binaries and restarts, so there is no window open
-      # when the new version lands to say what it is. The notes go into the package
-      # here and the app reads them out on its next start. Without this step the
-      # app has nothing to show and stays quiet, which is the right behaviour for
-      # a release that genuinely changed nothing.
+      # A release made in the GitHub UI already carries its notes, and typing them a
+      # second time into a dispatch field is a second copy of the same words which can
+      # disagree with the page. So the body is read from the release and handed to the
+      # step below through the environment.
+      #
+      # Empty when no release exists yet, which is the case where this run is the one
+      # creating it. The notes step then writes the version line on its own rather than
+      # failing, because a first build should not need a release to exist before it can
+      # run.
+      #
+      # The notes go into the package because an update replaces the binaries and
+      # restarts, so there is no window open when a new version lands to say what it is.
+      # The app reads them out on its next start.
+      - name: Read the release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BODY=""
+          if [ "$RELEASE_EXISTS" = "true" ]; then
+            # gh is on the runner and authenticated with the workflow token, which has
+            # contents: write and so can read a release.
+            BODY="$(gh release view "$TAG" --json body --jq '.body' 2>/dev/null || true)"
+          fi
+
+          # A heredoc rather than an export, so notes carrying a quote, a backtick or a
+          # dollar sign travel as data instead of being evaluated as part of this script.
+          {
+            echo "RELEASE_BODY<<PGEOF"
+            printf '%s' "$BODY"
+            echo ""
+            echo "PGEOF"
+          } >> "$GITHUB_ENV"
+
+          if [ -n "$BODY" ]; then
+            echo "read the notes from $TAG"
+          else
+            echo "no release notes for $TAG; the version line will do"
+          fi
+
       - name: Write release notes
         shell: bash
         run: |
           printf '# %s\n\n' "$APP_VERSION" > releasenotes.md
 
-          if [ -n "$(printf '%s' "$INPUTS_NOTES" | tr -d '[:space:]')" ]; then
-            printf '%s\n' "$INPUTS_NOTES" >> releasenotes.md
+          if [ -n "$RELEASE_BODY" ]; then
+            # The body starts with a heading naming the version, which the line above
+            # has already written. Kept as it is otherwise: the same words the release
+            # page shows, which is what someone will compare them against.
+            printf '%s\n' "$RELEASE_BODY" >> releasenotes.md
           else
             printf 'No notes were given for this release.\n' >> releasenotes.md
           fi
 
           echo "--- releasenotes.md"
           cat releasenotes.md
-        env:
-          APP_VERSION: ${{ env.APP_VERSION }}
-          # Read from env rather than interpolated into the script: a note
-          # containing a quote or a backtick would otherwise end the string and
-          # be executed as part of the run step.
-          INPUTS_NOTES: ${{ inputs.notes }}
 
       # .NET bootstrap via --framework is Windows-only (per Velopack docs), so
       # macOS and Linux publish self-contained instead.
@@ -125,7 +328,7 @@ jobs:
           dotnet publish PhoneGradeApp/PhoneGrade.UI/PhoneGrade.UI.csproj \
             -c Release -r ${{ matrix.rid }} \
             --self-contained "$SELF_CONTAINED" \
-            -p:Version=${{ env.APP_VERSION }} \
+            -p:Version="$APP_VERSION" \
             -o ${{ matrix.packDir }}
 
       # Bundle the libimobiledevice CLI tools next to the app exe so a fresh
@@ -155,7 +358,7 @@ jobs:
           mkdir -p "$tools_dir"
 
           # ideviceactivation is a separate project, not in Homebrew's
-          # libimobiledevice; build it from the release tarball.
+          # libimobiledevice; build from the release tarball.
           curl -sL "https://github.com/libimobiledevice/libideviceactivation/archive/refs/tags/1.1.1.tar.gz" -o /tmp/act.tar.gz
           mkdir /tmp/act-src && tar -xzf /tmp/act.tar.gz -C /tmp/act-src --strip-components=1
           ( cd /tmp/act-src && NOCONFIGURE=1 ./autogen.sh && ./configure --prefix=/tmp/act-inst \
@@ -174,7 +377,7 @@ jobs:
             local bin="$1"
             while read -r lib; do
               local name
-              name=$(basename "$lib")
+              name="$(basename "$lib")"
               if [ ! -f "$tools_dir/$name" ]; then
                 cp -L "$lib" "$tools_dir/$name"
                 copy_dylibs "$tools_dir/$name"
@@ -195,10 +398,7 @@ jobs:
 
           for t in idevice_id ideviceinfo idevicediagnostics ideviceactivation idevicecrashreport idevicepair; do
             bin="$(command -v "$t" || true)"
-            if [ -z "$bin" ]; then
-              echo "ERROR: $t not found" >&2
-              exit 1
-            fi
+            [ -n "$bin" ] || { echo "ERROR: $t not found" >&2; exit 1; }
             cp "$bin" "$tools_dir/"
             copy_dylibs "$bin"
             rewrite_paths "$tools_dir/$(basename "$bin")"
@@ -322,7 +522,7 @@ jobs:
           # ~/.dotnet/tools is on PATH on GitHub runners but not everywhere
           # (e.g. local runs with nektos/act); export it so vpk always resolves.
           export PATH="$PATH:$HOME/.dotnet/tools"
-          VERSION="${{ env.APP_VERSION }}"
+          VERSION="$APP_VERSION"
           if [ "${{ runner.os }}" = "Windows" ]; then
             # Only Windows can bootstrap the .NET runtime from the installer.
             FRAMEWORK_ARGS=(--framework "net8.0-x64-desktop")
@@ -343,19 +543,29 @@ jobs:
             --packDir ${{ matrix.packDir }} \
             --mainExe ${{ matrix.mainExe }} \
             --channel ${{ matrix.channel }} \
-            --outputDir releases \
-            --delta None \
-            --icon "$ICON" \
             --releaseNotes releasenotes.md \
-            "${FRAMEWORK_ARGS[@]}"
+            "${FRAMEWORK_ARGS[@]}" \
+            ${CHANNEL_SUFFIX:+--channelSuffix "$CHANNEL_SUFFIX"}
+
       - name: Upload to GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: releases/*
-          # The 'v' is added here rather than stripped from the input, so typing
-          # 'v1.1.0' into the dispatch field does not produce the tag 'vv1.1.0'.
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
-          # The same notes on the release page itself. The copy in the package is
-          # what the app shows after installing; this is what someone reading the
-          # release page sees before deciding to.
-          body: ${{ inputs.notes && format('{0}\n\n{1}', inputs.version, inputs.notes) || format('Release {0}', inputs.version) }}
+          # The tag the prepare job settled on. It already exists by the time this
+          # step runs, tag or no tag, so a repair run adds its installers to the
+          # release that is already there rather than making a second one for the
+          # same version.
+          tag_name: ${{ env.TAG }}
+          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
+          # Notes already on the release are left alone. Overwriting them would throw
+          # away the copy written in the GitHub UI, which is what the package was just
+          # built from, so the two would end up saying different things.
+          #
+          # The generated line only fills a gap: a tag that got pushed without anybody
+          # writing a body yet.
+          body: ${{ env.RELEASE_EXISTS == 'true' && '' || format('Release {0}', env.APP_VERSION) }}
+          # Four runners uploading the same file list to one release. Without this the
+          # second through fourth to finish fail on a conflict and take the run red on
+          # what is otherwise a good release.
+          overwrite_files: true
+          fail_on_unmatched_files: false
