@@ -697,7 +697,11 @@ public static class DeviceService
                          FindDictValue(raw.DefaultDict, "BatterySerialNumber", "BatterySerial");
         }
 
-        data.BatteryCycleCount = cycle ?? 0;
+        // Null rather than zero when the handset did not say: a zero is a claim
+        // that the battery has never been used, and the exports and the label both
+        // have to be able to tell "not reported" from "reported as none". The
+        // Android side already answers null; this keeps the two the same.
+        data.BatteryCycleCount = cycle;
         data.BatteryDesignCapacity = design ?? 0;
         data.BatteryCurrentCapacity = rawMax ?? 0;
         data.BatterySerialNumber = Parsers.CleanSerial(battSerial);

@@ -707,6 +707,26 @@ public class ParsersTests
     {
         Assert.Equal(0, Parsers.ParseAndroidBatteryCycleCount("  cycle count: 0\n"));
     }
+
+    /// <summary>
+    /// When the IOReg read times out or says nothing, the cycle count stays
+    /// unreported. A zero that nobody measured reads as a battery that has never
+    /// been used, which is a claim rather than an absence.
+    /// </summary>
+    [Fact]
+    public async Task PopulateBatteryMetrics_WhenTheHandsetSaysNothing_LeavesTheCycleCountUnreported()
+    {
+        var raw = new DeviceService.DeviceRawData
+        {
+            IORegBattery = "ERROR: idevicediagnostics timed out",
+        };
+        var data = new DeviceData();
+
+        await DeviceService.PopulateBatteryMetricsAsync("TEST-UDID", data, raw);
+
+        Assert.Null(data.BatteryCycleCount);
+        Assert.Equal("NOBATT", data.BatteryHealth);
+    }
 }
 
 public class MappersTests
