@@ -142,27 +142,52 @@ public class LoggingAndTroubleshootTests
     [Fact]
     public async Task DeviceService_ListUdidsSafeAsync_DetectsMissingToolsGracefully()
     {
-        // When idevice_id and adb are missing on this test container
+        // On a bare container this finds nothing and says which tool or service
+        // is missing; on a bench with the tools beside the binaries and a
+        // handset on the cable it finds one. What it must never do is throw or
+        // report a bare "not found" without a reason.
         var (udids, raw, state) = await DeviceService.ListUdidsSafeAsync();
-        Assert.Empty(udids);
-        // Either ToolsMissing, DaemonStopped, or NotFound depending on environment
-        Assert.True(state == DeviceService.ConnectionState.ToolsMissing ||
-                    state == DeviceService.ConnectionState.DaemonStopped ||
-                    state == DeviceService.ConnectionState.NotFound);
+
+        Assert.NotNull(udids);
+        Assert.NotNull(raw);
+        if (udids.Length == 0)
+        {
+            Assert.True(state is DeviceService.ConnectionState.ToolsMissing
+                    or DeviceService.ConnectionState.DaemonStopped
+                    or DeviceService.ConnectionState.NotFound
+                    or DeviceService.ConnectionState.Unauthorized
+                    or DeviceService.ConnectionState.NotTrusted,
+                $"nothing was found and nothing was diagnosed: {state}");
+        }
     }
 
     [Fact]
-    public async Task TroubleshootService_MissingIdeviceId_DoesNotReportFalsePositivePass()
+    public async Task TroubleshootService_IdeviceIdDiagnostic_ReportsExactlyOneState()
     {
-        // On this test machine without idevice_id, ensure it is NOT reported as Pass!
+        // The fact was written on a container where idevice_id is absent, and
+        // the bug it pinned was that the missing side could come back as Pass.
+        // A bench with the tool installed reports the found side instead, so the
+        // invariant that holds in both worlds is pinned: exactly one of the two
+        // rows exists, and the missing one always comes with its fix.
         var report = await TroubleshootService.RunFullDiagnosticsAsync();
-        var ideviceCheck = report.Checks.FirstOrDefault(c => c.TitleKey == "Diag_TitleIdeviceIdMissing");
-        
-        Assert.NotNull(ideviceCheck);
-        // Must be Fail because idevice_id is not present, never Pass with an error message
-        Assert.Equal(DiagnosticSeverity.Fail, ideviceCheck.Severity);
-        Assert.Equal("install_idevice_tools", ideviceCheck.FixActionKey);
-        Assert.True(ideviceCheck.IsFixable);
+
+        var missing = report.Checks.FirstOrDefault(c => c.TitleKey == "Diag_TitleIdeviceIdMissing");
+        var found = report.Checks.FirstOrDefault(c => c.TitleKey == "Diag_TitleIdeviceIdFound");
+
+        Assert.True(missing is null ^ found is null,
+            "the idevice_id diagnostic described neither state or both of them");
+
+        if (missing is not null)
+        {
+            Assert.Equal(DiagnosticSeverity.Fail, missing.Severity);
+            Assert.Equal("install_idevice_tools", missing.FixActionKey);
+            Assert.True(missing.IsFixable);
+        }
+
+        if (found is not null)
+        {
+            Assert.Equal(DiagnosticSeverity.Pass, found.Severity);
+        }
     }
 
     [Fact]
