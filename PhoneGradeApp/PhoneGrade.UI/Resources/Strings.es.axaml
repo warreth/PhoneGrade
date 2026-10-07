@@ -77,7 +77,7 @@
     <x:String x:Key="Value_BatteryLevel">Carga {0}%</x:String>
     <x:String x:Key="Value_Checking">Comprobando...</x:String>
     <x:String x:Key="Value_NotSet">Sin definir</x:String>
-    <x:String x:Key="Value_NotGraded">Sin calificar</x:String>
+    <x:String x:Key="Value_NotGraded">Sin grado</x:String>
     <x:String x:Key="BatteryStatus_Unknown">Estado de la batería desconocido</x:String>
     <x:String x:Key="BatteryStatus_Good">Correcta</x:String>
     <x:String x:Key="BatteryStatus_Overheated">Sobrecalentada</x:String>
@@ -92,7 +92,7 @@
     <x:String x:Key="Settings_GroupOnArrival">Cuando llega un dispositivo</x:String>
     <x:String x:Key="Settings_GroupInteractiveTest">La prueba interactiva</x:String>
     <x:String x:Key="Settings_GroupAfterwards">Después de la inspección</x:String>
-    <x:String x:Key="Settings_Quality">Calidad predeterminada</x:String>
+    <x:String x:Key="Settings_Quality">Grado predeterminado</x:String>
     <x:String x:Key="Settings_Payment">Método de facturación predeterminado</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Iniciar automáticamente la prueba web interactiva</x:String>
     <x:String x:Key="Settings_RequirePwaTest">Exigir la prueba PWA antes de finalizar</x:String>
@@ -315,7 +315,7 @@
     <x:String x:Key="Export_SectionSecurity">Bloqueos y seguridad</x:String>
     <x:String x:Key="Export_SectionComponents">Componentes originales</x:String>
     <x:String x:Key="Export_SectionTests">Pruebas interactivas</x:String>
-    <x:String x:Key="Export_SectionGrading">Calificación</x:String>
+    <x:String x:Key="Export_SectionGrading">Grado</x:String>
     <x:String x:Key="Export_FieldName">Campo</x:String>
     <x:String x:Key="Export_FieldValue">Valor</x:String>
     <x:String x:Key="Export_NotReported">No informado</x:String>
@@ -388,11 +388,11 @@
     <x:String x:Key="Spec_Storage">Almacenamiento</x:String>
     <x:String x:Key="Spec_Color">Color</x:String>
     <x:String x:Key="Spec_Battery">Estado de la batería</x:String>
-    <x:String x:Key="Spec_Grade">Calificación de calidad</x:String>
+    <x:String x:Key="Spec_Grade">Grado</x:String>
     <x:String x:Key="Spec_Memory">Memoria</x:String>
     <x:String x:Key="Active_SecurityTitle">SEGURIDAD &amp; ESTADO</x:String>
     <x:String x:Key="Spec_Imei">Número IMEI</x:String>
-    <x:String x:Key="Spec_FindMy">Find My (iCloud)</x:String>
+    <x:String x:Key="Spec_FindMy">Buscar (iCloud)</x:String>
     <x:String x:Key="Spec_Blacklist">Estado de la lista negra</x:String>
     <x:String x:Key="Spec_NotChecked">No comprobado</x:String>
     <x:String x:Key="Active_OemTitle">AUDITORÍA DE PIEZAS ORIGINALES (OEM)</x:String>
@@ -422,7 +422,7 @@
     <x:String x:Key="Report_Restore">Deshacer</x:String>
 
     <!-- The two questions at the end of an inspection -->
-    <x:String x:Key="QualityPopup_Title">Elija la calidad</x:String>
+    <x:String x:Key="QualityPopup_Title">Elija el grado</x:String>
     <x:String x:Key="QualityPopup_Lead">Cómo queda este dispositivo tras la inspección. Acabará en la etiqueta.</x:String>
     <x:String x:Key="PaymentPopup_Title">Método de facturación</x:String>
     <x:String x:Key="PaymentPopup_Lead">Cómo se factura este dispositivo.</x:String>
@@ -445,7 +445,7 @@
     <x:String x:Key="Settings_SecLicense">Licencia</x:String>
     <x:String x:Key="Settings_SecSupport">Soporte</x:String>
     <x:String x:Key="Settings_SecAdvanced">Avanzado</x:String>
-    <x:String x:Key="Settings_QualityDesc">La calificación con la que empieza una inspección. Una elección vacía pregunta en cada inspección.</x:String>
+    <x:String x:Key="Settings_QualityDesc">El grado con el que empieza una inspección. Una elección vacía pregunta en cada inspección.</x:String>
     <x:String x:Key="Settings_PaymentDesc">El método de facturación con el que empieza una inspección. Una elección vacía pregunta en cada inspección.</x:String>
     <x:String x:Key="Settings_QualityAsk">Preguntar cada vez</x:String>
     <x:String x:Key="Settings_PaymentAsk">Preguntar cada vez</x:String>
@@ -477,8 +477,8 @@
     <x:String x:Key="Editor_Identity">Identidad</x:String>
     <x:String x:Key="Editor_Identifier">Identificador (IMEI / número de serie)</x:String>
     <x:String x:Key="Editor_Battery">Batería</x:String>
-    <x:String x:Key="Editor_Grading">Calificación</x:String>
-    <x:String x:Key="Editor_Quality">Calidad</x:String>
+    <x:String x:Key="Editor_Grading">Grado</x:String>
+    <x:String x:Key="Editor_Quality">Grado</x:String>
     <x:String x:Key="Editor_Payment">Método de facturación</x:String>
     <x:String x:Key="Editor_MetricsTitle">Métricas de hardware y de batería</x:String>
     <x:String x:Key="Editor_Cycles">Ciclos de carga</x:String>
@@ -515,11 +515,11 @@
     <x:String x:Key="Status_ReadingData">Leyendo los datos del dispositivo…</x:String>
     <x:String x:Key="Status_SpecsRead">Especificaciones leídas. Ejecute la prueba interactiva y pulse Finalizar.</x:String>
     <x:String x:Key="Status_Error">Error: {0}</x:String>
-    <x:String x:Key="Status_GradeDowngraded">La calificación A no está permitida (faltan API). Se ha bajado automáticamente a B.</x:String>
+    <x:String x:Key="Status_GradeDowngraded">El grado A no está permitido (faltan API). Se ha bajado automáticamente a B.</x:String>
     <x:String x:Key="Status_ChoosePayment">Elija el método de facturación...</x:String>
     <x:String x:Key="Status_TestsComplete">Pruebas finalizadas. Revise los resultados e imprima la etiqueta.</x:String>
     <x:String x:Key="Status_PwaRequired">La prueba de hardware de la PWA es obligatoria. Ejecute primero la prueba interactiva.</x:String>
-    <x:String x:Key="Status_ChooseQuality">Elija la calidad...</x:String>
+    <x:String x:Key="Status_ChooseQuality">Elija el grado...</x:String>
     <x:String x:Key="Status_LabelGenerating">Generando la etiqueta…</x:String>
     <x:String x:Key="Status_ExportingCsv">Escribiendo el archivo CSV…</x:String>
     <x:String x:Key="Status_ExportingPdf">Escribiendo el informe PDF…</x:String>
