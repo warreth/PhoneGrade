@@ -243,6 +243,8 @@ export default {
     'cosmetic.q.volumeUp.hint': 'Gebruik de knoppen aan de zijkant en kijk naar het scherm.',
     'cosmetic.q.volumeDown': 'Druk volume omlaag in. Verscheen de indicator?',
     'cosmetic.q.volumeDown.hint': 'Gebruik de knoppen aan de zijkant en kijk naar het scherm.',
+    'cosmetic.q.mute': 'Zet de stille schakelaar om. Liet de telefoon dat zien of trilde hij?',
+    'cosmetic.q.mute.hint': 'Het kleine schakelaartje boven de volumeknoppen. Zet hem op stil en terug.',
     'cosmetic.opt.condition.good': 'Goed',
     'cosmetic.opt.condition.marks': 'Lichte sporen',
     'cosmetic.opt.condition.broken': 'Gebroken',

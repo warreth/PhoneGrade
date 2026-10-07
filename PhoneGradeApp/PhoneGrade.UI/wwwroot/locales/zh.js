@@ -243,6 +243,8 @@ export default {
     'cosmetic.q.volumeUp.hint': '按侧边按键，同时看屏幕。',
     'cosmetic.q.volumeDown': '按下调低音量，指示条出现了吗？',
     'cosmetic.q.volumeDown.hint': '按侧边按键，同时看屏幕。',
+    'cosmetic.q.mute': '拨动静音开关。手机有没有显示提示或振动？',
+    'cosmetic.q.mute.hint': '音量键上方的小开关。拨到静音再拨回来。',
     'cosmetic.opt.condition.good': '良好',
     'cosmetic.opt.condition.marks': '轻微痕迹',
     'cosmetic.opt.condition.broken': '损坏',

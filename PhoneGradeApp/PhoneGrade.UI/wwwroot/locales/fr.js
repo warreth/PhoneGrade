@@ -243,6 +243,8 @@ export default {
     'cosmetic.q.volumeUp.hint': 'Utilisez les boutons latéraux en regardant l\'écran.',
     'cosmetic.q.volumeDown': 'Appuyez sur le bouton volume bas. L\'indicateur est-il apparu ?',
     'cosmetic.q.volumeDown.hint': 'Utilisez les boutons latéraux en regardant l\'écran.',
+    'cosmetic.q.mute': 'Basculez le bouton silencieux. Le téléphone l\'a-t-il montré ou a-t-il vibré ?',
+    'cosmetic.q.mute.hint': 'Le petit bouton au-dessus des boutons de volume. Mettez-le en silencieux puis remettez-le.',
     'cosmetic.opt.condition.good': 'Bon',
     'cosmetic.opt.condition.marks': 'Légères traces',
     'cosmetic.opt.condition.broken': 'Cassé',

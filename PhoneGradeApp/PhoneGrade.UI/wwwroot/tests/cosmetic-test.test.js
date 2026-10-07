@@ -114,7 +114,7 @@ test('a defect fails the step and every answer becomes its own result row', asyn
     assert.match(step.notes, /back/i, 'the failing question is named');
 
     const rows = step.toResults();
-    assert.equal(rows.length, CosmeticTest.ITEMS.length, 'one row per question, never one row for the step');
+    assert.equal(rows.length, step.items.length, 'one row per question, never one row for the step');
     assert.deepEqual(step.resultIds(), rows.map(r => r.id), 'the resume contract lists the same rows');
 
     const byId = Object.fromEntries(rows.map(r => [r.id, r]));
@@ -206,16 +206,41 @@ test('reset clears the answers so a rerun starts empty', async () => {
 
 test('adding an item is one list entry and grows rows, ids and codes together', () => {
     // The extensibility promise, pinned down: the flow, the progress and the
-    // results all read ITEMS, so a sixth question cannot update one and miss
-    // another.
-    const before = CosmeticTest.ITEMS.length;
-    assert.ok(before >= 5, 'the agreed five questions are there');
-    assert.deepEqual(
-        new CosmeticTest().resultIds(),
-        CosmeticTest.ITEMS.map(item => `cosmetic-${item.key}`)
-    );
-    for (const item of CosmeticTest.ITEMS) {
-        assert.match(item.labelCode, /^[A-Z0-9]{1,9}$/, `${item.key} carries a label-safe code`);
-        assert.ok(['condition', 'works'].includes(item.kind), `${item.key} has a known kind`);
+    // results all read the list, so a question cannot update one and miss another.
+    const androidItems = CosmeticTest.itemsFor('Mozilla/5.0 (Linux; Android 17)');
+    const iphoneItems = CosmeticTest.itemsFor('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)');
+
+    assert.ok(androidItems.length >= 5, 'the agreed questions are there');
+    assert.equal(iphoneItems.length, androidItems.length + 1,
+        'the silent switch is an iphone question');
+    assert.ok(!androidItems.some(item => item.key === 'mute'),
+        'an android operator is not asked about a switch that is not there');
+    assert.ok(iphoneItems.some(item => item.key === 'mute'));
+
+    for (const items of [androidItems, iphoneItems]) {
+        const codes = items.map(item => item.labelCode);
+        assert.equal(new Set(codes).size, codes.length, 'no two questions share a label code');
+        for (const item of items) {
+            assert.match(item.labelCode, /^[A-Z0-9]{1,9}$/, `${item.key} carries a label-safe code`);
+            assert.ok(['condition', 'works'].includes(item.kind), `${item.key} has a known kind`);
+        }
     }
+});
+
+test('the step asks the questions that match the phone it runs on', () => {
+    const androidAgent = 'Mozilla/5.0 (Linux; Android 17) Chrome/140';
+    navigator.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)';
+    try {
+        const step = new CosmeticTest();
+        assert.deepEqual(
+            step.resultIds(),
+            CosmeticTest.itemsFor(navigator.userAgent).map(item => `cosmetic-${item.key}`),
+            'the rows follow the filtered list rather than every item');
+        assert.ok(step.resultIds().includes('cosmetic-mute'), 'an iphone is asked about the switch');
+    } finally {
+        navigator.userAgent = androidAgent;
+    }
+
+    assert.ok(!new CosmeticTest().resultIds().includes('cosmetic-mute'),
+        'an android is not');
 });

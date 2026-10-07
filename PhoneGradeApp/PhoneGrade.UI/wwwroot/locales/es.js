@@ -243,6 +243,8 @@ export default {
     'cosmetic.q.volumeUp.hint': 'Usa los botones laterales mirando la pantalla.',
     'cosmetic.q.volumeDown': 'Pulsa bajar volumen. ¿Apareció el indicador?',
     'cosmetic.q.volumeDown.hint': 'Usa los botones laterales mirando la pantalla.',
+    'cosmetic.q.mute': 'Cambie el interruptor de silencio. ¿Lo mostró el teléfono o vibró?',
+    'cosmetic.q.mute.hint': 'El interruptor pequeño sobre los botones de volumen. Póngalo en silencio y vuelva.',
     'cosmetic.opt.condition.good': 'Bien',
     'cosmetic.opt.condition.marks': 'Marcas leves',
     'cosmetic.opt.condition.broken': 'Roto',

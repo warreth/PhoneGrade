@@ -243,6 +243,8 @@ export default {
     'cosmetic.q.volumeUp.hint': 'Nutzen Sie die Tasten an der Seite und schauen Sie auf den Bildschirm.',
     'cosmetic.q.volumeDown': 'Drücken Sie Leiser. Ist die Anzeige erschienen?',
     'cosmetic.q.volumeDown.hint': 'Nutzen Sie die Tasten an der Seite und schauen Sie auf den Bildschirm.',
+    'cosmetic.q.mute': 'Legen Sie den Stummschalter um. Hat das Telefon es angezeigt oder vibriert?',
+    'cosmetic.q.mute.hint': 'Der kleine Schalter über den Lautstärketasten. Schalten Sie auf lautlos und zurück.',
     'cosmetic.opt.condition.good': 'Gut',
     'cosmetic.opt.condition.marks': 'Leichte Spuren',
     'cosmetic.opt.condition.broken': 'Defekt',

@@ -30,6 +30,10 @@ export class CosmeticTest extends DeviceTest {
      * kind 'condition' answers good / light marks / broken. kind 'works'
      * answers works / does not work. The label code is what the printed label
      * carries for a defect; the report carries the full question and answer.
+     *
+     * An item with a platform is only asked there: the ring/silent switch is
+     * an iPhone part, and asking an Android operator to flip one they do not
+     * have is a question with no true answer.
      */
     static ITEMS = [
         { key: 'back', kind: 'condition', labelCode: 'BACK', nameKey: 'cosmetic.q.back', hintKey: 'cosmetic.q.back.hint' },
@@ -37,10 +41,25 @@ export class CosmeticTest extends DeviceTest {
         { key: 'camera-glass', kind: 'condition', labelCode: 'CAMERA', nameKey: 'cosmetic.q.cameraGlass', hintKey: 'cosmetic.q.cameraGlass.hint' },
         { key: 'volume-up', kind: 'works', labelCode: 'VOLUP', nameKey: 'cosmetic.q.volumeUp', hintKey: 'cosmetic.q.volumeUp.hint' },
         { key: 'volume-down', kind: 'works', labelCode: 'VOLDN', nameKey: 'cosmetic.q.volumeDown', hintKey: 'cosmetic.q.volumeDown.hint' },
+        { key: 'mute', kind: 'works', labelCode: 'MUTE', platform: 'ios', nameKey: 'cosmetic.q.mute', hintKey: 'cosmetic.q.mute.hint' },
     ];
 
+    /**
+     * The items that apply to a phone, given what its browser says it is.
+     *
+     * A private browsing mode and an unusual browser both report something, so
+     * the answer is only ever "ask it" or "leave it out": an item with no
+     * platform is for every phone, and the rest are for the one they name.
+     */
+    static itemsFor(userAgent) {
+        const platform = /iPhone|iPad|iPod/.test(userAgent || '') ? 'ios' : 'other';
+        return CosmeticTest.ITEMS.filter(item => !item.platform || item.platform === platform);
+    }
+
     constructor() {
+        const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
         super('cosmetic', t('cosmetic.name'), t('cosmetic.description'));
+        this.items = CosmeticTest.itemsFor(userAgent);
         this.answers = {};
     }
 
@@ -94,17 +113,17 @@ export class CosmeticTest extends DeviceTest {
 
         return new Promise((resolve) => {
             const answered = () => Object.keys(this.answers).length;
-            let index = CosmeticTest.ITEMS.findIndex(item => !(item.key in this.answers));
+            let index = this.items.findIndex(item => !(item.key in this.answers));
             if (index < 0) index = 0;
 
             const render = () => {
-                const item = CosmeticTest.ITEMS[index];
+                const item = this.items[index];
                 const options = CosmeticTest.optionsFor(item.kind);
 
                 this.reportProgress(
                     wsClient,
-                    Math.round((answered() / CosmeticTest.ITEMS.length) * 100),
-                    t('cosmetic.progress', { answered: answered(), total: CosmeticTest.ITEMS.length })
+                    Math.round((answered() / this.items.length) * 100),
+                    t('cosmetic.progress', { answered: answered(), total: this.items.length })
                 );
 
                 // Built with elements rather than a markup string, so the
@@ -115,7 +134,7 @@ export class CosmeticTest extends DeviceTest {
 
                 const count = document.createElement('p');
                 count.className = 'cosmetic__count';
-                count.textContent = t('cosmetic.progress', { answered: answered(), total: CosmeticTest.ITEMS.length });
+                count.textContent = t('cosmetic.progress', { answered: answered(), total: this.items.length });
                 wrap.appendChild(count);
 
                 const question = document.createElement('h3');
@@ -139,7 +158,7 @@ export class CosmeticTest extends DeviceTest {
                     button.addEventListener('click', () => {
                         this.answers[item.key] = option;
                         this.haptic.success();
-                        if (index + 1 < CosmeticTest.ITEMS.length) {
+                        if (index + 1 < this.items.length) {
                             index += 1;
                             render();
                         } else {
@@ -166,7 +185,7 @@ export class CosmeticTest extends DeviceTest {
             };
 
             const finish = () => {
-                const defects = CosmeticTest.ITEMS.filter(item =>
+                const defects = this.items.filter(item =>
                     CosmeticTest.isDefect(this.answers[item.key]));
                 this.details.answers = { ...this.answers };
                 this.reportProgress(wsClient, 100, t('cosmetic.done'));
@@ -195,7 +214,7 @@ export class CosmeticTest extends DeviceTest {
     restoreAnswers() {
         const rows = Array.isArray(this.storedRows) ? this.storedRows : [];
         const byId = new Map(rows.map(row => [String(row.testId || row.id || '').toLowerCase(), row]));
-        for (const item of CosmeticTest.ITEMS) {
+        for (const item of this.items) {
             const answer = CosmeticTest.answerFromRow(item, byId.get(CosmeticTest.rowId(item.key)));
             if (answer) this.answers[item.key] = answer;
         }
@@ -212,7 +231,7 @@ export class CosmeticTest extends DeviceTest {
      */
     toResults() {
         const durationMs = this.getDuration();
-        return CosmeticTest.ITEMS.map(item => this.rowFor(item, durationMs));
+        return this.items.map(item => this.rowFor(item, durationMs));
     }
 
     rowFor(item, durationMs) {
@@ -237,7 +256,7 @@ export class CosmeticTest extends DeviceTest {
     }
 
     resultIds() {
-        return CosmeticTest.ITEMS.map(item => CosmeticTest.rowId(item.key));
+        return this.items.map(item => CosmeticTest.rowId(item.key));
     }
 
     reset() {

@@ -242,6 +242,8 @@ export default {
     'cosmetic.q.volumeUp.hint': 'Use the side buttons while watching the screen.',
     'cosmetic.q.volumeDown': 'Press volume down. Did the indicator appear?',
     'cosmetic.q.volumeDown.hint': 'Use the side buttons while watching the screen.',
+    'cosmetic.q.mute': 'Flip the silent switch. Did the phone show it or vibrate?',
+    'cosmetic.q.mute.hint': 'The small switch above the volume buttons. Flip it to silent and back.',
     'cosmetic.opt.condition.good': 'Good',
     'cosmetic.opt.condition.marks': 'Light marks',
     'cosmetic.opt.condition.broken': 'Broken',
