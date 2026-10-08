@@ -290,11 +290,26 @@ public class LoggingAndTroubleshootTests
         // Un-faked, live HTTP HEAD request to ensure the Windows zip and CAB driver URLs exist and are valid.
         using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) };
         
-        // 1. Check dynamic GitHub latest release API
+        // 1. Check dynamic GitHub latest release API. CI passes GITHUB_TOKEN so a
+        //    shared runner address is not answered with a rate-limit 403; without
+        //    one the unauthenticated call is still what a shop machine does.
         using var reqApi = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, "https://api.github.com/repos/libimobiledevice-win32/imobiledevice-net/releases/latest");
         reqApi.Headers.Add("User-Agent", "PhoneGrade-Tests");
+        string? token = Environment.GetEnvironmentVariable("GITHUB_TOKEN")
+            ?? Environment.GetEnvironmentVariable("GH_TOKEN");
+        if (!string.IsNullOrWhiteSpace(token))
+            reqApi.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         var resApi = await client.SendAsync(reqApi);
-        Assert.True(resApi.IsSuccessStatusCode, $"GitHub latest releases API failed with {(int)resApi.StatusCode}");
+
+        // api.github.com answers unauthenticated callers with 403 once the
+        // address' hourly budget is gone, which says nothing about the endpoint
+        // itself. With a token a 403 is a failure, because the installer would
+        // be refused on the shop machine too.
+        bool rateLimitedWithoutToken = token is null
+            && (resApi.StatusCode == System.Net.HttpStatusCode.Forbidden
+                || (int)resApi.StatusCode == 429);
+        Assert.True(resApi.IsSuccessStatusCode || rateLimitedWithoutToken,
+            $"GitHub latest releases API failed with {(int)resApi.StatusCode}");
 
         // 2. Check libimobiledevice GitHub release asset directly
         string libiUrl = "https://github.com/libimobiledevice-win32/imobiledevice-net/releases/download/v1.3.17/libimobiledevice.1.2.1-r1122-win-x64.zip";

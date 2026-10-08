@@ -16,6 +16,9 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    # A normal run is well under ten minutes per system; the default six hour
+    # cap would let a hung test host sit red for the rest of the day.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +38,9 @@ jobs:
         env:
           # Live imei.info facts read this; without the secret they skip.
           IMEI_INFO_API_KEY: ${{ secrets.IMEI_INFO_API_KEY }}
+          # The live download-URL fact queries api.github.com; authenticated
+          # requests are not rate-limited from a shared runner address.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # A job log can only be downloaded by someone with admin rights on the
       # repository, so a red test step is invisible from the outside: nobody
