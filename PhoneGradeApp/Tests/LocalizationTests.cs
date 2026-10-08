@@ -286,14 +286,31 @@ public class LocalizationTests
         // is what the operator has to recognise on screen. Chinese cannot contain
         // them, so for that one language the check is that the sentence was
         // translated at all: a Chinese reader sees 诊断, which is the same button.
+        //
+        // Compared without the accent, because Spanish and Portuguese spell it
+        // "diagnóstico" and the accent sits between the g and the s. Checking the
+        // bare letters would fail on the correct spelling and pass on a misspelling
+        // that dropped the accent to satisfy this line, which is the wrong way
+        // round.
         foreach (string file in Files.Where(file => !file.Contains(".zh.")))
         {
             string status = Value(file, "Status_ToolsMissing");
-            Assert.Contains("diagnos", status.ToLowerInvariant());
+            Assert.Contains("diagnos", WithoutAccents(status).ToLowerInvariant());
         }
 
         Assert.Contains("诊断", Value("Strings.zh.axaml", "Status_ToolsMissing"));
     }
+
+    /// <summary>
+    /// The letters of a word with the accents taken off, for a check that is about
+    /// which word was used rather than how it is spelled.
+    /// </summary>
+    private static string WithoutAccents(string value) =>
+        new string(value
+            .Normalize(System.Text.NormalizationForm.FormD)
+            .Where(character => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(character)
+                != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .ToArray());
 
     /// <summary>
     /// Wording belongs in the string dictionaries, not in the views.
