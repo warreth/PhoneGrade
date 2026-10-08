@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
@@ -21,6 +23,31 @@ public static class LocalizationManager
 
     /// <summary>The code in use, which is what the phone suite is told as well.</summary>
     public static string CurrentLanguage => _currentLanguage;
+
+    /// <summary>
+    /// The culture the running language writes numbers in.
+    ///
+    /// The window language and the machine's regional settings are not the same
+    /// question: an English window on a Dutch machine formatted the IMEI cost
+    /// estimate as "0,00 USD" and read as a fault in the application. The two
+    /// languages that only exist in one shape (English and Chinese) are mapped
+    /// to the variant the product's other copy follows.
+    /// </summary>
+    private static readonly Dictionary<string, CultureInfo> Cultures = new(StringComparer.Ordinal)
+    {
+        ["nl"] = CultureInfo.GetCultureInfo("nl-NL"),
+        ["en"] = CultureInfo.GetCultureInfo("en-US"),
+        ["de"] = CultureInfo.GetCultureInfo("de-DE"),
+        ["es"] = CultureInfo.GetCultureInfo("es-ES"),
+        ["fr"] = CultureInfo.GetCultureInfo("fr-FR"),
+        ["pt"] = CultureInfo.GetCultureInfo("pt-BR"),
+        ["zh"] = CultureInfo.GetCultureInfo("zh-CN"),
+    };
+
+    public static CultureInfo Culture =>
+        Cultures.TryGetValue(_currentLanguage, out CultureInfo? culture)
+            ? culture
+            : CultureInfo.InvariantCulture;
 
     /// <summary>
     /// Loads and applies a language resource dictionary at runtime. A code this
