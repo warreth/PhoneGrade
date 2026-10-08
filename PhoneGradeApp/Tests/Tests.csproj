@@ -24,12 +24,11 @@
     <PackageReference Include="Avalonia.Headless.XUnit" Version="11.2.3" />
     <!-- Rasterises the label PDF so the tests can ask what is printed rather than
          what was written: the label once printed blank with every word still in
-         the file, which no test on the bytes could see. Pinned to a version that
-         wants SkiaSharp 3, because Avalonia pins SkiaSharp 3 and letting a test
-         dependency pull 4 in changes the text metrics QuestPDF lays the label out
-         with. That is not a theory: the label went blank the moment it was
-         upgraded. -->
-    <PackageReference Include="PDFtoImage" Version="5.1.0" />
+         the file, which no test on the bytes could see. Pinned to the 4.x line
+         because Avalonia 11.2 binds SkiaSharp 2.88: a 5.x PDFtoImage raises the
+         managed SkiaSharp to 3 while Avalonia keeps shipping the 2.88 native
+         library, and the two halves then disagree on Linux and macOS. -->
+    <PackageReference Include="PDFtoImage" Version="4.1.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="Microsoft.TestPlatform.TestHost" Version="17.14.0" />
