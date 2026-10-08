@@ -14,7 +14,7 @@
     
     <!-- Dashboard Card Titles -->
     <x:String x:Key="Card_Status">STATUS</x:String>
-    <x:String x:Key="Card_Device">APARELHO</x:String>
+    <x:String x:Key="Card_Device">TELEMÓVEL</x:String>
     <x:String x:Key="Card_ComponentAudit">AUDITORIA DE COMPONENTES (OEM)</x:String>
     <x:String x:Key="Card_DiagnosticIssues">PROBLEMAS DE DIAGNÓSTICO</x:String>
     <x:String x:Key="Card_WebRunner">EXECUTOR DE TESTES WEB</x:String>
@@ -37,7 +37,7 @@
     
     <!-- Status Messages -->
     <x:String x:Key="Status_Ready">Conecte um iPhone/iPad para começar...</x:String>
-    <x:String x:Key="Status_NoDevice">Nenhum aparelho encontrado. Tente outro cabo ou outra porta, ou desbloqueie o aparelho e toque em Confiar.</x:String>
+    <x:String x:Key="Status_NoDevice">Nenhum telemóvel encontrado. Tente outro cabo ou outra porta, ou desbloqueie o telemóvel e toque em Confiar.</x:String>
     <x:String x:Key="Status_ToolsMissing">Sem USB: diagnostique o PC</x:String>
     
     <!-- Settings -->
@@ -46,16 +46,16 @@
     <x:String x:Key="Settings_ThemeDesc">Escuro, claro ou o padrão do sistema</x:String>
     <x:String x:Key="Settings_Language">Idioma</x:String>
     <x:String x:Key="Settings_LanguageDesc">Idioma da interface</x:String>
-    <x:String x:Key="Settings_AutoDetect">Detectar ao conectar</x:String>
-    <x:String x:Key="Settings_AutoDetectDesc">Iniciar o processo automaticamente quando um aparelho for detectado</x:String>
+    <x:String x:Key="Settings_AutoDetect">Detetar ao ligar</x:String>
+    <x:String x:Key="Settings_AutoDetectDesc">Iniciar o processo automaticamente quando um telemóvel for detetado</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">Monitoramento de eventos USB</x:String>
-    <x:String x:Key="Settings_UsbEventMonitoringDesc">Usar os eventos USB nativos do sistema para detectar o aparelho na hora (Windows WMI, macOS IOKit, Linux udev)</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoringDesc">Usar os eventos USB nativos do sistema para detetar o telemóvel na hora (Windows WMI, macOS IOKit, Linux udev)</x:String>
     
     <!-- Troubleshoot -->
-    <x:String x:Key="Troubleshoot_Title">DETECÇÃO DE APARELHOS E ASSISTENTE DE DRIVERS</x:String>
-    <x:String x:Key="Troubleshoot_Desc">Se um aparelho não for reconhecido, verifique o sistema para diagnosticar drivers, permissões ou serviços ausentes.</x:String>
-    <x:String x:Key="Troubleshoot_Scanning">Executando o diagnóstico, aguarde...</x:String>
-    <x:String x:Key="Troubleshoot_ClickToScan">Clique em Executar o diagnóstico para verificar no sistema as ferramentas USB, os drivers e os aparelhos conectados.</x:String>
+    <x:String x:Key="Troubleshoot_Title">DETEÇÃO DE TELEMÓVEIS E ASSISTENTE DE DRIVERS</x:String>
+    <x:String x:Key="Troubleshoot_Desc">Se um telemóvel não for reconhecido, verifique o sistema para diagnosticar drivers, permissões ou serviços ausentes.</x:String>
+    <x:String x:Key="Troubleshoot_Scanning">A executar o diagnóstico, aguarde...</x:String>
+    <x:String x:Key="Troubleshoot_ClickToScan">Clique em Executar o diagnóstico para verificar no sistema as ferramentas USB, os drivers e os telemóveis conectados.</x:String>
     
     <!-- Logs -->
     <x:String x:Key="Logs_SearchPlaceholder">Buscar nos registros...</x:String>
@@ -73,9 +73,9 @@
 
     <!-- Words for a value the phone never reported -->
     <x:String x:Key="Value_Unknown">Desconhecido</x:String>
-    <x:String x:Key="Value_UnknownDevice">Aparelho desconhecido</x:String>
+    <x:String x:Key="Value_UnknownDevice">Telemóvel desconhecido</x:String>
     <x:String x:Key="Value_BatteryLevel">Carga {0}%</x:String>
-    <x:String x:Key="Value_Checking">Verificando...</x:String>
+    <x:String x:Key="Value_Checking">A verificar...</x:String>
     <x:String x:Key="Value_NotSet">Não definido</x:String>
     <x:String x:Key="Value_NotGraded">Sem grade</x:String>
     <x:String x:Key="BatteryStatus_Unknown">Situação da bateria desconhecida</x:String>
@@ -89,7 +89,7 @@
     <x:String x:Key="ActivationLock_Off">DESLIGADA (desbloqueado)</x:String>
     
     <x:String x:Key="Settings_DailyOptions">OPÇÕES DIÁRIAS</x:String>
-    <x:String x:Key="Settings_GroupOnArrival">Quando um aparelho chega</x:String>
+    <x:String x:Key="Settings_GroupOnArrival">Quando um telemóvel chega</x:String>
     <x:String x:Key="Settings_GroupInteractiveTest">O teste interativo</x:String>
     <x:String x:Key="Settings_GroupAfterwards">Depois da inspeção</x:String>
     <x:String x:Key="Settings_Quality">Grade padrão</x:String>
@@ -103,18 +103,18 @@
     <x:String x:Key="Settings_RunDiagnostics">Executar o diagnóstico de hardware (logs de pânico)</x:String>
     <x:String x:Key="Settings_Enable85Checker">Verificação de bateria de 85% (etiqueta 100%-X)</x:String>
     <x:String x:Key="Settings_OpenEditor">Abrir o editor de etiqueta antes de imprimir</x:String>
-    <x:String x:Key="Settings_Connection">COMO O APARELHO ABRE A PÁGINA</x:String>
+    <x:String x:Key="Settings_Connection">COMO O TELEMÓVEL ABRE A PÁGINA</x:String>
     <x:String x:Key="Settings_SecureOrigin">Pelo cabo USB (http://localhost)</x:String>
-    <x:String x:Key="Settings_SecureOriginDesc">O aparelho abre a página de teste no próprio PC. O navegador confia nesse endereço, então a câmera, o microfone, os sensores de movimento e a localização funcionam ali. Esta é a opção mais rápida, não precisa de internet e funciona assim que o cabo é conectado. É a rota tentada primeiro.</x:String>
+    <x:String x:Key="Settings_SecureOriginDesc">O telemóvel abre a página de teste no próprio PC. O navegador confia nesse endereço, então a câmara, o microfone, os sensores de movimento e a localização funcionam ali. Esta é a opção mais rápida, não precisa de internet e funciona assim que o cabo é ligado. É a rota tentada primeiro.</x:String>
     <x:String x:Key="Settings_PublicTunnel">Pela internet (https, seguro)</x:String>
-    <x:String x:Key="Settings_PublicTunnelDesc">O PC abre um endereço https seguro que encaminha para a página de teste, pela Cloudflare. Este é o plano reserva quando não há túnel USB, o que sempre acontece com um iPhone. As duas opções podem ficar ligadas ao mesmo tempo: o USB é tentado primeiro e a internet é o plano reserva. Precisa de internet no PC e no aparelho; sem isso tudo continua na rede local e a câmera, o microfone, os sensores de movimento e a localização param de funcionar.</x:String>
+    <x:String x:Key="Settings_PublicTunnelDesc">O PC abre um endereço https seguro que encaminha para a página de teste, pela Cloudflare. Este é o plano reserva quando não há túnel USB, o que sempre acontece com um iPhone. As duas opções podem ficar ligadas ao mesmo tempo: o USB é tentado primeiro e a internet é o plano reserva. Precisa de internet no PC e no telemóvel; sem isso tudo continua na rede local e a câmara, o microfone, os sensores de movimento e a localização param de funcionar.</x:String>
 
     <!-- Licensing &amp; Subscription -->
     <x:String x:Key="Settings_LicensingCardTitle">Licenciamento e assinatura</x:String>
     <x:String x:Key="Settings_LicenseKey">Chave de licença</x:String>
     <x:String x:Key="Settings_LicenseKeyWatermark">Digite sua chave de licença do Lemon Squeezy</x:String>
     <x:String x:Key="Settings_ValidateActivate">Validar e ativar</x:String>
-    <x:String x:Key="Settings_ManageLicense">Gerenciar a licença</x:String>
+    <x:String x:Key="Settings_ManageLicense">Gerir a licença</x:String>
     <x:String x:Key="Settings_FreeTierStatus">Plano gratuito ({0}/10 varreduras usadas)</x:String>
     <x:String x:Key="Settings_ProTierStatus">Plano Pro (ativo)</x:String>
     <x:String x:Key="Settings_ActivationSuccess">Licença ativada. A varredura ilimitada já está disponível.</x:String>
@@ -127,22 +127,22 @@
 
     <!-- Licensing: introduction screen and the status pill in the title bar -->
     <x:String x:Key="Intro_Title">Boas-vindas ao PhoneGrade</x:String>
-    <x:String x:Key="Intro_Subtitle">Comece no plano gratuito: 10 varreduras, sem precisar de conta. O Pro remove o limite sempre que você precisar de mais.</x:String>
+    <x:String x:Key="Intro_Subtitle">Comece no plano gratuito: 10 varreduras, sem precisar de conta. O Pro remove o limite sempre que precisar de mais.</x:String>
     <x:String x:Key="Intro_FreeTierTitle">Gratuito</x:String>
     <x:String x:Key="Intro_FreeTierBody">10 varreduras. O status na barra de título sempre mostra quantas ainda restam.</x:String>
     <x:String x:Key="Intro_ProTierTitle">Pro</x:String>
-    <x:String x:Key="Intro_ProTierBody">Varreduras ilimitadas em todos os aparelhos que você conectar.</x:String>
+    <x:String x:Key="Intro_ProTierBody">Varreduras ilimitadas em todos os telemóveis que ligar.</x:String>
     <x:String x:Key="Intro_ProBadge">Ilimitado</x:String>
     <x:String x:Key="Intro_StartFree">Começar de graça</x:String>
     <x:String x:Key="Intro_PageWelcome">Idioma e aparência</x:String>
     <x:String x:Key="Intro_WelcomeLead">Defina uma vez só. As duas opções podem ser alteradas depois em Configurações.</x:String>
     <x:String x:Key="Intro_PagePlan">O que o plano gratuito oferece</x:String>
     <x:String x:Key="Intro_PageWorkflow">Como uma inspeção acontece</x:String>
-    <x:String x:Key="Intro_WorkflowLead">Quatro etapas, sempre as mesmas. O teste interativo é o único que precisa do aparelho.</x:String>
-    <x:String x:Key="Intro_StepPlug">Conecte o aparelho pelo USB e desbloqueie-o</x:String>
-    <x:String x:Key="Intro_StepRead">O PhoneGrade lê o hardware e escreve na tela o que encontrou</x:String>
-    <x:String x:Key="Intro_StepTest">Leia o código QR com o aparelho para rodar os testes de câmera, tela, sensores e áudio</x:String>
-    <x:String x:Key="Intro_StepFinish">Escolha a nota, imprima a etiqueta e devolva o aparelho</x:String>
+    <x:String x:Key="Intro_WorkflowLead">Quatro etapas, sempre as mesmas. O teste interativo é o único que precisa do telemóvel.</x:String>
+    <x:String x:Key="Intro_StepPlug">Conecte o telemóvel pelo USB e desbloqueie-o</x:String>
+    <x:String x:Key="Intro_StepRead">O PhoneGrade lê o hardware e escreve no ecrã o que encontrou</x:String>
+    <x:String x:Key="Intro_StepTest">Leia o código QR com o telemóvel para rodar os testes de câmara, ecrã, sensores e áudio</x:String>
+    <x:String x:Key="Intro_StepFinish">Escolha a nota, imprima a etiqueta e devolva o telemóvel</x:String>
     <x:String x:Key="Intro_PageImei">Bloqueio de operadora e lista negra</x:String>
     <x:String x:Key="Intro_Next">Avançar</x:String>
     <x:String x:Key="Intro_Back">Voltar</x:String>
@@ -159,13 +159,13 @@
     <x:String x:Key="Licensing_PanelSeatsUsed">{0} de {1} computadores em uso</x:String>
     <x:String x:Key="Licensing_PanelSeatThis">Este computador ({0})</x:String>
     <x:String x:Key="Licensing_PanelSeatsLabel">Computadores</x:String>
-    <x:String x:Key="Licensing_PanelNoMachineId">Este computador não pode ser identificado, então não dá para ativar uma licença aqui. As varreduras gratuitas continuam funcionando.</x:String>
+    <x:String x:Key="Licensing_PanelNoMachineId">Este computador não pode ser identificado, então não dá para ativar uma licença aqui. As varreduras gratuitas continuam a funcionar.</x:String>
     <x:String x:Key="Licensing_PanelRelease">Liberar este computador</x:String>
     <x:String x:Key="Licensing_PanelReleaseConfirm">Liberar mesmo assim?</x:String>
     <x:String x:Key="Licensing_PanelReleaseCancel">Manter</x:String>
-    <x:String x:Key="Licensing_PanelReleaseHint">Libera este computador para que outro possa usar a mesma chave. Depois você pode ativar a chave de novo.</x:String>
-    <x:String x:Key="Licensing_PanelReleaseDone">Este computador foi liberado. Você fica no plano gratuito até ativar a chave de novo.</x:String>
-    <x:String x:Key="Licensing_PanelReleaseDoneAlready">Este computador não estava mais registrado com a chave. Você está no plano gratuito.</x:String>
+    <x:String x:Key="Licensing_PanelReleaseHint">Libera este computador para que outro possa usar a mesma chave. Depois pode ativar a chave de novo.</x:String>
+    <x:String x:Key="Licensing_PanelReleaseDone">Este computador foi liberado. Fica no plano gratuito até ativar a chave de novo.</x:String>
+    <x:String x:Key="Licensing_PanelReleaseDoneAlready">Este computador não estava mais registrado com a chave. Está no plano gratuito.</x:String>
 
     <x:String x:Key="Btn_Troubleshoot">Diagnóstico de USB e drivers</x:String>
     <x:String x:Key="Btn_Logs">Ver os registros do sistema</x:String>
@@ -185,7 +185,7 @@
     <x:String x:Key="Summary_ColStatus">Situação</x:String>
     <x:String x:Key="Summary_BtnPrint">IMPRIMIR ETIQUETA DYMO</x:String>
     <x:String x:Key="Summary_BtnRetest">Testar de novo</x:String>
-    <x:String x:Key="Summary_BtnNext">Próximo aparelho (concluído)</x:String>
+    <x:String x:Key="Summary_BtnNext">Próximo telemóvel (concluído)</x:String>
     <x:String x:Key="Summary_SimLockFree">Desbloqueado (sem SIM)</x:String>
     <x:String x:Key="Summary_SimLocked">SIM bloqueado</x:String>
 
@@ -196,7 +196,7 @@
     <x:String x:Key="Export_Title">Exportar e imprimir</x:String>
     <x:String x:Key="Export_Lead">Salve a etiqueta, o relatório e os números, ou imprima a etiqueta na hora.</x:String>
     <x:String x:Key="Export_PreviewTitle">Prévia da etiqueta</x:String>
-    <x:String x:Key="Export_PreviewNote">Desenhada com os mesmos valores do arquivo. O que estiver faltando aparece como marcador.</x:String>
+    <x:String x:Key="Export_PreviewNote">Desenhada com os mesmos valores do ficheiro. O que estiver em falta aparece como marcador.</x:String>
     <x:String x:Key="Export_PreviewScaled">Desenhada menor do que a etiqueta para caber aqui. O formato está certo; o tamanho não.</x:String>
     <x:String x:Key="Export_Stock">Bobina de etiquetas</x:String>
     <x:String x:Key="Export_StockNote">A bobina que está na impressora, pelo número de peça com que foi encomendada.</x:String>
@@ -210,7 +210,7 @@
     <x:String x:Key="Export_BarcodeTitle">Código de barras</x:String>
     <x:String x:Key="Export_BarcodeNote">O que o código de barras carrega. Dois códigos precisam de duas faixas da etiqueta, o que deixa menos espaço para o texto.</x:String>
     <x:String x:Key="Export_BarcodeIdentifier">Somente o identificador</x:String>
-    <x:String x:Key="Export_BarcodeIdentifierNote">Um código com o número de série. A etiqueta fica parecendo uma etiqueta de preço, e é isso que o caixa procura.</x:String>
+    <x:String x:Key="Export_BarcodeIdentifierNote">Um código com o número de série. A etiqueta fica a parecer uma etiqueta de preço, e é isso que o caixa procura.</x:String>
     <x:String x:Key="Export_BarcodeSplit">Dois códigos</x:String>
     <x:String x:Key="Export_BarcodeSplitNote">O número de série em um código e o armazenamento, a nota e a bateria em outro, ambos na etiqueta.</x:String>
     <x:String x:Key="Export_BarcodeCombined">Um código, com tudo</x:String>
@@ -234,11 +234,11 @@
     <x:String x:Key="Export_LabelShowCycles">Número de recargas</x:String>
     <x:String x:Key="Export_LabelShowCyclesNote">Quantas vezes a bateria foi recarregada, o que um percentual não informa.</x:String>
     <x:String x:Key="Export_LabelShowFaults">Defeitos</x:String>
-    <x:String x:Key="Export_LabelShowFaultsNote">Uma lista contada do que está errado, como 2x tela não original.</x:String>
+    <x:String x:Key="Export_LabelShowFaultsNote">Uma lista contada do que está errado, como 2x ecrã não original.</x:String>
     <x:String x:Key="Export_LabelShowLocks">FRP e bloqueio de ativação</x:String>
-    <x:String x:Key="Export_LabelShowLocksNote">Impresso em letra maior quando algum deles estiver ligado. Desligar esta opção remove a linha que impede a venda de um aparelho bloqueado.</x:String>
+    <x:String x:Key="Export_LabelShowLocksNote">Impresso em letra maior quando algum deles estiver ligado. Desligar esta opção remove a linha que impede a venda de um telemóvel bloqueado.</x:String>
     <x:String x:Key="Export_LabelPreviewTitle">A etiqueta</x:String>
-    <x:String x:Key="Export_LabelPreviewNote">Desenhada no tamanho da bobina acima, com os mesmos valores do arquivo.</x:String>
+    <x:String x:Key="Export_LabelPreviewNote">Desenhada no tamanho da bobina acima, com os mesmos valores do ficheiro.</x:String>
     <x:String x:Key="Export_LabelTooNarrow">O número de série é longo demais para um código de barras nesta bobina, então ele é impresso como texto.</x:String>
     <x:String x:Key="Export_LabelNoBarcode">Sem código de barras nesta etiqueta.</x:String>
     <x:String x:Key="Export_FormatsTitle">O que gravar</x:String>
@@ -258,7 +258,7 @@
     <x:String x:Key="Export_BtnOpen">Abrir</x:String>
     <x:String x:Key="Export_BtnPrintOne">Imprimir</x:String>
     <x:String x:Key="Export_Close">Fechar</x:String>
-    <x:String x:Key="Export_Busy">Processando...</x:String>
+    <x:String x:Key="Export_Busy">A processar...</x:String>
 
     <!-- The formats, named and described. The note is what stops somebody
          picking by extension: a JSON file and a CSV file are both "the numbers". -->
@@ -269,13 +269,13 @@
     <x:String x:Key="Export_FormatReportPdf">Relatório completo em PDF</x:String>
     <x:String x:Key="Export_FormatReportPdfNote">Todos os valores lidos, com o veredito no topo. Para arquivar ou para mostrar a um cliente.</x:String>
     <x:String x:Key="Export_FormatJson">Números brutos em JSON</x:String>
-    <x:String x:Key="Export_FormatJsonNote">Tudo o que o aparelho informou, versionado. Para o seu próprio sistema.</x:String>
+    <x:String x:Key="Export_FormatJsonNote">Tudo o que o telemóvel informou, versionado. Para o seu próprio sistema.</x:String>
     <x:String x:Key="Export_FormatCsv">Números brutos em CSV</x:String>
     <x:String x:Key="Export_FormatCsvNote">Os mesmos números, uma linha por campo, para uma planilha.</x:String>
     <x:String x:Key="Export_NameOf">Formato</x:String>
     <x:String x:Key="Export_PrintFailed">Não foi possível gravar a etiqueta, então nada foi impresso.</x:String>
-    <x:String x:Key="Status_Exporting">Gravando os arquivos...</x:String>
-    <x:String x:Key="Status_ExportDone">{0} arquivo(s) gravado(s) em {1}</x:String>
+    <x:String x:Key="Status_Exporting">A gravar os ficheiros...</x:String>
+    <x:String x:Key="Status_ExportDone">{0} ficheiro(s) gravado(s) em {1}</x:String>
     <x:String x:Key="Status_ExportPartly">{0} de {1} gravados em {3}. Não foi possível gravar {2}: veja a linha acima.</x:String>
     <x:String x:Key="Status_DymoSent">Etiqueta enviada para a DYMO. A DYMO informa o trabalho como aceito, não como impresso.</x:String>
     <x:String x:Key="Status_DymoRefused">A DYMO não aceitou a etiqueta: {0}</x:String>
@@ -287,15 +287,15 @@
     <x:String x:Key="Status_TemplateUnreadable">Não foi possível ler o modelo de etiqueta em {0}: {1}</x:String>
     <x:String x:Key="Status_NoTemplateFound">Nenhum modelo de etiqueta ({0}) foi encontrado. Procurado em: {1}</x:String>
     <x:String x:Key="Status_TemplateHasNoFields">O modelo de etiqueta não tem nenhum dos campos que este aplicativo preenche, então todas as etiquetas sairiam iguais. Abra de novo o modelo que veio com o aplicativo.</x:String>
-    <x:String x:Key="Status_WriteFailed">Falha ao gravar o arquivo {0}: {1}</x:String>
+    <x:String x:Key="Status_WriteFailed">Falha ao gravar o ficheiro {0}: {1}</x:String>
     <x:String x:Key="Status_UnfilledFields">O modelo também pede {0}, que nada preenche.</x:String>
     <x:String x:Key="Status_BarcodeReplaced">Caracteres que o código de barras não aceita foram substituídos por um hífen, e o texto é impresso ao lado.</x:String>
     <x:String x:Key="Status_BarcodeWrapped">Foram acrescentados asteriscos para que o código de barras possa ser lido de volta.</x:String>
-    <x:String x:Key="Status_NoFileAt">Não existe arquivo em {0}.</x:String>
+    <x:String x:Key="Status_NoFileAt">Não existe ficheiro em {0}.</x:String>
     <x:String x:Key="Status_NoFolderAt">Não existe pasta em {0}.</x:String>
     <x:String x:Key="Status_NoPrinterChosen">Nenhuma impressora foi escolhida.</x:String>
     <x:String x:Key="Status_PrintDialogOpened">Enviado para a janela de impressão.</x:String>
-    <x:String x:Key="Status_PrintNoHandler">Nenhum gerenciador de impressão está instalado, então o arquivo foi aberto. Imprima a partir dele.</x:String>
+    <x:String x:Key="Status_PrintNoHandler">Nenhum gerenciador de impressão está instalado, então o ficheiro foi aberto. Imprima a partir dele.</x:String>
     <x:String x:Key="Status_PrintPreviewOpened">Aberto no Visualizar. Imprima a partir dele.</x:String>
     <x:String x:Key="Status_PrintDefaultApp">Aberto no aplicativo padrão. Imprima a partir dele.</x:String>
     <x:String x:Key="Status_PrintNotStarted">Não foi possível iniciar a impressão: {0}</x:String>
@@ -305,7 +305,7 @@
     <x:String x:Key="Status_FolderOpened">Pasta aberta.</x:String>
     <x:String x:Key="Status_FolderNotOpened">Não foi possível abrir a pasta: {0}</x:String>
     <x:String x:Key="Status_FileOpened">Aberto.</x:String>
-    <x:String x:Key="Status_FileNotOpened">Não foi possível abrir o arquivo: {0}</x:String>
+    <x:String x:Key="Status_FileNotOpened">Não foi possível abrir o ficheiro: {0}</x:String>
 
     <!-- The wording inside the report PDFs. A report is a document somebody keeps,
          so it is written in the language of the shop rather than of the code. -->
@@ -314,7 +314,7 @@
     <x:String x:Key="Export_Confidential">Confidencial</x:String>
     <x:String x:Key="Export_Verdict">Veredito</x:String>
     <x:String x:Key="Export_VerdictClean">Nenhum defeito encontrado</x:String>
-    <x:String x:Key="Export_SectionDevice">Aparelho</x:String>
+    <x:String x:Key="Export_SectionDevice">Telemóvel</x:String>
     <x:String x:Key="Export_SectionBattery">Bateria</x:String>
     <x:String x:Key="Export_SectionNetwork">Rede</x:String>
     <x:String x:Key="Export_SectionSecurity">Bloqueios e segurança</x:String>
@@ -339,8 +339,8 @@
     <x:String x:Key="Export_ColDuration">Duração</x:String>
 
     <!-- Header bar -->
-    <x:String x:Key="Header_Connected">Aparelho conectado</x:String>
-    <x:String x:Key="Header_NoDevice">Sem aparelho</x:String>
+    <x:String x:Key="Header_Connected">Telemóvel ligado</x:String>
+    <x:String x:Key="Header_NoDevice">Sem telemóvel</x:String>
     <x:String x:Key="Header_SettingsTooltip">Configurações e opções</x:String>
     <x:String x:Key="Btn_Close">Fechar</x:String>
     <x:String x:Key="Btn_Rescan">Verificar de novo</x:String>
@@ -349,18 +349,18 @@
     <x:String x:Key="Btn_Finish">Finalizar</x:String>
 
     <!-- Idle screen and the USB trust guide -->
-    <x:String x:Key="TrialLimit_Reached">O limite do teste gratuito foi atingido (10/10). Compre uma licença para continuar verificando.</x:String>
-    <x:String x:Key="Idle_Title">Conecte um aparelho pelo USB</x:String>
-    <x:String x:Key="Idle_Lead">Suporta iPhone, iPad e aparelhos Android. Mantenha a tela desbloqueada e confirme "Confiar neste computador".</x:String>
-    <x:String x:Key="Idle_DetectedDevices">Aparelhos detectados:</x:String>
+    <x:String x:Key="TrialLimit_Reached">O limite do teste gratuito foi atingido (10/10). Compre uma licença para continuar a verificar.</x:String>
+    <x:String x:Key="Idle_Title">Conecte um telemóvel pelo USB</x:String>
+    <x:String x:Key="Idle_Lead">Suporta iPhone, iPad e telemóveis Android. Mantenha o ecrã desbloqueado e confirme "Confiar neste computador".</x:String>
+    <x:String x:Key="Idle_DetectedDevices">Telemóveis detetados:</x:String>
     <!-- USB debugging how-to. Opened by an Android device on the cable that adb
          cannot talk to yet, and by nothing else. -->
     <x:String x:Key="AdbTutorial_Title">Ative a depuração USB</x:String>
-    <x:String x:Key="AdbTutorial_Lead">O telefone está conectado mas ainda não confia neste computador. O telefone está bem; basta um toque nele.</x:String>
+    <x:String x:Key="AdbTutorial_Lead">O telefone está ligado mas ainda não confia neste computador. O telefone está bem; basta um toque nele.</x:String>
     <x:String x:Key="AdbTutorial_ManufacturerPrefix">Para o seu {0}:</x:String>
-    <x:String x:Key="AdbTutorial_DeviceWord">aparelho {0}</x:String>
-    <x:String x:Key="AdbTutorial_AndroidDevice">aparelho Android</x:String>
-    <x:String x:Key="AdbTutorial_Common_ScreenLock">Desbloqueie a tela e deixe-a acesa. Uma tela bloqueada não mostra a pergunta.</x:String>
+    <x:String x:Key="AdbTutorial_DeviceWord">telemóvel {0}</x:String>
+    <x:String x:Key="AdbTutorial_AndroidDevice">telemóvel Android</x:String>
+    <x:String x:Key="AdbTutorial_Common_ScreenLock">Desbloqueie o ecrã e deixe-o aceso. Um ecrã bloqueado não mostra a pergunta.</x:String>
     <x:String x:Key="AdbTutorial_Common_Authorize">Abra no telefone a mensagem "Permitir depuração USB?", toque em "Sempre permitir deste computador" e depois em OK.</x:String>
     <!-- Two steps of their own per brand: where that brand hides the build
          number, and what it calls the developer menu. -->
@@ -402,7 +402,7 @@
     <x:String x:Key="Spec_NotChecked">Não verificado</x:String>
     <x:String x:Key="Active_OemTitle">AUDITORIA DE PEÇAS ORIGINAIS (OEM)</x:String>
     <x:String x:Key="Active_InteractiveTitle">TESTE INTERATIVO DE HARDWARE</x:String>
-    <x:String x:Key="Active_InteractiveLead">Leia o código com a câmera do aparelho para testar tela, toque, câmera e áudio.</x:String>
+    <x:String x:Key="Active_InteractiveLead">Leia o código com a câmara do telemóvel para testar ecrã, toque, câmara e áudio.</x:String>
 
     <!-- Result screen -->
     <x:String x:Key="Summary_Imei">IMEI / série:</x:String>
@@ -428,9 +428,9 @@
 
     <!-- The two questions at the end of an inspection -->
     <x:String x:Key="QualityPopup_Title">Escolha a grade</x:String>
-    <x:String x:Key="QualityPopup_Lead">Como este aparelho ficou depois da inspeção. Vai para a etiqueta.</x:String>
+    <x:String x:Key="QualityPopup_Lead">Como este telemóvel ficou depois da inspeção. Vai para a etiqueta.</x:String>
     <x:String x:Key="PaymentPopup_Title">Forma de faturamento</x:String>
-    <x:String x:Key="PaymentPopup_Lead">Como este aparelho será faturado.</x:String>
+    <x:String x:Key="PaymentPopup_Lead">Como este telemóvel será faturado.</x:String>
 
     <!-- What changed in the version that just installed itself -->
     <x:String x:Key="Changelog_Title">PhoneGrade atualizado</x:String>
@@ -441,12 +441,12 @@
     <x:String x:Key="Logs_Title">Registros do sistema e saída das ferramentas</x:String>
 
     <!-- Settings page: the topics and their rows -->
-    <x:String x:Key="Settings_Lead">Idioma, fluxo de trabalho e conexão. As alterações são salvas assim que você as faz.</x:String>
+    <x:String x:Key="Settings_Lead">Idioma, fluxo de trabalho e ligação. As alterações são salvas assim que as faz.</x:String>
     <x:String x:Key="Settings_Close">Fechar</x:String>
-    <x:String x:Key="Settings_CloseTooltip">Voltar para a tela anterior</x:String>
+    <x:String x:Key="Settings_CloseTooltip">Voltar ao ecrã anterior</x:String>
     <x:String x:Key="Settings_SecGeneral">Geral</x:String>
     <x:String x:Key="Settings_SecWorkflow">Fluxo de trabalho</x:String>
-    <x:String x:Key="Settings_SecConnection">Conexão</x:String>
+    <x:String x:Key="Settings_SecConnection">Ligação</x:String>
     <x:String x:Key="Settings_SecLicense">Licença</x:String>
     <x:String x:Key="Settings_SecSupport">Suporte</x:String>
     <x:String x:Key="Settings_SecAdvanced">Avançado</x:String>
@@ -456,18 +456,18 @@
     <x:String x:Key="Settings_PaymentAsk">Perguntar sempre</x:String>
     <x:String x:Key="Settings_AutoStartWebTestDesc">Abre a página de teste assim que o código é lido, então o operador não precisa iniciá-la.</x:String>
     <x:String x:Key="Settings_RequirePwaTestDesc">A inspeção não pode ser finalizada até que o teste no telefone seja executado.</x:String>
-    <x:String x:Key="Settings_AutoFinishAfterTestDesc">Vai sozinho para a tela de resultado assim que o teste no telefone responde.</x:String>
+    <x:String x:Key="Settings_AutoFinishAfterTestDesc">Vai sozinho para o ecrã de resultado assim que o teste no telefone responde.</x:String>
     <x:String x:Key="Settings_ShowSummaryDesc">Mostra o relatório antes de a etiqueta ser impressa, para que ainda possa ser corrigido.</x:String>
     <x:String x:Key="Settings_TroubleshootCardTitle">Diagnóstico de USB e drivers</x:String>
     <x:String x:Key="Settings_TroubleshootCardDesc">Verifica as ferramentas, os drivers e os serviços que este aplicativo precisa, e corrige o que puder.</x:String>
     <x:String x:Key="Settings_LogsCardTitle">Registros do sistema</x:String>
     <x:String x:Key="Settings_LogsCardDesc">Tudo o que o aplicativo e seus auxiliares relataram, com filtro e campo de busca.</x:String>
-    <x:String x:Key="Settings_AutoActivateDesc">Ativa um aparelho conectado sem perguntar, o que agiliza um lote do mesmo telefone.</x:String>
+    <x:String x:Key="Settings_AutoActivateDesc">Ativa um telemóvel ligado sem perguntar, o que agiliza um lote do mesmo telefone.</x:String>
     <x:String x:Key="Settings_RunDiagnosticsDesc">Lê os logs de pânico e outros diagnósticos de hardware durante a inspeção.</x:String>
     <x:String x:Key="Settings_Enable85CheckerDesc">Sinaliza na etiqueta a bateria abaixo de 85% da capacidade de projeto.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Abre o editor de dados antes de imprimir, para que os valores impressos possam ser corrigidos primeiro.</x:String>
     <x:String x:Key="Settings_DebugMode">Modo de depuração e rastreamento de rede</x:String>
-    <x:String x:Key="Settings_DebugModeDesc">Grava registros detalhados de cada requisição. Só é útil enquanto você procura um problema.</x:String>
+    <x:String x:Key="Settings_DebugModeDesc">Grava registros detalhados de cada requisição. Só é útil enquanto procura um problema.</x:String>
 
     <!-- Quality and invoice options, in the wording they are offered in -->
     <x:String x:Key="Quality_A">A - Como novo</x:String>
@@ -477,7 +477,7 @@
     <x:String x:Key="Payment_BTW">IVA (21%)</x:String>
 
     <!-- Label editor -->
-    <x:String x:Key="Editor_Title">Editar os dados do aparelho</x:String>
+    <x:String x:Key="Editor_Title">Editar os dados do telemóvel</x:String>
     <x:String x:Key="Editor_Lead">Confira e ajuste os valores que vão para a etiqueta.</x:String>
     <x:String x:Key="Editor_Identity">Identificação</x:String>
     <x:String x:Key="Editor_Identifier">Identificador (IMEI / série)</x:String>
@@ -493,31 +493,31 @@
     <x:String x:Key="Editor_Unset">Não definido</x:String>
 
     <!-- Status line of the inspection window -->
-    <x:String x:Key="Status_ConnectToStart">Conecte um aparelho para começar...</x:String>
-    <x:String x:Key="Status_ConnectUsb">Conecte um aparelho pelo USB para começar...</x:String>
+    <x:String x:Key="Status_ConnectToStart">Conecte um telemóvel para começar...</x:String>
+    <x:String x:Key="Status_ConnectUsb">Conecte um telemóvel pelo USB para começar...</x:String>
     <x:String x:Key="Status_WebStandby">Teste web em espera</x:String>
-    <x:String x:Key="Status_LockdownError">Não foi possível falar com o aparelho (lockdownd).</x:String>
-    <x:String x:Key="Status_PairingPending">Aguardando a aprovação no iPhone...</x:String>
-    <x:String x:Key="Status_RsaPending">Aguardando o aviso de RSA no Android...</x:String>
-    <x:String x:Key="Status_Timeout">O aparelho não respondeu a tempo.</x:String>
-    <x:String x:Key="Status_CommsError">Falha na comunicação com o aparelho.</x:String>
-    <x:String x:Key="Status_Reconnected">Aparelho reconectado: dados recarregados (a partir de 0%).</x:String>
-    <x:String x:Key="Status_Disconnected">Aparelho desconectado. Reconecte o mesmo aparelho para continuar.</x:String>
-    <x:String x:Key="Status_Unauthorized">Aguardando o aviso de RSA no Android. Aceite a depuração USB.</x:String>
-    <x:String x:Key="Status_NotTrusted">Aguardando a aprovação no iPhone. Desbloqueie e toque em Confiar.</x:String>
+    <x:String x:Key="Status_LockdownError">Não foi possível falar com o telemóvel (lockdownd).</x:String>
+    <x:String x:Key="Status_PairingPending">A aguardar a aprovação no iPhone...</x:String>
+    <x:String x:Key="Status_RsaPending">A aguardar o aviso de RSA no Android...</x:String>
+    <x:String x:Key="Status_Timeout">O telemóvel não respondeu a tempo.</x:String>
+    <x:String x:Key="Status_CommsError">Falha na comunicação com o telemóvel.</x:String>
+    <x:String x:Key="Status_Reconnected">Telemóvel reconectado: dados recarregados (a partir de 0%).</x:String>
+    <x:String x:Key="Status_Disconnected">Telemóvel desconectado. Reconecte o mesmo telemóvel para continuar.</x:String>
+    <x:String x:Key="Status_Unauthorized">A aguardar o aviso de RSA no Android. Aceite a depuração USB.</x:String>
+    <x:String x:Key="Status_NotTrusted">A aguardar a aprovação no iPhone. Desbloqueie e toque em Confiar.</x:String>
     <x:String x:Key="Status_PermissionDenied">Permissões ausentes: execute chmod +x ou verifique o aviso do Gatekeeper.</x:String>
     <x:String x:Key="Status_DriverMissing">O driver USB da Apple está ausente. Instale o iTunes ou o Apple Mobile Device Support.</x:String>
     <x:String x:Key="Status_DaemonStoppedWin">O Apple Mobile Device Service parou: inicie-o nos Serviços do Windows.</x:String>
-    <x:String x:Key="Status_DaemonStoppedUnix">O daemon usbmuxd não está rodando: inicie o usbmuxd.</x:String>
-    <x:String x:Key="Status_NoDeviceFound">Nenhum aparelho encontrado. Verifique o cabo ou desbloqueie o aparelho.</x:String>
-    <x:String x:Key="Status_OneFound">Um aparelho encontrado e selecionado.</x:String>
-    <x:String x:Key="Status_ManyFound">{0} aparelhos encontrados: escolha um.</x:String>
-    <x:String x:Key="Status_NoDeviceSelected">Nenhum aparelho selecionado.</x:String>
-    <x:String x:Key="Status_TrialLimit">Limite do teste gratuito atingido (10/10). Compre uma licença para continuar verificando.</x:String>
-    <x:String x:Key="Status_Checking">Verificando a conexão…</x:String>
-    <x:String x:Key="Status_Unreachable">O aparelho está inacessível: tente outro cabo ou outra porta.</x:String>
-    <x:String x:Key="Status_Activating">Ativando o aparelho (bypass)…</x:String>
-    <x:String x:Key="Status_ReadingData">Lendo os dados do aparelho…</x:String>
+    <x:String x:Key="Status_DaemonStoppedUnix">O daemon usbmuxd não está a correr: inicie o usbmuxd.</x:String>
+    <x:String x:Key="Status_NoDeviceFound">Nenhum telemóvel encontrado. Verifique o cabo ou desbloqueie o telemóvel.</x:String>
+    <x:String x:Key="Status_OneFound">Um telemóvel encontrado e selecionado.</x:String>
+    <x:String x:Key="Status_ManyFound">{0} telemóveis encontrados: escolha um.</x:String>
+    <x:String x:Key="Status_NoDeviceSelected">Nenhum telemóvel selecionado.</x:String>
+    <x:String x:Key="Status_TrialLimit">Limite do teste gratuito atingido (10/10). Compre uma licença para continuar a verificar.</x:String>
+    <x:String x:Key="Status_Checking">A verificar a ligação…</x:String>
+    <x:String x:Key="Status_Unreachable">O telemóvel está inacessível: tente outro cabo ou outra porta.</x:String>
+    <x:String x:Key="Status_Activating">A ativar o telemóvel (bypass)…</x:String>
+    <x:String x:Key="Status_ReadingData">A ler os dados do telemóvel…</x:String>
     <x:String x:Key="Status_SpecsRead">Especificações lidas. Execute o teste interativo e clique em Finalizar.</x:String>
     <x:String x:Key="Status_Error">Erro: {0}</x:String>
     <x:String x:Key="Status_GradeDowngraded">A grade A não é permitida (APIs ausentes). Baixada automaticamente para B.</x:String>
@@ -525,9 +525,9 @@
     <x:String x:Key="Status_TestsComplete">Testes concluídos. Confira os resultados e imprima a etiqueta.</x:String>
     <x:String x:Key="Status_PwaRequired">O teste de hardware PWA é obrigatório. Execute primeiro o teste interativo.</x:String>
     <x:String x:Key="Status_ChooseQuality">Escolha a grade...</x:String>
-    <x:String x:Key="Status_LabelGenerating">Gerando a etiqueta…</x:String>
-    <x:String x:Key="Status_ExportingCsv">Gravando o arquivo CSV…</x:String>
-    <x:String x:Key="Status_ExportingPdf">Gravando o relatório PDF…</x:String>
+    <x:String x:Key="Status_LabelGenerating">A gerar a etiqueta…</x:String>
+    <x:String x:Key="Status_ExportingCsv">A gravar o ficheiro CSV…</x:String>
+    <x:String x:Key="Status_ExportingPdf">A gravar o relatório PDF…</x:String>
     <x:String x:Key="Status_ExportCsvSuccess">CSV gravado em: {0}</x:String>
     <x:String x:Key="Status_ExportPdfSuccess">PDF gravado em: {0}</x:String>
     <x:String x:Key="Status_ExportFailed">Falha na exportação: {0}</x:String>
@@ -535,7 +535,7 @@
     <x:String x:Key="Status_NoLabel">Nenhuma etiqueta gerada ainda.</x:String>
 
     <!-- Web test session on the phone -->
-    <x:String x:Key="Session_Connected">Aparelho conectado para o teste web ({0})</x:String>
+    <x:String x:Key="Session_Connected">Telemóvel ligado para o teste web ({0})</x:String>
     <x:String x:Key="Session_TestRunning">Teste em andamento: {0} ({1}%)</x:String>
     <x:String x:Key="Session_TestDone">Teste concluído: {0} -&gt; {1}</x:String>
     <x:String x:Key="Session_WebRunnerError">Erro no executor web: {0}</x:String>
@@ -543,7 +543,7 @@
     <x:String x:Key="Session_Finished">Teste web concluído: {0} de {1} testes finalizados.</x:String>
     <x:String x:Key="Session_Ready">O teste web está pronto no telefone.</x:String>
     <x:String x:Key="Session_NextStep">próxima etapa</x:String>
-    <x:String x:Key="Session_Started">Teste web iniciado, trabalhando em {0}.</x:String>
+    <x:String x:Key="Session_Started">Teste web iniciado, a trabalhar em {0}.</x:String>
     <x:String x:Key="Session_InProgress">Teste web em andamento: {0} ({1} de {2} finalizados).</x:String>
     <x:String x:Key="Session_TestsPlain">Testes interativos: {0} aprovados, {1} reprovados ({2})</x:String>
     <x:String x:Key="Session_TestsSkipped">Testes interativos: {0} aprovados, {1} reprovados, {2} ignorados ({3})</x:String>
@@ -559,22 +559,22 @@
     <x:String x:Key="Route_Local">Leia o QR ou abra: {0}</x:String>
 
     <!-- Why the web test address is not a secure connection -->
-    <x:String x:Key="Connect_OpeningUsb">Estabelecendo a conexão segura pelo USB...</x:String>
-    <x:String x:Key="Connect_OpeningInternet">Estabelecendo a conexão segura pela internet...</x:String>
-    <x:String x:Key="Connect_StartFailed">Não foi possível iniciar a conexão segura pela internet: {0}</x:String>
-    <x:String x:Key="Connect_NoConnector">A conexão segura pela internet não sobe: não há programa de túnel (cloudflared).</x:String>
-    <x:String x:Key="Connect_GaveUp">A conexão segura pela internet não é tentada por enquanto: o conector parou vezes demais.</x:String>
-    <x:String x:Key="Connect_NoAddress">A conexão segura pela internet não sobe. O conector disse: {0}</x:String>
-    <x:String x:Key="Connect_SecureOff">A conexão segura está desligada</x:String>
-    <x:String x:Key="Connect_FailedOne">Sem conexão segura: não foi possível abrir {0}</x:String>
-    <x:String x:Key="Connect_FailedMany">Sem conexão segura: não foi possível abrir {0}</x:String>
-    <x:String x:Key="Connect_RestrictedApis">Por causa disso a câmera, o microfone, os sensores de movimento e a localização não funcionam.</x:String>
+    <x:String x:Key="Connect_OpeningUsb">A estabelecer a ligação segura pelo USB...</x:String>
+    <x:String x:Key="Connect_OpeningInternet">A estabelecer a ligação segura pela internet...</x:String>
+    <x:String x:Key="Connect_StartFailed">Não foi possível iniciar a ligação segura pela internet: {0}</x:String>
+    <x:String x:Key="Connect_NoConnector">A ligação segura pela internet não sobe: não há programa de túnel (cloudflared).</x:String>
+    <x:String x:Key="Connect_GaveUp">A ligação segura pela internet não é tentada por enquanto: o conector parou vezes demais.</x:String>
+    <x:String x:Key="Connect_NoAddress">A ligação segura pela internet não sobe. O conector disse: {0}</x:String>
+    <x:String x:Key="Connect_SecureOff">A ligação segura está desligada</x:String>
+    <x:String x:Key="Connect_FailedOne">Sem ligação segura: não foi possível abrir {0}</x:String>
+    <x:String x:Key="Connect_FailedMany">Sem ligação segura: não foi possível abrir {0}</x:String>
+    <x:String x:Key="Connect_RestrictedApis">Por causa disso a câmara, o microfone, os sensores de movimento e a localização não funcionam.</x:String>
     <x:String x:Key="Connect_RouteUsb">o túnel USB</x:String>
-    <x:String x:Key="Connect_RouteInternet">a conexão segura pela internet</x:String>
+    <x:String x:Key="Connect_RouteInternet">a ligação segura pela internet</x:String>
     <x:String x:Key="Connect_Joiner">e</x:String>
 
     <!-- What the phone could not find -->
-    <x:String x:Key="Api_MissingDetails">A API obrigatória do navegador '{0}' está ausente neste aparelho.</x:String>
+    <x:String x:Key="Api_MissingDetails">A API obrigatória do navegador '{0}' está ausente neste telemóvel.</x:String>
     <x:String x:Key="Api_MissingNotes">O PWA não encontrou esta API de hardware obrigatória.</x:String>
 
     <!-- IMEI API Settings -->
@@ -584,24 +584,24 @@
     <x:String x:Key="Settings_ImeiInfoGuideStep3">Cole a chave de API no campo acima e clique em Salvar.</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep4">No site, vá em 'Add Credits' para adicionar saldo à sua conta.</x:String>
     <x:String x:Key="Settings_ImeiInfoWhyTitle">Por que isso precisa da sua própria chave</x:String>
-    <x:String x:Key="Settings_ImeiInfoWhy">As verificações de IMEI usam a sua própria conta do imei.info, então a chave que você cola abaixo é sua e fica no arquivo de configurações deste computador. O PhoneGrade não vem com uma.</x:String>
+    <x:String x:Key="Settings_ImeiInfoWhy">As verificações de IMEI usam a sua própria conta do imei.info, então a chave que cola abaixo é sua e fica no ficheiro de configurações deste computador. O PhoneGrade não vem com uma.</x:String>
     <x:String x:Key="Settings_ImeiInfoWhyCredits">Cada verificação é cobrada do saldo dessa conta pelo preço mostrado ao lado dela, então adicione créditos antes da primeira.</x:String>
     <x:String x:Key="Settings_ImeiInfoOpenDashboard">Abrir o painel do imei.info</x:String>
     <x:String x:Key="Settings_ImeiInfoSaveKey">Salvar a chave de API</x:String>
     <x:String x:Key="Settings_ImeiInfoTestKey">Testar a chave de API</x:String>
     <x:String x:Key="Settings_ImeiInfoChecks">Verificações a executar automaticamente</x:String>
-    <x:String x:Key="Settings_ImeiInfoChecksDesc">Selecione quais verificações executar em cada aparelho. Os preços são por verificação, em USD.</x:String>
+    <x:String x:Key="Settings_ImeiInfoChecksDesc">Selecione quais verificações executar em cada telemóvel. Os preços são por verificação, em USD.</x:String>
     <x:String x:Key="Settings_ImeiInfoCostCalculator">Calculadora de custo</x:String>
-    <x:String x:Key="Settings_ImeiInfoCostCalculatorDesc">Estime o custo mensal com base no volume de aparelhos.</x:String>
-    <x:String x:Key="Settings_ImeiInfoAppleDevices">Aparelhos Apple / mês</x:String>
-    <x:String x:Key="Settings_ImeiInfoAndroidDevices">Aparelhos Android / mês</x:String>
+    <x:String x:Key="Settings_ImeiInfoCostCalculatorDesc">Estime o custo mensal com base no volume de telemóveis.</x:String>
+    <x:String x:Key="Settings_ImeiInfoAppleDevices">Telemóveis Apple / mês</x:String>
+    <x:String x:Key="Settings_ImeiInfoAndroidDevices">Telemóveis Android / mês</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKey">Chave de API</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeyDesc">Sua chave de API do imei.info para as verificações automáticas.</x:String>
     <x:String x:Key="Settings_ImeiInfoEstimatedMonthlyCost">Custo mensal estimado: {0} USD</x:String>
-    <x:String x:Key="Settings_ImeiInfoEstimatedPerDevice">Custo estimado por aparelho: {0} USD</x:String>
+    <x:String x:Key="Settings_ImeiInfoEstimatedPerDevice">Custo estimado por telemóvel: {0} USD</x:String>
     <x:String x:Key="Settings_ImeiInfoKeyInvalid">Chave de API inválida: {0}</x:String>
     <x:String x:Key="Settings_ImeiInfoKeyValid">Chave de API válida. Saldo: {0} USD</x:String>
-    <x:String x:Key="Settings_ImeiInfoKeyTesting">Testando a chave de API...</x:String>
+    <x:String x:Key="Settings_ImeiInfoKeyTesting">A testar a chave de API...</x:String>
     <x:String x:Key="Settings_ImeiInfoKeyEmpty">Chave vazia</x:String>
     <x:String x:Key="Settings_ImeiInfoKeyUnknownError">Erro desconhecido</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeySaved">Chave de API salva</x:String>
@@ -616,33 +616,33 @@
     <x:String x:Key="Settings_SecImeiApi">Configuração da API de IMEI</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeyWatermark">Cole sua chave de API aqui (por exemplo, e0d7c26f-5cc7-5644-863c-8992083dfeac)</x:String>
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmi">APPLE: Carrier &amp; Lock Status &amp; FMI</x:String>
-    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - Retorna o nome da operadora, o status do bloqueio de SIM e o status do Find My iPhone (FMI) para aparelhos Apple.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - Devolve o nome da operadora, o status do bloqueio de SIM e o status do Find My iPhone (FMI) para telemóveis Apple.</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistSimple">BLACKLIST: Simple Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - Retorna apenas o status básico da lista negra (limpo ou na lista negra).</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - Devolve apenas o status básico da lista negra (limpo ou na lista negra).</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistPremium">BLACKLIST: Premium Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Retorna informações detalhadas: IMEI, nome do modelo, fabricante, número do modelo, quem colocou na lista, quando, motivo, status da lista negra, país da lista negra, status da lista geral.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Devolve informações detalhadas: IMEI, nome do modelo, fabricante, número do modelo, quem colocou na lista, quando, motivo, status da lista negra, país da lista negra, status da lista geral.</x:String>
     <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnox">GENERIC: Samsung Info Check &amp; Knox Info</x:String>
-    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Retorna informações do aparelho Samsung, incluindo modelo, número de série, garantia e o status do bit de garantia do Knox.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Devolve informações do telemóvel Samsung, incluindo modelo, número de série, garantia e o status do bit de garantia do Knox.</x:String>
 
     <!-- Introduction screen: IMEI checks (BYOK) -->
     <x:String x:Key="Intro_ImeiTitle">Verificações de IMEI (BYOK)</x:String>
-    <x:String x:Key="Intro_ImeiBody">O PhoneGrade verifica bloqueio de operadora, FMI, lista negra e status do Knox pelo imei.info. Este é um sistema Bring Your Own Key: crie uma conta no imei.info, adicione créditos e cole sua própria chave de API em Configurações. Cada verificação tem seu próprio preço (de $0.200 a $0.600) e você escolhe quais rodam automaticamente.</x:String>
+    <x:String x:Key="Intro_ImeiBody">O PhoneGrade verifica bloqueio de operadora, FMI, lista negra e status do Knox pelo imei.info. Este é um sistema Bring Your Own Key: crie uma conta no imei.info, adicione créditos e cole sua própria chave de API em Configurações. Cada verificação tem seu próprio preço (de $0.200 a $0.600) e escolhe quais rodam automaticamente.</x:String>
     <x:String x:Key="Intro_ImeiConfigureButton">Configurar a API de IMEI em Configurações</x:String>
     <x:String x:Key="Settings_ImeiInfoWatermarkDefault">10</x:String>
 
     <!-- System diagnostics -->
     <x:String x:Key="Troubleshoot_ScanError">Erro de diagnóstico: {0}</x:String>
-    <x:String x:Key="Troubleshoot_FixStarting">Aplicando a correção...</x:String>
-    <x:String x:Key="Troubleshoot_FixApplied">Correção aplicada. Verificando de novo...</x:String>
+    <x:String x:Key="Troubleshoot_FixStarting">A aplicar a correção...</x:String>
+    <x:String x:Key="Troubleshoot_FixApplied">Correção aplicada. A verificar de novo...</x:String>
     <x:String x:Key="Troubleshoot_FixManual">A correção não pôde ser concluída automaticamente. Veja os passos de solução.</x:String>
     <x:String x:Key="Troubleshoot_FixError">Erro ao aplicar a correção: {0}</x:String>
-    <x:String x:Key="Troubleshoot_Fixing">Corrigindo: {0}...</x:String>
+    <x:String x:Key="Troubleshoot_Fixing">A corrigir: {0}...</x:String>
 
     <!-- What each check says on the diagnostics panel -->
-    <x:String x:Key="Diag_StatusAllOk">Todas as verificações de diagnóstico passaram. O sistema está pronto para detectar aparelhos iOS e Android.</x:String>
-    <x:String x:Key="Diag_StatusIosOnly">Detecção de iOS pronta. Detecção de Android indisponível (veja as verificações).</x:String>
-    <x:String x:Key="Diag_StatusAndroidOnly">Detecção de Android pronta. Detecção de iOS indisponível (veja as verificações).</x:String>
-    <x:String x:Key="Diag_StatusNone">Drivers ou ferramentas essenciais ausentes. Não é possível detectar aparelhos.</x:String>
+    <x:String x:Key="Diag_StatusAllOk">Todas as verificações de diagnóstico passaram. O sistema está pronto para detetar telemóveis iOS e Android.</x:String>
+    <x:String x:Key="Diag_StatusIosOnly">Deteção de iOS pronta. Deteção de Android indisponível (veja as verificações).</x:String>
+    <x:String x:Key="Diag_StatusAndroidOnly">Deteção de Android pronta. Deteção de iOS indisponível (veja as verificações).</x:String>
+    <x:String x:Key="Diag_StatusNone">Drivers ou ferramentas essenciais ausentes. Não é possível detetar telemóveis.</x:String>
 
     <x:String x:Key="Diag_SeverityPass">OK</x:String>
     <x:String x:Key="Diag_SeverityWarning">Aviso</x:String>
@@ -651,7 +651,7 @@
 
     <x:String x:Key="Diag_CategoryIOS">iOS</x:String>
     <x:String x:Key="Diag_CategoryAndroid">Android</x:String>
-    <x:String x:Key="Diag_CategoryConnection">Conexão</x:String>
+    <x:String x:Key="Diag_CategoryConnection">Ligação</x:String>
     <x:String x:Key="Diag_CategoryService">Serviço</x:String>
     <x:String x:Key="Diag_CategoryHardware">Hardware</x:String>
 
@@ -666,9 +666,9 @@
     <x:String x:Key="Diag_TitleAppleUsbService">Serviço USB da Apple</x:String>
     <x:String x:Key="Diag_TitleAppleDriverQuery">Consulta de driver da Apple</x:String>
     <x:String x:Key="Diag_TitleUsbmuxdFound">Daemon usbmuxd</x:String>
-    <x:String x:Key="Diag_TitleUsbmuxdStopped">usbmuxd não está rodando</x:String>
+    <x:String x:Key="Diag_TitleUsbmuxdStopped">usbmuxd não está a correr</x:String>
     <x:String x:Key="Diag_TitleUsbBusScan">Varredura do barramento USB</x:String>
-    <x:String x:Key="Diag_TitleUsbDetection">Detecção USB física</x:String>
+    <x:String x:Key="Diag_TitleUsbDetection">Deteção USB física</x:String>
 
     <x:String x:Key="Diag_MsgAvailableVersion">Disponível em: {0} (versão: {1})</x:String>
     <x:String x:Key="Diag_MsgAvailable">Disponível em: {0}</x:String>
@@ -678,17 +678,17 @@
     <x:String x:Key="Diag_MsgIdeviceinfoFailed">Não foi possível executar o ideviceinfo em: {0}. Detalhes: {1}</x:String>
     <x:String x:Key="Diag_MsgIdeviceinfoExitCode">Não foi possível executar o ideviceinfo em: {0}. Código de saída: {1}</x:String>
     <x:String x:Key="Diag_MsgAdbFailed">Não foi possível executar o adb. Caminho resolvido: {0}</x:String>
-    <x:String x:Key="Diag_MsgNoTunnel">Nenhum conector de túnel encontrado, então um aparelho sem rota por cabo recebe o endereço de rede comum.</x:String>
-    <x:String x:Key="Diag_MsgServiceActiveAmds">O Apple Mobile Device Service está ativo e escutando aparelhos iOS.</x:String>
-    <x:String x:Key="Diag_MsgServiceActivePortable">O daemon usbmuxd portátil está ativo e escutando aparelhos iOS.</x:String>
+    <x:String x:Key="Diag_MsgNoTunnel">Nenhum conector de túnel encontrado, então um telemóvel sem rota por cabo recebe o endereço de rede comum.</x:String>
+    <x:String x:Key="Diag_MsgServiceActiveAmds">O Apple Mobile Device Service está ativo e a escutar telemóveis iOS.</x:String>
+    <x:String x:Key="Diag_MsgServiceActivePortable">O daemon usbmuxd portátil está ativo e a escutar telemóveis iOS.</x:String>
     <x:String x:Key="Diag_MsgNoService">Nem o Apple Mobile Device Service nem o daemon usbmuxd estão ativos agora.</x:String>
     <x:String x:Key="Diag_MsgServiceQueryFailed">Não foi possível consultar o status do serviço: {0}</x:String>
     <x:String x:Key="Diag_MsgUsbmuxdSocket">O usbmuxd está ativo: seu socket foi encontrado em /var/run/usbmuxd.</x:String>
-    <x:String x:Key="Diag_MsgUsbmuxdProcess">O usbmuxd está rodando como o processo {0}.</x:String>
+    <x:String x:Key="Diag_MsgUsbmuxdProcess">O usbmuxd está a correr como o processo {0}.</x:String>
     <x:String x:Key="Diag_MsgUsbmuxdStopped">O socket do daemon usbmuxd não foi encontrado. O multiplexamento USB do iOS está inativo.</x:String>
     <x:String x:Key="Diag_MsgUsbScanFailed">Erro na varredura USB: {0}</x:String>
-    <x:String x:Key="Diag_MsgDevicesFound">{0} aparelho(s) móvel(is) encontrado(s) no barramento USB.</x:String>
-    <x:String x:Key="Diag_MsgNoUsbDevice">Nenhum telefone detectado no barramento USB físico.</x:String>
+    <x:String x:Key="Diag_MsgDevicesFound">{0} telemóvel(s) móvel(is) encontrado(s) no barramento USB.</x:String>
+    <x:String x:Key="Diag_MsgNoUsbDevice">Nenhum telefone detetado no barramento USB físico.</x:String>
 
     <x:String x:Key="Diag_ResolveIdeviceWin">Coloque o idevice_id.exe no diretório 'idevice-tools' ou instale o libimobiledevice para Windows.</x:String>
     <x:String x:Key="Diag_ResolveIdeviceMac">Execute: 'brew install libimobiledevice' no Terminal.</x:String>
@@ -699,8 +699,8 @@
     <x:String x:Key="Diag_ResolveAdbLinux">Execute: 'sudo apt-get install adb' no Terminal.</x:String>
     <x:String x:Key="Diag_ResolveTunnel">Instale o conector de túnel ou coloque o cloudflared no diretório 'idevice-tools'.</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdPortable">Inicie o daemon usbmuxd portátil em segundo plano.</x:String>
-    <x:String x:Key="Diag_ResolveAppleService">Baixe e instale o driver leve da Apple e o daemon usbmuxd.</x:String>
-    <x:String x:Key="Diag_ResolveUsbmuxdMac">Verifique se o usbmuxd está rodando ou reinicie o computador.</x:String>
+    <x:String x:Key="Diag_ResolveAppleService">Descarregue e instale o driver leve da Apple e o daemon usbmuxd.</x:String>
+    <x:String x:Key="Diag_ResolveUsbmuxdMac">Verifique se o usbmuxd está a correr ou reinicie o computador.</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdLinux">Execute: 'sudo systemctl start usbmuxd' ou 'sudo usbmuxd -f -v'.</x:String>
     <x:String x:Key="Diag_ResolveUsbCable">Verifique o cabo USB, tente outra porta USB direto no computador (não um hub), desbloqueie o telefone e toque em 'Confiar' se ele pedir.</x:String>
 
@@ -757,7 +757,7 @@
     <x:String x:Key="Changelog_CardTitle">O que mudou nesta versão</x:String>
     <x:String x:Key="Changelog_CardDesc">As notas da versão, lidas do GitHub.</x:String>
     <x:String x:Key="Settings_IncludePrereleases">Versões beta</x:String>
-    <x:String x:Key="Settings_IncludePrereleasesDesc">Oferecer versões beta além das estáveis. Uma beta é uma versão anterior, por isso ainda pode conter algo que ainda não funciona. Você continua recebendo atualizações estáveis, e desativar isto depois interrompe as betas sem mudar a versão instalada.</x:String>
+    <x:String x:Key="Settings_IncludePrereleasesDesc">Oferecer versões beta além das estáveis. Uma beta é uma versão anterior, por isso ainda pode conter algo que ainda não funciona. Continua a receber atualizações estáveis, e desativar isto depois interrompe as betas sem mudar a versão instalada.</x:String>
     <x:String x:Key="Changelog_Open">Ver as alterações</x:String>
 
     <!-- ==================== Licence agreement ==================== -->
