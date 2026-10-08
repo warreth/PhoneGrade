@@ -38,7 +38,7 @@
     <!-- Status Messages -->
     <x:String x:Key="Status_Ready">Conecte un iPhone o un iPad para empezar...</x:String>
     <x:String x:Key="Status_NoDevice">No se encontró ningún dispositivo. Pruebe otro cable o puerto, o desbloquee el dispositivo y toque Confiar.</x:String>
-    <x:String x:Key="Status_ToolsMissing">Sin USB: diagnostique el PC</x:String>
+    <x:String x:Key="Status_ToolsMissing">Sin USB: ejecute el diagnóstico</x:String>
     
     <!-- Settings -->
     <x:String x:Key="Settings_Title">AJUSTES</x:String>
@@ -115,9 +115,9 @@
     <x:String x:Key="Settings_LicenseKeyWatermark">Introduzca su clave de licencia de Lemon Squeezy</x:String>
     <x:String x:Key="Settings_ValidateActivate">Validar y activar</x:String>
     <x:String x:Key="Settings_ManageLicense">Gestionar la licencia</x:String>
-    <x:String x:Key="Settings_FreeTierStatus">Plan gratuito ({0}/10 escaneos usados)</x:String>
+    <x:String x:Key="Settings_FreeTierStatus">Plan gratuito ({0}/10 análisis usados)</x:String>
     <x:String x:Key="Settings_ProTierStatus">Plan Pro (Activo)</x:String>
-    <x:String x:Key="Settings_ActivationSuccess">Licencia activada. El escaneo ilimitado ya está disponible.</x:String>
+    <x:String x:Key="Settings_ActivationSuccess">Licencia activada. El análisis ilimitado ya está disponible.</x:String>
     <x:String x:Key="Settings_ActivationFailed">Error en la activación: {0}</x:String>
     <x:String x:Key="Settings_ActivationInvalid">Clave de licencia no válida.</x:String>
     <x:String x:Key="Settings_ActivationExpired">Esta licencia ha caducado.</x:String>
@@ -127,11 +127,11 @@
 
     <!-- Licensing: introduction screen and the status pill in the title bar -->
     <x:String x:Key="Intro_Title">Bienvenido a PhoneGrade</x:String>
-    <x:String x:Key="Intro_Subtitle">Empiece con el plan gratuito: 10 escaneos y sin necesidad de cuenta. Pro elimina el límite cuando necesite más.</x:String>
+    <x:String x:Key="Intro_Subtitle">Empiece con el plan gratuito: 10 análisis y sin necesidad de cuenta. Pro elimina el límite cuando necesite más.</x:String>
     <x:String x:Key="Intro_FreeTierTitle">Gratis</x:String>
-    <x:String x:Key="Intro_FreeTierBody">10 escaneos. El estado de la barra de título siempre muestra cuántos le quedan.</x:String>
+    <x:String x:Key="Intro_FreeTierBody">10 análisis. El estado de la barra de título siempre muestra cuántos le quedan.</x:String>
     <x:String x:Key="Intro_ProTierTitle">Pro</x:String>
-    <x:String x:Key="Intro_ProTierBody">Escaneos ilimitados en cada dispositivo que conecte.</x:String>
+    <x:String x:Key="Intro_ProTierBody">Análisis ilimitados en cada dispositivo que conecte.</x:String>
     <x:String x:Key="Intro_ProBadge">Ilimitado</x:String>
     <x:String x:Key="Intro_StartFree">Empezar gratis</x:String>
     <x:String x:Key="Intro_PageWelcome">Idioma y apariencia</x:String>
@@ -150,16 +150,16 @@
     <x:String x:Key="Intro_SeePricing">Ver precios</x:String>
     <x:String x:Key="Intro_HaveLicense">Ya tengo una licencia</x:String>
     <x:String x:Key="Intro_ActivationTitle">Active su licencia</x:String>
-    <x:String x:Key="Licensing_TierFree">{0} escaneos restantes</x:String>
+    <x:String x:Key="Licensing_TierFree">{0} análisis restantes</x:String>
     <x:String x:Key="Licensing_TierPro">Pro - Activo</x:String>
-    <x:String x:Key="Licensing_PanelHint">Licencia y escaneos</x:String>
+    <x:String x:Key="Licensing_PanelHint">Licencia y análisis</x:String>
     <x:String x:Key="Licensing_PanelTitle">Licencia</x:String>
-    <x:String x:Key="Licensing_PanelScansLeft">Escaneos restantes</x:String>
+    <x:String x:Key="Licensing_PanelScansLeft">Análisis restantes</x:String>
     <x:String x:Key="Licensing_PanelClose">Cerrar</x:String>
     <x:String x:Key="Licensing_PanelSeatsUsed">{0} de {1} equipos en uso</x:String>
     <x:String x:Key="Licensing_PanelSeatThis">Este equipo ({0})</x:String>
     <x:String x:Key="Licensing_PanelSeatsLabel">Equipos</x:String>
-    <x:String x:Key="Licensing_PanelNoMachineId">Este equipo no se puede identificar, así que aquí no se puede activar ninguna licencia. Los escaneos gratuitos siguen funcionando.</x:String>
+    <x:String x:Key="Licensing_PanelNoMachineId">Este equipo no se puede identificar, así que aquí no se puede activar ninguna licencia. Los análisis gratuitos siguen funcionando.</x:String>
     <x:String x:Key="Licensing_PanelRelease">Liberar este equipo</x:String>
     <x:String x:Key="Licensing_PanelReleaseConfirm">¿Seguro que desea liberarlo?</x:String>
     <x:String x:Key="Licensing_PanelReleaseCancel">Mantenerlo</x:String>
@@ -344,7 +344,7 @@
     <x:String x:Key="Btn_Finish">Finalizar</x:String>
 
     <!-- Idle screen and the USB trust guide -->
-    <x:String x:Key="TrialLimit_Reached">Se ha alcanzado el límite de la prueba gratuita (10/10). Compre una licencia para seguir escaneando.</x:String>
+    <x:String x:Key="TrialLimit_Reached">Se ha alcanzado el límite de la prueba gratuita (10/10). Compre una licencia para seguir analizando.</x:String>
     <x:String x:Key="Idle_Title">Conecte un dispositivo por USB</x:String>
     <x:String x:Key="Idle_Lead">Compatible con iPhone, iPad y dispositivos Android. Mantenga la pantalla desbloqueada y confirme "Confiar en este equipo".</x:String>
     <x:String x:Key="Idle_DetectedDevices">Dispositivos detectados:</x:String>
@@ -465,9 +465,9 @@
     <x:String x:Key="Settings_DebugModeDesc">Escribe registros detallados de cada petición. Solo es útil mientras se localiza un problema.</x:String>
 
     <!-- Quality and invoice options, in the wording they are offered in -->
-    <x:String x:Key="Quality_A">A - Como nuevo</x:String>
-    <x:String x:Key="Quality_B">B - Ligeros signos de uso</x:String>
-    <x:String x:Key="Quality_C">C - Signos claros de uso</x:String>
+    <x:String x:Key="Quality_A">A - como nuevo</x:String>
+    <x:String x:Key="Quality_B">B - ligeros signos de uso</x:String>
+    <x:String x:Key="Quality_C">C - claros signos de uso</x:String>
     <x:String x:Key="Payment_Marge">Margen (0% IVA)</x:String>
     <x:String x:Key="Payment_BTW">IVA (21%)</x:String>
 
@@ -508,7 +508,7 @@
     <x:String x:Key="Status_OneFound">Se encontró un dispositivo y está seleccionado.</x:String>
     <x:String x:Key="Status_ManyFound">Se encontraron {0} dispositivos: elija uno.</x:String>
     <x:String x:Key="Status_NoDeviceSelected">No hay ningún dispositivo seleccionado.</x:String>
-    <x:String x:Key="Status_TrialLimit">Límite de la prueba gratuita alcanzado (10/10). Compre una licencia para seguir escaneando.</x:String>
+    <x:String x:Key="Status_TrialLimit">Límite de la prueba gratuita alcanzado (10/10). Compre una licencia para seguir analizando.</x:String>
     <x:String x:Key="Status_Checking">Comprobando la conexión…</x:String>
     <x:String x:Key="Status_Unreachable">El dispositivo no es accesible: pruebe otro cable o puerto.</x:String>
     <x:String x:Key="Status_Activating">Activando el dispositivo (bypass)…</x:String>
