@@ -206,14 +206,10 @@ public class LayoutTests : IDisposable
         Assert.Equal(1.0, progress!.Value);
         Assert.Equal(5.0, progress.Maximum);
 
-        // And the foot carries a way forward and a quiet way out.
+        // And the foot carries a way forward.
         string next = PhoneGrade.UI.Services.LocalizationManager.GetString("Intro_Next");
-        string skip = PhoneGrade.UI.Services.LocalizationManager.GetString("Intro_Skip");
-
         Assert.Contains(main.GetVisualDescendants().OfType<Button>(),
             button => button.IsEffectivelyVisible && (button.Content as string) == next);
-        Assert.Contains(main.GetVisualDescendants().OfType<Button>(),
-            button => button.IsEffectivelyVisible && (button.Content as string) == skip);
         HeadlessRender.Drain();
     }
 

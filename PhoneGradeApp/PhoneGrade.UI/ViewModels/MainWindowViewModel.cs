@@ -754,7 +754,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             this.RaisePropertyChanged(nameof(IsLastIntroPage));
             this.RaisePropertyChanged(nameof(IsOnLicencePage));
             this.RaisePropertyChanged(nameof(ShowIntroNext));
-            this.RaisePropertyChanged(nameof(CanSkipIntro));
             this.RaisePropertyChanged(nameof(IntroStepNumber));
             this.RaisePropertyChanged(nameof(IntroStepDisplay));
         }
@@ -837,9 +836,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// been accepted.
     ///
     /// Every route out of the introduction arrives here, so this is the one place the
-    /// check has to be. Without it the Skip button and the page dots are both ways
-    /// around the agreement, and a gate that can be walked past is worse than no gate
-    /// because it reads as one.
+    /// check has to be. Without it the last page's Finish would be a way around the
+    /// agreement, and a gate that can be walked past is worse than no gate because it
+    /// reads as one.
     /// </summary>
     private void DismissIntro()
     {
@@ -870,21 +869,16 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set
         {
             if (this.RaiseAndSetIfChanged(ref _isLicenceAccepted, value))
-            {
                 this.RaisePropertyChanged(nameof(CanFinishIntro));
-                // Skip comes back the moment the box is ticked, on the page
-                // where it was hidden, without waiting for a page change.
-                this.RaisePropertyChanged(nameof(CanSkipIntro));
-            }
         }
     }
 
     /// <summary>
     /// Whether the introduction may be closed.
     ///
-    /// Checked here rather than only on the button, because the Skip button and the
-    /// page dots are also ways out and neither of them should be able to skip the one
-    /// page that is not optional.
+    /// Checked in <see cref="DismissIntro"/> rather than only on the buttons,
+    /// because finishing and the terms page's continue are both ways out and
+    /// neither may skip the one page that is not optional.
     /// </summary>
     public bool CanFinishIntro => IsLicenceAccepted;
 
@@ -895,13 +889,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// the button says Finish instead.
     /// </summary>
     public bool ShowIntroNext => !IsOnLicencePage && !IsLastIntroPage;
-
-    /// <summary>
-    /// Skip is offered on every page except the agreement, and on every page again
-    /// once the box is ticked. An operator who has already agreed on this machine can
-    /// leave from wherever they are.
-    /// </summary>
-    public bool CanSkipIntro => !IsOnLicencePage || IsLicenceAccepted;
 
     /// <summary>
     /// Which document applies. The free plan is covered by the licence the source is

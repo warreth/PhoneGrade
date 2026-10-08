@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Avalonia.Headless.XUnit;
+using PhoneGrade.UI.Models;
 using PhoneGrade.UI.Services;
 using PhoneGrade.UI.ViewModels;
 using PhoneGrade.Tests;
@@ -15,11 +16,11 @@ namespace PhoneGrade.UI.Tests.Web;
 /// The point of these is not that the screen says the right words. It is that the
 /// agreement cannot be skipped.
 ///
-/// The introduction has three ways out and all three have to be closed, or the page is
-/// decoration. The Finish on the last page, the Skip button, and the command that
-/// jumps straight to a page. A check on one button leaves the other two open, and a
-/// gate that can be walked past is worse than no gate because it reads as one. So the
-/// check lives in the single method every route ends up calling, and these tests go
+/// The introduction has two ways out and both have to be closed, or the page is
+/// decoration. The Finish on the last page, and the command that jumps straight
+/// to a page. A check on one button leaves the other open, and a gate that can
+/// be walked past is worse than no gate because it reads as one. So the check
+/// lives in the single method every route ends up calling, and these tests go
 /// after that method rather than after the markup.
 ///
 /// Settings are pointed at a scratch directory for every test. Without that the view
@@ -85,13 +86,11 @@ public sealed class LicenceAgreementTests : IDisposable
 
         Assert.False(vm.IsLicenceAccepted);
 
-        // The Skip route, on the page where it is not offered.
+        // The Finish route, on the page where the box has not been ticked.
         vm.DismissIntroCommand.Execute().Subscribe();
-        Assert.True(vm.IsIntroVisible, "Skip closed the introduction without the terms being accepted");
+        Assert.True(vm.IsIntroVisible, "Finish closed the introduction without the terms being accepted");
 
-        // And it is not offered either, so the operator is not pressing something that
-        // does nothing and concluding the application is broken.
-        Assert.False(vm.CanSkipIntro);
+        // And the page offers no Next either, so there is no other way off it.
         Assert.False(vm.ShowIntroNext);
     }
 
@@ -120,7 +119,6 @@ public sealed class LicenceAgreementTests : IDisposable
         vm.IsLicenceAccepted = true;
 
         Assert.True(vm.CanFinishIntro);
-        Assert.True(vm.CanSkipIntro);
 
         vm.DismissIntroCommand.Execute().Subscribe();
 
@@ -177,22 +175,22 @@ public sealed class LicenceAgreementTests : IDisposable
 
         vm.IntroPage = "Workflow";
 
-        Assert.True(vm.CanSkipIntro);
         Assert.True(vm.ShowIntroNext, "the pages before the agreement lost their Next button");
     }
 
     [AvaloniaFact]
-    public void TheOrdinaryPagesAreStillSkippable()
+    public void EveryPageBeforeTheAgreementKeepsAWayForward()
     {
         using MainWindowViewModel vm = Fresh();
 
-        // Everything but the agreement page is optional, because those pages are
-        // offering things an operator is allowed to decline. A Skip that vanished
-        // everywhere would be a different bug: a first run an operator cannot leave.
-        foreach (string page in vm.IntroPages.Where(page => page != MainWindowViewModel.LicencePage))
+        // The agreement is the one page without a Next, because it is the one
+        // question that has to be answered. Everything before it advances, so
+        // an operator is never stuck on a page that only offers a way back.
+        foreach (string page in vm.IntroPages.Where(page => page != MainWindowViewModel.LicencePage
+                                                     && page != vm.IntroPages[^1]))
         {
             vm.IntroPage = page;
-            Assert.True(vm.CanSkipIntro, $"Skip was removed from {page}");
+            Assert.True(vm.ShowIntroNext, $"{page} has no way forward");
         }
     }
 

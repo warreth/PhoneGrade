@@ -323,16 +323,8 @@
                 <!-- ==================== The one action row ==================== -->
                 <Border Grid.Row="3" BorderBrush="{DynamicResource CardBorderColor}"
                         BorderThickness="0,1,0,0" Padding="28,16,28,20" Margin="0,20,0,0">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                        <!-- Absent on the agreement page until the box is ticked, and
-                             absent there for the same reason the Finish is dimmed:
-                             this page is not one to walk away from by accident. -->
-                        <Button Grid.Column="0" Classes="headerBtn" VerticalAlignment="Center"
-                                Content="{DynamicResource Intro_Skip}"
-                                IsVisible="{Binding CanSkipIntro}"
-                                Command="{Binding DismissIntroCommand}"/>
-
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
                             <Button Classes="kioskSecondary"
                                     Content="{DynamicResource Intro_Back}"
                                     IsVisible="{Binding !IsFirstIntroPage}"

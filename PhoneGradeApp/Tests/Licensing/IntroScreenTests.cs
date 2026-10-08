@@ -135,8 +135,9 @@ public class IntroScreenTests : IDisposable
         Assert.Equal("Language", vm.IntroPage);
 
         // The terms were accepted on this machine to get this far, so a second
-        // look is a look and not a second agreement.
-        Assert.True(vm.CanSkipIntro, "the replay asked for the terms again");
+        // look is a look and not a second agreement: the box comes back ticked
+        // and the last page's Finish closes it.
+        Assert.True(vm.CanFinishIntro, "the replay asked for the terms again");
 
         vm.DismissIntroCommand.Execute().Subscribe();
 
