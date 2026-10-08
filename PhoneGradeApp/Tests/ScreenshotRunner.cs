@@ -25,6 +25,17 @@ class ScreenshotRunner
         Language = args.Length > 2 ? args[2] : Environment.GetEnvironmentVariable(SHOTS_LANG) ?? "nl";
         Directory.CreateDirectory(outDir);
 
+        // The main section photographs the window as a shop sees it, so it needs
+        // a settings file of its own. It used to read the real one, and the shots
+        // then depended on the machine that took them: a profile that had not
+        // finished the introduction put the welcome screen on top of the idle
+        // screen, the export panel and the USB guide.
+        string mainSettings = Path.Combine(outDir, "main-settings");
+        Directory.CreateDirectory(mainSettings);
+        File.WriteAllText(Path.Combine(mainSettings, "settings.json"),
+            """{"Theme":"Dark","IntroSeen":true}""");
+        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", mainSettings);
+
         AppBuilder.Configure<PhoneGrade.UI.App>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia()
@@ -46,7 +57,17 @@ class ScreenshotRunner
                     Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-payment.png"));
                     vm.IsPaymentPopupVisible = false;
                     Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, "main-dark-idle.png"));
-                    Capture(new DataEditorWindow { DataContext = new DataEditorViewModel(vm.DeviceData) }, Path.Combine(outDir, "editor-dark.png"));
+
+                    // The form as it appears after a battery read, at the window's
+                    // own default size. The three read-only numbers used to come
+                    // out as zeroes and the window was photographed at 820 tall,
+                    // which left a quarter of it empty under the last card.
+                    var editorData = DemoDevice();
+                    editorData.BatteryCycleCount = 612;
+                    editorData.BatteryDesignCapacity = 3095;
+                    editorData.BatteryCurrentCapacity = 2614;
+                    Capture(new DataEditorWindow { DataContext = new DataEditorViewModel(editorData) },
+                        Path.Combine(outDir, "editor-dark.png"), 720, 760);
 
                     // The USB debugging overlay, in both themes. This card used to be
                     // a light yellow block in an otherwise dark window, which no
@@ -63,10 +84,10 @@ class ScreenshotRunner
                     guide.ShowAdbWarning = true;
 
                     guide.AdbTutorialViewModel.SetDevice("Honor", "HONOR 600 Lite");
-                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-dark.png"), 900, 900);
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-dark.png"), 1050, 740);
 
                     guide.Theme = "Light";
-                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-light.png"), 900, 900);
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-light.png"), 1050, 740);
                     guide.Theme = "Dark";
 
                     // The kiosk window size, where the old inline card ran off the
@@ -93,7 +114,11 @@ class ScreenshotRunner
                     var written = BuildDemoViewModel();
                     written.Theme = "Dark";
                     FillAudit(written);
-                    CaptureExport(written, outDir, "export-dark-written.png",
+                    // A little taller than the window the others use, so the
+                    // written list is not cut by the action bar: the picture is
+                    // about the files that were written, and a list whose last
+                    // row is under the fold hides exactly that.
+                    CaptureExport(written, outDir, "export-dark-written.png", 1050, 800,
                         seed: () => written.ExportViewModel?.Show(SampleBatch(written.DeviceData)));
 
                     var failed = BuildDemoViewModel();
@@ -128,10 +153,10 @@ class ScreenshotRunner
                     // The two fallbacks: a phone whose brand has no menu table of its
                     // own, and the generic pair for a phone nothing recognises.
                     guide.AdbTutorialViewModel.SetDevice("Honor", "");
-                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-brand-only.png"), 900, 900);
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-brand-only.png"), 1050, 740);
 
                     guide.AdbTutorialViewModel.SetDevice("", "");
-                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-generic.png"), 900, 900);
+                    Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-generic.png"), 1050, 740);
                 }
 
                 if (section is "" or "lic") CaptureLicensingStates(outDir);
@@ -405,7 +430,7 @@ class ScreenshotRunner
     // outcome and a described one would not prove the row draws.
     static LabelWriter.Batch SampleBatch(PhoneGrade.Core.DeviceData data, bool breakTheLabel = false)
     {
-        string folder = Path.Combine(Path.GetTempPath(), "phonegrade-shot-exports");
+        string folder = DemoExportFolder();
         if (Directory.Exists(folder)) Directory.Delete(folder, true);
 
         var wanted = new HashSet<ExportFormat>
@@ -434,6 +459,24 @@ class ScreenshotRunner
             Messages: PhoneGrade.UI.Services.ExportWordingBuilder.Current())))
             .GetAwaiter().GetResult();
     }
+
+    /// <summary>
+    /// Where the files of an export shot are written.
+    ///
+    /// A folder that says nothing about the machine that took the picture: a
+    /// screenshot of the export panel is not improved by the capturing
+    /// developer's user name followed by a temporary directory. The public
+    /// documents folder is on every Windows install under the same name; the
+    /// other platforms fall back to the signed-in user's documents.
+    /// </summary>
+    static string DemoExportFolder()
+    {
+        string documents = Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments);
+        if (string.IsNullOrEmpty(documents))
+            documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        return Path.Combine(documents, "PhoneGrade exports");
+    }
+
     // The licensing screens: the introduction a fresh install gets, the title bar
     // pill in each colour it can take, the panel that pill opens, and the settings
     // row that points at it. Each state is seeded through real settings files so
@@ -470,15 +513,21 @@ class ScreenshotRunner
             Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, file), w, h);
         }
 
-        // The introduction screen, in both themes.
+        // The introduction screen, in both themes. Built like every other shot,
+        // then opened again: the preparation closes the screen so it cannot land
+        // on a picture it does not belong to.
         Seed(0, introSeen: false);
         var intro = BuildDemoViewModel();
-        Shot(intro, "intro-dark.png", 900, 760);
-        Shot(intro, "intro-light.png", 900, 760, theme: "Light");
+        intro.IsIntroVisible = true;
+        // Taller than the kiosk window, because the point of the picture is a
+        // whole first page: at 760 the fourth setting sits below the fold, which
+        // is a true picture of a short window and a poor picture of the screen.
+        Shot(intro, "intro-dark.png", 900, 900);
+        Shot(intro, "intro-light.png", 900, 900, theme: "Light");
 
         // The same screen with the key box already asked for.
         intro.IsIntroActivationVisible = true;
-        Shot(intro, "intro-activation-dark.png", 900, 760);
+        Shot(intro, "intro-activation-dark.png", 900, 900);
 
         // The pill: quiet, warning, blocked.
         Seed(3, introSeen: true);
@@ -490,14 +539,25 @@ class ScreenshotRunner
         Seed(10, introSeen: true);
         Shot(BuildDemoViewModel(), "pill-limit-dark.png", 760, 200);
 
-        // Pro, after a key validates against the stub.
+        // Pro, after a key activates against a server that answers the way the
+        // real one does. This used to hand every endpoint the validate body, so
+        // activation quietly failed and the Pro pill photographed the free
+        // limit instead: the one shot whose whole point is the word Pro.
         Seed(10, introSeen: true);
-        var pro = new MainWindowViewModel(new PhoneGrade.Core.Licensing.LemonSqueezyClient(new StubLicenseServer()))
+        using (var licenseServer = new Tests.LicensingTestContext.FakeLicenseServer
+               {
+                   ResponseJson = Tests.LicensingTestContext.FakeLicenseServer.SeatsLeftJson,
+                   ActivateResponseJson = Tests.LicensingTestContext.FakeLicenseServer.ActivatedWithSeatsJson,
+               })
         {
-            DeviceData = DemoDevice(),
-        };
-        ActivatePro(pro, "PRO-KEY-1234");
-        Shot(pro, "pill-pro-dark.png", 760, 200);
+            var pro = new MainWindowViewModel(new PhoneGrade.Core.Licensing.LemonSqueezyClient(licenseServer))
+            {
+                DeviceData = DemoDevice(),
+            };
+            PrepareForShot(pro);
+            ActivatePro(pro, "PRO-KEY-1234");
+            Shot(pro, "pill-pro-dark.png", 760, 200);
+        }
 
         // The panel the pill opens, and the settings row that leads to it.
         Seed(3, introSeen: true);
@@ -533,9 +593,13 @@ class ScreenshotRunner
             vm.SelectedSettingsSection = section;
 
             // Tall enough that the whole pane is in the frame rather than the
-            // half of it the window happens to show.
+            // half of it the window happens to show. Workflow is the one section
+            // the site uses, and it is short: photographed at the others' height
+            // it published as a panel with four hundred pixels of nothing under
+            // it.
+            double height = section == "Workflow" ? 1000 : 1500;
             Capture(new MainWindow { DataContext = vm },
-                Path.Combine(outDir, $"settings-{section.ToLowerInvariant()}-dark.png"), 1050, 1500);
+                Path.Combine(outDir, $"settings-{section.ToLowerInvariant()}-dark.png"), 1050, height);
         }
 
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
@@ -580,7 +644,7 @@ class ScreenshotRunner
             try { File.Delete(warmup); } catch (IOException) { }
         }
 
-        var idle = BuildDemoViewModel();
+        var idle = BuildIdleViewModel();
         Shot(idle, "flow-idle-dark.png");
         Shot(idle, "flow-idle-narrow.png", 850, 620);
         idle.Theme = "Light";
@@ -623,6 +687,10 @@ class ScreenshotRunner
         settings.IsSettingsDrawerOpen = true;
         Shot(settings, "flow-settings-dark.png");
 
+        // The logbook is seeded with rows that describe the product rather than
+        // the machine taking the picture, immediately before the window that
+        // shows them is built: the ring buffer is read when the view model is.
+        SeedDemoLogs();
         var logs = BuildDemoViewModel();
         logs.IsLogsModalOpen = true;
         Shot(logs, "flow-logs-dark.png");
@@ -702,10 +770,12 @@ class ScreenshotRunner
                 TitleKey = "Diag_TitleAppleDriverQuery",
                 Severity = DiagnosticSeverity.Info,
                 MessageKey = "Diag_MsgServiceQueryFailed",
-                // The reason is the operating system's own words, so it follows the
-                // machine rather than the app language: a Dutch Windows reports
-                // error 1062 as this.
-                MessageArgs = new[] { "De dienst is niet gestart." },
+                // The reason is the operating system's own words, so a snapshot
+                // of one machine's Windows carries whatever language that Windows
+                // speaks. The capture follows the language it is rendering in,
+                // because an English set with a Dutch sentence in it reads as a
+                // half-translated application.
+                MessageArgs = new[] { T("De dienst is niet gestart.", "The service is not running.") },
             },
             new DiagnosticCheckItem
             {
@@ -779,26 +849,42 @@ class ScreenshotRunner
         if (!done) Console.WriteLine("activation did not finish; Pro shot may show the free tier");
     }
 
-    sealed class StubLicenseServer : System.Net.Http.HttpMessageHandler
-    {
-        protected override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> SendAsync(
-            System.Net.Http.HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
-        {
-            const string json =
-                """{"valid":true,"license_key":{"id":1,"status":"active"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
-            return System.Threading.Tasks.Task.FromResult(new System.Net.Http.HttpResponseMessage(
-                System.Net.HttpStatusCode.OK)
-            {
-                Content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json")
-            });
-        }
-    }
-
     static DeviceData DemoDevice() => new()
     {
         Model = "13 Pro", Storage = "256GB", Color = ColorKeys.White,
         BatteryHealth = "90", Identifier = "356938035643809", Quality = "A",
     };
+
+    /// <summary>The address the QR code on the active screen points at.</summary>
+    static string DemoSessionUrl =>
+        $"http://192.168.1.24:5055/?sessionId=356938035643809&lang={Language}";
+
+    /// <summary>
+    /// The state every photographed window starts in, whatever it is about to
+    /// show.
+    ///
+    /// The update panel opens by itself on the first launch of a new version and
+    /// sits on top of six of the shots: it covered the idle screen, the light
+    /// theme, the license panel and both pill states. A picture of what changed
+    /// in the app is not a picture of the app.
+    ///
+    /// The QR is generated the way the window generates it, so the active screen
+    /// shows the code an operator scans instead of an empty white square. The
+    /// session is not started here: resolving a real address spawns adb or a
+    /// tunnel and depends on the machine doing the capturing, and a screenshot
+    /// has to be the same picture on every machine.
+    /// </summary>
+    static void PrepareForShot(MainWindowViewModel vm)
+    {
+        vm.IsChangelogVisible = false;
+
+        // The introduction is its own shot, and only that one. It sits at the
+        // top of the window and covers whatever the picture was meant to show.
+        vm.IsIntroVisible = false;
+
+        vm.WebRunnerUrl = DemoSessionUrl;
+        vm.QrCodeBitmap = PhoneGrade.UI.Services.QrCodeService.GenerateQrCodeBitmap(vm.WebRunnerUrl);
+    }
 
     static MainWindowViewModel BuildDemoViewModel()
     {
@@ -806,6 +892,7 @@ class ScreenshotRunner
         {
             DeviceData = DemoDevice(),
         };
+        PrepareForShot(vm);
         vm.Issues.Add(new DiagnosticIssue
         {
             Title = T("Batterij-sensor mist (TG0B)", "Battery sensor missing (TG0B)"),
@@ -815,6 +902,57 @@ class ScreenshotRunner
         });
         vm.HasIssues = true;
         return vm;
+    }
+
+    /// <summary>
+    /// The idle screen with no phone in it, which is what the caption "waiting
+    /// for a device on the cable" describes. Building it from the demo device
+    /// put an iPhone in the header of a screen that was waiting for one.
+    /// </summary>
+    static MainWindowViewModel BuildIdleViewModel()
+    {
+        var vm = new MainWindowViewModel { DeviceData = new DeviceData() };
+        PrepareForShot(vm);
+        return vm;
+    }
+
+    /// <summary>
+    /// The logbook the logs window shows, written for the picture.
+    ///
+    /// The ring buffer otherwise carries whatever the machine taking the capture
+    /// logged: absolute paths from the developer's checkout, the language the app
+    /// started in, and sentences about this laptop's firewall. None of that
+    /// belongs on a screenshot of the product, and a line in the wrong language
+    /// is exactly the fault the language switch exists to prevent.
+    /// </summary>
+    static void SeedDemoLogs()
+    {
+        SystemEventLogger.ClearLogs();
+
+        SystemEventLogger.Info(LogSource.Desktop, T(
+            "PhoneGrade gestart. Versie 1.0.0",
+            "PhoneGrade started. Version 1.0.0"));
+        SystemEventLogger.Info(LogSource.Desktop, T(
+            "Taal: Nederlands",
+            "Language: English"));
+        SystemEventLogger.Info(LogSource.UsbDetector, T(
+            "USB-gebeurtenismonitoring gestart (Windows WMI).",
+            "USB event monitoring started (Windows WMI)."));
+        SystemEventLogger.Info(LogSource.System, T(
+            "Android-toestel gevonden op USB: HONOR 600 Lite.",
+            "Android device found on USB: HONOR 600 Lite."));
+        SystemEventLogger.Info(LogSource.Desktop, T(
+            "Testpagina gereed: wacht tot de telefoon de sessie opent.",
+            "Test page ready: waiting for the phone to open the session."));
+        SystemEventLogger.Warning(LogSource.UsbDetector, T(
+            "adb reverse kon poort 5055 niet binden; de telefoon gebruikt het lokale netwerkadres.",
+            "adb reverse could not bind port 5055; the phone is using the local network address."));
+        SystemEventLogger.Info(LogSource.WebSocket, T(
+            "Telefoon verbonden met de testsessie.",
+            "Phone connected to the test session."));
+        SystemEventLogger.Info(LogSource.PwaClient, T(
+            "Interactieve tests: 14 van 14 gemeld.",
+            "Interactive tests: 14 of 14 reported."));
     }
 
     // The window that is currently on screen. The headless platform paints the
