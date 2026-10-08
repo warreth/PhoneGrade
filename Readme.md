@@ -43,11 +43,15 @@ phone is missing a hardware API it advertises.
 | Free | Free, forever | 1 | The whole application, 10 scans, no account |
 | Starter | EUR 399 per year | Up to 2 | Unlimited scans, every device on both computers |
 | Pro | EUR 799 per year | Up to 5 | Unlimited scans, and a second location on the same key |
-| Custom | On request | As many as you run | Volume terms, purchase orders, invoicing, training |
+| Custom | On request | As many as you run | Volume terms, purchase orders, training |
 
 A computer means one installation: a desktop or a laptop at one test station. The app
 shows the count on the licence panel, so you can see how many are taken and how many are
 still free before you add a bench.
+
+Every plan can be invoiced. Make the invoice after the checkout, from the link in the
+confirmation email or from the store's billing page at
+<https://store.phonegrade.app/billing>, where the key and the invoices are kept.
 
 The three paid plans differ only in how many computers a key covers. The seat limit
 comes from the licence itself rather than from this application, so changing a price or
