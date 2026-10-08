@@ -76,15 +76,17 @@ public class VisualThemeTests : IDisposable
         window.Show();
         window.Width = 760;
         window.Height = 820;
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        using var bmp = HeadlessWindowExtensions.CaptureRenderedFrame(window);
+
+        // Waits for the first pass rather than capturing once and assuming one
+        // happened: capturing too early reads a null frame, and the null then
+        // fails whichever assertion happens to touch it first.
+        using WriteableBitmap frame = HeadlessRender.Capture(window);
         window.Hide();
 
         // Save the frame as PNG and decode with a real PNG reader (System.IO.Compression
         // handles the IDAT zlib stream) - sampling every 8th pixel for average luminance.
         using var ms = new System.IO.MemoryStream();
-        bmp.Save(ms);
+        frame.Save(ms);
         return PngLuminance.Average(ms.ToArray());
     }
 }

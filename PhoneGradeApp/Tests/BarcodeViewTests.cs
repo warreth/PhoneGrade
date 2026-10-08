@@ -232,8 +232,7 @@ int wide = bars.Skip(character * Stride).Take(ElementsPerCharacter).Count(width 
     /// <summary>The mean brightness of what a window is currently showing.</summary>
     private static double AverageLuminance(Window window)
     {
-        using var frame = HeadlessWindowExtensions.CaptureRenderedFrame(window);
-        Assert.NotNull(frame);
+        using var frame = HeadlessRender.Capture(window);
 
         using var png = new MemoryStream();
         frame.Save(png);

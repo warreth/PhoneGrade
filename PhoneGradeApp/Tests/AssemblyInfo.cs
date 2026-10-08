@@ -58,9 +58,17 @@ public sealed class DrainTheRenderQueueAfterEveryTestAttribute : BeforeAfterTest
     {
         try
         {
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Dispatcher.UIThread.RunJobs();
+            // A single pass leaves behind whatever a task posted while it was
+            // running; that pass then executes during the next test's session
+            // setup, where the font manager is not registered yet. Give those
+            // continuations a beat to land and drain each round too.
+            for (int pass = 0; pass < 3; pass++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
+                if (pass < 2) Thread.Sleep(5);
+            }
         }
         catch (Exception)
         {
