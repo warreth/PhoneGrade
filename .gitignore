@@ -37,6 +37,8 @@ deepseek-todos.md
 
 # Lokale sleutel voor de live imei.info tests; de CI leest 'm uit secrets
 PhoneGradeApp/Tests/.imei-info-key
+# Lokale licentiekey voor de live Lemon Squeezy tests; nooit committen
+PhoneGradeApp/Tests/.license-key
 PhoneGradeApp/FEATURE_AUDIT_CHECKLIST.md
 
 # Test result files written by dotnet test. Regenerated on every run.
