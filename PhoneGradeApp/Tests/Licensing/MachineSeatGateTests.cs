@@ -51,6 +51,27 @@ public class MachineSeatGateTests : IDisposable
     }
 
     [Fact]
+    public async Task ActivateLicenseAsync_WhenTheSeatWasRefusedOnTheProduct_HandsItBack()
+    {
+        // The vendor activated the seat before the product check refused it, so the
+        // seat exists even though the app will not use it. It is handed back rather
+        // than left dangling on the key with no handle anywhere.
+        var server = new FakeLicenseServer
+        {
+            ActivateResponseJson =
+                """{"activated":true,"license_key":{"id":2,"status":"active"},"instance":{"id":9,"name":"pg-bench-3"},"meta":{"product_id":9999999}}""",
+        };
+        TrialGate gate = _context.CreateGate(server);
+
+        LicenseValidationResult result = await gate.ActivateLicenseAsync("KEY-OTHER-PRODUCT");
+
+        Assert.Equal(LicenseValidationResult.Invalid, result);
+        Assert.False(gate.IsPro);
+        Assert.False(gate.HasSeat);
+        Assert.Contains(LemonSqueezyClient.DeactivateEndpoint, server.Endpoints);
+    }
+
+    [Fact]
     public async Task ActivateLicenseAsync_SendsTheFingerprintAsTheInstanceNameAndNeverTheHostname()
     {
         var server = new FakeLicenseServer();

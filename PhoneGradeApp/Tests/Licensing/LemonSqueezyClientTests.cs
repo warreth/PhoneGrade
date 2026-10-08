@@ -446,14 +446,17 @@ public class LemonSqueezyClientTests
     [Fact]
     public async Task ActivateAsync_ForAnotherProduct_IsRefusedEvenThoughItLooksSuccessful()
     {
+        // The decision is Invalid, but the raw fields survive: the activation did
+        // happen on the vendor's side, and the instance id is the only handle that
+        // can hand that seat back.
         using var client = CreateClient(_ => Json(
             """{"activated":true,"license_key":{"id":2,"status":"active"},"instance":{"id":9,"name":"pg-bench-3"},"meta":{"product_id":9999999}}"""));
 
         LicenseActivationResponse response = await client.ActivateAsync("KEY-1", "pg-bench-3");
 
-        Assert.False(response.Activated);
         Assert.Equal(LicenseValidationResult.Invalid, response.Result);
-        Assert.Equal("", response.InstanceId);
+        Assert.True(response.Activated);
+        Assert.Equal("9", response.InstanceId);
     }
 
     [Theory]

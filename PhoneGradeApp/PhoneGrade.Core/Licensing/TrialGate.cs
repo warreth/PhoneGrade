@@ -267,6 +267,16 @@ public sealed class TrialGate
 
         if (activation.Result != LicenseValidationResult.Valid || activation.InstanceId.Length == 0)
         {
+            // A refused activation can still have taken a seat: one that succeeded
+            // on the server but failed the product check is exactly that. It is
+            // handed back rather than left dangling on the key, because nothing
+            // else in the app will ever hold its instance id.
+            if (activation.Activated && activation.InstanceId.Length > 0)
+            {
+                await _client.DeactivateAsync(licenseKey, activation.InstanceId, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
             RememberSeats(activation.ActivationLimit, activation.ActivationUsage, "");
             return activation.Result;
         }

@@ -151,12 +151,15 @@ public class LicenseLiveTests
         using var client = new LemonSqueezyClient();
         string instanceName = "pg-livecheck-" + Guid.NewGuid().ToString("N")[..12];
 
+        LicenseValidationResponse before = await client.ValidateDetailedAsync(Key);
         LicenseActivationResponse activation = await client.ActivateAsync(Key, instanceName);
-        Assert.True(activation.Activated, activation.Error);
-        Assert.False(string.IsNullOrWhiteSpace(activation.InstanceId), "no instance id came back");
 
+        LicenseDeactivationResponse? released = null;
         try
         {
+            Assert.Equal(LicenseValidationResult.Valid, activation.Result);
+            Assert.False(string.IsNullOrWhiteSpace(activation.InstanceId), "no instance id came back");
+
             // With the instance named, the key answers about this seat rather than
             // about the key in general.
             LicenseValidationResponse seated = await client.ValidateDetailedAsync(Key, activation.InstanceId);
@@ -167,8 +170,20 @@ public class LicenseLiveTests
         }
         finally
         {
-            LicenseDeactivationResponse released = await client.DeactivateAsync(Key, activation.InstanceId);
-            Assert.True(released.Deactivated, released.Error);
+            // Released whenever the server may hold a seat, even after a failed
+            // assert above: an activation that succeeded but was refused here still
+            // took one, and walking away from it leaks exactly what this fact
+            // exists to exercise.
+            if (activation.Activated && activation.InstanceId.Length > 0)
+            {
+                released = await client.DeactivateAsync(Key, activation.InstanceId);
+            }
         }
+
+        Assert.NotNull(released);
+        Assert.True(released.Deactivated, released.Error);
+
+        LicenseValidationResponse after = await client.ValidateDetailedAsync(Key);
+        Assert.Equal(before.ActivationUsage, after.ActivationUsage);
     }
 }

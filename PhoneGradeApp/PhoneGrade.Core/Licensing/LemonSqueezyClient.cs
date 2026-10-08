@@ -303,7 +303,15 @@ public sealed class LemonSqueezyClient : IDisposable
             (string instanceId, string instanceName) = ReadInstance(root);
 
             if (expectedProductId != 0 && productId != expectedProductId && !IsPhoneGradeProduct(productId))
-                return FailedActivation(error);
+            {
+                // The decision is Invalid, but the raw fields are kept: the
+                // activation did happen on the vendor's side, and the instance id
+                // is the only handle that can hand that seat back. Dropping it
+                // here is how a seat ends up taken with nothing able to release it.
+                return new LicenseActivationResponse(
+                    activated, error, instanceId, instanceName,
+                    LicenseValidationResult.Invalid, limit, usage, productId);
+            }
 
             LicenseValidationResult result;
             if (activated && instanceId.Length == 0)
