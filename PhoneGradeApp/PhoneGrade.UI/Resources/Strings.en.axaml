@@ -46,6 +46,9 @@
     <x:String x:Key="Settings_ThemeDesc">Dark, light, or system default</x:String>
     <x:String x:Key="Settings_Language">Language</x:String>
     <x:String x:Key="Settings_LanguageDesc">Interface language</x:String>
+    <x:String x:Key="Settings_IntroTitle">Introduction</x:String>
+    <x:String x:Key="Settings_IntroDesc">Show the welcome tour again. The settings you already chose stay as they are.</x:String>
+    <x:String x:Key="Settings_IntroReplay">Show the introduction</x:String>
     <x:String x:Key="Settings_AutoDetect">Auto-detect on plug</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Start the process automatically when a device is detected</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB event monitoring</x:String>

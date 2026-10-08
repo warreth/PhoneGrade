@@ -97,6 +97,54 @@ public class IntroScreenTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void TheIntroductionCountsItsSteps()
+    {
+        // The footer used to carry the five page names as a row of tabs. The
+        // wizard shows a progress line and a number now, and the number has to
+        // follow the page rather than lag a click behind.
+        using var vm = new MainWindowViewModel();
+
+        Assert.Equal(1, vm.IntroStepNumber);
+        Assert.Equal("1 / 5", vm.IntroStepDisplay);
+
+        vm.IntroPage = "Workflow";
+
+        Assert.Equal(3, vm.IntroStepNumber);
+        Assert.Equal("3 / 5", vm.IntroStepDisplay);
+
+        vm.IntroPage = MainWindowViewModel.LicencePage;
+
+        Assert.Equal("4 / 5", vm.IntroStepDisplay);
+    }
+
+    [AvaloniaFact]
+    public void TheIntroductionCanBeReplayedFromSettings()
+    {
+        using var vm = new MainWindowViewModel();
+
+        // Get past the first run the way an operator does.
+        vm.IsLicenceAccepted = true;
+        vm.DismissIntroCommand.Execute().Subscribe();
+        Assert.False(vm.IsIntroVisible);
+
+        vm.IsSettingsDrawerOpen = true;
+        vm.ReplayIntroCommand.Execute().Subscribe();
+
+        Assert.False(vm.IsSettingsDrawerOpen);
+        Assert.True(vm.IsIntroVisible);
+        Assert.Equal("Language", vm.IntroPage);
+
+        // The terms were accepted on this machine to get this far, so a second
+        // look is a look and not a second agreement.
+        Assert.True(vm.CanSkipIntro, "the replay asked for the terms again");
+
+        vm.DismissIntroCommand.Execute().Subscribe();
+
+        Assert.False(vm.IsIntroVisible);
+        Assert.True(AppSettings.Load().IntroSeen);
+    }
+
+    [AvaloniaFact]
     public async Task ValidKeyOnTheIntroductionScreen_TurnsProAndKeepsTheTermsInFront()
     {
         using var server = new LicensingTestContext.FakeLicenseServer

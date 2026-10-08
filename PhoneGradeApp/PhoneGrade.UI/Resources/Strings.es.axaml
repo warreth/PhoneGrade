@@ -46,6 +46,9 @@
     <x:String x:Key="Settings_ThemeDesc">Oscuro, claro o según el sistema</x:String>
     <x:String x:Key="Settings_Language">Idioma</x:String>
     <x:String x:Key="Settings_LanguageDesc">Idioma de la interfaz</x:String>
+    <x:String x:Key="Settings_IntroTitle">Introducción</x:String>
+    <x:String x:Key="Settings_IntroDesc">Vuelve a ver el tutorial de bienvenida. Los ajustes que ya elegiste se mantienen.</x:String>
+    <x:String x:Key="Settings_IntroReplay">Mostrar introducción</x:String>
     <x:String x:Key="Settings_AutoDetect">Detección automática al conectar</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Iniciar el proceso automáticamente cuando se detecte un dispositivo</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">Supervisión de eventos USB</x:String>

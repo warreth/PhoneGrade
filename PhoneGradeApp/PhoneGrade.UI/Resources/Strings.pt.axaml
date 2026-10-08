@@ -46,6 +46,9 @@
     <x:String x:Key="Settings_ThemeDesc">Escuro, claro ou o padrão do sistema</x:String>
     <x:String x:Key="Settings_Language">Idioma</x:String>
     <x:String x:Key="Settings_LanguageDesc">Idioma da interface</x:String>
+    <x:String x:Key="Settings_IntroTitle">Introdução</x:String>
+    <x:String x:Key="Settings_IntroDesc">Veja o tour de boas-vindas novamente. As configurações que você já escolheu permanecem.</x:String>
+    <x:String x:Key="Settings_IntroReplay">Mostrar introdução</x:String>
     <x:String x:Key="Settings_AutoDetect">Detetar ao ligar</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Iniciar o processo automaticamente quando um telemóvel for detetado</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">Monitoramento de eventos USB</x:String>

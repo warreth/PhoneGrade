@@ -46,6 +46,9 @@
     <x:String x:Key="Settings_ThemeDesc">Donker, licht of volgens systeem</x:String>
     <x:String x:Key="Settings_Language">Taal</x:String>
     <x:String x:Key="Settings_LanguageDesc">Taal van de app</x:String>
+    <x:String x:Key="Settings_IntroTitle">Introductie</x:String>
+    <x:String x:Key="Settings_IntroDesc">Bekijk de rondleiding nog eens. Je gekozen instellingen blijven staan.</x:String>
+    <x:String x:Key="Settings_IntroReplay">Introductie tonen</x:String>
     <x:String x:Key="Settings_AutoDetect">Start automatisch bij insteken</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Zodra een toestel gedetecteerd wordt, draait het hele proces vanzelf</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB-gebeurtenissen volgen</x:String>

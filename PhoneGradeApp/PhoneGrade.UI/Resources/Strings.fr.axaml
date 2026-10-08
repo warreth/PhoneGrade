@@ -46,6 +46,9 @@
     <x:String x:Key="Settings_ThemeDesc">Sombre, clair ou selon le système</x:String>
     <x:String x:Key="Settings_Language">Langue</x:String>
     <x:String x:Key="Settings_LanguageDesc">Langue de l'interface</x:String>
+    <x:String x:Key="Settings_IntroTitle">Introduction</x:String>
+    <x:String x:Key="Settings_IntroDesc">Revoyez la visite de bienvenue. Les réglages déjà choisis restent en place.</x:String>
+    <x:String x:Key="Settings_IntroReplay">Afficher l'introduction</x:String>
     <x:String x:Key="Settings_AutoDetect">Détection automatique au branchement</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Démarre le processus automatiquement dès qu'un appareil est détecté</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">Surveillance des événements USB</x:String>

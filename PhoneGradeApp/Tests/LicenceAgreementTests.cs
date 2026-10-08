@@ -16,8 +16,8 @@ namespace PhoneGrade.UI.Tests.Web;
 /// agreement cannot be skipped.
 ///
 /// The introduction has three ways out and all three have to be closed, or the page is
-/// decoration. The Next button on the last page, the Skip button, and the page dots
-/// that jump straight to a page. A check on one button leaves the other two open, and a
+/// decoration. The Finish on the last page, the Skip button, and the command that
+/// jumps straight to a page. A check on one button leaves the other two open, and a
 /// gate that can be walked past is worse than no gate because it reads as one. So the
 /// check lives in the single method every route ends up calling, and these tests go
 /// after that method rather than after the markup.
@@ -96,10 +96,11 @@ public sealed class LicenceAgreementTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void ThePageDotsAreNotAWayRoundItEither()
+    public void JumpingStraightToTheLastPageIsNotAWayRoundIt()
     {
-        // The case a check on the agreement page's own button would miss. A dot jumps
-        // straight to the last page, so the Finish there has to be refused as well.
+        // The case a check on the agreement page's own button would miss. A jump
+        // straight to the last page, which the settings replay and the tests can
+        // still do, has to hit the same gate: its Finish is refused as well.
         using MainWindowViewModel vm = Fresh();
         vm.IsIntroVisible = true;
 
@@ -123,6 +124,26 @@ public sealed class LicenceAgreementTests : IDisposable
 
         vm.DismissIntroCommand.Execute().Subscribe();
 
+        Assert.False(vm.IsIntroVisible);
+    }
+
+    [AvaloniaFact]
+    public void AcceptingTheTermsContinuesToTheLastPage()
+    {
+        // The foot's button says "Accept and continue", so it continues. It used
+        // to close the whole screen, which left the optional-checks page with no
+        // door to it once the row of topic tabs was gone.
+        using MainWindowViewModel vm = OnLicencePage();
+        vm.IsLicenceAccepted = true;
+
+        vm.AcceptIntroTermsCommand.Execute().Subscribe();
+
+        Assert.True(vm.IsIntroVisible, "accepting the terms closed the introduction");
+        Assert.True(vm.IsLastIntroPage);
+        Assert.Equal("Imei", vm.IntroPage);
+
+        // And the last page's Finish is the way out.
+        vm.IntroNextCommand.Execute().Subscribe();
         Assert.False(vm.IsIntroVisible);
     }
 

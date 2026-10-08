@@ -1,32 +1,34 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:PhoneGrade.UI.ViewModels"
-             xmlns:conv="using:PhoneGrade.UI.Converters"
              x:Class="PhoneGrade.UI.Views.IntroView"
              x:DataType="vm:MainWindowViewModel">
 
     <!--
-        First run only, and four pages long.
+        First run only, and five short pages.
 
-        It used to be one card holding the plan, the Pro price, the IMEI key offer,
-        three buttons and a license box, all at once. Everything on it was true and
-        none of it could be read properly, because the card had grown past the
-        window it sits in. Split into pages, the language and the look are asked for
-        first because those are the two settings an operator is most likely to want
-        to change and hardest to find later, and the rest is read one page at a time.
+        The shape is a wizard: what this is at the top, a progress line under it,
+        the page itself in the middle, and one action row at the foot. The page
+        names are no longer a row of tabs. Five names, each in the reader's own
+        language, never fitted the card, and the last one ran past the border,
+        which made a page that nothing on screen pointed at. Progress is a bar
+        and a number now, and every page says its own name at the top.
 
-        The step at the foot says which page this is and which one is next, so an
-        operator who came in to change the language does not have to click through
-        three pages of plan and pricing to get back out.
+        The foot carries every action, on every page, in the same place: Skip on
+        the left, Back and the one way forward on the right. The agreement still
+        gates the way out, exactly as before, but the button that accepts it
+        stands where the Next button stood on the page before, and it is dimmed
+        until the box is ticked with the sentence underneath saying why.
     -->
     <Panel Background="{DynamicResource OverlayColor}">
-        <Border Classes="card" Width="640" Padding="28"
+        <Border Classes="card introCard" Width="760"
                 HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Grid RowDefinitions="Auto,*,Auto">
+            <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-                <StackPanel Grid.Row="0" Spacing="14">
-                    <StackPanel Spacing="10">
-                        <Viewbox Width="40" Height="40" Stretch="Uniform" HorizontalAlignment="Left">
+                <!-- ==================== What this is ==================== -->
+                <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="3">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <Viewbox Width="42" Height="42" Stretch="Uniform" VerticalAlignment="Center">
                             <Canvas Width="100" Height="100">
                                 <Rectangle Fill="{DynamicResource AccentColor}" Width="100" Height="100" RadiusX="16" RadiusY="16"/>
                                 <TextBlock Text="PG" FontSize="54" Foreground="#ffffff"
@@ -34,23 +36,29 @@
                                            Canvas.Left="19" Canvas.Top="14"/>
                             </Canvas>
                         </Viewbox>
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="{DynamicResource Intro_Title}" Classes="pageTitle"/>
-                            <TextBlock Text="{DynamicResource Intro_Subtitle}" Classes="settingDesc"/>
+                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource Intro_Title}" Classes="pageTitle" FontSize="23"/>
+                            <TextBlock Text="{DynamicResource Intro_Subtitle}" Classes="settingDesc" TextWrapping="Wrap" MaxWidth="600"/>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
 
-                <!--
-                    The pages scroll inside the card. Wrapping the topic bar at the
-                    foot can make the card grow taller than a short window, and a
-                    page whose last setting is clipped is a page the operator
-                    cannot finish.
-                -->
-                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled"
-                              VerticalScrollBarVisibility="Auto">
+                <!-- ==================== Where you are ==================== -->
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="28,20,28,0">
+                    <ProgressBar Grid.Column="0" Minimum="0" Height="4"
+                                 Maximum="{Binding IntroPageCount}"
+                                 Value="{Binding IntroStepNumber, Mode=OneWay}"
+                                 VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Classes="valueHint" Margin="14,0,0,0"
+                               VerticalAlignment="Center" Text="{Binding IntroStepDisplay}"/>
+                </Grid>
+
+                <!-- ==================== The page itself ==================== -->
+                <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto" Margin="28,18,28,0">
                     <Panel>
-                        <!-- ==================== Page 1: language and look ==================== -->
+
+                        <!-- Page 1: the two choices an operator makes once -->
                         <StackPanel Spacing="14"
                                     IsVisible="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Language}">
                             <StackPanel Spacing="4">
@@ -58,120 +66,118 @@
                                 <TextBlock Classes="settingDesc" Text="{DynamicResource Intro_WelcomeLead}"/>
                             </StackPanel>
 
-                            <Border Classes="settingCard">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="3" VerticalAlignment="Center">
-                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Language}"/>
-                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LanguageDesc}"/>
-                                    </StackPanel>
-                                    <ComboBox Grid.Column="1" Width="160" VerticalAlignment="Center"
-                                              ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}"/>
-                                </Grid>
-                            </Border>
+                            <Grid ColumnDefinitions="*,*">
+                                <Border Classes="settingCard" Margin="0,0,7,0">
+                                    <StackPanel Spacing="16">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Language}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LanguageDesc}"/>
+                                            <ComboBox HorizontalAlignment="Stretch"
+                                                      ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding Language}"/>
+                                        </StackPanel>
 
-                            <Border Classes="settingCard">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="3" VerticalAlignment="Center">
-                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Theme}"/>
-                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ThemeDesc}"/>
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Theme}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_ThemeDesc}"/>
+                                            <ComboBox HorizontalAlignment="Stretch"
+                                                      ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"/>
+                                        </StackPanel>
                                     </StackPanel>
-                                    <ComboBox Grid.Column="1" Width="160" VerticalAlignment="Center"
-                                              ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"/>
-                                </Grid>
-                            </Border>
+                                </Border>
 
-                            <Border Classes="settingCard">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="3" VerticalAlignment="Center">
-                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Quality}"/>
-                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_QualityDesc}"/>
-                                    </StackPanel>
-                                    <ComboBox Grid.Column="1" Width="160" VerticalAlignment="Center"
-                                              ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding DefaultQuality}">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Converter={StaticResource QualityOptionLabelConverter}}"/>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </Grid>
-                            </Border>
+                                <Border Grid.Column="1" Classes="settingCard" Margin="7,0,0,0">
+                                    <StackPanel Spacing="16">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Quality}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_QualityDesc}"/>
+                                            <ComboBox HorizontalAlignment="Stretch"
+                                                      ItemsSource="{Binding QualityOptions}" SelectedItem="{Binding DefaultQuality}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={StaticResource QualityOptionLabelConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
 
-                            <Border Classes="settingCard">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Spacing="3" VerticalAlignment="Center">
-                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Payment}"/>
-                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_PaymentDesc}"/>
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_Payment}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_PaymentDesc}"/>
+                                            <ComboBox HorizontalAlignment="Stretch"
+                                                      ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding DefaultPaymentMethod}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Converter={StaticResource PaymentOptionLabelConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
                                     </StackPanel>
-                                    <ComboBox Grid.Column="1" Width="160" VerticalAlignment="Center"
-                                              ItemsSource="{Binding PaymentOptions}" SelectedItem="{Binding DefaultPaymentMethod}">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding Converter={StaticResource PaymentOptionLabelConverter}}"/>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </Grid>
-                            </Border>
+                                </Border>
+                            </Grid>
                         </StackPanel>
 
-                        <!-- ==================== Page 2: the plan ==================== -->
+                        <!-- Page 2: the plan -->
                         <StackPanel Spacing="14"
                                     IsVisible="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Plan}">
                             <TextBlock Classes="sectionTitle" Text="{DynamicResource Intro_PagePlan}"/>
 
                             <!-- Free and Pro side by side, so the difference reads at a glance. -->
                             <Grid ColumnDefinitions="*,*">
-                                <Border Classes="settingCard" Margin="0,0,6,0">
-                                    <StackPanel Spacing="6">
+                                <Border Classes="settingCard" Margin="0,0,7,0">
+                                    <StackPanel Spacing="8">
                                         <TextBlock Text="{DynamicResource Intro_FreeTierTitle}"
                                                    Classes="settingTitle"
                                                    Foreground="{DynamicResource AccentColor}"/>
                                         <TextBlock Text="{DynamicResource Intro_FreeTierBody}" Classes="settingDesc"/>
-                                        <Border Classes="pill neutral" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                        <Border Classes="pill neutral" HorizontalAlignment="Left" Margin="0,6,0,0">
                                             <TextBlock Classes="pillText" Text="{Binding Licensing.TierSummary}"/>
                                         </Border>
                                     </StackPanel>
                                 </Border>
 
-                                <Border Grid.Column="1" Classes="settingCard" Margin="6,0,0,0">
-                                    <StackPanel Spacing="6">
+                                <Border Grid.Column="1" Classes="settingCard introTierPro" Margin="7,0,0,0">
+                                    <StackPanel Spacing="8">
                                         <TextBlock Text="{DynamicResource Intro_ProTierTitle}"
                                                    Classes="settingTitle"
                                                    Foreground="{DynamicResource SuccessColor}"/>
                                         <TextBlock Text="{DynamicResource Intro_ProTierBody}" Classes="settingDesc"/>
-                                        <Border Classes="pill success" HorizontalAlignment="Left" Margin="0,4,0,0">
+                                        <Border Classes="pill success" HorizontalAlignment="Left" Margin="0,6,0,0">
                                             <TextBlock Classes="pillText" Text="{DynamicResource Intro_ProBadge}"/>
                                         </Border>
                                     </StackPanel>
                                 </Border>
                             </Grid>
 
-                            <Grid ColumnDefinitions="*,Auto">
+                            <Grid ColumnDefinitions="Auto,Auto,*">
                                 <Button Classes="kioskSecondary" HorizontalAlignment="Left"
                                         Content="{DynamicResource Intro_SeePricing}"
                                         Command="{Binding Licensing.OpenPricingCommand}"/>
-                                <Button Grid.Column="1" Classes="kioskSecondary"
+                                <Button Grid.Column="1" Classes="kioskSecondary" Margin="10,0,0,0"
                                         Content="{DynamicResource Intro_HaveLicense}"
                                         Command="{Binding ShowIntroActivationCommand}"/>
                             </Grid>
 
                             <!-- Key box, hidden until it is asked for. -->
-                            <StackPanel Spacing="8" IsVisible="{Binding IsIntroActivationVisible}">
-                                <TextBlock Classes="settingTitle" Text="{DynamicResource Intro_ActivationTitle}"/>
-                                <TextBox Text="{Binding Licensing.LicenseKeyInput}"
-                                         Watermark="{DynamicResource Settings_LicenseKeyWatermark}"
-                                         PasswordChar="*"/>
-                                <Button Classes="cta" Command="{Binding Licensing.ValidateCommand}"
-                                        Content="{DynamicResource Settings_ValidateActivate}"
-                                        IsEnabled="{Binding !Licensing.IsActivating}"
-                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-                                <TextBlock Text="{Binding Licensing.StatusMessage}" Classes="settingDesc"
-                                           Foreground="{DynamicResource WarnColor}"/>
-                            </StackPanel>
+                            <Border Classes="settingCard" IsVisible="{Binding IsIntroActivationVisible}">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Classes="settingTitle" Text="{DynamicResource Intro_ActivationTitle}"/>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Text="{Binding Licensing.LicenseKeyInput}"
+                                                 Watermark="{DynamicResource Settings_LicenseKeyWatermark}"
+                                                 PasswordChar="*"/>
+                                        <Button Grid.Column="1" Classes="cta" Margin="10,0,0,0" Padding="18,10"
+                                                Command="{Binding Licensing.ValidateCommand}"
+                                                Content="{DynamicResource Settings_ValidateActivate}"
+                                                IsEnabled="{Binding !Licensing.IsActivating}"/>
+                                    </Grid>
+                                    <TextBlock Text="{Binding Licensing.StatusMessage}" Classes="settingDesc"
+                                               Foreground="{DynamicResource WarnColor}"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
 
-                        <!-- ==================== Page 3: what an inspection involves ==================== -->
+                        <!-- Page 3: what an inspection involves -->
                         <StackPanel Spacing="14"
                                     IsVisible="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Workflow}">
                             <StackPanel Spacing="4">
@@ -181,7 +187,7 @@
 
                             <!-- The same numbered rows the how-to screens use, so the shape
                                  an operator is shown here is the one they meet later. -->
-                            <Border Classes="stepPlan">
+                            <Border Classes="stepPlan" Padding="18,14">
                                 <StackPanel>
                                     <StackPanel Spacing="10">
                                         <Border Classes="stepItem">
@@ -217,20 +223,20 @@
                             </Border>
                         </StackPanel>
 
-                        <!-- ==================== Page 4: the terms ==================== -->
+                        <!-- Page 4: the terms -->
                         <!--
                             The one page in the introduction that cannot be skipped.
 
                             Every other page is offering something an operator is allowed to
                             decline: the plan, the grade defaults, the IMEI lookups. That is
                             what Skip is for. This page is not that. The application is being
-                            used, using it is what the terms are about, so the way out is the
-                            checkbox and nothing else.
+                            used, using it is what the terms are about, so the way forward is
+                            the checkbox and nothing else, and the foot's button stays dim
+                            until it is ticked.
 
-                            The Finish button is beside it rather than in the usual place in
-                            the foot of the card, because on this page it is gated and on every
-                            other page it is not, and a button that appears in two places with
-                            two behaviours is a fault report waiting to happen.
+                            The two halves sit side by side: what the terms cover on the
+                            left, and the acknowledgement on the right where the eye
+                            already is after reading it.
                         -->
                         <StackPanel Spacing="14"
                                     IsVisible="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Licence}">
@@ -239,68 +245,63 @@
                                 <TextBlock Classes="settingDesc" Text="{DynamicResource Intro_LicenceLead}" TextWrapping="Wrap"/>
                             </StackPanel>
 
-                            <Border Classes="settingCard">
-                                <StackPanel Spacing="10">
-                                    <TextBlock Text="{DynamicResource Intro_LicenceWhat}" Classes="settingDesc" TextWrapping="Wrap"/>
-
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button Classes="kioskSecondary" Height="38"
-                                                Content="{DynamicResource Intro_LicenceRead}"
-                                                Command="{Binding OpenLicenceCommand}"/>
-                                        <Button Classes="kioskSecondary" Height="38"
-                                                Content="{DynamicResource Intro_LicenceTrademark}"
-                                                Command="{Binding OpenTrademarkCommand}"/>
+                            <Grid ColumnDefinitions="*,*">
+                                <Border Classes="settingCard" Margin="0,0,7,0">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="{DynamicResource Intro_LiabilityTitle}" Classes="settingTitle"/>
+                                        <TextBlock Text="{DynamicResource Intro_LiabilityNoWarranty}"
+                                                   Classes="settingDesc" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{DynamicResource Intro_LiabilityCap}"
+                                                   Classes="settingDesc" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{DynamicResource Intro_LiabilityGrade}"
+                                                   Classes="settingDesc" TextWrapping="Wrap"/>
                                     </StackPanel>
+                                </Border>
 
-                                    <!-- One box, and it decides whether Finish works. The
-                                         sentence beside it is bound to the agreement that
-                                         actually applies, so a paying customer is never handed
-                                         the free one by a copy mistake. -->
-                                    <Border Classes="stepItem" Padding="10">
-                                        <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <CheckBox IsChecked="{Binding IsLicenceAccepted}" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{DynamicResource Intro_LicenceAcknowledge}"
-                                                       Classes="settingDesc" TextWrapping="Wrap"
-                                                       VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" Classes="settingCard" Margin="7,0,0,0">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="{DynamicResource Intro_LicenceWhat}"
+                                                   Classes="settingDesc" TextWrapping="Wrap"/>
+
+                                        <StackPanel Spacing="8">
+                                            <Button Classes="kioskSecondary" Height="38"
+                                                    HorizontalAlignment="Left"
+                                                    Content="{DynamicResource Intro_LicenceRead}"
+                                                    Command="{Binding OpenLicenceCommand}"/>
+                                            <Button Classes="kioskSecondary" Height="38"
+                                                    HorizontalAlignment="Left"
+                                                    Content="{DynamicResource Intro_LicenceTrademark}"
+                                                    Command="{Binding OpenTrademarkCommand}"/>
                                         </StackPanel>
-                                    </Border>
 
-                                    <!-- Said rather than left to be discovered. A Finish button
-                                         that does nothing because a box is unticked is the
-                                         fastest way to convince an operator the application is
-                                         broken. -->
-                                    <TextBlock Classes="settingDesc"
-                                               Foreground="{DynamicResource WarnColor}"
-                                               TextWrapping="Wrap"
-                                               IsVisible="{Binding !CanFinishIntro}"
-                                               Text="{DynamicResource Intro_LicenceRequired}"/>
+                                        <!-- One box, and it decides whether the foot can finish.
+                                             The sentence beside it is bound to the agreement that
+                                             actually applies, so a paying customer is never handed
+                                             the free one by a copy mistake. -->
+                                        <Border Classes="stepItem" Padding="10">
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <CheckBox IsChecked="{Binding IsLicenceAccepted}" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding LicenceAgreementLabel}"
+                                                           Classes="settingDesc" TextWrapping="Wrap"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
 
-                                    <Button Classes="cta" Height="46"
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Center"
-                                            Content="{DynamicResource Intro_LicenceFinish}"
-                                            IsEnabled="{Binding CanFinishIntro}"
-                                            Command="{Binding DismissIntroCommand}"/>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- What the operator is being asked to accept, in three lines,
-                                 so the question can be answered on screen rather than only in
-                                 a document behind a link. -->
-                            <Border Classes="settingCard">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="{DynamicResource Intro_LiabilityTitle}" Classes="settingTitle"/>
-                                    <TextBlock Text="{DynamicResource Intro_LiabilityNoWarranty}"
-                                               Classes="settingDesc" TextWrapping="Wrap"/>
-                                    <TextBlock Text="{DynamicResource Intro_LiabilityCap}"
-                                               Classes="settingDesc" TextWrapping="Wrap"/>
-                                    <TextBlock Text="{DynamicResource Intro_LiabilityGrade}"
-                                               Classes="settingDesc" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
+                                        <!-- Said rather than left to be discovered. A button
+                                             that does nothing because a box is unticked is the
+                                             fastest way to convince an operator the application is
+                                             broken. -->
+                                        <TextBlock Classes="settingDesc"
+                                                   Foreground="{DynamicResource WarnColor}"
+                                                   TextWrapping="Wrap"
+                                                   IsVisible="{Binding !CanFinishIntro}"
+                                                   Text="{DynamicResource Intro_LicenceRequired}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                         </StackPanel>
 
-                        <!-- ==================== Page 5: the optional checks ==================== -->
+                        <!-- Page 5: the optional checks -->
                         <StackPanel Spacing="14"
                                     IsVisible="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Imei}">
                             <TextBlock Classes="sectionTitle" Text="{DynamicResource Intro_PageImei}"/>
@@ -308,77 +309,54 @@
                             <Border Classes="settingCard">
                                 <StackPanel Spacing="8">
                                     <TextBlock Classes="settingTitle" Text="{DynamicResource Intro_ImeiTitle}"/>
-                                    <TextBlock Classes="settingDesc" Text="{DynamicResource Intro_ImeiBody}"/>
+                                    <TextBlock Classes="settingDesc" Text="{DynamicResource Intro_ImeiBody}" TextWrapping="Wrap"/>
                                     <Button Classes="kioskSecondary" Content="{DynamicResource Intro_ImeiConfigureButton}"
                                             Command="{Binding NavigateToImeiSettingsCommand}"
                                             HorizontalAlignment="Left" Margin="0,4,0,0"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
+
                     </Panel>
                 </ScrollViewer>
 
-                <!--
-                    The foot of every page: where you are, and the two ways out.
-                    Back is hidden on the first page rather than greyed out, because a
-                    button that does nothing is a fault report waiting to happen.
-                -->
-                <StackPanel Grid.Row="2" Spacing="12" Margin="0,20,0,0">
-                    <!--
-                        The topics wrap. Five names, each in the reader's own
-                        language, ran past the card edge as one row: the last
-                        page was reachable by pressing it, but nothing on screen
-                        said the row continued past the border.
-                    -->
-                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Classes="navItem" Margin="4,4"
-                                Classes.current="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Language}"
-                                Command="{Binding IntroGoToPageCommand}" CommandParameter="Language"
-                                Content="{DynamicResource Intro_PageWelcome}"/>
-                        <Button Classes="navItem" Margin="4,4"
-                                Classes.current="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Plan}"
-                                Command="{Binding IntroGoToPageCommand}" CommandParameter="Plan"
-                                Content="{DynamicResource Intro_PagePlan}"/>
-                        <Button Classes="navItem" Margin="4,4"
-                                Classes.current="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Workflow}"
-                                Command="{Binding IntroGoToPageCommand}" CommandParameter="Workflow"
-                                Content="{DynamicResource Intro_PageWorkflow}"/>
-                        <Button Classes="navItem" Margin="4,4"
-                                Classes.current="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Licence}"
-                                Command="{Binding IntroGoToPageCommand}" CommandParameter="Licence"
-                                Content="{DynamicResource Intro_PageLicence}"/>
-                        <Button Classes="navItem" Margin="4,4"
-                                Classes.current="{Binding IntroPage, Converter={StaticResource SectionMatch}, ConverterParameter=Imei}"
-                                Command="{Binding IntroGoToPageCommand}" CommandParameter="Imei"
-                                Content="{DynamicResource Intro_PageImei}"/>
-                    </WrapPanel>
-
+                <!-- ==================== The one action row ==================== -->
+                <Border Grid.Row="3" BorderBrush="{DynamicResource CardBorderColor}"
+                        BorderThickness="0,1,0,0" Padding="28,16,28,20" Margin="0,20,0,0">
                     <Grid ColumnDefinitions="Auto,*,Auto">
-                        <Button Grid.Column="0" Classes="kioskSecondary"
-                                Content="{DynamicResource Intro_Back}"
-                                IsVisible="{Binding !IsFirstIntroPage}"
-                                Command="{Binding IntroBackCommand}"/>
+                        <!-- Absent on the agreement page until the box is ticked, and
+                             absent there for the same reason the Finish is dimmed:
+                             this page is not one to walk away from by accident. -->
+                        <Button Grid.Column="0" Classes="headerBtn" VerticalAlignment="Center"
+                                Content="{DynamicResource Intro_Skip}"
+                                IsVisible="{Binding CanSkipIntro}"
+                                Command="{Binding DismissIntroCommand}"/>
 
-                        <Button Grid.Column="2" Classes="cta"
-                                Content="{DynamicResource Intro_Next}"
-                                IsVisible="{Binding ShowIntroNext}"
-                                Command="{Binding IntroNextCommand}"/>
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+                            <Button Classes="kioskSecondary"
+                                    Content="{DynamicResource Intro_Back}"
+                                    IsVisible="{Binding !IsFirstIntroPage}"
+                                    Command="{Binding IntroBackCommand}"/>
 
-                        <Button Grid.Column="2" Classes="cta"
-                                Content="{DynamicResource Intro_Finish}"
-                                IsVisible="{Binding IsLastIntroPage}"
-                                Command="{Binding IntroNextCommand}"/>
+                            <Button Classes="cta"
+                                    Content="{DynamicResource Intro_Next}"
+                                    IsVisible="{Binding ShowIntroNext}"
+                                    Command="{Binding IntroNextCommand}"/>
+
+                            <Button Classes="cta"
+                                    Content="{DynamicResource Intro_LicenceFinish}"
+                                    IsVisible="{Binding IsOnLicencePage}"
+                                    IsEnabled="{Binding CanFinishIntro}"
+                                    Command="{Binding AcceptIntroTermsCommand}"/>
+
+                            <Button Classes="cta"
+                                    Content="{DynamicResource Intro_Finish}"
+                                    IsVisible="{Binding IsLastIntroPage}"
+                                    IsEnabled="{Binding CanFinishIntro}"
+                                    Command="{Binding IntroNextCommand}"/>
+                        </StackPanel>
                     </Grid>
-
-                    <!-- Absent on the agreement page until the box is ticked. Not
-                         hidden and greyed out, because on the first run an operator
-                         has no way to know that a dimmed button is about terms rather
-                         than about something being broken. -->
-                    <Button Classes="headerBtn" HorizontalAlignment="Center"
-                            Content="{DynamicResource Intro_Skip}"
-                            IsVisible="{Binding CanSkipIntro}"
-                            Command="{Binding DismissIntroCommand}"/>
-                </StackPanel>
+                </Border>
             </Grid>
         </Border>
     </Panel>

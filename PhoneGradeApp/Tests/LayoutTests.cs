@@ -171,12 +171,12 @@ public class LayoutTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void TheIntroductionTopics_StayInsideTheCard()
+    public void TheIntroductionFitsTheSmallestWindow()
     {
-        // Five topics, each in the reader's own language, were laid out as one
-        // row wider than the card: the last one ("Carrier lock and
-        // blacklisting") ran past the border and off the window edge, so a page
-        // existed that nothing on screen pointed at.
+        // The five page names used to be laid out as one row wider than the
+        // card, so the last one ran past the window edge and pointed at a page
+        // nothing could reach. The wizard has a progress line and a foot now,
+        // and both have to hold at the smallest window the kiosk opens at.
         using MainWindow window = ShowAtMinimumSize();
         var main = (MainWindow)window;
         var vm = (MainWindowViewModel)window.DataContext!;
@@ -189,26 +189,31 @@ public class LayoutTests : IDisposable
         var intro = main.GetVisualDescendants().OfType<PhoneGrade.UI.Views.IntroView>().FirstOrDefault();
         Assert.NotNull(intro);
         var card = intro!.GetVisualDescendants().OfType<Border>()
-            .FirstOrDefault(border => border.Classes.Contains("card"));
+            .FirstOrDefault(border => border.Classes.Contains("introCard"));
         Assert.NotNull(card);
 
-        Point cardOrigin = card!.TranslatePoint(default, window)!.Value;
-        double cardRight = cardOrigin.X + card.Bounds.Width;
-        double cardBottom = cardOrigin.Y + card.Bounds.Height;
+        Point origin = card!.TranslatePoint(default, window)!.Value;
+        Assert.True(origin.X >= -0.5 && origin.Y >= -0.5,
+            $"the introduction starts outside the window at {origin.X:F0},{origin.Y:F0}");
+        Assert.True(origin.X + card.Bounds.Width <= window.Bounds.Width + 0.5,
+            $"the introduction is wider than the window: {card.Bounds.Width:F0} in {window.Bounds.Width:F0}");
+        Assert.True(origin.Y + card.Bounds.Height <= window.Bounds.Height + 0.5,
+            $"the introduction is taller than the window: {card.Bounds.Height:F0} in {window.Bounds.Height:F0}");
 
-        var topics = main.GetVisualDescendants().OfType<Button>()
-            .Where(button => button.Classes.Contains("navItem") && button.IsEffectivelyVisible)
-            .ToList();
-        Assert.Equal(5, topics.Count);
+        // The progress line says which step is on screen.
+        var progress = card.GetVisualDescendants().OfType<ProgressBar>().FirstOrDefault();
+        Assert.NotNull(progress);
+        Assert.Equal(1.0, progress!.Value);
+        Assert.Equal(5.0, progress.Maximum);
 
-        foreach (Button topic in topics)
-        {
-            Point origin = topic.TranslatePoint(default, window)!.Value;
-            Assert.True(origin.X >= cardOrigin.X - 0.5 && origin.X + topic.Bounds.Width <= cardRight + 0.5,
-                $"topic \"{topic.Content}\" runs past the card: {origin.X:F0}..{origin.X + topic.Bounds.Width:F0} in {cardOrigin.X:F0}..{cardRight:F0}");
-            Assert.True(origin.Y + topic.Bounds.Height <= cardBottom + 0.5,
-                $"topic \"{topic.Content}\" runs past the bottom of the card");
-        }
+        // And the foot carries a way forward and a quiet way out.
+        string next = PhoneGrade.UI.Services.LocalizationManager.GetString("Intro_Next");
+        string skip = PhoneGrade.UI.Services.LocalizationManager.GetString("Intro_Skip");
+
+        Assert.Contains(main.GetVisualDescendants().OfType<Button>(),
+            button => button.IsEffectivelyVisible && (button.Content as string) == next);
+        Assert.Contains(main.GetVisualDescendants().OfType<Button>(),
+            button => button.IsEffectivelyVisible && (button.Content as string) == skip);
         HeadlessRender.Drain();
     }
 

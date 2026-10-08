@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using PhoneGrade.Core;
 using PhoneGrade.UI.Models;
 using PhoneGrade.UI.Services;
@@ -281,6 +282,31 @@ public class UiTests : IDisposable
         vm.Language = "Nederlands";
         vm.EstimatedAppleDevices = 10;
         Assert.Contains("0,00", vm.EstimatedMonthlyCostDisplay);
+    }
+
+    [AvaloniaFact]
+    public void TheSettingsPage_OffersTheIntroductionAgain()
+    {
+        // A shop showing the app to a new colleague should not have to reset the
+        // machine to see the welcome screen again.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.IsSettingsDrawerOpen = true;
+        vm.SelectedSettingsSection = "General";
+
+        window.Show();
+        window.Width = 1050;
+        window.Height = 740;
+        for (int i = 0; i < 3; i++) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        window.UpdateLayout();
+
+        var replay = window.GetVisualDescendants().OfType<Button>()
+            .FirstOrDefault(button => ReferenceEquals(button.Command, vm.ReplayIntroCommand));
+
+        Assert.NotNull(replay);
+        Assert.True(replay!.IsEffectivelyVisible,
+            "the settings page has no visible way to open the introduction again");
+        HeadlessRender.Drain();
     }
 
     public void Dispose()

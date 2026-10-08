@@ -46,6 +46,9 @@
     <x:String x:Key="Settings_ThemeDesc">Dunkel, hell oder Systemvorgabe</x:String>
     <x:String x:Key="Settings_Language">Sprache</x:String>
     <x:String x:Key="Settings_LanguageDesc">Sprache der Oberfläche</x:String>
+    <x:String x:Key="Settings_IntroTitle">Einführung</x:String>
+    <x:String x:Key="Settings_IntroDesc">Willkommenstour erneut anzeigen. Ihre gewählten Einstellungen bleiben unverändert.</x:String>
+    <x:String x:Key="Settings_IntroReplay">Einführung anzeigen</x:String>
     <x:String x:Key="Settings_AutoDetect">Automatisch beim Einstecken erkennen</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Ablauf automatisch starten, sobald ein Gerät erkannt wird</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB-Ereignisüberwachung</x:String>

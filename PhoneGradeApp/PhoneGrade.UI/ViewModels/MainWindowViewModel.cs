@@ -752,8 +752,25 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             this.RaiseAndSetIfChanged(ref _introPage, value);
             this.RaisePropertyChanged(nameof(IsFirstIntroPage));
             this.RaisePropertyChanged(nameof(IsLastIntroPage));
+            this.RaisePropertyChanged(nameof(IsOnLicencePage));
+            this.RaisePropertyChanged(nameof(ShowIntroNext));
+            this.RaisePropertyChanged(nameof(CanSkipIntro));
+            this.RaisePropertyChanged(nameof(IntroStepNumber));
+            this.RaisePropertyChanged(nameof(IntroStepDisplay));
         }
     }
+
+    /// <summary>How many pages the introduction has, for the progress line.</summary>
+    public int IntroPageCount => IntroPages.Count;
+
+    /// <summary>Which page is on screen, counting from one.</summary>
+    public int IntroStepNumber => IntroPages.IndexOf(IntroPage) + 1;
+
+    /// <summary>
+    /// The step counter beside the progress bar. Numbers only, so it needs no
+    /// translation and cannot disagree with a language switch halfway through.
+    /// </summary>
+    public string IntroStepDisplay => $"{IntroStepNumber} / {IntroPageCount}";
 
     /// <summary>True on the first page, where the back button has nowhere to go.</summary>
     public bool IsFirstIntroPage => IntroPage == IntroPages[0];
@@ -791,6 +808,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
     /// <summary>Reveals the license key box on the introduction screen.</summary>
     public ReactiveCommand<Unit, Unit> ShowIntroActivationCommand { get; }
+
+    /// <summary>
+    /// Accepts the terms and continues to the last page. Not the way out: the
+    /// introduction ends on the last page, where Finish stands.
+    /// </summary>
+    public ReactiveCommand<Unit, Unit> AcceptIntroTermsCommand { get; }
+
+    /// <summary>Opens the introduction again from the settings page.</summary>
+    public ReactiveCommand<Unit, Unit> ReplayIntroCommand { get; }
 
     private bool _isLicensePanelOpen;
     /// <summary>True while the license panel under the title bar status pill is open.</summary>
@@ -844,7 +870,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set
         {
             if (this.RaiseAndSetIfChanged(ref _isLicenceAccepted, value))
+            {
                 this.RaisePropertyChanged(nameof(CanFinishIntro));
+                // Skip comes back the moment the box is ticked, on the page
+                // where it was hidden, without waiting for a page change.
+                this.RaisePropertyChanged(nameof(CanSkipIntro));
+            }
         }
     }
 
@@ -1292,6 +1323,27 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             if (IntroPages.Contains(page)) IntroPage = page;
         });
         ShowIntroActivationCommand = ReactiveCommand.Create(() => { IsIntroActivationVisible = true; });
+        // "Accept and continue" continues. The agreement is a step like the
+        // others, and the last page is where the introduction ends: the old
+        // button closed the whole screen, which left the optional-checks page
+        // reachable only through the topic tabs that no longer exist.
+        AcceptIntroTermsCommand = ReactiveCommand.Create(() =>
+        {
+            if (!CanFinishIntro) return;
+            IntroPage = NextIntroPage;
+        });
+        // Settings has a button for this: an operator showing a colleague how the
+        // app works should not have to reset the machine to see the screen again.
+        // The terms were accepted to get this far, so the agreement page is shown
+        // with its box ticked and the foot can close from anywhere.
+        ReplayIntroCommand = ReactiveCommand.Create(() =>
+        {
+            IsSettingsDrawerOpen = false;
+            IntroPage = IntroPages[0];
+            IsLicenceAccepted = true;
+            IsIntroActivationVisible = false;
+            IsIntroVisible = true;
+        });
         NavigateToImeiSettingsCommand = ReactiveCommand.Create(() =>
         {
             IsIntroVisible = false;

@@ -737,6 +737,26 @@
                                                   ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"/>
                                     </Grid>
                                 </Border>
+
+                                <!--
+                                    The introduction is not a first-run trap. A shop
+                                    showing the app to a new colleague, or someone who
+                                    skipped through it in a hurry, can open it again from
+                                    here; the agreement page comes back with its box
+                                    already ticked because it was accepted on this
+                                    machine to get this far.
+                                -->
+                                <Border Classes="settingCard">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="3" VerticalAlignment="Center">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_IntroTitle}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_IntroDesc}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Classes="kioskSecondary" VerticalAlignment="Center"
+                                                Content="{DynamicResource Settings_IntroReplay}"
+                                                Command="{Binding ReplayIntroCommand}"/>
+                                    </Grid>
+                                </Border>
                             </StackPanel>
 
                             <!-- ============ IMEI API Configuration: BYOK imei.info ============ -->

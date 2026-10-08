@@ -46,6 +46,9 @@
     <x:String x:Key="Settings_ThemeDesc">深色、浅色或跟随系统</x:String>
     <x:String x:Key="Settings_Language">语言</x:String>
     <x:String x:Key="Settings_LanguageDesc">界面语言</x:String>
+    <x:String x:Key="Settings_IntroTitle">介绍</x:String>
+    <x:String x:Key="Settings_IntroDesc">再次查看欢迎向导。你已选择的设置保持不变。</x:String>
+    <x:String x:Key="Settings_IntroReplay">显示介绍</x:String>
     <x:String x:Key="Settings_AutoDetect">插入时自动检测</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">检测到设备时自动开始流程</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB 事件监控</x:String>

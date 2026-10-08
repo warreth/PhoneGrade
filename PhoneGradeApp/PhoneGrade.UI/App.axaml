@@ -136,6 +136,24 @@
         </Style>
 
         <!--
+            The introduction card: the one screen that is about the app itself.
+            Rounder than a work card and lifted off the screen behind it, so it
+            reads as something to read rather than as another panel. Its padding
+            is zero because the header, the page and the foot each carry their
+            own, and the foot's hairline has to reach the card edge.
+        -->
+        <Style Selector="Border.introCard">
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BoxShadow" Value="0 24 64 0 #77000000"/>
+        </Style>
+        <!-- The Pro tier on the plan page, marked as the one being offered. -->
+        <Style Selector="Border.introTierPro">
+            <Setter Property="BorderBrush" Value="{DynamicResource SuccessColor}"/>
+            <Setter Property="Background" Value="{DynamicResource SuccessTintBrush}"/>
+        </Style>
+
+        <!--
             Section headers inside cards.
 
             One size, because the reading screen used 11, the summary screen 11

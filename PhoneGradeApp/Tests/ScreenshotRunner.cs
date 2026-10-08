@@ -529,6 +529,29 @@ class ScreenshotRunner
         intro.IsIntroActivationVisible = true;
         Shot(intro, "intro-activation-dark.png", 900, 900);
 
+        // Every page of the introduction, because a page nobody photographs is
+        // a page that can lose its layout without anything saying so. The first
+        // page is the one the site shows; the rest are here so a change to the
+        // flow is visible in the set rather than only in the source.
+        intro.IsIntroActivationVisible = false;
+        foreach ((string page, string file) in new[]
+        {
+            ("Plan", "intro-plan-dark.png"),
+            ("Workflow", "intro-workflow-dark.png"),
+            (MainWindowViewModel.LicencePage, "intro-licence-dark.png"),
+            ("Imei", "intro-imei-dark.png"),
+        })
+        {
+            // The last page is only reached after the terms are accepted, so it
+            // is photographed in that state; the agreement page is photographed
+            // before it, with the gate still shut.
+            if (page == "Imei") intro.IsLicenceAccepted = true;
+            intro.IntroPage = page;
+            Shot(intro, file, 900, 900);
+        }
+        intro.IntroPage = "Language";
+        intro.IsLicenceAccepted = false;
+
         // The pill: quiet, warning, blocked.
         Seed(3, introSeen: true);
         Shot(BuildDemoViewModel(), "pill-free-dark.png", 760, 200);
