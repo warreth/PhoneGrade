@@ -327,8 +327,15 @@
                                 <TextBlock Text="{DynamicResource Active_InteractiveLead}" 
                                            Classes="dim" FontSize="11" TextWrapping="Wrap" LineHeight="15"/>
 
-                                <!-- QR Container -->
-                                <Border Background="White" CornerRadius="8" Padding="8" Width="150" Height="150" HorizontalAlignment="Center">
+                                <!--
+                                    The QR container. Only drawn once the test page has
+                                    an address: a phone whose session is still being
+                                    opened shows the standby pill instead of a blank
+                                    white square where a code will appear.
+                                -->
+                                <Border x:Name="QrBox" Background="White" CornerRadius="8" Padding="8" Width="150" Height="150"
+                                        HorizontalAlignment="Center"
+                                        IsVisible="{Binding QrCodeBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
                                     <Image Source="{Binding QrCodeBitmap}" Stretch="Uniform"/>
                                 </Border>
 
@@ -606,7 +613,7 @@
         <Panel x:Name="AdbGuideOverlay" Grid.Row="1"
                IsVisible="{Binding ShowAdbWarning}" ZIndex="35"
                Background="{DynamicResource AppBgColor}">
-            <Grid RowDefinitions="Auto,*,Auto">
+            <Grid RowDefinitions="Auto,*">
                 <Border Classes="topBar" Padding="24,16">
                     <StackPanel Spacing="2" VerticalAlignment="Center">
                         <TextBlock Classes="pageTitle" Text="{DynamicResource AdbTutorial_Title}"/>
@@ -614,17 +621,27 @@
                     </StackPanel>
                 </Border>
 
-                <views:AdbTutorialView Grid.Row="1"
-                                       DataContext="{Binding AdbTutorialViewModel}"
-                                       Margin="24,20"/>
+                <!--
+                    The card and the two buttons are one block, centred in what is
+                    left of the window. They used to sit in separate rows with the
+                    buttons pinned to the bottom edge, which read as two unrelated
+                    things on a tall window: the answer at the top and the actions
+                    half a screen away from it.
+                -->
+                <Grid Grid.Row="1" Margin="24,20,24,24" MaxWidth="640"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      RowDefinitions="Auto,Auto">
+                    <views:AdbTutorialView Grid.Row="0"
+                                           DataContext="{Binding AdbTutorialViewModel}"/>
 
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10"
-                            HorizontalAlignment="Center" Margin="0,0,0,24">
-                    <Button Classes="cta" Command="{Binding RetryAdbDetectionCommand}"
-                            Content="{DynamicResource AdbTutorial_RetryButton}"/>
-                    <Button Classes="kioskSecondary" Command="{Binding DismissAdbGuideCommand}"
-                            Content="{DynamicResource AdbTutorial_Close}"/>
-                </StackPanel>
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10"
+                                HorizontalAlignment="Center" Margin="0,18,0,0">
+                        <Button Classes="cta" Command="{Binding RetryAdbDetectionCommand}"
+                                Content="{DynamicResource AdbTutorial_RetryButton}"/>
+                        <Button Classes="kioskSecondary" Command="{Binding DismissAdbGuideCommand}"
+                                Content="{DynamicResource AdbTutorial_Close}"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Panel>
 
@@ -637,7 +654,8 @@
             toggles sat in the same scroll and nothing could be found by place.
         -->
         <Panel x:Name="SettingsPanel" Grid.Row="1"
-               IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="40">
+               IsVisible="{Binding IsSettingsDrawerOpen}" ZIndex="40"
+               Background="{DynamicResource AppBgColor}">
             <Grid RowDefinitions="Auto,*">
                 <Border Classes="topBar" Padding="24,16">
                     <Grid ColumnDefinitions="*,Auto">
@@ -1225,7 +1243,7 @@
         <!-- ==================== TROUBLESHOOT MODAL OVERLAY ==================== -->
         <Panel IsVisible="{Binding IsTroubleshootModalOpen}" ZIndex="60">
             <Rectangle Fill="{DynamicResource OverlayColor}"/>
-            <Border Classes="card" Width="850" Height="580" VerticalAlignment="Center" HorizontalAlignment="Center"
+            <Border Classes="card" Width="850" Height="600" VerticalAlignment="Center" HorizontalAlignment="Center"
                     BoxShadow="0 24 64 0 #77000000" Padding="20">
                 <Grid RowDefinitions="Auto,Auto,*">
                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
@@ -1242,7 +1260,7 @@
                         off exactly where the buttons start, so the one line
                         telling an operator what to do never got to its end.
                     -->
-                    <Border Grid.Row="1" Classes="card" Background="{DynamicResource CardDeepColor}" Padding="12" Margin="0,0,0,10">
+                    <Border Grid.Row="1" Classes="card" Background="{DynamicResource CardDeepColor}" Padding="10" Margin="0,0,0,8">
                         <StackPanel Spacing="10">
                             <TextBlock Text="{Binding TroubleshootViewModel.OverallStatus}" FontWeight="SemiBold" TextWrapping="Wrap"/>
 
@@ -1287,9 +1305,9 @@
                             <ItemsControl ItemsSource="{Binding TroubleshootViewModel.Checks}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="12" Margin="0,0,0,8">
+                                        <Border Classes="card" Background="{DynamicResource CardDeepColor}" Padding="10" Margin="0,0,0,6">
                                             <Grid ColumnDefinitions="*,Auto">
-                                                <StackPanel Grid.Column="0" Spacing="4">
+                                                <StackPanel Grid.Column="0" Spacing="3">
                                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                                         <TextBlock Text="{Binding CategoryLabel}" Classes="dim" FontSize="11" FontWeight="Bold"/>
                                                         <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="13"/>

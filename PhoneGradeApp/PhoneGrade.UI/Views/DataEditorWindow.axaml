@@ -62,7 +62,8 @@
 
                             <StackPanel Grid.Row="2" Grid.Column="0" Spacing="6">
                                 <TextBlock Classes="fieldLabel" Text="{DynamicResource Spec_Memory}"/>
-                                <TextBox Text="{Binding DeviceData.Memory}"/>
+                                <TextBox Text="{Binding Memory}"
+                                         Watermark="{DynamicResource Value_NotSet}"/>
                             </StackPanel>
                             <StackPanel Grid.Row="2" Grid.Column="2" Spacing="6">
                                 <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Battery}"/>
@@ -104,8 +105,10 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Read-only numbers the phone reported -->
-                <Border Classes="card" Padding="16">
+                <!-- Read-only numbers the phone reported. Hidden when it
+                     reported none of them: a card of zeroes reads as data. -->
+                <Border Classes="card" Padding="16"
+                        IsVisible="{Binding HasBatteryMetrics}">
                     <StackPanel Spacing="12">
                         <TextBlock Classes="sectionTitle" Text="{DynamicResource Editor_MetricsTitle}"/>
 

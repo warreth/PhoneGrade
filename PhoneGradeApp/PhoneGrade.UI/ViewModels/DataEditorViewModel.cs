@@ -36,6 +36,32 @@ public class DataEditorViewModel
     }
 
     /// <summary>
+    /// Installed memory, in the box rather than as the raw placeholder.
+    ///
+    /// The phone stores "NOMEMORY" when it could not read the size, and showing
+    /// that word in an editable field reads as a value an operator could keep.
+    /// The field is empty instead, and an empty field written back stores the
+    /// placeholder again, so the label keeps seeing the same unknown it saw
+    /// before the editor was opened.
+    /// </summary>
+    public string Memory
+    {
+        get => DeviceData.Memory is null or "NOMEMORY" or "" ? "" : DeviceData.Memory;
+        set => DeviceData.Memory = string.IsNullOrWhiteSpace(value) ? "NOMEMORY" : value;
+    }
+
+    /// <summary>
+    /// True once the phone or the operator supplied at least one of the three
+    /// read-only battery numbers. The card holds what the phone reported, so a
+    /// phone that reported nothing gets no card: three zeroes under a heading
+    /// read as three readings of zero.
+    /// </summary>
+    public bool HasBatteryMetrics =>
+        DeviceData.BatteryCycleCount > 0
+        || DeviceData.BatteryDesignCapacity > 0
+        || DeviceData.BatteryCurrentCapacity > 0;
+
+    /// <summary>
     /// Saves the edited values and closes.
     ///
     /// It used to also write the label and open it, which meant the only way out of

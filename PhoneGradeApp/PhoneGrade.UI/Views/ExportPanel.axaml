@@ -411,7 +411,7 @@
                                 -->
                                 <ToggleButton Classes="formatRow"
                                               Classes.on="{Binding Selected}"
-                                              Margin="0,0,0,8"
+                                              Margin="0,0,0,6"
                                               IsChecked="{Binding Selected, Mode=TwoWay}">
                                     <Grid ColumnDefinitions="Auto,*">
                                         <CheckBox Grid.Column="0" IsChecked="{Binding Selected}"
@@ -457,7 +457,7 @@
                             <ItemsControl ItemsSource="{Binding Results}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:ExportResultItem">
-                                        <Border Classes="reportRow" Margin="0,0,0,6"
+                                        <Border Classes="reportRow" Margin="0,0,0,6" Padding="10,8"
                                                 Background="{Binding Succeeded, Converter={x:Static conv:ExportResultBrushConverter.Instance}}">
                                             <Grid ColumnDefinitions="*,Auto,Auto">
                                                 <StackPanel Grid.Column="0" Spacing="2">
