@@ -38,7 +38,7 @@
     <!-- Status Messages -->
     <x:String x:Key="Status_Ready">Branchez un iPhone ou un iPad pour démarrer...</x:String>
     <x:String x:Key="Status_NoDevice">Aucun appareil détecté. Changez de câble ou de port, ou déverrouillez l'appareil et appuyez sur « Faire confiance ».</x:String>
-    <x:String x:Key="Status_ToolsMissing">Aucun outil USB : diagnostic</x:String>
+    <x:String x:Key="Status_ToolsMissing">Outils USB absents : diagnostic</x:String>
     
     <!-- Settings -->
     <x:String x:Key="Settings_Title">PARAMÈTRES</x:String>
@@ -470,9 +470,9 @@
     <x:String x:Key="Settings_DebugModeDesc">Écrit des journaux détaillés de chaque requête. Utile uniquement pour chercher un problème.</x:String>
 
     <!-- Quality and invoice options, in the wording they are offered in -->
-    <x:String x:Key="Quality_A">A - Comme neuf</x:String>
-    <x:String x:Key="Quality_B">B - Légères traces d'usage</x:String>
-    <x:String x:Key="Quality_C">C - Traces d'usage marquées</x:String>
+    <x:String x:Key="Quality_A">A - comme neuf</x:String>
+    <x:String x:Key="Quality_B">B - légères traces d'usage</x:String>
+    <x:String x:Key="Quality_C">C - traces d'usage marquées</x:String>
     <x:String x:Key="Payment_Marge">Marge (0 % de TVA)</x:String>
     <x:String x:Key="Payment_BTW">TVA (21 %)</x:String>
 
