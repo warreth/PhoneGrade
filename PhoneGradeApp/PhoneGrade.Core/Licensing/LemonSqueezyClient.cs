@@ -47,7 +47,18 @@ public sealed class LemonSqueezyClient : IDisposable
     /// same endpoint is rejected. Zero disables the pinning, which is only useful
     /// while the store is still being set up.
     /// </summary>
-    public const long PhoneGradeProductId = 1400200;
+    public const long PhoneGradeProductId = 1422604;
+
+    /// <summary>
+    /// The product id the store used before it was recreated. Keys sold then are
+    /// still in customers' hands, and a store migration must not turn them into
+    /// invalid keys, so a response for either product is a PhoneGrade key.
+    /// </summary>
+    public const long PhoneGradeLegacyProductId = 1400200;
+
+    /// <summary>True when a response's product id is one this build accepts.</summary>
+    public static bool IsPhoneGradeProduct(long productId) =>
+        productId == PhoneGradeProductId || productId == PhoneGradeLegacyProductId;
 
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
@@ -182,9 +193,16 @@ public sealed class LemonSqueezyClient : IDisposable
             using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                // Handed to the parser rather than short-circuited, so every
-                // endpoint maps a bad status the same way instead of each one
-                // inventing its own failure shape.
+                // The vendor's own refusal body is kept where there is one: a key
+                // that has run out of seats is refused with a 400 and the sentence
+                // that says so, and replacing the body with the status line turned
+                // a "no seats left" into an unreadable "HTTP 400". A body that is
+                // not JSON still falls back to the status line.
+                string refusal = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                string trimmed = refusal.TrimStart();
+                if (trimmed.StartsWith('{') || trimmed.StartsWith('['))
+                    return parse(refusal);
+
                 return parse("{\"error\":\"HTTP " + (int)response.StatusCode + "\"}");
             }
 
@@ -241,7 +259,7 @@ public sealed class LemonSqueezyClient : IDisposable
                 _ => LicenseValidationResult.Invalid
             };
 
-            if (expectedProductId != 0 && productId != expectedProductId)
+            if (expectedProductId != 0 && productId != expectedProductId && !IsPhoneGradeProduct(productId))
                 result = LicenseValidationResult.Invalid;
 
             return new LicenseValidationResponse(
@@ -284,7 +302,7 @@ public sealed class LemonSqueezyClient : IDisposable
             int usage = ReadCounter(root, "activation_usage");
             (string instanceId, string instanceName) = ReadInstance(root);
 
-            if (expectedProductId != 0 && productId != expectedProductId)
+            if (expectedProductId != 0 && productId != expectedProductId && !IsPhoneGradeProduct(productId))
                 return FailedActivation(error);
 
             LicenseValidationResult result;

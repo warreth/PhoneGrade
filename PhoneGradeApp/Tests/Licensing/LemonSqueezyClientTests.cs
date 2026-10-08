@@ -18,14 +18,14 @@ namespace Tests;
 /// </summary>
 public class LemonSqueezyClientTests
 {
-    private const string ActiveJson = """{"valid":true,"license_key":{"id":1,"status":"active","activation_usage":1},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
-    private const string SeatsJson = """{"valid":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":{"id":992,"name":"pg-bench-2","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
-    private const string ActivatedJson = """{"activated":true,"error":null,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":1},"instance":{"id":994,"name":"pg-bench-3","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"product_id":1400200}}""";
-    private const string LimitReachedJson = """{"activated":false,"error":"This license key has reached the activation limit.","license_key":{"id":7,"status":"active","activation_limit":2,"activation_usage":2},"meta":{"product_id":1400200}}""";
-    private const string DeactivatedBody = """{"deactivated":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":0},"meta":{"product_id":1400200}}""";
-    private const string ExpiredJson = """{"valid":false,"license_key":{"id":1,"status":"expired"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
-    private const string DeactivatedJson = """{"valid":false,"license_key":{"id":1,"status":"deactivated"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
-    private const string DisabledJson = """{"valid":false,"license_key":{"id":1,"status":"disabled"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
+    private const string ActiveJson = """{"valid":true,"license_key":{"id":1,"status":"active","activation_usage":1},"meta":{"store_id":1,"product_id":1422604,"product_name":"PhoneGrade Pro"}}""";
+    private const string SeatsJson = """{"valid":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":{"id":992,"name":"pg-bench-2","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"store_id":1,"product_id":1422604,"product_name":"PhoneGrade Pro"}}""";
+    private const string ActivatedJson = """{"activated":true,"error":null,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":1},"instance":{"id":994,"name":"pg-bench-3","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"product_id":1422604}}""";
+    private const string LimitReachedJson = """{"activated":false,"error":"This license key has reached the activation limit.","license_key":{"id":7,"status":"active","activation_limit":2,"activation_usage":2},"meta":{"product_id":1422604}}""";
+    private const string DeactivatedBody = """{"deactivated":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":0},"meta":{"product_id":1422604}}""";
+    private const string ExpiredJson = """{"valid":false,"license_key":{"id":1,"status":"expired"},"meta":{"store_id":1,"product_id":1422604,"product_name":"PhoneGrade Pro"}}""";
+    private const string DeactivatedJson = """{"valid":false,"license_key":{"id":1,"status":"deactivated"},"meta":{"store_id":1,"product_id":1422604,"product_name":"PhoneGrade Pro"}}""";
+    private const string DisabledJson = """{"valid":false,"license_key":{"id":1,"status":"disabled"},"meta":{"store_id":1,"product_id":1422604,"product_name":"PhoneGrade Pro"}}""";
     private const string UnknownKeyJson = """{"valid":false,"error":"This key is invalid."}""";
     private const string OtherProductJson = """{"valid":true,"license_key":{"id":2,"status":"active"},"meta":{"store_id":1,"product_id":9999999,"product_name":"Some Other Product"}}""";
 
@@ -137,6 +137,56 @@ public class LemonSqueezyClientTests
         Assert.Equal(9999999, response.ProductId);
     }
 
+    [Fact]
+    public void ParseValidationResponse_LegacyProductId_IsAccepted()
+    {
+        // The store's product was recreated under a new id. A key sold before that
+        // is still in a customer's hands and must keep unlocking the app.
+        LicenseValidationResponse response = LemonSqueezyClient.ParseValidationResponse(
+            """{"valid":true,"license_key":{"id":5,"status":"active"},"meta":{"product_id":1400200}}""");
+
+        Assert.Equal(LicenseValidationResult.Valid, response.Result);
+        Assert.True(response.Valid);
+        Assert.True(LemonSqueezyClient.IsPhoneGradeProduct(response.ProductId));
+        Assert.False(LemonSqueezyClient.IsPhoneGradeProduct(9999999));
+    }
+
+    [Fact]
+    public async Task ActivateAsync_RefusedWithABody_KeepsTheVendorWording()
+    {
+        // The live store refuses a key with every seat taken with a 400 and the
+        // sentence that says so; the sentence is what the operator has to read,
+        // and the state has to come out as the limit rather than as an invalid key.
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(
+                """{"activated":false,"error":"This license key has reached its activation limit.","license_key":{"id":7,"status":"active","activation_limit":2,"activation_usage":2},"meta":{"product_id":1422604}}""",
+                System.Text.Encoding.UTF8, "application/json")
+        });
+
+        LicenseActivationResponse response = await client.ActivateAsync("KEY-LIMIT", "pg-bench");
+
+        Assert.False(response.Activated);
+        Assert.Equal(LicenseValidationResult.ActivationLimitReached, response.Result);
+        Assert.Contains("activation limit", response.Error);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ServerErrorWithAnHtmlBody_FallsBackToTheStatusLine()
+    {
+        // A proxy or an outage can answer with a page rather than with JSON; the
+        // status line is the only thing left to say, and it must still be said.
+        using var client = CreateClient(_ => new HttpResponseMessage(HttpStatusCode.BadGateway)
+        {
+            Content = new StringContent("<html>bad gateway</html>", System.Text.Encoding.UTF8, "text/html")
+        });
+
+        LicenseValidationResponse response = await client.ValidateDetailedAsync("KEY-ANY");
+
+        Assert.Equal(LicenseValidationResult.Invalid, response.Result);
+        Assert.Contains("HTTP 502", response.Error);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
@@ -225,7 +275,7 @@ public class LemonSqueezyClientTests
     public void ParseValidationResponse_UppercaseStatus_IsNormalized()
     {
         LicenseValidationResponse response = LemonSqueezyClient.ParseValidationResponse(
-            """{"valid":false,"license_key":{"status":"EXPIRED"},"meta":{"product_id":1400200}}""");
+            """{"valid":false,"license_key":{"status":"EXPIRED"},"meta":{"product_id":1422604}}""");
 
         Assert.Equal(LicenseValidationResult.Expired, response.Result);
         Assert.Equal("expired", response.Status);
@@ -271,7 +321,7 @@ public class LemonSqueezyClientTests
     {
         // This is the shape a bare-key validate really comes back in.
         using var client = CreateClient(_ => Json(
-            """{"valid":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":null,"meta":{"product_id":1400200}}"""));
+            """{"valid":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":null,"meta":{"product_id":1422604}}"""));
 
         LicenseValidationResponse response = await client.ValidateDetailedAsync("KEY-1");
 
@@ -314,7 +364,7 @@ public class LemonSqueezyClientTests
         // Zero reads as "not told", which the panel shows as no seat line. Reading a
         // missing counter as 1 would draw "1 of 1" on a key the API said nothing about.
         using var client = CreateClient(_ => Json(
-            """{"valid":true,"license_key":{"id":1,"status":"active","activation_usage":1},"instance":{"id":992,"name":"pg-bench-2"},"meta":{"product_id":1400200}}"""));
+            """{"valid":true,"license_key":{"id":1,"status":"active","activation_usage":1},"instance":{"id":992,"name":"pg-bench-2"},"meta":{"product_id":1422604}}"""));
 
         LicenseValidationResponse response = await client.ValidateDetailedAsync("KEY-1", "992");
 
@@ -384,7 +434,7 @@ public class LemonSqueezyClientTests
         // A seat with no handle cannot be released, so the app must not believe it.
         // This is the response that would otherwise strand a seat forever.
         using var client = CreateClient(_ => Json(
-            """{"activated":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":1},"meta":{"product_id":1400200}}"""));
+            """{"activated":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":1},"meta":{"product_id":1422604}}"""));
 
         LicenseActivationResponse response = await client.ActivateAsync("KEY-1", "pg-bench-3");
 
