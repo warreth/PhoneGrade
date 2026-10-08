@@ -38,7 +38,7 @@
     <!-- Status Messages -->
     <x:String x:Key="Status_Ready">Conecte um iPhone/iPad para começar...</x:String>
     <x:String x:Key="Status_NoDevice">Nenhum telemóvel encontrado. Tente outro cabo ou outra porta, ou desbloqueie o telemóvel e toque em Confiar.</x:String>
-    <x:String x:Key="Status_ToolsMissing">Sem USB: diagnostique o PC</x:String>
+    <x:String x:Key="Status_ToolsMissing">Sem USB: faça o diagnóstico</x:String>
     
     <!-- Settings -->
     <x:String x:Key="Settings_Title">CONFIGURAÇÕES</x:String>
@@ -115,9 +115,9 @@
     <x:String x:Key="Settings_LicenseKeyWatermark">Digite sua chave de licença do Lemon Squeezy</x:String>
     <x:String x:Key="Settings_ValidateActivate">Validar e ativar</x:String>
     <x:String x:Key="Settings_ManageLicense">Gerir a licença</x:String>
-    <x:String x:Key="Settings_FreeTierStatus">Plano gratuito ({0}/10 varreduras usadas)</x:String>
+    <x:String x:Key="Settings_FreeTierStatus">Plano gratuito ({0}/10 análises usadas)</x:String>
     <x:String x:Key="Settings_ProTierStatus">Plano Pro (ativo)</x:String>
-    <x:String x:Key="Settings_ActivationSuccess">Licença ativada. A varredura ilimitada já está disponível.</x:String>
+    <x:String x:Key="Settings_ActivationSuccess">Licença ativada. A análise ilimitada já está disponível.</x:String>
     <x:String x:Key="Settings_ActivationFailed">Falha na ativação: {0}</x:String>
     <x:String x:Key="Settings_ActivationInvalid">Chave de licença inválida.</x:String>
     <x:String x:Key="Settings_ActivationExpired">Esta licença expirou.</x:String>
@@ -127,11 +127,11 @@
 
     <!-- Licensing: introduction screen and the status pill in the title bar -->
     <x:String x:Key="Intro_Title">Boas-vindas ao PhoneGrade</x:String>
-    <x:String x:Key="Intro_Subtitle">Comece no plano gratuito: 10 varreduras, sem precisar de conta. O Pro remove o limite sempre que precisar de mais.</x:String>
+    <x:String x:Key="Intro_Subtitle">Comece no plano gratuito: 10 análises, sem precisar de conta. O Pro remove o limite sempre que precisar de mais.</x:String>
     <x:String x:Key="Intro_FreeTierTitle">Gratuito</x:String>
-    <x:String x:Key="Intro_FreeTierBody">10 varreduras. O status na barra de título sempre mostra quantas ainda restam.</x:String>
+    <x:String x:Key="Intro_FreeTierBody">10 análises. O status na barra de título sempre mostra quantas ainda restam.</x:String>
     <x:String x:Key="Intro_ProTierTitle">Pro</x:String>
-    <x:String x:Key="Intro_ProTierBody">Varreduras ilimitadas em todos os telemóveis que ligar.</x:String>
+    <x:String x:Key="Intro_ProTierBody">Análises ilimitadas em todos os telemóveis que ligar.</x:String>
     <x:String x:Key="Intro_ProBadge">Ilimitado</x:String>
     <x:String x:Key="Intro_StartFree">Começar de graça</x:String>
     <x:String x:Key="Intro_PageWelcome">Idioma e aparência</x:String>
@@ -150,16 +150,16 @@
     <x:String x:Key="Intro_SeePricing">Ver preços</x:String>
     <x:String x:Key="Intro_HaveLicense">Já tenho uma licença</x:String>
     <x:String x:Key="Intro_ActivationTitle">Ative sua licença</x:String>
-    <x:String x:Key="Licensing_TierFree">{0} varreduras restantes</x:String>
+    <x:String x:Key="Licensing_TierFree">{0} análises restantes</x:String>
     <x:String x:Key="Licensing_TierPro">Pro - Ativo</x:String>
-    <x:String x:Key="Licensing_PanelHint">Licença e varreduras</x:String>
+    <x:String x:Key="Licensing_PanelHint">Licença e análises</x:String>
     <x:String x:Key="Licensing_PanelTitle">Licença</x:String>
-    <x:String x:Key="Licensing_PanelScansLeft">Varreduras restantes</x:String>
+    <x:String x:Key="Licensing_PanelScansLeft">Análises restantes</x:String>
     <x:String x:Key="Licensing_PanelClose">Fechar</x:String>
     <x:String x:Key="Licensing_PanelSeatsUsed">{0} de {1} computadores em uso</x:String>
     <x:String x:Key="Licensing_PanelSeatThis">Este computador ({0})</x:String>
     <x:String x:Key="Licensing_PanelSeatsLabel">Computadores</x:String>
-    <x:String x:Key="Licensing_PanelNoMachineId">Este computador não pode ser identificado, então não dá para ativar uma licença aqui. As varreduras gratuitas continuam a funcionar.</x:String>
+    <x:String x:Key="Licensing_PanelNoMachineId">Este computador não pode ser identificado, então não dá para ativar uma licença aqui. As análises gratuitas continuam a funcionar.</x:String>
     <x:String x:Key="Licensing_PanelRelease">Liberar este computador</x:String>
     <x:String x:Key="Licensing_PanelReleaseConfirm">Liberar mesmo assim?</x:String>
     <x:String x:Key="Licensing_PanelReleaseCancel">Manter</x:String>
@@ -349,7 +349,7 @@
     <x:String x:Key="Btn_Finish">Finalizar</x:String>
 
     <!-- Idle screen and the USB trust guide -->
-    <x:String x:Key="TrialLimit_Reached">O limite do teste gratuito foi atingido (10/10). Compre uma licença para continuar a verificar.</x:String>
+    <x:String x:Key="TrialLimit_Reached">O limite do teste gratuito foi atingido (10/10). Compre uma licença para continuar a analisar.</x:String>
     <x:String x:Key="Idle_Title">Conecte um telemóvel pelo USB</x:String>
     <x:String x:Key="Idle_Lead">Suporta iPhone, iPad e telemóveis Android. Mantenha o ecrã desbloqueado e confirme "Confiar neste computador".</x:String>
     <x:String x:Key="Idle_DetectedDevices">Telemóveis detetados:</x:String>
@@ -470,9 +470,9 @@
     <x:String x:Key="Settings_DebugModeDesc">Grava registros detalhados de cada requisição. Só é útil enquanto procura um problema.</x:String>
 
     <!-- Quality and invoice options, in the wording they are offered in -->
-    <x:String x:Key="Quality_A">A - Como novo</x:String>
-    <x:String x:Key="Quality_B">B - Leves marcas de uso</x:String>
-    <x:String x:Key="Quality_C">C - Marcas de uso evidentes</x:String>
+    <x:String x:Key="Quality_A">A - como novo</x:String>
+    <x:String x:Key="Quality_B">B - leves marcas de uso</x:String>
+    <x:String x:Key="Quality_C">C - evidentes marcas de uso</x:String>
     <x:String x:Key="Payment_Marge">Margem (0% de IVA)</x:String>
     <x:String x:Key="Payment_BTW">IVA (21%)</x:String>
 
@@ -513,7 +513,7 @@
     <x:String x:Key="Status_OneFound">Um telemóvel encontrado e selecionado.</x:String>
     <x:String x:Key="Status_ManyFound">{0} telemóveis encontrados: escolha um.</x:String>
     <x:String x:Key="Status_NoDeviceSelected">Nenhum telemóvel selecionado.</x:String>
-    <x:String x:Key="Status_TrialLimit">Limite do teste gratuito atingido (10/10). Compre uma licença para continuar a verificar.</x:String>
+    <x:String x:Key="Status_TrialLimit">Limite do teste gratuito atingido (10/10). Compre uma licença para continuar a analisar.</x:String>
     <x:String x:Key="Status_Checking">A verificar a ligação…</x:String>
     <x:String x:Key="Status_Unreachable">O telemóvel está inacessível: tente outro cabo ou outra porta.</x:String>
     <x:String x:Key="Status_Activating">A ativar o telemóvel (bypass)…</x:String>
@@ -667,7 +667,7 @@
     <x:String x:Key="Diag_TitleAppleDriverQuery">Consulta de driver da Apple</x:String>
     <x:String x:Key="Diag_TitleUsbmuxdFound">Daemon usbmuxd</x:String>
     <x:String x:Key="Diag_TitleUsbmuxdStopped">usbmuxd não está a correr</x:String>
-    <x:String x:Key="Diag_TitleUsbBusScan">Varredura do barramento USB</x:String>
+    <x:String x:Key="Diag_TitleUsbBusScan">Varrimento do barramento USB</x:String>
     <x:String x:Key="Diag_TitleUsbDetection">Deteção USB física</x:String>
 
     <x:String x:Key="Diag_MsgAvailableVersion">Disponível em: {0} (versão: {1})</x:String>
@@ -686,7 +686,7 @@
     <x:String x:Key="Diag_MsgUsbmuxdSocket">O usbmuxd está ativo: seu socket foi encontrado em /var/run/usbmuxd.</x:String>
     <x:String x:Key="Diag_MsgUsbmuxdProcess">O usbmuxd está a correr como o processo {0}.</x:String>
     <x:String x:Key="Diag_MsgUsbmuxdStopped">O socket do daemon usbmuxd não foi encontrado. O multiplexamento USB do iOS está inativo.</x:String>
-    <x:String x:Key="Diag_MsgUsbScanFailed">Erro na varredura USB: {0}</x:String>
+    <x:String x:Key="Diag_MsgUsbScanFailed">Erro no varrimento USB: {0}</x:String>
     <x:String x:Key="Diag_MsgDevicesFound">{0} telemóvel(s) móvel(is) encontrado(s) no barramento USB.</x:String>
     <x:String x:Key="Diag_MsgNoUsbDevice">Nenhum telefone detetado no barramento USB físico.</x:String>
 
