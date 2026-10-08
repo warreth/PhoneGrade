@@ -22,6 +22,13 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
     private IntPtr _notifyPort = IntPtr.Zero;
     private IntPtr _addedIterator = IntPtr.Zero;
     private IntPtr _removedIterator = IntPtr.Zero;
+
+    // IOKit keeps the raw callback pointer, so the delegates have to outlive
+    // Start(). A local delegate is collectible the moment Start returns, and
+    // the next USB event would then call into freed thunks.
+    private IOKit.IOServiceMatchingCallback? _addedCallback;
+    private IOKit.IOServiceMatchingCallback? _removedCallback;
+
     private readonly object _lock = new();
     private bool _disposed;
 
@@ -62,12 +69,12 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
             }
 
             // Register for device added notifications
-            var addedCallback = new IOKit.IOServiceMatchingCallback(OnDeviceAdded);
+            _addedCallback = new IOKit.IOServiceMatchingCallback(OnDeviceAdded);
             var result = IOKit.IOServiceAddMatchingNotification(
                 _notifyPort,
                 IOKit.kIOFirstMatchNotification,
                 matchingDict,
-                addedCallback,
+                _addedCallback,
                 IntPtr.Zero,
                 out _addedIterator);
 
@@ -82,13 +89,13 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
             ProcessIterator(_addedIterator);
 
             // Register for device removed notifications
-            var removedCallback = new IOKit.IOServiceMatchingCallback(OnDeviceRemoved);
+            _removedCallback = new IOKit.IOServiceMatchingCallback(OnDeviceRemoved);
             matchingDict = IOKit.IOServiceMatching(IOKit.kIOUSBDeviceClassName);
             result = IOKit.IOServiceAddMatchingNotification(
                 _notifyPort,
                 IOKit.kIOTerminatedNotification,
                 matchingDict,
-                removedCallback,
+                _removedCallback,
                 IntPtr.Zero,
                 out _removedIterator);
 
@@ -151,6 +158,8 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
             finally
             {
                 IsMonitoring = false;
+                _addedCallback = null;
+                _removedCallback = null;
             }
         }
     }
@@ -273,8 +282,12 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
         lock (_lock)
         {
             if (_disposed) return;
-            _disposed = true;
+
+            // Stop() checks _disposed itself, so it has to run before the flag
+            // is set; the other way round leaves the IOKit port and iterators
+            // unreleased.
             Stop();
+            _disposed = true;
         }
     }
 
@@ -284,8 +297,13 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
         public const string LibraryName = "/System/Library/Frameworks/IOKit.framework/IOKit";
         
         public const int kIOReturnSuccess = 0;
-        public const int kIOFirstMatchNotification = 1;
-        public const int kIOTerminatedNotification = 2;
+
+        // Notification types are names, not numbers: IOServiceAddMatchingNotification
+        // takes a C string (io_name_t) and the IOKit headers define these two as
+        // "IOServiceFirstMatch" and "IOServiceTerminate". Passing 1 or 2 marshals
+        // the integer as a char pointer and takes the process down.
+        public const string kIOFirstMatchNotification = "IOServiceFirstMatch";
+        public const string kIOTerminatedNotification = "IOServiceTerminate";
         public const string kIOUSBDeviceClassName = "IOUSBDevice";
 
         public delegate void IOServiceMatchingCallback(IntPtr refCon, IntPtr iterator);
@@ -302,7 +320,7 @@ public sealed class MacUsbMonitor : IUsbEventMonitor
         [DllImport(LibraryName, EntryPoint = "IOServiceAddMatchingNotification")]
         public static extern int IOServiceAddMatchingNotification(
             IntPtr notifyPort,
-            int notificationType,
+            [MarshalAs(UnmanagedType.LPStr)] string notificationType,
             IntPtr matching,
             IOServiceMatchingCallback callback,
             IntPtr refCon,
