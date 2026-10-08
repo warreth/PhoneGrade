@@ -140,7 +140,14 @@ public class MachineFingerprintTests
     {
         // A computer name can be all hex characters by accident, so the rule is
         // narrow on purpose: only a full 32 character hex id is an identity.
-        var source = new MachineIdentitySource { LinuxMachineId = () => candidate };
+        // The dbus fallback is stubbed out as well, or a Linux runner with a
+        // real /var/lib/dbus/machine-id would answer for a candidate that was
+        // supposed to be refused, and the test would pass on Windows only.
+        var source = new MachineIdentitySource
+        {
+            LinuxMachineId = () => candidate,
+            DbusMachineId = () => null
+        };
 
         MachineFingerprint fingerprint = MachineFingerprint.Resolve(
             source, MachineFingerprint.Source.LinuxMachineId);
