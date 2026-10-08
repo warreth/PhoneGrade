@@ -116,20 +116,20 @@ public sealed class LicensingTestContext : IDisposable
     /// </summary>
     public sealed class FakeLicenseServer : HttpMessageHandler
     {
-        public const string ActiveJson = """{"valid":true,"license_key":{"id":1,"status":"active"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
-        public const string ExpiredJson = """{"valid":false,"license_key":{"id":1,"status":"expired"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
-        public const string DeactivatedJson = """{"valid":false,"license_key":{"id":1,"status":"deactivated"},"meta":{"store_id":1,"product_id":1400200,"product_name":"PhoneGrade Pro"}}""";
+        public const string ActiveJson = """{"valid":true,"license_key":{"id":1,"status":"active"},"meta":{"store_id":1,"product_id":1422604,"product_name":"PhoneGrade Pro"}}""";
+        public const string ExpiredJson = """{"valid":false,"license_key":{"id":1,"status":"expired"},"meta":{"store_id":1,"product_id":1422604,"product_name":"PhoneGrade Pro"}}""";
+        public const string DeactivatedJson = """{"valid":false,"license_key":{"id":1,"status":"deactivated"},"meta":{"store_id":1,"product_id":1422604,"product_name":"PhoneGrade Pro"}}""";
         public const string InvalidKeyJson = """{"valid":false,"error":"This key is invalid."}""";
         public const string OtherProductJson = """{"valid":true,"license_key":{"id":2,"status":"active"},"meta":{"store_id":1,"product_id":9999999,"product_name":"Some Other Product"}}""";
 
         /// <summary>An active key with room left and one seat already taken.</summary>
         public const string SeatsLeftJson = """
-            {"valid":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":2},"instance":{"id":991,"name":"pg-some-other-machine","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"store_id":1,"product_id":1400200,"variant_id":12}}
+            {"valid":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":2},"instance":{"id":991,"name":"pg-some-other-machine","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"store_id":1,"product_id":1422604,"variant_id":12}}
             """;
 
         /// <summary>The same key with this computer holding a seat on it.</summary>
         public const string SeatHeldJson = """
-            {"valid":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":{"id":992,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"store_id":1,"product_id":1400200,"variant_id":12}}
+            {"valid":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":{"id":992,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"store_id":1,"product_id":1422604,"variant_id":12}}
             """;
 
         /// <summary>
@@ -139,17 +139,17 @@ public sealed class LicensingTestContext : IDisposable
         /// why the <c>valid</c> flag and not the key status is what the gate reads.
         /// </summary>
         public const string SeatNotHeldJson = """
-            {"valid":false,"error":"The license instance is not activated.","license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":{"id":992,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"store_id":1,"product_id":1400200,"variant_id":12}}
+            {"valid":false,"error":"The license instance is not activated.","license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":{"id":992,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"store_id":1,"product_id":1422604,"variant_id":12}}
             """;
 
         /// <summary>Every seat taken. The API says this with a 200 and a sentence, not with a status code.</summary>
         public const string ActivationLimitJson = """
-            {"activated":false,"error":"This license key has reached the activation limit.","license_key":{"id":7,"status":"active","activation_limit":2,"activation_usage":2},"meta":{"product_id":1400200,"variant_id":11}}
+            {"activated":false,"error":"This license key has reached the activation limit.","license_key":{"id":7,"status":"active","activation_limit":2,"activation_usage":2},"meta":{"product_id":1422604,"variant_id":11}}
             """;
 
         /// <summary>A seat was created.</summary>
         public const string ActivatedJson = """
-            {"activated":true,"error":null,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":1},"instance":{"id":994,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"product_id":1400200,"variant_id":12}}
+            {"activated":true,"error":null,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":1},"instance":{"id":994,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"product_id":1422604,"variant_id":12}}
             """;
 
         /// <summary>
@@ -158,7 +158,7 @@ public sealed class LicensingTestContext : IDisposable
         /// draw no seat fraction rather than "0 of 0".
         /// </summary>
         public const string ActivatedNoLimitJson = """
-            {"activated":true,"error":null,"license_key":{"id":7,"status":"active"},"instance":{"id":995,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"product_id":1400200}}
+            {"activated":true,"error":null,"license_key":{"id":7,"status":"active"},"instance":{"id":995,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"product_id":1422604}}
             """;
 
         /// <summary>
@@ -166,12 +166,12 @@ public sealed class LicensingTestContext : IDisposable
         /// what the panel draws as a seat fraction.
         /// </summary>
         public const string ActivatedWithSeatsJson = """
-            {"activated":true,"error":null,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":{"id":996,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"product_id":1400200,"variant_id":12}}
+            {"activated":true,"error":null,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":3},"instance":{"id":996,"name":"pg-0123456789abcdef0123456789abcdef","created_at":"2026-01-02T03:04:05.000000Z"},"meta":{"product_id":1422604,"variant_id":12}}
             """;
 
         /// <summary>The seat was handed back.</summary>
         public const string SeatReleasedJson = """
-            {"deactivated":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":0},"meta":{"product_id":1400200,"variant_id":12}}
+            {"deactivated":true,"license_key":{"id":7,"status":"active","activation_limit":5,"activation_usage":0},"meta":{"product_id":1422604,"variant_id":12}}
             """;
 
         /// <summary>What validate answers with.</summary>

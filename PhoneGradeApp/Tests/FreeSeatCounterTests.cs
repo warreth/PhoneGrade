@@ -186,5 +186,5 @@ public class FreeSeatCounterTests : IDisposable
     private static string ActivatedWith(int used, int limit) =>
         $"{{\"activated\":true,\"error\":null,\"license_key\":{{\"id\":7,\"status\":\"active\",\"activation_limit\":{limit},\"activation_usage\":{used}}},"
         + "\"instance\":{\"id\":996,\"name\":\"pg-0123456789abcdef0123456789abcdef\",\"created_at\":\"2026-01-02T03:04:05.000000Z\"},"
-        + "\"meta\":{\"product_id\":1400200,\"variant_id\":12}}";
+        + "\"meta\":{\"product_id\":1422604,\"variant_id\":12}}";
 }
