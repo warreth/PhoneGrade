@@ -23,7 +23,15 @@ public class RenderQueueDrainTests
     public void TheDrainRanAfterTheTestsThatRanBeforeThisOne()
     {
         Assert.True(DrainTheRenderQueueAfterEveryTestAttribute.Started > 0, "Before hook never ran");
-        Assert.True(DrainTheRenderQueueAfterEveryTestAttribute.Drained > 0,
-            "the assembly-level drain never ran, so any test can leave a render pass behind for the next one");
+
+        // This test's own Before hook has run but its After hook has not, so the
+        // drain count is allowed to be exactly one behind the start count. Any
+        // further behind means a test that already finished was left undrained.
+        // When this class happens to be the first of the run the check is
+        // vacuous, which is the most it can say: there was nothing before it.
+        int expected = DrainTheRenderQueueAfterEveryTestAttribute.Started - 1;
+        Assert.True(DrainTheRenderQueueAfterEveryTestAttribute.Drained >= expected,
+            "the assembly-level drain did not run after every test that already finished, " +
+            "so any of them can leave a render pass behind for the next one");
     }
 }
