@@ -117,7 +117,7 @@
     <x:String x:Key="Settings_ManageLicense">管理许可</x:String>
     <x:String x:Key="Settings_FreeTierStatus">免费版（已用 {0}/10 次）</x:String>
     <x:String x:Key="Settings_ProTierStatus">专业版（已激活）</x:String>
-    <x:String x:Key="Settings_ActivationSuccess">许可已激活。现在可以无限次扫描。</x:String>
+    <x:String x:Key="Settings_ActivationSuccess">许可已激活。现在可以无限次检测。</x:String>
     <x:String x:Key="Settings_ActivationFailed">激活失败：{0}</x:String>
     <x:String x:Key="Settings_ActivationInvalid">许可密钥无效。</x:String>
     <x:String x:Key="Settings_ActivationExpired">此许可已过期。</x:String>
@@ -127,11 +127,11 @@
 
     <!-- Licensing: introduction screen and the status pill in the title bar -->
     <x:String x:Key="Intro_Title">欢迎使用 PhoneGrade</x:String>
-    <x:String x:Key="Intro_Subtitle">从免费版开始：10 次扫描，无需注册账号。需要更多时可升级专业版，取消次数限制。</x:String>
+    <x:String x:Key="Intro_Subtitle">从免费版开始：10 次检测，无需注册账号。需要更多时可升级专业版，取消次数限制。</x:String>
     <x:String x:Key="Intro_FreeTierTitle">免费版</x:String>
-    <x:String x:Key="Intro_FreeTierBody">10 次扫描。标题栏中的状态始终显示剩余次数。</x:String>
+    <x:String x:Key="Intro_FreeTierBody">10 次检测。标题栏中的状态始终显示剩余次数。</x:String>
     <x:String x:Key="Intro_ProTierTitle">专业版</x:String>
-    <x:String x:Key="Intro_ProTierBody">连接的每台设备都可无限次扫描。</x:String>
+    <x:String x:Key="Intro_ProTierBody">连接的每台设备都可无限次检测。</x:String>
     <x:String x:Key="Intro_ProBadge">无限次</x:String>
     <x:String x:Key="Intro_StartFree">免费开始</x:String>
     <x:String x:Key="Intro_PageWelcome">语言与外观</x:String>
@@ -150,16 +150,16 @@
     <x:String x:Key="Intro_SeePricing">查看价格</x:String>
     <x:String x:Key="Intro_HaveLicense">我已有许可</x:String>
     <x:String x:Key="Intro_ActivationTitle">激活你的许可</x:String>
-    <x:String x:Key="Licensing_TierFree">剩余 {0} 次扫描</x:String>
+    <x:String x:Key="Licensing_TierFree">剩余 {0} 次检测</x:String>
     <x:String x:Key="Licensing_TierPro">专业版 - 已激活</x:String>
-    <x:String x:Key="Licensing_PanelHint">许可与扫描次数</x:String>
+    <x:String x:Key="Licensing_PanelHint">许可与检测次数</x:String>
     <x:String x:Key="Licensing_PanelTitle">许可</x:String>
-    <x:String x:Key="Licensing_PanelScansLeft">剩余扫描次数</x:String>
+    <x:String x:Key="Licensing_PanelScansLeft">剩余检测次数</x:String>
     <x:String x:Key="Licensing_PanelClose">关闭</x:String>
     <x:String x:Key="Licensing_PanelSeatsUsed">已使用 {1} 台电脑中的 {0} 台</x:String>
     <x:String x:Key="Licensing_PanelSeatThis">此电脑（{0}）</x:String>
     <x:String x:Key="Licensing_PanelSeatsLabel">电脑</x:String>
-    <x:String x:Key="Licensing_PanelNoMachineId">无法识别这台电脑，因此无法在此激活许可。免费扫描仍然可用。</x:String>
+    <x:String x:Key="Licensing_PanelNoMachineId">无法识别这台电脑，因此无法在此激活许可。免费检测仍然可用。</x:String>
     <x:String x:Key="Licensing_PanelRelease">释放此电脑</x:String>
     <x:String x:Key="Licensing_PanelReleaseConfirm">确认释放？</x:String>
     <x:String x:Key="Licensing_PanelReleaseCancel">保留</x:String>
@@ -349,7 +349,7 @@
     <x:String x:Key="Btn_Finish">完成</x:String>
 
     <!-- Idle screen and the USB trust guide -->
-    <x:String x:Key="TrialLimit_Reached">已达到免费试用上限（10/10）。购买许可后可继续扫描。</x:String>
+    <x:String x:Key="TrialLimit_Reached">已达到免费试用上限（10/10）。购买许可后可继续检测。</x:String>
     <x:String x:Key="Idle_Title">请通过 USB 连接设备</x:String>
     <x:String x:Key="Idle_Lead">支持 iPhone、iPad 和 Android 设备。请保持屏幕解锁，并确认“信任此电脑”。</x:String>
     <x:String x:Key="Idle_DetectedDevices">已检测到的设备：</x:String>
@@ -513,7 +513,7 @@
     <x:String x:Key="Status_OneFound">已找到并选中 1 台设备。</x:String>
     <x:String x:Key="Status_ManyFound">找到 {0} 台设备：请选择一台。</x:String>
     <x:String x:Key="Status_NoDeviceSelected">未选择设备。</x:String>
-    <x:String x:Key="Status_TrialLimit">已达到免费试用上限（10/10）。购买许可后可继续扫描。</x:String>
+    <x:String x:Key="Status_TrialLimit">已达到免费试用上限（10/10）。购买许可后可继续检测。</x:String>
     <x:String x:Key="Status_Checking">正在检查连接……</x:String>
     <x:String x:Key="Status_Unreachable">无法访问设备：请更换线缆或接口。</x:String>
     <x:String x:Key="Status_Activating">正在激活设备（绕过）……</x:String>
