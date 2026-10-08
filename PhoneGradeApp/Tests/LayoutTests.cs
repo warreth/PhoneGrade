@@ -142,6 +142,76 @@ public class LayoutTests : IDisposable
 
     }
 
+    [AvaloniaFact]
+    public void TheSettingsPage_PaintsOverWhatIsBehindIt()
+    {
+        // The page drew on top of the idle screen with no surface of its own,
+        // so both screens were visible at once: the topic rail and the settings
+        // cards mixed with the scan button and the waiting text under them.
+        using MainWindow window = ShowAtMinimumSize();
+        var main = (MainWindow)window;
+        var vm = (MainWindowViewModel)window.DataContext!;
+
+        vm.IsSettingsDrawerOpen = true;
+        window.UpdateLayout();
+        for (int i = 0; i < 4; i++) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        window.UpdateLayout();
+
+        var settings = main.GetVisualDescendants().OfType<Panel>()
+            .FirstOrDefault(panel => panel.Name == "SettingsPanel");
+        Assert.NotNull(settings);
+        Assert.True(settings!.IsVisible);
+
+        // An opaque fill, not a translucent one and not the theme's default:
+        // either of those still shows the screen underneath.
+        var brush = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(settings.Background);
+        Assert.Equal(1.0, brush.Opacity);
+        Assert.Equal(255, brush.Color.A);
+        HeadlessRender.Drain();
+    }
+
+    [AvaloniaFact]
+    public void TheIntroductionTopics_StayInsideTheCard()
+    {
+        // Five topics, each in the reader's own language, were laid out as one
+        // row wider than the card: the last one ("Carrier lock and
+        // blacklisting") ran past the border and off the window edge, so a page
+        // existed that nothing on screen pointed at.
+        using MainWindow window = ShowAtMinimumSize();
+        var main = (MainWindow)window;
+        var vm = (MainWindowViewModel)window.DataContext!;
+
+        vm.IsIntroVisible = true;
+        window.UpdateLayout();
+        for (int i = 0; i < 4; i++) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        window.UpdateLayout();
+
+        var intro = main.GetVisualDescendants().OfType<PhoneGrade.UI.Views.IntroView>().FirstOrDefault();
+        Assert.NotNull(intro);
+        var card = intro!.GetVisualDescendants().OfType<Border>()
+            .FirstOrDefault(border => border.Classes.Contains("card"));
+        Assert.NotNull(card);
+
+        Point cardOrigin = card!.TranslatePoint(default, window)!.Value;
+        double cardRight = cardOrigin.X + card.Bounds.Width;
+        double cardBottom = cardOrigin.Y + card.Bounds.Height;
+
+        var topics = main.GetVisualDescendants().OfType<Button>()
+            .Where(button => button.Classes.Contains("navItem") && button.IsEffectivelyVisible)
+            .ToList();
+        Assert.Equal(5, topics.Count);
+
+        foreach (Button topic in topics)
+        {
+            Point origin = topic.TranslatePoint(default, window)!.Value;
+            Assert.True(origin.X >= cardOrigin.X - 0.5 && origin.X + topic.Bounds.Width <= cardRight + 0.5,
+                $"topic \"{topic.Content}\" runs past the card: {origin.X:F0}..{origin.X + topic.Bounds.Width:F0} in {cardOrigin.X:F0}..{cardRight:F0}");
+            Assert.True(origin.Y + topic.Bounds.Height <= cardBottom + 0.5,
+                $"topic \"{topic.Content}\" runs past the bottom of the card");
+        }
+        HeadlessRender.Drain();
+    }
+
     public void Dispose()
     {
         if (_origOverride is null)

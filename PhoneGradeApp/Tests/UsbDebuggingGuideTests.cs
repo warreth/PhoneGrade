@@ -24,7 +24,7 @@ namespace Tests;
 // binding fires, or whether a style selector ever matched anything, and those
 // are exactly the ways this overlay has been useless: it used to be an inline
 // card that overflowed the idle screen, it used to be open for an iPad, and it
-// used to greet an operator with "Voor uw -toestel:" and no steps at all.
+// used to greet an operator with "Voor je -toestel:" and no steps at all.
 
 public class UsbDebuggingGuideTests : IDisposable
 {
@@ -194,7 +194,7 @@ public class UsbDebuggingGuideTests : IDisposable
         Assert.True(name >= 0, $"the model never reached the screen:\n{text}");
         Assert.True(name < text.IndexOf("Ontgrendel het scherm", StringComparison.Ordinal),
             "the phone is named after the instructions rather than before them");
-        Assert.Contains("Voor uw HONOR 600 Lite:", text);
+        Assert.Contains("Voor je HONOR 600 Lite:", text);
         HeadlessRender.Drain();
 
     }
@@ -202,7 +202,7 @@ public class UsbDebuggingGuideTests : IDisposable
     [AvaloniaFact]
     public void TheOverlay_FallsBackToTheBrand_WhenTheModelIsUnknown()
     {
-        // Windows often has no better answer than the hardware. "Voor uw -toestel"
+        // Windows often has no better answer than the hardware. "Voor je -toestel"
         // was what came out then, which tells an operator nothing about which of
         // the phones on the bench this is.
         using var window = new MainWindow();
@@ -218,9 +218,9 @@ public class UsbDebuggingGuideTests : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var text = GuideText(window);
-        Assert.Contains("Voor uw Samsung-toestel:", text);
-        Assert.DoesNotContain("Voor uw -", text);
-        Assert.DoesNotContain("Voor uw :", text);
+        Assert.Contains("Voor je Samsung-toestel:", text);
+        Assert.DoesNotContain("Voor je -", text);
+        Assert.DoesNotContain("Voor je :", text);
 
         // And the steps that came with the brand are Samsung's, not the generic
         // pair: the extra hop through Software information is the part a generic
@@ -234,7 +234,7 @@ public class UsbDebuggingGuideTests : IDisposable
     public void TheOverlay_FallsBackToAndroid_WhenNothingWasReported()
     {
         // The heading is built from the model, so an empty model has to have
-        // something to put in it. It used to come out as "Voor uw -toestel:",
+        // something to put in it. It used to come out as "Voor je -toestel:",
         // which tells an operator nothing at all.
         using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
@@ -249,9 +249,9 @@ public class UsbDebuggingGuideTests : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var text = GuideText(window);
-        Assert.Contains("Voor uw Android-toestel:", text);
-        Assert.DoesNotContain("Voor uw -", text);
-        Assert.DoesNotContain("Voor uw :", text);
+        Assert.Contains("Voor je Android-toestel:", text);
+        Assert.DoesNotContain("Voor je -", text);
+        Assert.DoesNotContain("Voor je :", text);
 
         // And the steps under it are the generic pair, because nothing named a
         // manufacturer to look up.
@@ -280,7 +280,7 @@ public class UsbDebuggingGuideTests : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 
         var text = GuideText(window);
-        Assert.Contains("Voor uw Honor-toestel:", text);
+        Assert.Contains("Voor je Honor-toestel:", text);
         Assert.Contains("Build-nummer", text);
         Assert.Contains("Over de telefoon", text);
 

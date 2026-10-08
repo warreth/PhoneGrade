@@ -222,6 +222,67 @@ public class UiTests : IDisposable
         Assert.Equal(notSet, c.Convert(null, typeof(string), null, null));
     }
 
+    [AvaloniaFact]
+    public void DataEditor_HidesTheMemoryPlaceholderAndGivesItBackOnEmpty()
+    {
+        // The phone stores "NOMEMORY" when it could not read the size, and the
+        // editor showed that word in an editable box as if it were a value an
+        // operator could keep. It is an empty field with a placeholder now, and
+        // an empty field written back stores the placeholder again.
+        var vm = new DataEditorViewModel(new DeviceData { Memory = "NOMEMORY" });
+        Assert.Equal("", vm.Memory);
+
+        vm.Memory = "8GB";
+        Assert.Equal("8GB", vm.DeviceData.Memory);
+
+        vm.Memory = "   ";
+        Assert.Equal("NOMEMORY", vm.DeviceData.Memory);
+    }
+
+    [AvaloniaFact]
+    public void TheActiveScreen_ShowsTheQrOnlyWhenThereIsACode()
+    {
+        // The white container used to be drawn whether or not a code existed,
+        // which put a blank white square in the middle of the dark screen while
+        // the session was still being opened.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.WorkflowState = AppWorkflowState.Active;
+
+        window.Show();
+        window.Width = 1050;
+        window.Height = 740;
+        for (int i = 0; i < 3; i++) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var box = window.FindControl<Border>("QrBox");
+        Assert.NotNull(box);
+        Assert.False(box!.IsVisible, "the active screen drew a QR container with nothing in it");
+
+        vm.QrCodeBitmap = PhoneGrade.UI.Services.QrCodeService.GenerateQrCodeBitmap(
+            "http://192.168.1.24:5055/?sessionId=DEMO");
+        window.UpdateLayout();
+        for (int i = 0; i < 3; i++) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        Assert.True(box.IsVisible, "the QR container stayed hidden with a code ready");
+        HeadlessRender.Drain();
+    }
+
+    [AvaloniaFact]
+    public void ImeiCostEstimate_WritesNumbersInTheWindowLanguage()
+    {
+        // The estimate used the machine's regional settings: an English window
+        // on a Dutch machine showed "0,00 USD" beside prices written "0.360".
+        using var vm = new MainWindowViewModel();
+
+        vm.Language = "English";
+        vm.EstimatedAppleDevices = 10;
+        Assert.Contains("0.00", vm.EstimatedMonthlyCostDisplay);
+
+        vm.Language = "Nederlands";
+        vm.EstimatedAppleDevices = 10;
+        Assert.Contains("0,00", vm.EstimatedMonthlyCostDisplay);
+    }
+
     public void Dispose()
     {
         if (_origOverride is null)
