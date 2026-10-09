@@ -40,6 +40,20 @@ export class CameraTest extends DeviceTest {
     /** How long a photo is held up before the next lens starts. */
     static SHOT_HOLD_MS = 700;
 
+    /**
+     * How long a lens gets to deliver its first frame. Handing over a stream is
+     * not the same as having a picture, and a photo taken before the first frame
+     * arrives is a black rectangle whatever the sensor sees.
+     */
+    static FRAME_WAIT_MS = 6000;
+
+    /**
+     * How long the previous lens is given to be released before the next one is
+     * opened. Some cameras hand back a black stream when the next open races the
+     * last close.
+     */
+    static LENS_SETTLE_MS = 500;
+
     constructor() {
         super('camera', t('camera.stepName'), t('camera.stepDescription'));
         this.frontWorking = false;
@@ -57,6 +71,8 @@ export class CameraTest extends DeviceTest {
         // of their own.
         this.photoDelayMs = CameraTest.PHOTO_DELAY_MS;
         this.shotHoldMs = CameraTest.SHOT_HOLD_MS;
+        this.frameWaitMs = CameraTest.FRAME_WAIT_MS;
+        this.lensSettleMs = CameraTest.LENS_SETTLE_MS;
     }
 
     /**
@@ -323,6 +339,15 @@ export class CameraTest extends DeviceTest {
             if (this._abandoned || this.status !== 'running') break;
 
             shots.push(await this.captureOne(wsClient, container, cameras[i], i + 1, cameras.length));
+
+            // The stream is let go here rather than when the next lens opens, so
+            // the camera has a moment to be released before its neighbour is
+            // asked for. Opening the next one into the previous one's shutdown is
+            // what hands back a black first frame on some phones.
+            if (i < cameras.length - 1 && !this._abandoned && this.status === 'running') {
+                this.stopStream();
+                await this.hold(this.lensSettleMs);
+            }
         }
 
         this.stopStream();
@@ -443,15 +468,28 @@ export class CameraTest extends DeviceTest {
         refs.timerNum.textContent = String(secondsLeft(ms));
 
         return new Promise((resolve) => {
-            const finish = () => {
+            const finish = async () => {
                 if (this._countDown) {
                     clearInterval(this._countDown.pulse);
                     this._countDown = null;
                 }
                 refs.timer.hidden = true;
 
+                let canvas = takeSnapshot(refs);
+
+                // A first frame can still arrive black while the sensor is
+                // waking up, and a background tab can hand back black frames
+                // for a moment after it comes back. A few redraws over a couple
+                // of seconds turn that into the picture the lens is actually
+                // showing. A genuinely dark room stays dark, and the verdict on
+                // that is the operator's.
+                for (let attempt = 0; attempt < 4 && canvas && frameLooksBlack(canvas); attempt++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    const redrawn = takeSnapshot(refs);
+                    if (redrawn) canvas = redrawn;
+                }
+
                 let photo = null;
-                const canvas = takeSnapshot(refs);
                 if (canvas) {
                     try {
                         photo = canvas.toDataURL('image/jpeg', 0.75);
@@ -703,6 +741,18 @@ export class CameraTest extends DeviceTest {
             refs.video.hidden = false;
             refs.canvas.hidden = true;
 
+            if (refs.instructions) refs.instructions.textContent = t('camera.waitingForImage');
+
+            // A stream is not a picture. The browser hands the stream over the
+            // moment the camera opens, and several phones need a moment more
+            // before the first frame arrives; the countdown must not start on a
+            // black rectangle that only the driver can see. A lens that never
+            // produces one still ends up with no photo, because the snapshot
+            // itself refuses to draw a frame that is not there.
+            await waitForFirstFrame(refs.video, this.frameWaitMs);
+
+            if (refs.instructions) refs.instructions.textContent = t('camera.instructionsStart');
+
             const track = stream.getVideoTracks()[0];
             const settings = track && track.getSettings ? (track.getSettings() || {}) : {};
 
@@ -832,6 +882,98 @@ function takeSnapshot(refs) {
     canvas.hidden = false;
 
     return canvas;
+}
+
+/**
+ * Waits until the video has a frame to draw.
+ *
+ * Resolves true as soon as one is there, false when the wait runs out. An
+ * environment that does not model a video element is answered from the
+ * element's size instead, because a unit test's fake video has no readyState
+ * and waiting for one would stall the step.
+ *
+ * @param {HTMLVideoElement} video
+ * @param {number} timeoutMs
+ * @returns {Promise<boolean>}
+ */
+async function waitForFirstFrame(video, timeoutMs) {
+    const hasSize = () => (video.videoWidth || 0) > 0 && (video.videoHeight || 0) > 0;
+    const modeled = typeof video.readyState !== 'undefined'
+        || typeof video.requestVideoFrameCallback === 'function';
+
+    try {
+        if (typeof video.play === 'function') await video.play();
+    } catch {
+        // A muted stream is allowed to start by itself; a refusal here must not
+        // stop the frame wait.
+    }
+
+    if (!modeled) return hasSize();
+
+    return new Promise((resolve) => {
+        const startedAt = Date.now();
+        let done = false;
+
+        const finish = (value) => {
+            if (done) return;
+            done = true;
+            resolve(value);
+        };
+
+        const check = () => {
+            if (done) return;
+
+            if (hasSize()) {
+                // The size can be known before a frame is actually presented.
+                // Where the browser can say that a frame reached the screen, it
+                // is asked; the wait still times out if the callback never fires.
+                if (typeof video.requestVideoFrameCallback === 'function') {
+                    video.requestVideoFrameCallback(() => finish(true));
+                    setTimeout(() => finish(hasSize()), Math.max(0, timeoutMs - (Date.now() - startedAt)));
+                } else {
+                    finish(true);
+                }
+                return;
+            }
+
+            if (Date.now() - startedAt >= timeoutMs) {
+                finish(false);
+                return;
+            }
+
+            setTimeout(check, 100);
+        };
+
+        check();
+    });
+}
+
+/**
+ * True when the middle of the snapshot is essentially flat black. A camera
+ * that has just opened can hand back one such frame while the sensor settles;
+ * the photo is taken again a moment later when that happens.
+ */
+function frameLooksBlack(canvas) {
+    try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx || typeof ctx.getImageData !== 'function' || !canvas.width || !canvas.height) return false;
+
+        const width = Math.min(32, canvas.width);
+        const height = Math.min(32, canvas.height);
+        const data = ctx.getImageData(
+            Math.floor((canvas.width - width) / 2),
+            Math.floor((canvas.height - height) / 2),
+            width,
+            height).data;
+
+        let brightest = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            brightest = Math.max(brightest, data[i], data[i + 1], data[i + 2]);
+        }
+        return brightest < 8;
+    } catch {
+        return false;
+    }
 }
 
 /** One photo in the list, with the verdict it is waiting for underneath it. */

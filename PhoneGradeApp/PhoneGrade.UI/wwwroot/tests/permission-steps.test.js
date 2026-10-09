@@ -236,6 +236,8 @@ function fastCamera() {
     const camera = new CameraTest();
     camera.photoDelayMs = 40;
     camera.shotHoldMs = 0;
+    camera.frameWaitMs = 0;
+    camera.lensSettleMs = 0;
     return camera;
 }
 
@@ -596,6 +598,17 @@ test('camera: the timer a technician waits for is three seconds', () => {
     assert.equal(new CameraTest().photoDelayMs, CameraTest.PHOTO_DELAY_MS);
 });
 
+test('camera: a lens gets time to produce its first frame, and the release is waited out', () => {
+    // The countdown starts on a frame rather than on the stream handle, and the
+    // previous lens is let go before the next one opens: both are what keeps a
+    // just-opened camera from being photographed black.
+    const camera = new CameraTest();
+    assert.equal(camera.frameWaitMs, CameraTest.FRAME_WAIT_MS);
+    assert.equal(camera.lensSettleMs, CameraTest.LENS_SETTLE_MS);
+    assert.ok(CameraTest.FRAME_WAIT_MS >= 3000);
+    assert.ok(CameraTest.LENS_SETTLE_MS > 0);
+});
+
 test('camera: several lenses need more than the single-measurement failsafe', () => {
     assert.ok(new CameraTest().getFailsafeMs() > 90000);
 });
@@ -805,6 +818,53 @@ test('microphone: the clip comes back and the operator hears it', async () => {
     assert.equal(mic.details.peakLevel, 70);
     assert.equal(mic.details.checkMethod, 'record-and-replay');
     assert.equal(stream.stopped, true, 'the input is released when the step ends');
+
+    delete global.requestAnimationFrame;
+    delete global.MediaRecorder;
+});
+
+test('microphone: more than one input asks which microphone to test', async () => {
+    const stream = fakeAudioStream();
+    const calls = useGetUserMedia([stream]);
+    global.navigator.mediaDevices.enumerateDevices = async () => [
+        { kind: 'audioinput', deviceId: 'mic-bottom', label: 'Bottom microphone' },
+        { kind: 'audioinput', deviceId: 'mic-top', label: 'Top microphone' },
+        { kind: 'videoinput', deviceId: 'camera', label: 'Camera' }
+    ];
+    const meter = useFakeMeter();
+    useFakeRecorder();
+
+    const mic = new MicrophoneTest();
+    const container = fakeContainer();
+
+    const run = mic.run(fakeClient(), container);
+    await tick();
+
+    // Several microphones is a choice the operator makes, and this screen used
+    // to crash: it reported its progress through a client that was never passed
+    // to it, so every phone with more than one input failed the step with a
+    // ReferenceError before a note was even recorded.
+    assert.ok(container.nodes.get('mic-select'), 'the selection screen is up');
+    assert.equal(calls.length, 0, 'nothing is recorded before a microphone is chosen');
+
+    const select = container.nodes.get('mic-select');
+    select.value = 'mic-top';
+    select.fire('change');
+    container.nodes.get('mic-select-confirm').press();
+    await tick();
+
+    // The chosen input is the one the browser is asked for, and the recording
+    // proceeds from there.
+    assert.deepEqual(calls[0], { audio: { deviceId: { exact: 'mic-top' } } });
+    assert.ok(container.querySelector('#mic-vu-bar'));
+
+    meter.setLevel(90);
+    meter.poll();
+    await tick(MicrophoneTest.RECORD_MS + 200);
+    container.nodes.get('mic-yes').press();
+    await run;
+
+    assert.equal(mic.status, 'passed');
 
     delete global.requestAnimationFrame;
     delete global.MediaRecorder;

@@ -441,6 +441,13 @@ class TestRunner {
         if (!this.startTime) this.startTime = Date.now();
         this.currentTestIndex = index;
 
+        // A single test from the desktop is still a test the operator has to
+        // see and answer. Without this the step ran into a hidden container on
+        // the welcome screen and nobody could press anything.
+        this.showScreen('test-screen');
+        this.updateTestListUI();
+        this.updateTestCounter();
+
         await this.runOne(index, { then: 'results' });
     }
 

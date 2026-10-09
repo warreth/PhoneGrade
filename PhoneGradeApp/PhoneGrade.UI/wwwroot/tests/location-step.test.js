@@ -42,16 +42,28 @@ function geoError(code, message = 'x') {
     return { code, message, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 };
 }
 
+/**
+ * Waits for the step to leave the running state.
+ *
+ * The three attempts are chained through timers, and how many event loop turns
+ * they get before an assertion is not something a test should assume.
+ */
+async function settle(loc, tries = 60) {
+    for (let i = 0; i < tries && loc.status === 'running'; i++) await tick(10);
+    return loc.status;
+}
+
 /** A fix of the kind a phone returns when it can see the sky. */
 const A_FIX = { coords: { latitude: 52.37021, longitude: 4.89517, accuracy: 8.4 } };
 
-/** Points geolocation at a queue of answers, one per call. */
+/** Points geolocation at a queue of answers, one per call, and records what was asked. */
 function useGeolocation(answers) {
     const calls = [];
     global.navigator.geolocation = {
-        getCurrentPosition: (ok, bad) => {
-            calls.push(true);
+        getCurrentPosition: (ok, bad, options) => {
+            calls.push({ options });
             const next = answers.shift();
+            if (!next) throw new Error('the geolocation queue is empty');
             setTimeout(() => { (next.ok ? ok : bad)(next.value); }, 0);
         }
     };
@@ -181,8 +193,11 @@ test('location: a coarse fix is a pass that says how coarse it was', async () =>
     await run;
 });
 
-test('location: a timeout is a finding about the hardware, not a question', async () => {
-    useGeolocation([{ value: geoError(3, 'Timeout expired') }]);
+test('location: the accurate attempt is followed by a coarse one, and the options say so', async () => {
+    const calls = useGeolocation([
+        { value: geoError(3, 'Timeout expired') },
+        { ok: true, value: { coords: { latitude: 52.37, longitude: 4.89, accuracy: 240 } } }
+    ]);
     const loc = new LocationTest();
     const container = fakeContainer();
 
@@ -191,10 +206,44 @@ test('location: a timeout is a finding about the hardware, not a question', asyn
     container.nodes.get('btn-request-location').press();
     await tick(30);
 
-    // This is the answer the real Pixel gives, indoors, on a desk: asked with
-    // enableHighAccuracy and a 15 s budget, and nothing comes back. It is a real
-    // result about the receiver, so it is allowed to fail the step. The old step
-    // failed it too, but in English and with nowhere to go from there.
+    // The first attempt is the accurate one the step always asked for. When it
+    // runs out the step asks again for a position the network can answer: that
+    // is the route an indoor phone has, and it is what turns a timeout into a
+    // fix. The options have to change with it, or the second call is the same
+    // request that just failed.
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].options.enableHighAccuracy, true);
+    assert.equal(calls[0].options.timeout, 30000);
+    assert.equal(calls[0].options.maximumAge, 0);
+    assert.equal(calls[1].options.enableHighAccuracy, false);
+    assert.equal(calls[1].options.maximumAge, 60000);
+
+    // The fallback fix is a pass, and the report says how coarse it was rather
+    // than pretending it was a satellite fix.
+    assert.equal(loc.status, 'passed');
+    assert.equal(loc.details.accuracyGrade, 'low');
+    assert.match(loc.notes, /grover dan 100 m/);
+    await run;
+});
+
+test('location: a timeout on the hardware, not a question', async () => {
+    const calls = useGeolocation([
+        { value: geoError(3, 'Timeout expired') },
+        { value: geoError(3, 'Timeout expired') },
+        { value: geoError(3, 'Timeout expired') }
+    ]);
+    const loc = new LocationTest();
+    const container = fakeContainer();
+
+    const run = loc.run(fakeClient(), container);
+    await tick();
+    container.nodes.get('btn-request-location').press();
+
+    // Three attempts are chained through timers; give them the turns they need
+    // instead of assuming one tick is enough.
+    await settle(loc);
+
+    assert.equal(calls.length, 3);
     assert.equal(loc.status, 'failed');
     assert.match(loc.notes, /timeout/);
     assert.equal(loc.details.errorCode, 3);
@@ -206,15 +255,45 @@ test('location: a timeout is a finding about the hardware, not a question', asyn
     await run;
 });
 
-test('location: an unavailable position says the same and does not blame the browser', async () => {
-    useGeolocation([{ value: geoError(2, 'Position unavailable') }]);
+test('location: a last known position passes and says it came from the cache', async () => {
+    const calls = useGeolocation([
+        { value: geoError(3, 'Timeout expired') },
+        { value: geoError(3, 'Timeout expired') },
+        { ok: true, value: { coords: { latitude: 52.37, longitude: 4.89, accuracy: 100 } } }
+    ]);
     const loc = new LocationTest();
     const container = fakeContainer();
 
     const run = loc.run(fakeClient(), container);
     await tick();
     container.nodes.get('btn-request-location').press();
-    await tick(30);
+    await settle(loc);
+
+    // A phone on a desk with no satellite in sight and no data can still say
+    // where it last was. The fix is a pass because the pipeline answered, and
+    // the note says the measurement is not fresh so nobody reads it as one.
+    assert.equal(calls.length, 3);
+    assert.equal(calls[2].options.maximumAge, Infinity);
+    assert.equal(loc.status, 'passed');
+    assert.equal(loc.details.fixSource, 'cache');
+    assert.match(loc.notes, /laatst bekende locatie/);
+    assert.match(loc.notes, /geen verse meting/);
+    await run;
+});
+
+test('location: an unavailable position says the same and does not blame the browser', async () => {
+    useGeolocation([
+        { value: geoError(2, 'Position unavailable') },
+        { value: geoError(2, 'Position unavailable') },
+        { value: geoError(2, 'Position unavailable') }
+    ]);
+    const loc = new LocationTest();
+    const container = fakeContainer();
+
+    const run = loc.run(fakeClient(), container);
+    await tick();
+    container.nodes.get('btn-request-location').press();
+    await settle(loc);
 
     assert.equal(loc.status, 'failed');
     assert.match(loc.notes, /position unavailable/);

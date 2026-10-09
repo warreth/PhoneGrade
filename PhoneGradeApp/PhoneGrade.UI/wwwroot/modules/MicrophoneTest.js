@@ -97,7 +97,7 @@ export class MicrophoneTest extends DeviceTest {
 
         // If multiple microphones found, let the operator choose
         if (audioInputs.length > 1) {
-            const selectedDeviceId = await this.showMicSelection(container, audioInputs);
+            const selectedDeviceId = await this.showMicSelection(wsClient, container, audioInputs);
             if (!selectedDeviceId) {
                 return this.fail(t('microphone.noSelection'));
             }
@@ -191,7 +191,7 @@ export class MicrophoneTest extends DeviceTest {
      * Shows a microphone selection UI when multiple audio inputs are available.
      * Returns the selected deviceId or null if cancelled.
      */
-    async showMicSelection(container, audioInputs) {
+    async showMicSelection(wsClient, container, audioInputs) {
         return new Promise((resolve) => {
             const optionsHtml = audioInputs.map((device, index) => {
                 const label = device.label || `${t(index === 0 ? 'microphone.bottomMic' : 'microphone.topMic')} (${index + 1})`;

@@ -16,6 +16,32 @@ const RETRY_GRACE_MS = 90000;
 const COUNTDOWN_TICK_MS = 1000;
 
 /**
+ * The first attempt asks for the most accurate position the phone can give,
+ * and can take its time: a cold receiver under a roof is the case that used to
+ * fail, and 15 s was not enough for it.
+ */
+const ACCURATE_TIMEOUT_MS = 30000;
+
+/**
+ * The fallback accepts a network position (Wi-Fi and cell towers) and a
+ * position the phone already cached, which is what answers indoors where no
+ * satellite ever does.
+ */
+const COARSE_TIMEOUT_MS = 15000;
+const COARSE_MAX_AGE_MS = 60000;
+
+/**
+ * The last attempt takes a position the phone already knows, however old.
+ *
+ * A phone on a desk under a roof with no satellite in sight and no data
+ * connection can still answer from its last known location. That is not a
+ * fresh measurement and the verdict says so, but it does prove the location
+ * pipeline works, which is what the step is for.
+ */
+const CACHED_TIMEOUT_MS = 10000;
+const CACHED_MAX_AGE_MS = Infinity;
+
+/**
  * A window of time that is opened once and then only counted down.
  *
  * The old step started a fresh 45 s every time the browser said no, so an
@@ -60,9 +86,9 @@ export class LocationTest extends DeviceTest {
     }
 
     /**
-     * The browser's own timeout is 15 s, and the operator may then be away for the
-     * grace period. 90 s of runner failsafe ended the step while they were still
-     * in the settings.
+     * The two browser timeouts add up to 45 s, and the operator may then be
+     * away for the grace period. 90 s of runner failsafe ended the step while
+     * they were still in the settings.
      */
     getFailsafeMs() {
         return RETRY_GRACE_MS + 90000;
@@ -71,6 +97,14 @@ export class LocationTest extends DeviceTest {
     reset() {
         super.reset();
         this.details = {};
+    }
+
+    /** Releases the clock that rewrites the waiting line. */
+    dispose() {
+        if (this._elapsedTimer) {
+            clearInterval(this._elapsedTimer);
+            this._elapsedTimer = null;
+        }
     }
 
     async run(wsClient, container) {
@@ -139,6 +173,7 @@ export class LocationTest extends DeviceTest {
             let settled = false;
             let requestInFlight = false;
             let grantedOnce = false;
+            let elapsedTimer = null;
 
             // Opened on the first refusal and only counted down from there. A
             // retry re-asks the browser but never re-opens the window.
@@ -151,8 +186,11 @@ export class LocationTest extends DeviceTest {
                 settled = true;
                 if (graceTimer) clearTimeout(graceTimer);
                 if (countdownTimer) clearInterval(countdownTimer);
+                if (elapsedTimer) clearInterval(elapsedTimer);
                 graceTimer = null;
                 countdownTimer = null;
+                elapsedTimer = null;
+                this._elapsedTimer = null;
                 resolve();
             };
 
@@ -187,8 +225,21 @@ export class LocationTest extends DeviceTest {
                 }, RETRY_GRACE_MS);
             };
 
+            /**
+             * Asks for a position, widening the net when an attempt does not
+             * answer.
+             *
+             * The first fix on a cold receiver can take longer than the browser
+             * gives it by default, and a phone that cannot see the sky often has
+             * no satellite fix at all while the network still knows where it is.
+             * The accurate attempt gets the time it needs; a timeout falls back
+             * to a coarse position (Wi-Fi and cell towers), and a timeout after
+             * that to whatever position the phone already knows. Each verdict
+             * says which route answered.
+             */
             const requestLocation = () => {
                 requestInFlight = true;
+                grantedOnce = false;
                 btnRequest.hidden = true;
                 errorArea.hidden = true;
                 statusArea.hidden = false;
@@ -196,73 +247,126 @@ export class LocationTest extends DeviceTest {
                 dataEl.hidden = true;
                 statusEl.textContent = t('gps.waitingForCoordinates');
                 statusEl.style.color = '';
-                this.reportProgress(wsClient, 30, t('gps.acquiringFix'));
 
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        requestInFlight = false;
-                        grantedOnce = true;
-                        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-                        if (graceTimer) { clearTimeout(graceTimer); graceTimer = null; }
-                        grace.clear();
-                        graceNoteEl.hidden = true;
+                const startedAt = Date.now();
+                if (elapsedTimer) clearInterval(elapsedTimer);
+                elapsedTimer = setInterval(() => {
+                    const seconds = Math.floor((Date.now() - startedAt) / 1000);
+                    statusEl.textContent = t('gps.searching', { seconds });
+                }, COUNTDOWN_TICK_MS);
+                this._elapsedTimer = elapsedTimer;
 
-                        const { latitude, longitude, accuracy } = position.coords;
-                        const accurate = accuracy <= 100;
+                const stopClock = () => {
+                    if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+                    this._elapsedTimer = null;
+                };
 
-                        spinnerEl.hidden = true;
-                        statusEl.textContent = accurate
+                const onFix = (position, stage) => {
+                    requestInFlight = false;
+                    grantedOnce = true;
+                    stopClock();
+                    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+                    if (graceTimer) { clearTimeout(graceTimer); graceTimer = null; }
+                    grace.clear();
+                    graceNoteEl.hidden = true;
+
+                    const { latitude, longitude, accuracy } = position.coords;
+                    const accurate = accuracy <= 100;
+                    const cached = stage === 2;
+
+                    spinnerEl.hidden = true;
+                    statusEl.textContent = cached
+                        ? t('gps.cachedPosition')
+                        : accurate
                             ? t('gps.accuratePosition')
                             : t('gps.coarsePosition');
-                        statusEl.style.color = accurate
-                            ? 'var(--color-success-text)'
-                            : 'var(--color-warning-text)';
+                    statusEl.style.color = accurate && !cached
+                        ? 'var(--color-success-text)'
+                        : 'var(--color-warning-text)';
 
-                        dataEl.hidden = false;
-                        const readout =
-                            t('gps.latitude', { degrees: latitude.toFixed(5) }) + '\n' +
-                            t('gps.longitude', { degrees: longitude.toFixed(5) }) + '\n' +
-                            t('location.accuracy', { metres: accuracy.toFixed(1) });
-                        dataEl.textContent = readout;
+                    dataEl.hidden = false;
+                    const readout =
+                        t('gps.latitude', { degrees: latitude.toFixed(5) }) + '\n' +
+                        t('gps.longitude', { degrees: longitude.toFixed(5) }) + '\n' +
+                        t('location.accuracy', { metres: accuracy.toFixed(1) });
+                    dataEl.textContent = readout;
 
-                        this.details.latitude = latitude;
-                        this.details.longitude = longitude;
-                        this.details.accuracy = accuracy;
-                        this.details.accuracyGrade = accurate ? 'high' : 'low';
+                    this.details.latitude = latitude;
+                    this.details.longitude = longitude;
+                    this.details.accuracy = accuracy;
+                    this.details.accuracyGrade = accurate ? 'high' : 'low';
+                    this.details.fixSource = cached ? 'cache' : 'live';
 
-                        this.pass(accurate
+                    this.pass(cached
+                        ? t('gps.passCached', { metres: accuracy.toFixed(1) })
+                        : accurate
                             ? t('gps.passAccurate', { metres: accuracy.toFixed(1) })
                             : t('gps.passCoarse', { metres: accuracy.toFixed(1) }));
 
-                        this.reportProgress(wsClient, 100, t('gps.fixComplete'));
-                        setTimeout(settle, 1500);
-                    },
-                    (error) => {
-                        requestInFlight = false;
-                        spinnerEl.hidden = true;
-                        statusArea.hidden = true;
-                        errorArea.hidden = false;
-                        this.details.errorCode = error.code;
-                        this.showLocationError(errorMsgEl, fixStepsEl, error, grantedOnce);
-                        this.reportProgress(wsClient, grantedOnce ? 60 : 30, t('gps.fixFailed'));
+                    this.reportProgress(wsClient, 100, t('gps.fixComplete'));
+                    setTimeout(settle, 1500);
+                };
 
-                        // A refusal is a question to the operator, not an answer.
-                        // A timeout or an unavailable position is a finding about the
-                        // hardware, and it stands on its own.
-                        if (error.code === error.PERMISSION_DENIED) {
-                            armGrace();
-                        } else {
-                            this.details.failure = describeFailure(error);
-                            this.fail(this.details.failure);
-                            setTimeout(settle, 2500);
-                        }
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 15000,
-                        maximumAge: 0
+                const onRefusal = (error) => {
+                    requestInFlight = false;
+                    stopClock();
+                    spinnerEl.hidden = true;
+                    statusArea.hidden = true;
+                    errorArea.hidden = false;
+                    this.details.errorCode = error.code;
+                    this.showLocationError(errorMsgEl, fixStepsEl, error, grantedOnce);
+                    this.reportProgress(wsClient, grantedOnce ? 60 : 30, t('gps.fixFailed'));
+
+                    // A refusal is a question to the operator, not an answer.
+                    // A timeout or an unavailable position is a finding about the
+                    // hardware, and it stands on its own.
+                    if (error.code === error.PERMISSION_DENIED) {
+                        armGrace();
+                    } else {
+                        this.details.failure = describeFailure(error);
+                        this.fail(this.details.failure);
+                        setTimeout(settle, 2500);
                     }
-                );
+                };
+
+                const attempt = (stage) => {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => onFix(position, stage),
+                        (error) => {
+                            if (error.code === error.PERMISSION_DENIED) {
+                                onRefusal(error);
+                                return;
+                            }
+
+                            // Accurate, then network, then whatever the phone
+                            // already knows. Each one is a wider net than the
+                            // last; the verdict says which one caught the fix.
+                            if (stage === 0) {
+                                statusEl.textContent = t('gps.tryingNetwork');
+                                this.reportProgress(wsClient, 40, t('gps.tryingNetwork'));
+                                attempt(1);
+                                return;
+                            }
+
+                            if (stage === 1) {
+                                statusEl.textContent = t('gps.tryingCache');
+                                this.reportProgress(wsClient, 55, t('gps.tryingCache'));
+                                attempt(2);
+                                return;
+                            }
+
+                            onRefusal(error);
+                        },
+                        stage === 0
+                            ? { enableHighAccuracy: true, timeout: ACCURATE_TIMEOUT_MS, maximumAge: 0 }
+                            : stage === 1
+                                ? { enableHighAccuracy: false, timeout: COARSE_TIMEOUT_MS, maximumAge: COARSE_MAX_AGE_MS }
+                                : { enableHighAccuracy: false, timeout: CACHED_TIMEOUT_MS, maximumAge: CACHED_MAX_AGE_MS }
+                    );
+                };
+
+                this.reportProgress(wsClient, 25, t('gps.acquiringFix'));
+                attempt(0);
             };
 
             btnRequest.onclick = requestLocation;
