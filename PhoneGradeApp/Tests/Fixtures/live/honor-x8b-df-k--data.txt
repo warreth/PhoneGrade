@@ -1,2 +1,0 @@
-Filesystem       1K-blocks    Used Available Use% Mounted on
-/dev/block/dm-23 236630016 7861776 228637168   4% /data/user/0

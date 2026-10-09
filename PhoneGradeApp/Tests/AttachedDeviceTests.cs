@@ -113,9 +113,9 @@ public sealed class AttachedDeviceFactAttribute : FactAttribute
 /// the cable.
 ///
 /// Every read goes through <see cref="DeviceService"/>, so a fact passing here is
-/// a statement about the product's own reader rather than about a capture of one.
-/// The captures under <c>Fixtures/live</c> keep the same readers honest in CI;
-/// these facts keep them honest against today's hardware.
+/// a statement about the product's own reader rather than about a recording of
+/// one. The facts skip themselves when nothing is attached, which keeps CI green
+/// without a handset and still exercises the real thing on the bench.
 /// </summary>
 public class AttachedDeviceTests
 {
