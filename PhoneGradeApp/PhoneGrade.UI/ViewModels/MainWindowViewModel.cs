@@ -2385,7 +2385,16 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// </summary>
     public async Task<bool> PassScanGateAsync()
     {
-        DeviceService.ScanInitResult verdict = await DeviceService.InitializeScanAsync().ConfigureAwait(false);
+        // The refresh touches bound state, so this method has to finish on the
+        // UI thread whoever called it. Called from a pool thread (a watcher
+        // callback, a stray continuation) it hops over first; called from the
+        // UI thread it stays there. Without the hop, IsTrialLimitReached moves
+        // the start button's CanExecute on that pool thread, and Avalonia
+        // answers a command change from the wrong thread by ending the process.
+        if (!Dispatcher.UIThread.CheckAccess())
+            return await Dispatcher.UIThread.InvokeAsync(PassScanGateAsync);
+
+        DeviceService.ScanInitResult verdict = await DeviceService.InitializeScanAsync();
         RefreshLicensingState();
         return verdict == DeviceService.ScanInitResult.Proceed;
     }
@@ -2393,6 +2402,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// <summary>The whole pipeline for one device.</summary>
     private async Task RunFlowAsync()
     {
+        // Every line of the flow touches bound state, so a caller off the UI
+        // thread is moved over before anything runs. The gate below guards
+        // itself too, because it is public and has other callers.
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            await Dispatcher.UIThread.InvokeAsync(RunFlowAsync);
+            return;
+        }
+
         string? udid = SelectedDevice.Key;
         if (udid is not { Length: > 0 })
         {
@@ -2401,7 +2419,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
 
         // Licensing gate: block at the limit before any device work starts.
-        if (!await PassScanGateAsync().ConfigureAwait(false))
+        if (!await PassScanGateAsync())
         {
             Status = LocalizationManager.GetString("Status_TrialLimit");
             return;

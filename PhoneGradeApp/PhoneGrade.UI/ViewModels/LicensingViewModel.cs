@@ -1,6 +1,7 @@
 using System;
 using System.Reactive;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using PhoneGrade.Core.Licensing;
 using PhoneGrade.UI.Services;
 using ReactiveUI;
@@ -249,6 +250,18 @@ public class LicensingViewModel : ReactiveObject, IDisposable
 
     private async Task ValidateAndActivateAsync()
     {
+        // Everything below touches bound state: the status message, the key box,
+        // the seat counters, the activation switch. Called from a pool thread it
+        // hops to the UI thread first; the activation await then resumes on the
+        // same thread rather than suppressing the context, so a network answer
+        // cannot move the raises off the dispatcher. A command change from the
+        // wrong thread is what Avalonia answers by ending the process.
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            await Dispatcher.UIThread.InvokeAsync(ValidateAndActivateAsync);
+            return;
+        }
+
         StatusMessage = "";
         string key = (LicenseKeyInput ?? "").Trim();
 
@@ -261,7 +274,7 @@ public class LicensingViewModel : ReactiveObject, IDisposable
         IsActivating = true;
         try
         {
-            LicenseValidationResult result = await _gate.ActivateLicenseAsync(key).ConfigureAwait(false);
+            LicenseValidationResult result = await _gate.ActivateLicenseAsync(key);
 
             // ActivationLimitReached is its own line rather than a flavour of "invalid":
                 // the key is fine, this computer is simply not allowed a seat, and
