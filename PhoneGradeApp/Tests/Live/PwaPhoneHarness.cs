@@ -21,6 +21,13 @@ internal sealed class PwaLiveOptions
     /// knows ("location", "touch", "camera"). Empty means the whole suite.
     /// </summary>
     public string OnlyTestId { get; init; } = "";
+
+    /// <summary>
+    /// Only lists and probes the cameras the browser exposes, and writes what
+    /// it found. Nothing is photographed through the suite and no verdict is
+    /// pressed, so this is the quiet way to see what lenses the phone offers.
+    /// </summary>
+    public bool ProbeCameras { get; init; }
 }
 
 /// <summary>What a live PWA run produced.</summary>
@@ -138,6 +145,21 @@ internal sealed class PwaPhoneHarness : IAsyncDisposable
             await GrantPermissionsAsync(origin, ct);
             await PreparePageAsync(url, options.Serial, ct);
             await WaitForPageReadyAsync(ct);
+
+            if (options.ProbeCameras)
+            {
+                string probeJson = await ProbeCamerasAsync(ct);
+                await File.WriteAllTextAsync(Path.Combine(_outputDirectory, "cameras.json"), Pretty(probeJson), ct);
+                _log.Add($"camera probe written to {Path.Combine(_outputDirectory, "cameras.json")}");
+
+                return new PwaLiveResult
+                {
+                    ArtifactsDirectory = _outputDirectory,
+                    SuiteJson = "{}",
+                    Log = _log.ToArray(),
+                    ConsoleEvents = _cdp!.Events,
+                };
+            }
 
             await _cdp!.TryEvaluateAsync(
                 options.OnlyTestId.Length > 0
@@ -379,6 +401,63 @@ internal sealed class PwaPhoneHarness : IAsyncDisposable
         {
             _log.Add($"could not prepare a fresh page: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Lists the video inputs the browser exposes, then opens each one for a
+    /// moment and reports its settings and how bright its first frames are.
+    ///
+    /// This is the quiet answer to "does the phone have lenses the suite never
+    /// opened": it opens cameras but presses nothing, so no verdict and no
+    /// haptics are involved.
+    /// </summary>
+    private async Task<string> ProbeCamerasAsync(CancellationToken ct)
+    {
+        string expression = """
+            (async () => {
+              const out = { first: null, devices: [], cameras: [] };
+              try {
+                const first = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const track = first.getVideoTracks()[0];
+                out.first = track.getSettings ? track.getSettings() : null;
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                out.devices = devices.filter(d => d.kind === 'videoinput').map(d => ({ deviceId: d.deviceId, label: d.label }));
+                first.getTracks().forEach(t => t.stop());
+                await new Promise(r => setTimeout(r, 400));
+                for (const d of out.devices) {
+                  try {
+                    const s = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: d.deviceId } } });
+                    const t = s.getVideoTracks()[0];
+                    const settings = t.getSettings ? t.getSettings() : {};
+                    const v = document.createElement('video');
+                    v.muted = true; v.playsInline = true; v.srcObject = s;
+                    await v.play().catch(() => {});
+                    await new Promise(r => setTimeout(r, 1200));
+                    let brightness = -1;
+                    if (v.videoWidth) {
+                      const c = document.createElement('canvas'); c.width = 32; c.height = 32;
+                      const x = c.getContext('2d'); x.drawImage(v, 0, 0, 32, 32);
+                      const data = x.getImageData(0, 0, 32, 32).data;
+                      let m = 0; for (let k = 0; k < data.length; k += 4) m = Math.max(m, data[k], data[k + 1], data[k + 2]);
+                      brightness = m;
+                    }
+                    out.cameras.push({ deviceId: d.deviceId, label: d.label, settings, videoWidth: v.videoWidth, videoHeight: v.videoHeight, brightness });
+                    s.getTracks().forEach(tr => tr.stop());
+                    await new Promise(r => setTimeout(r, 400));
+                  } catch (e) {
+                    out.cameras.push({ deviceId: d.deviceId, label: d.label, error: (e && e.name) || String(e) });
+                  }
+                }
+              } catch (e) {
+                out.error = (e && e.name) || String(e);
+              }
+              return JSON.stringify(out);
+            })()
+            """;
+
+        string json = await _cdp!.EvaluateStringAsync(expression, awaitPromise: true) ?? "";
+        _log.Add("camera probe: " + (json.Length > 800 ? json[..800] + "..." : json));
+        return json;
     }
 
     private async Task WaitForPageReadyAsync(CancellationToken ct)

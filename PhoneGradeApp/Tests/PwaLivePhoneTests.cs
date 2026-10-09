@@ -48,13 +48,25 @@ public class PwaLivePhoneTests
         // value is a runner test id ("location", "touch", "camera", "powerlock").
         string only = Environment.GetEnvironmentVariable("PHONEGRADE_PWA_TEST") ?? "";
 
+        // "cameras" only probes what lenses the browser exposes and writes what
+        // it found; nothing is photographed and no verdict is pressed.
+        string probe = Environment.GetEnvironmentVariable("PHONEGRADE_PWA_PROBE") ?? "";
+
         await using var harness = new PwaPhoneHarness(serial!, output);
         PwaLiveResult result = await harness.RunAsync(new PwaLiveOptions
         {
             Serial = serial!,
             OutputDirectory = output,
             OnlyTestId = only,
+            ProbeCameras = probe.Equals("cameras", StringComparison.OrdinalIgnoreCase),
         });
+
+        if (probe.Length > 0)
+        {
+            Assert.True(File.Exists(Path.Combine(output, "cameras.json")),
+                $"the camera probe wrote nothing; artifacts are in {output}");
+            return;
+        }
 
         Assert.False(string.IsNullOrWhiteSpace(result.SuiteJson),
             $"the suite never produced a result; artifacts are in {result.ArtifactsDirectory}");
