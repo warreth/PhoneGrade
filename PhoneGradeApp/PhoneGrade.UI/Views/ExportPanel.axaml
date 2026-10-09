@@ -7,27 +7,25 @@
              x:DataType="vm:ExportViewModel">
 
     <!--
-        ==================== EXPORT AND PRINT ====================
+        ==================== FINISH: LABEL AND RECORD ====================
 
         An overlay rather than a window, on top of the report screen: the operator
         came from there and goes back to it, and a second window would leave two
         windows stacked with no visual order between them.
 
-        Three rows that never move: a heading, the two columns, and the bar of
-        actions. Only the middle scrolls, so the write button is on screen at the
-        minimum window height.
+        One action, the one every shop performs on every phone: the label is drawn
+        on screen exactly as it will print, and one button prints it and files the
+        record. Everything a shop configures once - the roll, the arrangement, the
+        barcode, the files, the folder - lives in the settings and is listed on the
+        right as it stands, not asked again. The one thing that can differ for a
+        single inspection sits behind "Deze keer anders", collapsed.
 
-        Two columns. The left is what comes out of the printer, drawn on a sheet of
-        paper at the shape of the stock, because a label with a placeholder where a
-        colour should be is far cheaper to catch here than on a device. The right is
-        what to do with it: the formats, and what was written.
-
-        The result list sits below the formats rather than behind a second screen,
-        because writing the files and finding out what happened are one gesture. An
-        operator who has to press something else to learn whether the export worked
-        will press the export again.
+        A phone that did not report one of the four values a label cannot do
+        without is not labelled: the panel says which value is missing and opens the
+        editor, and offers to file the record without a label rather than printing a
+        tag with a placeholder on it.
     -->
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,*">
 
         <Border Grid.Row="0" Classes="topBar" Padding="24,16">
             <Grid ColumnDefinitions="*,Auto">
@@ -46,138 +44,115 @@
             <Grid ColumnDefinitions="*,1,*" Margin="24,20,24,16" MaxWidth="1100"
                   HorizontalAlignment="Stretch">
 
-                <!-- ============ What will come out of the printer ============ -->
-                <Border Grid.Column="0" Classes="previewColumn" Padding="0,0,24,0">
-                    <StackPanel Spacing="14">
+                <!-- ============ The label, and the one button ============ -->
+                <StackPanel Grid.Column="0" Spacing="14">
 
-                        <TextBlock Classes="cardTitle" Text="{DynamicResource Export_PreviewTitle}"/>
+                    <TextBlock Classes="cardTitle" Text="{DynamicResource Export_PreviewTitle}"/>
 
-                        <!--
-                            The sheet is the stock size itself, at 96 dpi, so a
-                            narrow label looks narrow and a long one looks long. The
-                            ratio is what carries the meaning here; a preview drawn
-                            at a fixed size would show a 54mm label and a 106mm
-                            label as the same rectangle, which is the opposite of a
-                            preview.
-                        -->
-                        <Border x:Name="LabelSheet" Classes="labelSheet"
-                                HorizontalAlignment="Center"
-                                Width="{Binding SheetWidth}"
-                                Height="{Binding SheetHeight}">
-                            <!--
-                                Row 0 is sized by the barcode and row 1 takes what is
-                                left. The other way round, with the barcode in a star
-                                row, the row shrinks under the barcode's own height
-                                when the words need the room and the two are drawn on
-                                top of each other.
-                            -->
-                            <Grid RowDefinitions="Auto,*">
-                                <!--
-                                    The barcode, drawn as bars from the same table
-                                    the label file uses, so an identifier that had
-                                    to be rewritten shows up rewritten here. A run
-                                    of characters in place of it looked like a
-                                    barcode and was not one.
+                    <!--
+                        The sheet, drawn from the same plate the label PDF is
+                        written from, at the shape of the stock. It scales itself
+                        down when the column cannot hold it at full size and says so
+                        underneath, because a scaled preview keeps the right shape
+                        and stops being a picture of the physical label.
+                    -->
+                    <views:LabelView x:Name="Sheet"
+                                     Plate="{Binding Plate}"
+                                     Layout="{Binding Layout}"
+                                     MaxWidth="420"
+                                     HorizontalAlignment="Center"/>
 
-                                    Two of them when the operator asked for the pair
-                                    to be separate, because that is two bands of the
-                                    label and the preview has to show the words
-                                    sitting lower than they did with one.
-                                -->
-                                <!--
-                                    The barcode band, bars and the value under them.
-                                    The caption belongs inside the band because that
-                                    is where the printed label puts it: as a fourth
-                                    line under the words it had nowhere to go on a
-                                    28mm address label and the locks line came off
-                                    the bottom of the sheet.
-                                -->
-                                <StackPanel Grid.Row="0" Spacing="1"
-                                            Margin="{Binding BandInsetThickness}">
-                                    <Grid Height="{Binding BarcodeBandHeight}"
-                                          IsVisible="{Binding HasLabelBarcode}">
-                                        <views:BarcodeView Value="{Binding LabelBarcode}"
-                                                           Symbology="{Binding LabelSymbology}"
-                                                           BarShare="{Binding BarcodeBarShare}"/>
-                                        <TextBlock Classes="labelSheetBarcode"
-                                                   Text="{Binding LabelBarcode}"
-                                                   FontSize="{Binding CaptionFontSize}"
-                                                   VerticalAlignment="Bottom"
-                                                   HorizontalAlignment="Center"/>
-                                    </Grid>
-                                    <Grid Height="{Binding BarcodeBandHeight}"
-                                          IsVisible="{Binding HasSecondLabelBarcode}">
-                                        <views:BarcodeView Value="{Binding LabelBarcodeSecond}"
-                                                           Symbology="{Binding LabelSymbology}"
-                                                           BarShare="{Binding BarcodeBarShare}"/>
-                                        <TextBlock Classes="labelSheetBarcode"
-                                                   Text="{Binding LabelBarcodeSecond}"
-                                                   FontSize="{Binding CaptionFontSize}"
-                                                   VerticalAlignment="Bottom"
-                                                   HorizontalAlignment="Center"/>
-                                    </Grid>
-                                    <TextBlock Classes="labelSheetBarcode"
-                                               Text="{Binding LabelSpelled}"
-                                               IsVisible="{Binding HasSpelledBarcode}"
-                                               FontSize="{Binding DetailFontSize}"
-                                               HorizontalAlignment="Center"/>
-                                </StackPanel>
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="settingDesc" Text="{DynamicResource Export_PreviewNote}"/>
+                        <TextBlock Classes="settingDesc"
+                                   Foreground="{DynamicResource WarnColor}"
+                                   Text="{DynamicResource Export_PreviewScaled}"
+                                   IsVisible="{Binding #Sheet.SheetScaled}"/>
+                    </StackPanel>
 
-                                <!--
-                                    Everything the label says, in the order the
-                                    file says it: the specification, then what is
-                                    wrong with it, then the locks on their own and
-                                    set larger. All three read from the same place
-                                    the writer reads, because a preview of a label
-                                    with different faults on it is not a preview.
-                                -->
-                                <StackPanel Grid.Row="1" Spacing="1"
-                                            VerticalAlignment="Center"
-                                            Margin="{Binding SideInsetThickness}">
-                                    <TextBlock Classes="labelSheetText"
-                                               Text="{Binding LabelTextLine}"
-                                               FontSize="{Binding SpecFontSize}" FontWeight="Bold"
-                                               TextWrapping="Wrap"
-                                               HorizontalAlignment="Center" TextAlignment="Center"/>
-                                    <TextBlock Classes="labelSheetText"
-                                               Text="{Binding LabelDetailLine}"
-                                               FontSize="{Binding DetailFontSize}" TextWrapping="Wrap"
-                                               IsVisible="{Binding HasLabelDetail}"
-                                               HorizontalAlignment="Center" TextAlignment="Center"/>
-                                    <TextBlock Classes="labelSheetText"
-                                               Text="{Binding LabelLockLine}"
-                                               FontSize="{Binding LockFontSize}" FontWeight="Bold"
-                                               IsVisible="{Binding HasLabelLocks}"
-                                               HorizontalAlignment="Center" TextAlignment="Center"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-
-                        <!--
-                            Two notes under the sheet: what it is, and whether it
-                            is drawn to size. The second matters, because a sheet
-                            scaled down to fit the column keeps the right shape and
-                            is no longer a picture of the physical label, which is
-                            the thing it is being asked to be.
-                        -->
-                        <StackPanel Spacing="4">
-                            <TextBlock Classes="settingDesc" Text="{DynamicResource Export_PreviewNote}"/>
-                            <TextBlock Classes="settingDesc"
-                                       Foreground="{DynamicResource WarnColor}"
-                                       Text="{DynamicResource Export_PreviewScaled}"
-                                       IsVisible="{Binding SheetOverflows}"/>
+                    <!--
+                        The phone cannot be labelled yet. The card replaces the
+                        button rather than sitting beside it: one of the two is the
+                        way forward and an operator should not have to choose
+                        between a greyed button and a red card.
+                    -->
+                    <Border Classes="settingCard" IsVisible="{Binding IsLabelBlocked}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Classes="cardTitle" Foreground="{DynamicResource DangerColor}"
+                                       Text="{DynamicResource Export_MissingTitle}"/>
+                            <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                       Text="{DynamicResource Export_MissingBody}"/>
+                            <TextBlock Classes="valueText" FontWeight="Bold" TextWrapping="Wrap"
+                                       Text="{Binding MissingFieldsText}"/>
+                            <Button Classes="kioskPrint" FontSize="15"
+                                    HorizontalContentAlignment="Center"
+                                    Command="{Binding FixCommand}"
+                                    Content="{DynamicResource Export_BtnFix}"/>
+                            <Button Classes="kioskSecondary"
+                                    HorizontalContentAlignment="Center"
+                                    IsEnabled="{Binding CanFinish}"
+                                    Command="{Binding FinishCommand}"
+                                    Content="{DynamicResource Export_BtnSaveWithoutLabel}"/>
                         </StackPanel>
+                    </Border>
 
-                        <!--
-                            Stock and printer. The stock changes the sheet above it,
-                            so the operator sees what the other size would look like
-                            before choosing it rather than after.
-                        -->
-                        <Border Classes="settingCard">
-                            <StackPanel Spacing="14">
+                    <!-- The one action. Print and file, or file alone when the fold
+                         has printing ticked off. -->
+                    <Button Classes="kioskPrint" FontSize="16"
+                            HorizontalContentAlignment="Center"
+                            IsVisible="{Binding !IsLabelBlocked}"
+                            IsEnabled="{Binding CanFinish}"
+                            Command="{Binding FinishCommand}"
+                            Content="{Binding PrimaryLabelKey, Converter={StaticResource LocalizationConverter}}"/>
+
+                    <TextBlock Classes="settingDesc" TextWrapping="Wrap" Text="{Binding FolderLine}"/>
+
+                    <!-- What happened, and the two things an operator does next. -->
+                    <Border Classes="settingCard" IsVisible="{Binding Confirmed}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Classes="valueText" TextWrapping="Wrap" Text="{Binding Status}"
+                                       Foreground="{Binding StatusIsError, Converter={x:Static conv:ExportStatusBrushConverter.Instance}}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Classes="kioskSecondary" Command="{Binding OpenFolderCommand}"
+                                        Content="{DynamicResource Export_BtnOpenFolder}"/>
+                                <Button Classes="kioskPrint" FontSize="14" Padding="16,10"
+                                        Command="{Binding NextDeviceCommand}"
+                                        Content="{DynamicResource Export_BtnNextDevice}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- A finish that did not complete still reports; the confirm
+                         card above is only for the ones that did. -->
+                    <TextBlock Classes="settingDesc" TextWrapping="Wrap" Text="{Binding Status}"
+                               IsVisible="{Binding !Confirmed}"
+                               Foreground="{Binding StatusIsError, Converter={x:Static conv:ExportStatusBrushConverter.Instance}}"/>
+                    <TextBlock Classes="valueHint" IsVisible="{Binding IsBusy}"
+                               Text="{DynamicResource Export_Busy}"/>
+                </StackPanel>
+
+                <!-- ============ The standard, and the exceptions ============ -->
+                <StackPanel Grid.Column="2" Spacing="12">
+
+                    <Border Classes="settingCard" Padding="0">
+                        <StackPanel>
+                            <ToggleButton x:Name="AgainToggle" Classes="foldHead">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Classes="cardTitle" Text="{DynamicResource Export_AgainFold}"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Export_AgainFoldNote}"/>
+                                    </StackPanel>
+                                    <Path Grid.Column="1" Classes="chevron"
+                                          Data="M 0,0 L 6,6 L 0,12" Stroke="{DynamicResource TextDimColor}"
+                                          StrokeThickness="2" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+                            </ToggleButton>
+
+                            <StackPanel Spacing="12" Margin="14,0,14,14"
+                                        IsVisible="{Binding #AgainToggle.IsChecked}">
 
                                 <StackPanel Spacing="6">
-                                    <TextBlock Classes="fieldCaption" Text="{DynamicResource Export_Stock}"/>
+                                    <TextBlock Classes="fieldCaption" Text="{DynamicResource Export_RollOverride}"/>
                                     <ComboBox ItemsSource="{Binding Layouts}"
                                               SelectedItem="{Binding Stock}"
                                               HorizontalAlignment="Stretch">
@@ -185,171 +160,27 @@
                                             <DataTemplate x:DataType="vm:LabelLayoutItem">
                                                 <StackPanel Spacing="1">
                                                     <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
-                                                    <TextBlock Classes="valueHint"
-                                                               Text="{Binding PartNumber}"/>
+                                                    <TextBlock Classes="valueHint" Text="{Binding PartNumber}"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <TextBlock Classes="settingDesc"
-                                               Text="{DynamicResource Export_StockNote}"/>
+                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                               Text="{DynamicResource Export_RollOverrideNote}"/>
                                 </StackPanel>
 
-                                <!--
-                                    What the barcode carries. Two codes take two bands
-                                    of the label and leave the words less room, so
-                                    this sits with the stock rather than with the
-                                    formats: both of them decide how much paper the
-                                    words get.
-                                -->
-                                <!--
-                                    Two settings that belong together and are read as
-                                    one: what the barcode carries, and how it is
-                                    written down. Side by side, because the second
-                                    decides whether the first can be done at all:
-                                    the combined mode needs Code128, and on the two
-                                    small rolls it cannot be done in either.
+                                <StackPanel Spacing="4">
+                                    <CheckBox IsChecked="{Binding SaveOnly}"
+                                              Content="{DynamicResource Export_NoPrint}"/>
+                                    <TextBlock Classes="settingDesc" Margin="26,0,0,0" TextWrapping="Wrap"
+                                               Text="{DynamicResource Export_NoPrintNote}"/>
+                                </StackPanel>
 
-                                    The two are in one bordered row rather than two
-                                    stacked ones because an operator choosing the
-                                    combined mode needs to see what it costs on the
-                                    paper before they leave the setting, and two
-                                    separate rows with a note between them is where
-                                    that connection goes missing.
-                                -->
-                                <Border Classes="settingCardInner">
-                                    <StackPanel Spacing="14">
-
-                                        <StackPanel Spacing="6">
-                                            <TextBlock Classes="fieldCaption"
-                                                       Text="{DynamicResource Export_BarcodeTitle}"/>
-                                            <!--
-                                                Named because the screenshot runner
-                                                opens it: the state that matters is
-                                                the row that is closed inside it, and
-                                                a picture of the closed picker does
-                                                not show any rows at all.
-                                            -->
-                                            <ComboBox x:Name="BarcodePicker"
-                                                      ItemsSource="{Binding BarcodeModes}"
-                                                      SelectedItem="{Binding Barcode}"
-                                                      HorizontalAlignment="Stretch">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:LabelBarcodeItem">
-                                                        <Border Classes="optionRow"
-                                                                Opacity="{Binding RowStrength}">
-                                                                <StackPanel Spacing="3">
-                                                                    <Grid ColumnDefinitions="Auto,*">
-                                                                        <!--
-                                                                            The tick. Kept even though
-                                                                            the picker shows its own,
-                                                                            because a greyed row with
-                                                                            no tick reads as a rendering
-                                                                            fault rather than as a
-                                                                            setting that cannot be
-                                                                            chosen.
-                                                                        -->
-                                                                        <Path Classes="tick" IsVisible="{Binding IsSelected}"
-                                                                              Data="M 0,5 L 3,8 L 9,0"
-                                                                              Width="12" Height="11"
-                                                                              VerticalAlignment="Center"
-                                                                              Margin="0,0,9,0"/>
-                                                                        <TextBlock Grid.Column="1"
-                                                                                   Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
-                                                                    </Grid>
-
-                                                                    <!--
-                                                                        The reason, on the row it is
-                                                                        about. The fade alone says
-                                                                        almost nothing here: measured
-                                                                        off the two screenshots taken
-                                                                        to check it, a row at forty
-                                                                        five per cent against a dark
-                                                                        row background differs by
-                                                                        four per cent of mean
-                                                                        brightness, which is nothing
-                                                                        an operator sees.
-
-                                                                        A row that says why it is shut
-                                                                        is read whether or not the
-                                                                        fade is noticed, and it cannot
-                                                                        be taken for the reason
-                                                                        belonging to the setting above
-                                                                        it, because it is in the row.
-                                                                    -->
-                                                                    <TextBlock Classes="optionRowNote"
-                                                                               Margin="21,0,0,0"
-                                                                               TextWrapping="Wrap"
-                                                                               IsVisible="{Binding ShowUnavailableReason}"
-                                                                               Text="{Binding UnavailableKey, Converter={StaticResource LocalizationConverter}}"/>
-                                                                </StackPanel>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                            <TextBlock Classes="settingDesc" TextWrapping="Wrap"
-                                                       Text="{Binding Barcode.NoteKey, Converter={StaticResource LocalizationConverter}}"/>
-
-                                            <!--
-                                                Why a value is printed as words
-                                                rather than as bars. Under the picker
-                                                rather than on a row, because it is
-                                                about what the label will carry and
-                                                not about one of the choices: it
-                                                applies to whichever mode is chosen,
-                                                and a message attached to one row
-                                                would read as being about that row.
-                                            -->
-                                            <TextBlock Classes="settingDesc" TextWrapping="Wrap"
-                                                       Foreground="{DynamicResource WarnColor}"
-                                                       IsVisible="{Binding HasSpelledBarcode}"
-                                                       Text="{DynamicResource Export_LabelTooNarrow}"/>
-                                        </StackPanel>
-
-                                        <StackPanel Spacing="6">
-                                            <TextBlock Classes="fieldCaption"
-                                                       Text="{DynamicResource Export_SymbologyTitle}"/>
-                                            <ComboBox ItemsSource="{Binding Symbologies}"
-                                                      SelectedItem="{Binding Symbology}"
-                                                      HorizontalAlignment="Stretch">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate x:DataType="vm:LabelSymbologyItem">
-                                                        <Border Classes="optionRow">
-                                                            <Grid ColumnDefinitions="Auto,*">
-                                                                <Path Classes="tick" IsVisible="{Binding IsSelected}"
-                                                                      Data="M 0,5 L 3,8 L 9,0"
-                                                                      Width="12" Height="11"
-                                                                      VerticalAlignment="Center"
-                                                                      Margin="0,0,9,0"/>
-                                                                <TextBlock Grid.Column="1"
-                                                                           Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
-                                                            </Grid>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                            <TextBlock Classes="settingDesc" TextWrapping="Wrap"
-                                                       Text="{Binding Symbology.NoteKey, Converter={StaticResource LocalizationConverter}}"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-
-                                <!--
-                                    What the label says about the phone, as three
-                                    switches. Turning off the locks takes away the one
-                                    line that stops a FRP locked phone being sold,
-                                    which is why the wording says so rather than
-                                    leaving it to be remembered.
-                                -->
-                                <StackPanel Spacing="8">
-                                    <TextBlock Classes="fieldCaption"
-                                               Text="{DynamicResource Export_LabelShowTitle}"/>
-                                    <CheckBox IsChecked="{Binding LabelShowBatteryCycles}"
-                                              Content="{DynamicResource Export_LabelShowCycles}"/>
-                                    <CheckBox IsChecked="{Binding LabelShowFaults}"
-                                              Content="{DynamicResource Export_LabelShowFaults}"/>
-                                    <CheckBox IsChecked="{Binding LabelShowLocks}"
-                                              Content="{DynamicResource Export_LabelShowLocks}"/>
+                                <StackPanel Spacing="4">
+                                    <CheckBox IsChecked="{Binding ExtraFiles}"
+                                              Content="{DynamicResource Export_ExtraFiles}"/>
+                                    <TextBlock Classes="settingDesc" Margin="26,0,0,0" TextWrapping="Wrap"
+                                               Text="{DynamicResource Export_ExtraFilesNote}"/>
                                 </StackPanel>
 
                                 <StackPanel Spacing="6">
@@ -361,13 +192,6 @@
                                                 Command="{Binding DetectPrintersCommand}"
                                                 Content="{DynamicResource Export_ScanPrinters}"/>
                                     </Grid>
-
-                                    <!--
-                                        Empty means no printer was found. The
-                                        placeholder is the system print dialog, which
-                                        is the right fallback on a machine that has
-                                        no printers configured yet.
-                                    -->
                                     <ComboBox ItemsSource="{Binding Printers}"
                                               SelectedItem="{Binding Printer}"
                                               PlaceholderText="{DynamicResource Export_PrintDialog}"
@@ -381,64 +205,67 @@
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
-
                                     <TextBlock Classes="settingDesc"
                                                Text="{DynamicResource Export_NoPrinters}"
                                                IsVisible="{Binding !Printers.Count}"/>
                                 </StackPanel>
-
                             </StackPanel>
-                        </Border>
+                        </StackPanel>
+                    </Border>
 
-                    </StackPanel>
-                </Border>
+                    <!-- What every finish writes, as it is configured. The values
+                         are the settings' own, so a shop that changes one sees the
+                         change here rather than in a file it did not expect. -->
+                    <Border Classes="settingCard">
+                        <StackPanel Spacing="10">
+                            <TextBlock Classes="cardTitle" Text="{DynamicResource Export_AsConfigured}"/>
 
-                <!-- ============ What to write, and what happened ============ -->
-                <StackPanel Grid.Column="2" Spacing="12">
-                    <TextBlock Classes="cardTitle" Text="{DynamicResource Export_FormatsTitle}"/>
-                    <TextBlock Classes="settingDesc" Text="{DynamicResource Export_FormatsNote}"/>
+                            <StackPanel Spacing="6">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Classes="configuredLabel"
+                                               Text="{DynamicResource Export_ConfiguredLabel}"/>
+                                    <TextBlock Grid.Column="1" Classes="configuredValue"
+                                               Text="{Binding ConfiguredVariant}"/>
+                                </Grid>
 
-                    <ItemsControl ItemsSource="{Binding Options}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:ExportOption">
-                                <!--
-                                    The whole row is the target, not just the box: a
-                                    twelve pixel tickbox in a row this wide is
-                                    something to aim at with a finger. A
-                                    ToggleButton rather than a CheckBox with a
-                                    handler, because the tick is then the row's own
-                                    state rather than a copy of it that can drift.
-                                -->
-                                <ToggleButton Classes="formatRow"
-                                              Classes.on="{Binding Selected}"
-                                              Margin="0,0,0,6"
-                                              IsChecked="{Binding Selected, Mode=TwoWay}">
-                                    <Grid ColumnDefinitions="Auto,*">
-                                        <CheckBox Grid.Column="0" IsChecked="{Binding Selected}"
-                                                  IsHitTestVisible="False"/>
-                                        <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="2">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock FontWeight="SemiBold" FontSize="13"
-                                                           Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
-                                                <TextBlock Text="{Binding Suffix}" Classes="dim" FontSize="11"
-                                                           VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                            <TextBlock Classes="settingDesc" FontSize="11"
-                                                       Text="{Binding NoteKey, Converter={StaticResource LocalizationConverter}}"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </ToggleButton>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Classes="configuredLabel"
+                                               Text="{DynamicResource Export_ConfiguredFormats}"/>
+                                    <TextBlock Grid.Column="1" Classes="configuredValue"
+                                               Text="{Binding ConfiguredFormats}"/>
+                                </Grid>
 
-                    <!--
-                        What was written. A failed row keeps its place in the list
-                        rather than moving to a separate error box, because the
-                        operator needs to see that the other formats still arrived.
-                        A failure panel that replaces the list reads as "nothing was
-                        written".
-                    -->
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Classes="configuredLabel"
+                                               Text="{DynamicResource Export_ConfiguredFolder}"/>
+                                    <TextBlock Grid.Column="1" Classes="configuredValue"
+                                               Text="{Binding ConfiguredFolder}"/>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Classes="configuredLabel"
+                                               Text="{DynamicResource Export_ConfiguredRoll}"/>
+                                    <TextBlock Grid.Column="1" Classes="configuredValue"
+                                               Text="{Binding ConfiguredRoll}"/>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Classes="configuredLabel"
+                                               Text="{DynamicResource Export_ConfiguredPrinter}"/>
+                                    <TextBlock Grid.Column="1" Classes="configuredValue"
+                                               Text="{Binding ConfiguredPrinter}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <Button Classes="headerBtn" HorizontalAlignment="Left"
+                                    Command="{Binding OpenLabelSettingsCommand}"
+                                    Content="{DynamicResource Export_ConfiguredChange}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- What was written. A failed row keeps its place in the list
+                         rather than moving to a separate error box, because the
+                         operator needs to see that the other files still arrived. -->
                     <Border Classes="settingCard" IsVisible="{Binding HasResults}">
                         <StackPanel Spacing="12">
                             <Grid ColumnDefinitions="*,Auto">
@@ -469,13 +296,6 @@
                                                                    Text="{Binding FileName}"
                                                                    IsVisible="{Binding Succeeded}"/>
                                                     </StackPanel>
-                                                    <!--
-                                                        Why it failed, or what was
-                                                        noticed about a file that was
-                                                        written. Both on the row they
-                                                        belong to, never as a line
-                                                        somewhere else.
-                                                    -->
                                                     <TextBlock TextWrapping="Wrap" Classes="settingDesc"
                                                                Foreground="{DynamicResource DangerColor}"
                                                                Text="{Binding Outcome.Problem}"
@@ -486,14 +306,6 @@
                                                                IsVisible="{Binding Outcome.Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                                                 </StackPanel>
 
-                                                <!--
-                                                    Only offered where it can work: the
-                                                    .dymo file opens in DYMO Label if it
-                                                    is installed, and a PDF can always
-                                                    be printed. A JSON file can do
-                                                    neither, so it gets no button
-                                                    that could only fail.
-                                                -->
                                                 <Button Grid.Column="1" Classes="kioskSecondary" FontSize="12"
                                                         Margin="8,0,0,0" Padding="12,6"
                                                         Content="{DynamicResource Export_BtnOpen}"
@@ -517,43 +329,5 @@
                 </StackPanel>
             </Grid>
         </ScrollViewer>
-
-        <!-- One bar: what was done, and the two buttons that do things. -->
-        <Border Grid.Row="2" Classes="actionBar">
-            <Grid ColumnDefinitions="*,Auto,Auto" MaxWidth="1100" HorizontalAlignment="Center">
-                <!--
-                    The status line comes first and takes what is left, so a long
-                    message is read rather than pushed off the bar. The error colour
-                    is the one thing on this panel that has to be findable at a
-                    glance: it is the only thing an operator would otherwise act on
-                    wrongly.
-                -->
-                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,16,0">
-                    <TextBlock Classes="valueText" TextWrapping="Wrap" Text="{Binding Status}"
-                               Foreground="{Binding StatusIsError, Converter={x:Static conv:ExportStatusBrushConverter.Instance}}"/>
-                    <TextBlock Classes="valueHint" IsVisible="{Binding IsBusy}"
-                               Text="{DynamicResource Export_Busy}"/>
-                </StackPanel>
-
-                <Button Grid.Column="1" Classes="kioskSecondary" Margin="0,0,10,0"
-                        HorizontalContentAlignment="Center"
-                        Content="{DynamicResource Export_BtnOpenFolder}"
-                        Command="{Binding OpenFolderCommand}"/>
-
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
-                    <Button Classes="kioskSecondary"
-                            HorizontalContentAlignment="Center"
-                            IsEnabled="{Binding !IsBusy}"
-                            Content="{DynamicResource Export_BtnPrintLabel}"
-                            Command="{Binding PrintLabelCommand}"/>
-
-                    <Button Classes="kioskPrint" FontSize="16"
-                            HorizontalContentAlignment="Center"
-                            IsEnabled="{Binding CanExport}"
-                            Content="{DynamicResource Export_BtnWrite}"
-                            Command="{Binding ExportCommand}"/>
-                </StackPanel>
-            </Grid>
-        </Border>
     </Grid>
 </UserControl>

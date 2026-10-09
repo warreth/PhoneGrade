@@ -186,7 +186,7 @@
     <x:String x:Key="Active_ColFactory">Factory value</x:String>
     <x:String x:Key="Active_ColRead">Read value</x:String>
     <x:String x:Key="Summary_ColStatus">Status</x:String>
-    <x:String x:Key="Summary_BtnPrint">PRINT DYMO LABEL</x:String>
+    <x:String x:Key="Summary_BtnPrint">Finish</x:String>
     <x:String x:Key="Summary_BtnRetest">Retest</x:String>
     <x:String x:Key="Summary_BtnNext">Next Device (Done)</x:String>
     <x:String x:Key="Summary_SimLockFree">Unlocked (SIM-free)</x:String>
@@ -196,10 +196,10 @@
     <!-- The panel an operator reaches from the inspection report. It is the only
          place that knows about labels, reports and the raw numbers, so the summary
          screen's button opens it and nothing else writes a file. -->
-    <x:String x:Key="Export_Title">Export and print</x:String>
-    <x:String x:Key="Export_Lead">Save the label, the report and the numbers, or print the label straight away.</x:String>
+    <x:String x:Key="Export_Title">Finish</x:String>
+    <x:String x:Key="Export_Lead">Check the label. Printing and saving happen in one go.</x:String>
     <x:String x:Key="Export_PreviewTitle">Label preview</x:String>
-    <x:String x:Key="Export_PreviewNote">Drawn from the same values as the file. What is missing shows as a placeholder.</x:String>
+    <x:String x:Key="Export_PreviewNote">Drawn from the same values as the file, at the size of the roll.</x:String>
     <x:String x:Key="Export_PreviewScaled">Drawn smaller than the label so it fits here. The shape is right; the size is not.</x:String>
     <x:String x:Key="Export_Stock">Label stock</x:String>
     <x:String x:Key="Export_StockNote">The roll in the printer, by the part number it is ordered under.</x:String>
@@ -226,13 +226,7 @@
     <x:String x:Key="Export_Symbology39Note">What every till and scanner in a phone shop already reads. Carries capitals and a handful of symbols, so a model name goes on the code as dashes.</x:String>
     <x:String x:Key="Export_Symbology128">Code 128</x:String>
     <x:String x:Key="Export_Symbology128Note">Denser, so one code can carry the identifier and the specification together where Code39 cannot. Your scanner has to be set to read it.</x:String>
-    <x:String x:Key="Export_LabelShowTitle">On the label</x:String>
     <x:String x:Key="Export_LabelShowCycles">Charge count</x:String>
-    <x:String x:Key="Export_LabelShowCyclesNote">How many times the battery has been charged, which a percentage cannot tell you.</x:String>
-    <x:String x:Key="Export_LabelShowFaults">Faults</x:String>
-    <x:String x:Key="Export_LabelShowFaultsNote">A counted list of what is wrong, such as 2x non-OEM screen.</x:String>
-    <x:String x:Key="Export_LabelShowLocks">FRP and activation lock</x:String>
-    <x:String x:Key="Export_LabelShowLocksNote">Printed in larger type when either is on. Turning this off removes the line that stops a locked phone being sold.</x:String>
     <x:String x:Key="Export_LabelPreviewTitle">The label</x:String>
     <x:String x:Key="Export_LabelPreviewNote">Drawn to the size of the roll above, from the same values as the file.</x:String>
     <x:String x:Key="Export_LabelTooNarrow">The serial number is too long for a barcode on this stock, so it is printed as text.</x:String>
@@ -784,5 +778,79 @@
 
     <x:String x:Key="Licensing_PanelSeatsFree">{0} seats left on this key</x:String>
     <x:String x:Key="Licensing_PanelSeatFreeOne">{0} seat left on this key</x:String>
+
+    <!-- Shop profile: exporting the shop-wide settings to another computer -->
+
+    <x:String x:Key="Export_BtnPrintAndFinish">Print label and finish</x:String>
+    <x:String x:Key="Export_BtnSaveAndFinish">Save and finish</x:String>
+    <x:String x:Key="Export_AgainFold">Different this time</x:String>
+    <x:String x:Key="Export_AgainFoldNote">Only when this inspection differs from the standard.</x:String>
+    <x:String x:Key="Export_RollOverride">Another roll</x:String>
+    <x:String x:Key="Export_RollOverrideNote">For this one only; the standard stays as it is.</x:String>
+    <x:String x:Key="Export_NoPrint">Save only, do not print</x:String>
+    <x:String x:Key="Export_NoPrintNote">For a phone that is not ready for the shelf yet.</x:String>
+    <x:String x:Key="Export_ExtraFiles">Extra files</x:String>
+    <x:String x:Key="Export_ExtraFilesNote">Also writes the raw numbers as JSON and CSV.</x:String>
+    <x:String x:Key="Export_AsConfigured">As configured</x:String>
+    <x:String x:Key="Export_ConfiguredLabel">Label</x:String>
+    <x:String x:Key="Export_ConfiguredFormats">Formats</x:String>
+    <x:String x:Key="Export_ConfiguredFolder">Folder</x:String>
+    <x:String x:Key="Export_ConfiguredRoll">Roll</x:String>
+    <x:String x:Key="Export_ConfiguredPrinter">Printer</x:String>
+    <x:String x:Key="Export_ConfiguredChange">Change in Settings</x:String>
+    <x:String x:Key="Export_ConfiguredNoFiles">No files chosen</x:String>
+    <x:String x:Key="Export_FolderLine">Saved in {0}</x:String>
+    <x:String x:Key="Export_MissingTitle">Not complete yet</x:String>
+    <x:String x:Key="Export_MissingBody">Still missing for the label:</x:String>
+    <x:String x:Key="Export_BtnFix">Fill in the editor</x:String>
+    <x:String x:Key="Export_BtnSaveWithoutLabel">File the record only</x:String>
+    <x:String x:Key="Export_BtnNextDevice">Next device</x:String>
+    <x:String x:Key="Export_PrintedAndSaved">Printed and saved in {0}</x:String>
+    <x:String x:Key="LabelField_Identifier">serial number</x:String>
+    <x:String x:Key="LabelField_Model">model</x:String>
+    <x:String x:Key="LabelField_Grade">grade</x:String>
+    <x:String x:Key="LabelField_Color">colour</x:String>
+    <x:String x:Key="Settings_SecLabel">Label</x:String>
+    <x:String x:Key="Settings_LabelLead">This is what every label looks like, for every inspection.</x:String>
+    <x:String x:Key="Settings_LabelVariant">Label layout</x:String>
+    <x:String x:Key="Settings_LabelVariantDesc">Choose the layout that suits the shop; the preview follows.</x:String>
+    <x:String x:Key="Settings_LabelVariantClean">As before (cleaned up)</x:String>
+    <x:String x:Key="Settings_LabelVariantCleanNote">One line with every value, as the label always was.</x:String>
+    <x:String x:Key="Settings_LabelVariantStructured">Structured</x:String>
+    <x:String x:Key="Settings_LabelVariantStructuredNote">Model and storage apart, the values together, faults and locks below.</x:String>
+    <x:String x:Key="Settings_LabelVariantGradeBlock">Grade block</x:String>
+    <x:String x:Key="Settings_LabelVariantGradeBlockNote">The grade as a large block; the rest beside it.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeTitle">Barcode</x:String>
+    <x:String x:Key="Settings_LabelBarcode">Barcode with serial number</x:String>
+    <x:String x:Key="Settings_LabelBarcodeDesc">One Code 39 code with the serial number. Every till reads it.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeNote">Turn off for a shop whose scanner cannot read one; the label then carries only its words.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeAdvanced">Advanced for own scanners</x:String>
+    <x:String x:Key="Settings_LabelCyclesNote">How often the battery was charged; below the threshold from Quality the label leaves it off.</x:String>
+    <x:String x:Key="Settings_LabelPreview">Preview</x:String>
+    <x:String x:Key="Settings_LabelPreviewNote">Drawn from the same values as the file, at the size of the roll.</x:String>
+    <x:String x:Key="Settings_LabelFiles">Files</x:String>
+    <x:String x:Key="Settings_LabelFilesNote">What every finish writes by default.</x:String>
+    <x:String x:Key="Settings_LabelFolder">Folder grouping</x:String>
+    <x:String x:Key="Settings_LabelFolderDesc">How the exports are grouped.</x:String>
+    <x:String x:Key="Settings_FolderDay">Per day</x:String>
+    <x:String x:Key="Settings_FolderDayNote">One folder per day, named by the date.</x:String>
+    <x:String x:Key="Settings_FolderWeek">Per week</x:String>
+    <x:String x:Key="Settings_FolderWeekNote">One folder per ISO week, the default.</x:String>
+    <x:String x:Key="Settings_FolderMonth">Per month</x:String>
+    <x:String x:Key="Settings_FolderMonthNote">One folder per month.</x:String>
+    <x:String x:Key="Settings_FolderInspection">Per device</x:String>
+    <x:String x:Key="Settings_FolderInspectionNote">One folder per serial number.</x:String>
+    <x:String x:Key="Settings_SecQuality">Quality</x:String>
+    <x:String x:Key="Settings_QualityLead">When a value is marked on the label and counted as a deviation in the report.</x:String>
+    <x:String x:Key="Settings_QualityBatteryThreshold">Mark battery under</x:String>
+    <x:String x:Key="Settings_QualityBatteryThresholdDesc">A battery under this limit gets an [X] on the label.</x:String>
+    <x:String x:Key="Settings_QualityBatteryExample">This phone: {0}.</x:String>
+    <x:String x:Key="Settings_QualityBatteryUnknown">no battery value read</x:String>
+    <x:String x:Key="Settings_QualityCyclesThreshold">Show charge cycles from</x:String>
+    <x:String x:Key="Settings_QualityCyclesThresholdDesc">Below this limit the number says nothing and the label leaves it off. The report always carries the value.</x:String>
+    <x:String x:Key="Settings_QualityCyclesShown">This phone has {0} cycles and that goes on the label.</x:String>
+    <x:String x:Key="Settings_QualityCyclesHidden">This phone has {0} cycles and that stays off the label.</x:String>
+    <x:String x:Key="Settings_PaymentNever">Do not ask (leave empty)</x:String>
+    <x:String x:Key="Settings_QualityCyclesUnknown">no charge count read</x:String>
 </ResourceDictionary>
 

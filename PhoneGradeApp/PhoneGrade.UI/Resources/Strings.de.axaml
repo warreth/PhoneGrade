@@ -186,7 +186,7 @@
     <x:String x:Key="Active_ColFactory">Werkswert</x:String>
     <x:String x:Key="Active_ColRead">Gelesener Wert</x:String>
     <x:String x:Key="Summary_ColStatus">Status</x:String>
-    <x:String x:Key="Summary_BtnPrint">DYMO-ETIKETT DRUCKEN</x:String>
+    <x:String x:Key="Summary_BtnPrint">Abschließen</x:String>
     <x:String x:Key="Summary_BtnRetest">Erneut testen</x:String>
     <x:String x:Key="Summary_BtnNext">Nächstes Gerät (Fertig)</x:String>
     <x:String x:Key="Summary_SimLockFree">Entsperrt (SIM-frei)</x:String>
@@ -196,10 +196,10 @@
     <!-- The panel an operator reaches from the inspection report. It is the only
          place that knows about labels, reports and the raw numbers, so the summary
          screen's button opens it and nothing else writes a file. -->
-    <x:String x:Key="Export_Title">Exportieren und drucken</x:String>
-    <x:String x:Key="Export_Lead">Speichern Sie Etikett, Bericht und Zahlen oder drucken Sie das Etikett sofort.</x:String>
+    <x:String x:Key="Export_Title">Abschließen</x:String>
+    <x:String x:Key="Export_Lead">Etikett prüfen. Drucken und Speichern geschieht in einem Schritt.</x:String>
     <x:String x:Key="Export_PreviewTitle">Etikettvorschau</x:String>
-    <x:String x:Key="Export_PreviewNote">Gezeichnet aus denselben Werten wie die Datei. Was fehlt, erscheint als Platzhalter.</x:String>
+    <x:String x:Key="Export_PreviewNote">Aus denselben Werten wie die Datei gezeichnet, in der Größe der Rolle.</x:String>
     <x:String x:Key="Export_PreviewScaled">Kleiner gezeichnet als das Etikett, damit es hier passt. Das Seitenverhältnis stimmt, die Größe nicht.</x:String>
     <x:String x:Key="Export_Stock">Etikettenmaterial</x:String>
     <x:String x:Key="Export_StockNote">Die Rolle im Drucker, nach der Artikelnummer, unter der sie bestellt wird.</x:String>
@@ -226,20 +226,7 @@
     <x:String x:Key="Export_Symbology39Note">Was jede Kasse und jeder Scanner in einem Telefonladen bereits liest. Tr&#228;gt Gro&#223;buchstaben und einige Zeichen, ein Modellname steht deshalb als Striche auf dem Code.</x:String>
     <x:String x:Key="Export_Symbology128">Code 128</x:String>
     <x:String x:Key="Export_Symbology128Note">Dichter, damit ein Code Kennung und Spezifikation gemeinsam tr&#228;gt, wo Code39 das nicht kann. Ihr Scanner muss darauf eingestellt sein.</x:String>
-
-
- 
- 
- 
- 
- 
-    <x:String x:Key="Export_LabelShowTitle">Auf dem Etikett</x:String>
     <x:String x:Key="Export_LabelShowCycles">Ladezyklen</x:String>
-    <x:String x:Key="Export_LabelShowCyclesNote">Wie oft der Akku geladen wurde, was ein Prozentwert nicht verraten kann.</x:String>
-    <x:String x:Key="Export_LabelShowFaults">Fehler</x:String>
-    <x:String x:Key="Export_LabelShowFaultsNote">Eine gezählte Liste der Mängel, zum Beispiel 2x kein OEM-Display.</x:String>
-    <x:String x:Key="Export_LabelShowLocks">FRP und Aktivierungssperre</x:String>
-    <x:String x:Key="Export_LabelShowLocksNote">Wird in größerer Schrift gedruckt, wenn eines von beiden aktiv ist. Ausschalten entfernt die Zeile, die den Verkauf eines gesperrten Telefons verhindert.</x:String>
     <x:String x:Key="Export_LabelPreviewTitle">Das Etikett</x:String>
     <x:String x:Key="Export_LabelPreviewNote">Gezeichnet in der Größe der Rolle oben, aus denselben Werten wie die Datei.</x:String>
     <x:String x:Key="Export_LabelTooNarrow">Die Seriennummer ist für einen Barcode auf diesem Material zu lang, deshalb wird sie als Text gedruckt.</x:String>
@@ -791,4 +778,78 @@
 
     <x:String x:Key="Licensing_PanelSeatsFree">{0} Plätze auf diesem Schlüssel frei</x:String>
     <x:String x:Key="Licensing_PanelSeatFreeOne">{0} Platz auf diesem Schlüssel frei</x:String>
+
+    <!-- Shop profile: exporting the shop-wide settings to another computer -->
+
+    <x:String x:Key="Export_BtnPrintAndFinish">Etikett drucken und abschließen</x:String>
+    <x:String x:Key="Export_BtnSaveAndFinish">Speichern und abschließen</x:String>
+    <x:String x:Key="Export_AgainFold">Diesmal anders</x:String>
+    <x:String x:Key="Export_AgainFoldNote">Nur wenn diese Prüfung von der Norm abweicht.</x:String>
+    <x:String x:Key="Export_RollOverride">Andere Rolle</x:String>
+    <x:String x:Key="Export_RollOverrideNote">Nur für dieses Mal; die Voreinstellung bleibt.</x:String>
+    <x:String x:Key="Export_NoPrint">Nur speichern, nicht drucken</x:String>
+    <x:String x:Key="Export_NoPrintNote">Für ein Gerät, das noch nicht in die Auslage darf.</x:String>
+    <x:String x:Key="Export_ExtraFiles">Zusätzliche Dateien</x:String>
+    <x:String x:Key="Export_ExtraFilesNote">Schreibt die Rohwerte zusätzlich als JSON und CSV.</x:String>
+    <x:String x:Key="Export_AsConfigured">Wie eingestellt</x:String>
+    <x:String x:Key="Export_ConfiguredLabel">Etikett</x:String>
+    <x:String x:Key="Export_ConfiguredFormats">Formate</x:String>
+    <x:String x:Key="Export_ConfiguredFolder">Ordner</x:String>
+    <x:String x:Key="Export_ConfiguredRoll">Rolle</x:String>
+    <x:String x:Key="Export_ConfiguredPrinter">Drucker</x:String>
+    <x:String x:Key="Export_ConfiguredChange">In den Einstellungen ändern</x:String>
+    <x:String x:Key="Export_ConfiguredNoFiles">Keine Dateien gewählt</x:String>
+    <x:String x:Key="Export_FolderLine">Gespeichert in {0}</x:String>
+    <x:String x:Key="Export_MissingTitle">Noch nicht vollständig</x:String>
+    <x:String x:Key="Export_MissingBody">Für das Etikett fehlt noch:</x:String>
+    <x:String x:Key="Export_BtnFix">Im Editor ergänzen</x:String>
+    <x:String x:Key="Export_BtnSaveWithoutLabel">Nur die Akte speichern</x:String>
+    <x:String x:Key="Export_BtnNextDevice">Nächstes Gerät</x:String>
+    <x:String x:Key="Export_PrintedAndSaved">Gedruckt und gespeichert in {0}</x:String>
+    <x:String x:Key="LabelField_Identifier">Seriennummer</x:String>
+    <x:String x:Key="LabelField_Model">Modell</x:String>
+    <x:String x:Key="LabelField_Grade">Zustandsnote</x:String>
+    <x:String x:Key="LabelField_Color">Farbe</x:String>
+    <x:String x:Key="Settings_SecLabel">Etikett</x:String>
+    <x:String x:Key="Settings_LabelLead">So sieht jedes Etikett aus, bei jeder Prüfung.</x:String>
+    <x:String x:Key="Settings_LabelVariant">Etikett-Layout</x:String>
+    <x:String x:Key="Settings_LabelVariantDesc">Wählen Sie das passende Layout; die Vorschau folgt.</x:String>
+    <x:String x:Key="Settings_LabelVariantClean">Wie bisher (bereinigt)</x:String>
+    <x:String x:Key="Settings_LabelVariantCleanNote">Eine Zeile mit allen Werten, wie immer.</x:String>
+    <x:String x:Key="Settings_LabelVariantStructured">Strukturiert</x:String>
+    <x:String x:Key="Settings_LabelVariantStructuredNote">Modell und Speicher getrennt, die Werte zusammen, Fehler und Sperren darunter.</x:String>
+    <x:String x:Key="Settings_LabelVariantGradeBlock">Notenblock</x:String>
+    <x:String x:Key="Settings_LabelVariantGradeBlockNote">Die Note als großer Block; der Rest daneben.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeTitle">Barcode</x:String>
+    <x:String x:Key="Settings_LabelBarcode">Barcode mit Seriennummer</x:String>
+    <x:String x:Key="Settings_LabelBarcodeDesc">Ein Code-39-Code mit der Seriennummer. Jede Kasse liest ihn.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeNote">Ausschalten, wenn der Scanner des Ladens keinen liest; das Etikett behält dann nur seine Worte.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeAdvanced">Erweitert für eigene Scanner</x:String>
+    <x:String x:Key="Settings_LabelCyclesNote">Wie oft der Akku geladen wurde; unter der Schwelle aus Qualität lässt das Etikett die Zahl weg.</x:String>
+    <x:String x:Key="Settings_LabelPreview">Vorschau</x:String>
+    <x:String x:Key="Settings_LabelPreviewNote">Aus denselben Werten wie die Datei gezeichnet, in der Größe der Rolle.</x:String>
+    <x:String x:Key="Settings_LabelFiles">Dateien</x:String>
+    <x:String x:Key="Settings_LabelFilesNote">Was jeder Abschluss standardmäßig schreibt.</x:String>
+    <x:String x:Key="Settings_LabelFolder">Ordneraufteilung</x:String>
+    <x:String x:Key="Settings_LabelFolderDesc">Wie die Exporte gruppiert werden.</x:String>
+    <x:String x:Key="Settings_FolderDay">Pro Tag</x:String>
+    <x:String x:Key="Settings_FolderDayNote">Ein Ordner pro Tag, nach dem Datum benannt.</x:String>
+    <x:String x:Key="Settings_FolderWeek">Pro Woche</x:String>
+    <x:String x:Key="Settings_FolderWeekNote">Ein Ordner pro ISO-Woche, die Voreinstellung.</x:String>
+    <x:String x:Key="Settings_FolderMonth">Pro Monat</x:String>
+    <x:String x:Key="Settings_FolderMonthNote">Ein Ordner pro Monat.</x:String>
+    <x:String x:Key="Settings_FolderInspection">Pro Gerät</x:String>
+    <x:String x:Key="Settings_FolderInspectionNote">Ein Ordner pro Seriennummer.</x:String>
+    <x:String x:Key="Settings_SecQuality">Qualität</x:String>
+    <x:String x:Key="Settings_QualityLead">Wann ein Wert auf dem Etikett markiert und im Bericht als Abweichung gezählt wird.</x:String>
+    <x:String x:Key="Settings_QualityBatteryThreshold">Akku markieren unter</x:String>
+    <x:String x:Key="Settings_QualityBatteryThresholdDesc">Ein Akku unter dieser Grenze erhält ein [X] auf dem Etikett.</x:String>
+    <x:String x:Key="Settings_QualityBatteryExample">Dieses Gerät: {0}.</x:String>
+    <x:String x:Key="Settings_QualityBatteryUnknown">kein Akkuwert gelesen</x:String>
+    <x:String x:Key="Settings_QualityCyclesThreshold">Ladezyklen anzeigen ab</x:String>
+    <x:String x:Key="Settings_QualityCyclesThresholdDesc">Unter dieser Grenze sagt die Zahl nichts und das Etikett lässt sie weg. Der Bericht führt den Wert immer.</x:String>
+    <x:String x:Key="Settings_QualityCyclesShown">Dieses Gerät hat {0} Zyklen und das kommt aufs Etikett.</x:String>
+    <x:String x:Key="Settings_QualityCyclesHidden">Dieses Gerät hat {0} Zyklen und das bleibt vom Etikett.</x:String>
+    <x:String x:Key="Settings_PaymentNever">Nicht fragen (leer lassen)</x:String>
+    <x:String x:Key="Settings_QualityCyclesUnknown">keine Ladezyklen gelesen</x:String>
 </ResourceDictionary>

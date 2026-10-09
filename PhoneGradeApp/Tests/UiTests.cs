@@ -118,7 +118,26 @@ public class UiTests : IDisposable
 
         Assert.Equal(new[] { "Dark", "Light", "System" }, vm.ThemeOptions);
         Assert.Equal(new[] { "", "A", "B", "C" }, vm.QualityOptions);
-        Assert.Equal(new[] { "", "Marge", "BTW" }, vm.PaymentOptions);
+        Assert.Equal(
+            new[] { "", "Marge", "BTW", PhoneGrade.Core.PaymentMethods.NeverAsk },
+            vm.PaymentOptions);
+    }
+
+    [AvaloniaFact]
+    public void AShopThatDoesNotRecordAnInvoiceMethod_IsNotStoppedForOne()
+    {
+        // "Niet vragen" is a real choice, not a missing default: the inspection
+        // finishes without the popup, the phone keeps no method, and the label
+        // leaves the field off.
+        using var window = new MainWindow();
+        var vm = (MainWindowViewModel)window.DataContext!;
+        vm.DefaultPaymentMethod = PhoneGrade.Core.PaymentMethods.NeverAsk;
+
+        vm.SetQualityCommand.Execute("A").Subscribe();
+
+        Assert.False(vm.IsPaymentPopupVisible, "the payment popup opened for a shop that does not ask");
+        Assert.Equal("", vm.SelectedInvoiceMethod);
+        Assert.Equal(AppWorkflowState.Summary, vm.WorkflowState);
     }
 
     [AvaloniaFact]

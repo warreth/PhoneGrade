@@ -94,44 +94,46 @@ class ScreenshotRunner
                     // bottom of the idle screen.
                     Capture(new MainWindow { DataContext = guide }, Path.Combine(outDir, "usb-guide-kiosk.png"), 850, 620);
 
-                    // ============ The export panel ============
+                    // ============ The finish panel ============
                     //
-                    // Four states, because the panel has four things to show and a
-                    // screenshot of only one of them hides three: nothing chosen
-                    // yet, the same in the light theme, files written, and one
-                    // format that failed while the others arrived.
+                    // Six states, because the panel has six things to show and a
+                    // screenshot of only one of them hides five: nothing done yet,
+                    // the same in the light theme and at the kiosk size, the files
+                    // written, one format that failed while the others arrived, and
+                    // a phone that cannot be labelled yet.
                     var empty = BuildDemoViewModel();
                     empty.Theme = "Dark";
                     FillAudit(empty);
-                    CaptureExport(empty, outDir, "export-dark-empty.png");
-                    CaptureExport(empty, outDir, "export-dark-narrow.png", 850, 620);
+                    CaptureExport(empty, outDir, "finish-dark-empty.png");
+                    CaptureExport(empty, outDir, "finish-dark-narrow.png", 850, 620);
 
                     var light = BuildDemoViewModel();
                     light.Theme = "Light";
                     FillAudit(light);
-                    CaptureExport(light, outDir, "export-light-empty.png");
+                    CaptureExport(light, outDir, "finish-light-empty.png");
 
                     var written = BuildDemoViewModel();
                     written.Theme = "Dark";
                     FillAudit(written);
                     // A little taller than the window the others use, so the
-                    // written list is not cut by the action bar: the picture is
-                    // about the files that were written, and a list whose last
-                    // row is under the fold hides exactly that.
-                    CaptureExport(written, outDir, "export-dark-written.png", 1050, 800,
+                    // written list is not cut by the fold: the picture is about the
+                    // files that were written, and a list whose last row is under
+                    // the fold hides exactly that.
+                    CaptureExport(written, outDir, "finish-dark-written.png", 1050, 800,
                         seed: () => written.ExportViewModel?.Show(SampleBatch(written.DeviceData)));
 
                     var failed = BuildDemoViewModel();
                     failed.Theme = "Dark";
                     FillAudit(failed);
-                    CaptureExport(failed, outDir, "export-dark-failed.png",
-            seed: () => failed.ExportViewModel?.Show(SampleBatch(failed.DeviceData, breakTheLabel: true)));
+                    CaptureExport(failed, outDir, "finish-dark-failed.png",
+                        seed: () => failed.ExportViewModel?.Show(SampleBatch(failed.DeviceData, breakTheLabel: true)));
+
                     // A label that is missing half its values, which is the case the
-                    // preview exists for: caught here, not on a device.
+                    // blocked card exists for: caught here, not on a device.
                     var bare = BuildDemoViewModel();
                     bare.Theme = "Dark";
                     bare.DeviceData = new DeviceData();
-                    CaptureExport(bare, outDir, "export-dark-placeholder.png");
+                    CaptureExport(bare, outDir, "finish-dark-blocked.png");
 
                     // The label with faults on it, which is the label the preview
                     // exists for. Photographed on its own because the point of it is
@@ -140,15 +142,14 @@ class ScreenshotRunner
                     var faulty = BuildDemoViewModel();
                     faulty.Theme = "Dark";
                     faulty.DeviceData = FaultyPhone();
-                    CaptureExport(faulty, outDir, "export-dark-faults.png", 1050, 820);
+                    CaptureExport(faulty, outDir, "finish-dark-faults.png", 1050, 820);
 
                     // ============ The label, at the settings it can be set to ============
                     //
-                    // Six shots, because a preview of a label is only worth having if it
-                    // still looks like a label at the settings an operator can pick. The
-                    // barcode mode and the stock both change how much of the paper the
-                    // words get, and a screenshot of only one setting hides whether the
-                    // faults and the locks still fit at the others.
+                    // The three arrangements, the narrow and tall rolls, no barcode,
+                    // and the advanced pair. A preview of a label is only worth
+                    // having if it still looks like a label at every setting an
+                    // operator can pick.
                     CaptureLabelSettings(outDir);
                     // The two fallbacks: a phone whose brand has no menu table of its
                     // own, and the generic pair for a phone nothing recognises.
@@ -198,23 +199,17 @@ class ScreenshotRunner
         Capture(new MainWindow { DataContext = vm }, Path.Combine(outDir, file), width, height, arrange, still);
         try { File.Delete(warmup); } catch (IOException) { }
 
-        // What the preview decided its own measurements were. The sheet being the
-        // wrong size is a fault a screenshot shows as "too small" and a number says
-        // which of the four things that decide it is at fault.
-        if (vm.ExportViewModel is { } panel && file.StartsWith("label-", StringComparison.Ordinal))
+        // What the plate decided. A label whose lines do not fit is a fault a
+        // screenshot shows as "too small" and the numbers say which of the parts
+        // that decide it is at fault.
+        if (vm.ExportViewModel is { } panel && file.StartsWith("finish-", StringComparison.Ordinal))
         {
             Console.WriteLine(
-                $"{file,-34} sheet {panel.SheetWidth,6:F0}x{panel.SheetHeight,5:F0}px  " +
-                $"band {panel.BarcodeBandHeight,5:F1}px  " +
-                $"type {panel.SpecFontSize,4:F1}/{panel.LockFontSize,4:F1}pt-on-sheet  " +
-                $"text room {panel.TextRoomHeight,5:F1}px  " +
-                $"stock {panel.Layout.Stock.PartNumber,-8} " +
-                $"{panel.LabelSymbology,-8} {panel.BarcodeMode,-11} " +
-                $"combined {(LabelBarcodeItem.For(LabelBarcodeMode.Combined).IsAvailable ? "on" : "OFF")}");
-
-            foreach (LabelBarcodeItem mode in LabelBarcodeItem.All)
-                Console.WriteLine($"    {mode.Mode,-11} {(mode.IsAvailable ? "can be drawn" : "closed")}" +
-                    $"{(mode.ShowUnavailableReason ? ", reason shown" : "")}");
+                $"{file,-32} plate {(panel.Plate?.Lines.Count ?? 0),2} lines  " +
+                $"body {panel.Plate?.BodyPoint ?? 0,4:F1}pt  locks {panel.Plate?.LocksPoint ?? 0,4:F1}pt  " +
+                $"barcodes {panel.Plate?.BarcodeCount ?? 0}  stock {panel.Layout.Stock.PartNumber,-8} " +
+                $"variant {vm.LabelVariant,-11} barcode {(vm.LabelBarcodeEnabled ? vm.LabelBarcodeMode.ToString() : "off"),-10} " +
+                $"blocked {panel.IsLabelBlocked}");
         }
     }
 
@@ -228,9 +223,9 @@ class ScreenshotRunner
     // shot shows what clicking through would produce.
     static void CaptureLabelSettings(string outDir)
     {
-        void Shot(string file, string? stock, LabelBarcodeMode? barcode,
-            LabelCodeSymbology? symbology = null,
-            bool cycles = true, bool faults = true, bool locks = true,
+        void Shot(string file, string? stock, LabelVariant variant,
+            LabelBarcodeMode? barcode = null, LabelCodeSymbology? symbology = null,
+            bool barcodeEnabled = true, bool cycles = true,
             double width = 1050, double height = 820, string theme = "Dark")
         {
             var vm = BuildDemoViewModel();
@@ -243,146 +238,56 @@ class ScreenshotRunner
             {
                 if (symbology is not null) vm.LabelSymbology = symbology.Value;
                 if (stock is not null) vm.LabelStockPartNumber = stock;
+                vm.LabelBarcodeEnabled = barcodeEnabled;
                 if (barcode is not null) vm.LabelBarcodeMode = barcode.Value;
+                vm.LabelVariant = variant;
                 vm.LabelShowBatteryCycles = cycles;
-                vm.LabelShowFaults = faults;
-                vm.LabelShowLocks = locks;
             });
         }
 
-        // The roll most shops have, one code, everything on. The baseline.
-        Shot("label-address-identifier.png", "1982991", LabelBarcodeMode.Identifier);
+        // The three arrangements on the roll most shops have. The pair that matters
+        // is structured against grade block: same values, and the question is which
+        // one an operator reads faster.
+        Shot("label-clean-address.png", "1982991", LabelVariant.Clean);
+        Shot("label-structured-address.png", "1982991", LabelVariant.Structured);
+        Shot("label-gradeblock-address.png", "1982991", LabelVariant.GradeBlock);
 
-        // Two codes on the same roll: the words sit lower and every one of them has
-        // to still fit, because this is where the faults line gets squeezed out.
-        Shot("label-address-split.png", "1982991", LabelBarcodeMode.Split);
-
-        // A barcode at all, for a till whose scanner cannot read one.
-        Shot("label-address-none.png", "1982991", LabelBarcodeMode.None);
+        // No barcode at all, for a till whose scanner cannot read one.
+        Shot("label-structured-nobarcode.png", "1982991", LabelVariant.Structured, barcodeEnabled: false);
 
         // The narrower stock: a different sheet shape entirely, and a barcode that
         // does not fit on it, which has to be said on the panel rather than left as
         // a missing code.
-        Shot("label-narrow-address.png", "30336", LabelBarcodeMode.Identifier);
+        Shot("label-structured-narrow.png", "30336", LabelVariant.Structured);
 
         // The tall roll, where the same label has a great deal of room and the words
         // have to be set larger or the sheet reads as mostly paper.
-        Shot("label-tall-shipping.png", "30256", LabelBarcodeMode.Identifier, width: 1050, height: 620);
+        Shot("label-structured-shipping.png", "30256", LabelVariant.Structured, width: 1050, height: 620);
 
-        // The locks off. A shop can do this and the panel says so in the wording,
-        // which is the last place that could warn about it.
-        Shot("label-address-no-locks.png", "1982991", LabelBarcodeMode.Identifier, locks: false);
+        // The cycles off, and under the threshold, which is the same picture: the
+        // number is a setting away and the label must look deliberate without it.
+        Shot("label-structured-nocycles.png", "1982991", LabelVariant.Structured, cycles: false);
 
-        // The panel with the barcode picker open, because that is the only way a
-        // closed row is ever on the picture.
-        OpenPicker(outDir, "label-picker-c39-closed.png", LabelCodeSymbology.Code39);
-        OpenPicker(outDir, "label-picker-c128-open.png", LabelCodeSymbology.Code128);
+        // The advanced pair, for the shop whose own software reads more than a
+        // serial: two codes, and the same in Code128.
+        Shot("label-split-c128.png", "1982991", LabelVariant.Structured,
+            barcode: LabelBarcodeMode.Split, symbology: LabelCodeSymbology.Code128);
+        Shot("label-combined-c128.png", "1982991", LabelVariant.Structured,
+            barcode: LabelBarcodeMode.Combined, symbology: LabelCodeSymbology.Code128);
 
-        // ============ The picker open, because that is the only place a closed row is
-    /// on the picture. Two shots, and they are a pair: the same row greyed out in one
-    /// symbology and live in the other, on the same roll, so the only difference on
-    /// the two pictures is the thing the setting is for.
-    ///
-    /// Taken separately from the others because the drop down is a second visual root
-    /// and does not come along for the ride with a window frame.
-    static void OpenPicker(string outDir, string file, LabelCodeSymbology symbology)
-    {
-        var vm = BuildDemoViewModel();
-        vm.Theme = "Dark";
-        vm.DeviceData = FaultyPhone();
-
-        var window = new MainWindow { DataContext = vm };
-        vm.WorkflowState = AppWorkflowState.Summary;
-        vm.ExportViewModel?.Open();
-
-        window.Width = 1050;
-        window.Height = 820;
-        if (_onScreen is not null && !ReferenceEquals(_onScreen, window)) _onScreen.IsVisible = false;
-        _onScreen = window;
-        window.Show();
-
-        // The window has to be laid out before the settings are applied, because
-        // opening the panel reads them and would otherwise overwrite whatever came
-        // first. That is the same ordering every other label shot relies on.
-        for (int attempt = 0; attempt < 40; attempt++)
-        {
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            System.Threading.Thread.Sleep(5);
-        }
-
-        vm.LabelSymbology = symbology;
-        vm.LabelStockPartNumber = "1982991";
-        vm.LabelBarcodeMode = LabelBarcodeMode.Identifier;
-
-        Avalonia.Controls.ComboBox? picker =
-            Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window)
-                .OfType<Avalonia.Controls.ComboBox>()
-                .FirstOrDefault(box => box.Name == "BarcodePicker");
-
-        if (picker is null)
-        {
-            Console.WriteLine($"warning: {file} has no barcode picker to open");
-            return;
-        }
-
-        picker.IsDropDownOpen = true;
-
-        foreach (LabelBarcodeItem mode in LabelBarcodeItem.All)
-            Console.WriteLine($"    picker row {mode.Mode,-11} available={mode.IsAvailable} " +
-                $"closed={mode.IsClosed} strength={mode.RowStrength}");
-
-        // The popup lives outside the window's own visual tree, so it is ticked and
-        // given time to lay itself out on its own. A frame taken straight after
-        // setting the flag is a picture of a picker that has been asked to open and
-        // has not drawn itself.
-        for (int attempt = 0; attempt < 30; attempt++)
-        {
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            System.Threading.Thread.Sleep(8);
-        }
-
-        string path = Path.Combine(outDir, file);
-        using (var shot = HeadlessWindowExtensions.CaptureRenderedFrame(window))
-            shot.Save(path);
-
-        Console.WriteLine($"saved {path} (picker open, {symbology})");
-    }
-
-    // ============ The two symbologies, and the setting that only one of them
-        // ============ can do ============
-        //
-        // Four shots. The point of choosing Code128 is that the combined code
-        // becomes available, so the pair has to be photographed together: the
-        // combined mode greyed out in Code39 and live in Code128 on the same roll,
-        // and the same in Code128 on a roll too narrow for it either way. A
-        // screenshot of only one of the four hides the whole question the setting
-        // exists to answer.
-        Shot("label-c39-combined-unavailable.png", "1982991",
-            LabelBarcodeMode.Identifier, LabelCodeSymbology.Code39);
-
-        Shot("label-c128-combined-available.png", "1982991",
-            LabelBarcodeMode.Combined, LabelCodeSymbology.Code128);
-
-        // Code128 on the small roll, where even the denser symbology cannot put
-        // both halves on the paper, so the setting is closed here too and the reason
-        // is about the roll rather than about the symbology.
-        Shot("label-c128-narrow-combined.png", "30336",
-            LabelBarcodeMode.Identifier, LabelCodeSymbology.Code128);
-
-        // Code128 with the two codes separately, which is the other thing a shop
-        // choosing it might want, and the case where the payload carries lower case.
-        Shot("label-c128-split.png", "1982991",
-            LabelBarcodeMode.Split, LabelCodeSymbology.Code128);
-
-        // A clean phone with two codes: two bands of barcode and one line of words,
-        // which is the case where a fixed layout would look like something is missing.
+        // A clean phone: no faults line, no locks line, which is the case where a
+        // fixed layout would look like something is missing.
         var clean = BuildDemoViewModel();
         clean.Theme = "Dark";
-        CaptureExport(clean, outDir, "label-address-clean-split.png", 1050, 820, seed: () =>
+        CaptureExport(clean, outDir, "label-structured-clean.png", 1050, 820, seed: () =>
         {
             clean.LabelStockPartNumber = "1982991";
-            clean.LabelBarcodeMode = LabelBarcodeMode.Split;
+            clean.LabelVariant = LabelVariant.Structured;
         });
+
+        // The grade block on the narrow roll, where the block and the words have to
+        // share what little width there is.
+        Shot("label-gradeblock-narrow.png", "30336", LabelVariant.GradeBlock);
     }
 
     // A phone with something wrong on it, which is the case the label's second and

@@ -186,7 +186,7 @@
     <x:String x:Key="Active_ColFactory">出厂值</x:String>
     <x:String x:Key="Active_ColRead">读取值</x:String>
     <x:String x:Key="Summary_ColStatus">状态</x:String>
-    <x:String x:Key="Summary_BtnPrint">打印 DYMO 标签</x:String>
+    <x:String x:Key="Summary_BtnPrint">完成</x:String>
     <x:String x:Key="Summary_BtnRetest">重新检测</x:String>
     <x:String x:Key="Summary_BtnNext">下一台设备（完成）</x:String>
     <x:String x:Key="Summary_SimLockFree">已解锁（无 SIM 卡锁）</x:String>
@@ -196,10 +196,10 @@
     <!-- The panel an operator reaches from the inspection report. It is the only
          place that knows about labels, reports and the raw numbers, so the summary
          screen's button opens it and nothing else writes a file. -->
-    <x:String x:Key="Export_Title">导出与打印</x:String>
-    <x:String x:Key="Export_Lead">保存标签、报告和原始数据，或直接打印标签。</x:String>
+    <x:String x:Key="Export_Title">完成</x:String>
+    <x:String x:Key="Export_Lead">检查标签。打印和保存一次完成。</x:String>
     <x:String x:Key="Export_PreviewTitle">标签预览</x:String>
-    <x:String x:Key="Export_PreviewNote">与文件使用相同的数值绘制。缺失的内容显示为占位符。</x:String>
+    <x:String x:Key="Export_PreviewNote">与文件使用相同的数值，按标签纸尺寸绘制。</x:String>
     <x:String x:Key="Export_PreviewScaled">为适配此处显示，绘制比例小于实际标签。形状正确，尺寸不同。</x:String>
     <x:String x:Key="Export_Stock">标签规格</x:String>
     <x:String x:Key="Export_StockNote">打印机中的标签卷，按订购时的料号区分。</x:String>
@@ -226,20 +226,7 @@
     <x:String x:Key="Export_Symbology39Note">手机店里的收银机和扫码枪都已经能读这种条码。它能表示大写字母和少量符号，所以型号名称会以短横线的形式写进条码里。</x:String>
     <x:String x:Key="Export_Symbology128">Code 128</x:String>
     <x:String x:Key="Export_Symbology128Note">信息密度更高，因此一个条码可以同时写入序列号和规格，而 Code 39 做不到这一点。您的扫码枪需要设置为可读这种条码。</x:String>
-
-
- 
- 
- 
- 
- 
-    <x:String x:Key="Export_LabelShowTitle">标签内容</x:String>
     <x:String x:Key="Export_LabelShowCycles">充电次数</x:String>
-    <x:String x:Key="Export_LabelShowCyclesNote">电池已充电的次数，百分比无法反映这一信息。</x:String>
-    <x:String x:Key="Export_LabelShowFaults">故障项</x:String>
-    <x:String x:Key="Export_LabelShowFaultsNote">以数量形式列出存在的问题，例如 2 个非 OEM 屏幕。</x:String>
-    <x:String x:Key="Export_LabelShowLocks">FRP 与激活锁</x:String>
-    <x:String x:Key="Export_LabelShowLocksNote">任意一项开启时以更大字号打印。关闭此项会隐藏用于阻止锁定手机售出的提示行。</x:String>
     <x:String x:Key="Export_LabelPreviewTitle">标签</x:String>
     <x:String x:Key="Export_LabelPreviewNote">按上方标签卷的尺寸绘制，使用与文件相同的数值。</x:String>
     <x:String x:Key="Export_LabelTooNarrow">序列号过长，无法在这种标签上生成条形码，因此以文字形式打印。</x:String>
@@ -791,4 +778,78 @@
 
     <x:String x:Key="Licensing_PanelSeatsFree">这把密钥还剩 {0} 个名额</x:String>
     <x:String x:Key="Licensing_PanelSeatFreeOne">这把密钥还剩 {0} 个名额</x:String>
+
+    <!-- Shop profile: exporting the shop-wide settings to another computer -->
+
+    <x:String x:Key="Export_BtnPrintAndFinish">打印标签并完成</x:String>
+    <x:String x:Key="Export_BtnSaveAndFinish">保存并完成</x:String>
+    <x:String x:Key="Export_AgainFold">本次不同</x:String>
+    <x:String x:Key="Export_AgainFoldNote">仅当本次检查与默认设置不同时使用。</x:String>
+    <x:String x:Key="Export_RollOverride">其他标签纸</x:String>
+    <x:String x:Key="Export_RollOverrideNote">仅本次生效，默认设置保持不变。</x:String>
+    <x:String x:Key="Export_NoPrint">仅保存，不打印</x:String>
+    <x:String x:Key="Export_NoPrintNote">适用于还不能上架的手机。</x:String>
+    <x:String x:Key="Export_ExtraFiles">额外文件</x:String>
+    <x:String x:Key="Export_ExtraFilesNote">同时将原始数据写成 JSON 和 CSV。</x:String>
+    <x:String x:Key="Export_AsConfigured">当前设置</x:String>
+    <x:String x:Key="Export_ConfiguredLabel">标签</x:String>
+    <x:String x:Key="Export_ConfiguredFormats">格式</x:String>
+    <x:String x:Key="Export_ConfiguredFolder">文件夹</x:String>
+    <x:String x:Key="Export_ConfiguredRoll">标签纸</x:String>
+    <x:String x:Key="Export_ConfiguredPrinter">打印机</x:String>
+    <x:String x:Key="Export_ConfiguredChange">在设置中修改</x:String>
+    <x:String x:Key="Export_ConfiguredNoFiles">未选择任何文件</x:String>
+    <x:String x:Key="Export_FolderLine">保存到 {0}</x:String>
+    <x:String x:Key="Export_MissingTitle">信息尚不完整</x:String>
+    <x:String x:Key="Export_MissingBody">标签还缺少：</x:String>
+    <x:String x:Key="Export_BtnFix">在编辑器中补充</x:String>
+    <x:String x:Key="Export_BtnSaveWithoutLabel">仅保存档案</x:String>
+    <x:String x:Key="Export_BtnNextDevice">下一台设备</x:String>
+    <x:String x:Key="Export_PrintedAndSaved">已打印并保存到 {0}</x:String>
+    <x:String x:Key="LabelField_Identifier">序列号</x:String>
+    <x:String x:Key="LabelField_Model">型号</x:String>
+    <x:String x:Key="LabelField_Grade">等级</x:String>
+    <x:String x:Key="LabelField_Color">颜色</x:String>
+    <x:String x:Key="Settings_SecLabel">标签</x:String>
+    <x:String x:Key="Settings_LabelLead">所有检查的标签都按这里的设置打印。</x:String>
+    <x:String x:Key="Settings_LabelVariant">标签样式</x:String>
+    <x:String x:Key="Settings_LabelVariantDesc">选择适合店铺的排版，右侧预览会同步变化。</x:String>
+    <x:String x:Key="Settings_LabelVariantClean">与原来相同（已清理）</x:String>
+    <x:String x:Key="Settings_LabelVariantCleanNote">所有值在同一行，和以前的标签一样。</x:String>
+    <x:String x:Key="Settings_LabelVariantStructured">分栏样式</x:String>
+    <x:String x:Key="Settings_LabelVariantStructuredNote">型号和容量一行，参数一行，故障和锁定在下方。</x:String>
+    <x:String x:Key="Settings_LabelVariantGradeBlock">等级块</x:String>
+    <x:String x:Key="Settings_LabelVariantGradeBlockNote">等级放大成方块，其余信息在旁。</x:String>
+    <x:String x:Key="Settings_LabelBarcodeTitle">条码</x:String>
+    <x:String x:Key="Settings_LabelBarcode">带序列号的条码</x:String>
+    <x:String x:Key="Settings_LabelBarcodeDesc">一个 Code 39 条码，内容是序列号。所有收银台都能读。</x:String>
+    <x:String x:Key="Settings_LabelBarcodeNote">如果店铺的扫描器读不了条码，可以关闭；标签上只保留文字。</x:String>
+    <x:String x:Key="Settings_LabelBarcodeAdvanced">面向自有扫描器的高级选项</x:String>
+    <x:String x:Key="Settings_LabelCyclesNote">电池充电次数；低于“质量”中的阈值时标签不显示。</x:String>
+    <x:String x:Key="Settings_LabelPreview">预览</x:String>
+    <x:String x:Key="Settings_LabelPreviewNote">与文件使用相同的数值，按标签纸尺寸绘制。</x:String>
+    <x:String x:Key="Settings_LabelFiles">文件</x:String>
+    <x:String x:Key="Settings_LabelFilesNote">每次完成时默认写出的文件。</x:String>
+    <x:String x:Key="Settings_LabelFolder">文件夹分组</x:String>
+    <x:String x:Key="Settings_LabelFolderDesc">导出文件的归档方式。</x:String>
+    <x:String x:Key="Settings_FolderDay">按天</x:String>
+    <x:String x:Key="Settings_FolderDayNote">每天一个文件夹，以日期命名。</x:String>
+    <x:String x:Key="Settings_FolderWeek">按周</x:String>
+    <x:String x:Key="Settings_FolderWeekNote">每周一个文件夹（ISO 周），默认。</x:String>
+    <x:String x:Key="Settings_FolderMonth">按月</x:String>
+    <x:String x:Key="Settings_FolderMonthNote">每月一个文件夹。</x:String>
+    <x:String x:Key="Settings_FolderInspection">按设备</x:String>
+    <x:String x:Key="Settings_FolderInspectionNote">每个序列号一个文件夹。</x:String>
+    <x:String x:Key="Settings_SecQuality">质量</x:String>
+    <x:String x:Key="Settings_QualityLead">数值何时在标签上标记，并在报告中计为偏差。</x:String>
+    <x:String x:Key="Settings_QualityBatteryThreshold">电池低于此值时标记</x:String>
+    <x:String x:Key="Settings_QualityBatteryThresholdDesc">低于此限值的电池会在标签上得到 [X]。</x:String>
+    <x:String x:Key="Settings_QualityBatteryExample">本机：{0}。</x:String>
+    <x:String x:Key="Settings_QualityBatteryUnknown">未读取到电池数值</x:String>
+    <x:String x:Key="Settings_QualityCyclesThreshold">显示充电次数从</x:String>
+    <x:String x:Key="Settings_QualityCyclesThresholdDesc">低于此限值时数字没有意义，标签会省略。报告中始终保留该数值。</x:String>
+    <x:String x:Key="Settings_QualityCyclesShown">本机有 {0} 次充电，将显示在标签上。</x:String>
+    <x:String x:Key="Settings_QualityCyclesHidden">本机有 {0} 次充电，不会显示在标签上。</x:String>
+    <x:String x:Key="Settings_PaymentNever">不询问（留空）</x:String>
+    <x:String x:Key="Settings_QualityCyclesUnknown">未读取到充电次数</x:String>
 </ResourceDictionary>

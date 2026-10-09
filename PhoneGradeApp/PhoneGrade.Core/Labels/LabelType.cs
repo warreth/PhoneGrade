@@ -33,14 +33,20 @@ public static class LabelType
     /// <param name="block">The lines the label carries, in the order it says them.</param>
     /// <param name="layout">The stock and the arrangement on it.</param>
     /// <param name="barcodes">How many barcodes are drawn above the text.</param>
-    public static float BlockSize(IReadOnlyList<string> block, LabelLayout layout, int barcodes)
+    /// <param name="widthMm">
+    /// How much of the paper's width the words may use, when something else on the
+    /// label has taken a share of it. The grade block does, and measuring the text
+    /// against the full width put it under the block. Null means the printable width.
+    /// </param>
+    public static float BlockSize(
+        IReadOnlyList<string> block, LabelLayout layout, int barcodes, float? widthMm = null)
     {
         int longest = 0;
         foreach (string line in block) longest = Math.Max(longest, line.Length);
 
         float across = longest == 0
             ? LargestBodyPoint
-            : layout.WidthMm / (longest * AdvanceMmPerPoint);
+            : (widthMm ?? layout.WidthMm) / (longest * AdvanceMmPerPoint);
 
         return Math.Clamp(Math.Min(across, LargestFor(layout, barcodes, block.Count)),
             SmallestBodyPoint, LargestBodyPoint);
@@ -101,16 +107,23 @@ public static class LabelType
     /// edge, a hand's width of white paper, and then the words, which reads as a
     /// label that ran out of something.
     /// </remarks>
+    /// <param name="extraMm">
+    /// Room taken by something taller than a line of type, in millimetres. The grade
+    /// block is the thing this exists for: it has to be paid for out of the same room
+    /// as the words or the locks come off the bottom of the label.
+    /// </param>
     public static float Centring(
-        LabelLayout layout, int barcodes, float body, int lines, bool locksSet)
+        LabelLayout layout, int barcodes, float body, int lines, bool locksSet,
+        float extraMm = 0)
     {
         float room = layout.TextHeightMm(barcodes);
 
         // The locks line is set larger than the rest, so it occupies more than one
         // line height and has to be paid for out of the same room.
-        float taken = lines * body + (locksSet ? body * (LocksLargerThanBody - 1) : 0);
+        float taken = (lines * body + (locksSet ? body * (LocksLargerThanBody - 1) : 0)) * LineHeightInMm
+                      + extraMm;
 
-        return Math.Max(0f, (room - taken * LineHeightInMm) / 2f);
+        return Math.Max(0f, (room - taken) / 2f);
     }
 
     /// <summary>

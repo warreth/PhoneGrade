@@ -12,13 +12,16 @@ namespace PhoneGrade.Core;
 /// there is one. A DYMO printer on Linux is reachable this way through its CUPS
 /// driver, which is the only route on that platform.
 ///
-/// The layout is <see cref="LabelLayout"/>, the same numbers the .dymo template
-/// uses, so the two agree about what goes on the label and where.
+/// Everything drawn here comes from <see cref="LabelPlate"/>: the barcode payloads,
+/// the lines, their sizes and the empty paper above the content. The on screen
+/// preview reads the same plate, so a preview and a printed label cannot disagree
+/// about what is on the paper.
 /// </summary>
 public static class LabelPdfWriter
 {
     /// <summary>
-    /// Writes one label, on the stock and in the barcode mode the operator chose.
+    /// Writes one label, on the stock, in the barcode mode and in the arrangement
+    /// the operator chose.
     /// </summary>
     /// <param name="path">Where the PDF goes.</param>
     /// <param name="fields">What the inspection read.</param>
@@ -35,12 +38,22 @@ public static class LabelPdfWriter
     /// Which symbology the bars are drawn in. Code39 by default, which is what
     /// every shop scanner reads and what the DYMO template declares.
     /// </param>
+    /// <param name="variant">
+    /// How the label is arranged. The information is the same whichever is chosen;
+    /// what changes is what the eye meets first.
+    /// </param>
+    /// <param name="cyclesMinimum">
+    /// The charge count floor the shop set, so a number that says nothing is left
+    /// off here exactly as it is left off the preview.
+    /// </param>
     public static void Write(
         string path,
         LabelFields fields,
         LabelLayout? layout = null,
         LabelBarcodeMode mode = LabelBarcodeMode.Identifier,
-        LabelCodeSymbology symbology = LabelCodeSymbology.Code39)
+        LabelCodeSymbology symbology = LabelCodeSymbology.Code39,
+        LabelVariant variant = LabelVariant.Clean,
+        int cyclesMinimum = 0)
     {
         // Done here rather than left to the caller. Setting the licence up is one
         // line but it is the one line that has to happen before the document is
@@ -49,39 +62,7 @@ public static class LabelPdfWriter
         ReportFonts.Ensure();
 
         LabelLayout size = layout ?? LabelLayout.Address;
-
-        // A code that will not fit at a width a scanner reads is not drawn. It goes
-        // on the label as words instead, on the two small multi purpose stocks,
-        // where a fifteen digit identifier is simply wider than the paper. Squeezing
-        // it in would produce grey rather than bars, and an operator who scans that
-        // and gets nothing believes the phone has no identifier.
-        var (barred, spelled) = new LabelCode(fields.Identifier, LabelLayout.ScannableLine(fields, symbology))
-            .On(size.Stock, mode, symbology, fields.IsIdentifiable);
-
-        string spec = LabelLayout.TextLine(fields);
-        string detail = LabelLayout.DetailLine(fields);
-        string locks = LabelLayout.LockLine(fields);
-
-        // The values that could not be barcoded are printed instead, above the
-        // specification, so a label with no barcode on it still says which device it
-        // is. A label that cannot be scanned has to be readable by eye, or it says
-        // nothing at all.
-        string written = string.Join("  ", spelled);
-
-        // How many lines the text block really is, taken from the lines that have
-        // something on them. A clean phone with one line can be set much larger than
-        // a phone with three, which is the difference between a label that fills its
-        // paper and one that huddles in the middle of it.
-        var block = new[] { written, spec, detail, locks }.Where(line => line.Length > 0).ToList();
-
-        float body = LabelType.BlockSize(block, size, barred.Count);
-        float lockSize = LabelType.LineSize(locks, size, barred.Count, body * LabelType.LocksLargerThanBody, body);
-
-        // Empty paper above the content and, by the same figure, below it, so a roll
-        // bigger than the label's own content carries it in the middle. Nothing on a
-        // 28mm address label, a good deal on a 59mm one.
-        float slack = LabelType.Centring(
-            size, barred.Count, body, block.Count, locks.Length > 0);
+        LabelPlate plate = LabelPlate.Build(fields, size, mode, symbology, variant, cyclesMinimum);
 
         Document.Create(document =>
         {
@@ -125,9 +106,9 @@ public static class LabelPdfWriter
                     // printable area, measured from the top rather than accumulated,
                     // so a second barcode cannot drift a fraction of a millimetre per
                     // label because of the one before it.
-                    for (int index = 0; index < barred.Count; index++)
+                    for (int index = 0; index < plate.Barred.Count; index++)
                     {
-                        string payload = barred[index];
+                        string payload = plate.Barred[index];
 
                         // Only the gap. Every band is the same height and the column
                         // stacks them with no spacing between them, so the second band
@@ -136,33 +117,117 @@ public static class LabelPdfWriter
                         // its own offset as well put the second barcode lower than its
                         // place and pushed the words off the bottom of the label.
                         column.Item()
-                            .PaddingTop(Points(index == 0 ? slack : LabelLayout.GapMm))
+                            .PaddingTop(Points(index == 0 ? plate.TopOffsetMm : LabelLayout.GapMm))
                             .Element(container => Barcode(
-                                container, payload, size, barred.Count, family, symbology));
+                                container, payload, size, plate.Barred.Count, family, symbology));
                     }
 
-                    // The text, below however many barcodes there were. Every line at
-                    // one size, worked out from the longest: sized line by line the
-                    // block reads as three pieces of paper rather than one label.
-                    string first = block[0];
+                    // The text, below however many barcodes there were. The plate
+                    // decided what each line says and how large it is; this only
+                    // paints them.
+                    float above = plate.Barred.Count == 0 ? 0f : LabelLayout.GapMm + plate.TopOffsetMm;
 
-                    float above = barred.Count == 0 ? 0f : LabelLayout.GapMm + slack;
-
-                    column.Item().PaddingTop(Points(above)).AlignCenter().AlignMiddle()
-                        .Element(container => TextLine(container, first, body, family));
-
-                    for (int index = 1; index < block.Count; index++)
-                    {
-                        string line = block[index];
-                        if (line.Length == 0) continue;
-
-                        column.Item().AlignCenter().AlignMiddle()
-                            .Element(container => Detail(container, line,
-                                line == locks ? lockSize : body, family));
-                    }
+                    column.Item().PaddingTop(Points(above))
+                        .Element(container => Block(container, plate, family));
                 });
             });
         }).GeneratePdf(path);
+    }
+
+    /// <summary>
+    /// The text of one label, in the arrangement the plate describes.
+    /// </summary>
+    private static void Block(IContainer container, LabelPlate plate, string? family)
+    {
+        if (plate.Variant == LabelVariant.GradeBlock)
+        {
+            GradeBlock(container, plate, family);
+            return;
+        }
+
+        container.Column(column =>
+        {
+            column.Spacing(0);
+            foreach (LabelLine line in plate.Lines)
+                column.Item().Element(item => Line(item, line, plate, family));
+        });
+    }
+
+    /// <summary>
+    /// The grade block arrangement: the grade as a bordered block with the values
+    /// beside it and the locks on their own line below.
+    /// </summary>
+    private static void GradeBlock(IContainer container, LabelPlate plate, string? family)
+    {
+        container.Column(column =>
+        {
+            column.Spacing(0);
+
+            // The spelled values, when a barcode would not fit, sit above everything
+            // as they do in the other arrangements.
+            foreach (LabelLine spelled in plate.Lines.Where(line => line.Role == LabelLineRole.Spelled))
+                column.Item().Element(item => Line(item, spelled, plate, family));
+
+            column.Item().Row(row =>
+            {
+                row.ConstantItem(Points(LabelPlate.GradeBoxWidthMm))
+                    .Height(Points(plate.GradeBoxHeightMm))
+                    .Border(1.5f)
+                    .BorderColor(Colors.Black)
+                    .AlignCenter()
+                    .AlignMiddle()
+                    .Text(plate.Grade)
+                    .FontFamily(family ?? "Helvetica")
+                    .FontSize(plate.GradePoint)
+                    .Bold()
+                    .FontColor(Colors.Black);
+
+                row.RelativeItem().PaddingLeft(Points(2)).AlignMiddle().Column(info =>
+                {
+                    info.Spacing(0);
+                    foreach (LabelLine line in plate.Lines.Where(line =>
+                                 line.Role is not (LabelLineRole.Locks or LabelLineRole.Spelled)))
+                        info.Item().AlignLeft().Element(item => Line(item, line, plate, family));
+                });
+            });
+
+            LabelLine? locks = plate.Lines.FirstOrDefault(line => line.Role == LabelLineRole.Locks);
+            if (locks is not null)
+                column.Item().PaddingTop(Points(1)).Element(item => Line(item, locks, plate, family));
+        });
+    }
+
+    /// <summary>
+    /// One line. The locks are drawn white on black when the plate says so: a
+    /// thermal label cannot print colour, so emphasis has to come out of black, and
+    /// a solid band around the one line that can cost a shop the sale is what the
+    /// paper has to offer.
+    /// </summary>
+    private static void Line(IContainer container, LabelLine line, LabelPlate plate, string? family)
+    {
+        if (line.Role == LabelLineRole.Locks && plate.LocksInverted)
+        {
+            container.AlignCenter().Element(box => box
+                .Background(Colors.Black)
+                .PaddingVertical(Points(0.35f))
+                .PaddingHorizontal(Points(1.4f))
+                .Text(line.Text)
+                .FontFamily(family ?? "Helvetica")
+                .FontSize(line.PointSize)
+                .Bold()
+                .FontColor(Colors.White));
+            return;
+        }
+
+        Styled(container.AlignCenter().Text(line.Text), line, family);
+    }
+
+    /// <summary>The family, size, colour and weight every line of the label is set in.</summary>
+    private static TextSpanDescriptor Styled(TextSpanDescriptor text, LabelLine line, string? family)
+    {
+        text.FontFamily(family ?? "Helvetica").FontSize(line.PointSize).FontColor(Colors.Black);
+        if (line.Bold) text.Bold();
+        return text;
     }
 
     /// <summary>
@@ -261,45 +326,4 @@ public static class LabelPdfWriter
             LabelBarcode.ElementsOf(value, symbology).ToList(), narrowDots,
             quietEachSide: LabelBarcode.QuietZoneUnits * narrowDots, high);
     }
-
-    /// <summary>
-    /// The specification line under the barcode.
-    ///
-    /// Set to a size that fits the stock, measured rather than guessed, and set at
-    /// that size exactly. The whole block is sized once from its longest line, so
-    /// the label reads as one label. What it must not do is let each line find its
-    /// own size, which is what scaling every line to fill whatever room is left
-    /// does: on a three line label that came out as a specification at nine point,
-    /// the faults at four, and the locks in between, and the locks are the one line
-    /// a shop cannot afford to have as the smallest thing on the paper.
-    /// </summary>
-    private static void TextLine(IContainer container, string text, float points, string? family)
-    {
-        container.AlignCenter().AlignMiddle()
-            .Text(text)
-            .FontFamily(family ?? "Helvetica")
-            .FontSize(points)
-            .SemiBold()
-            .FontColor(Colors.Black);
-    }
-
-    /// <summary>
-    /// The lines below the specification: the charge count, the faults, the locks.
-    ///
-    /// The locks are set larger than everything else on the label, because they are
-    /// the one fault that costs a shop the sale and the one an operator reads last
-    /// if it is the same size as the rest. A FRP-locked phone that the next owner
-    /// activates wipes itself, and this line is the last place that could have said
-    /// so.
-    /// </summary>
-    private static void Detail(IContainer container, string text, float points, string? family)
-    {
-        container.AlignCenter().AlignMiddle()
-            .Text(text)
-            .FontFamily(family ?? "Helvetica")
-            .FontSize(points)
-            .SemiBold()
-            .FontColor(Colors.Black);
-    }
-
 }

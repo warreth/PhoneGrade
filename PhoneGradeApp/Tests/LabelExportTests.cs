@@ -445,10 +445,13 @@ public class LabelExportTests : IDisposable
     // ---- the file names ----
 
     [Fact]
-    public void TheFileNameCarriesTheIdentifierAndTheMoment_SoTwoDevicesNeverCollide()
+    public void TheFileNameCarriesTheDateModelAndIdentifier_SoALooseFileIsStillRecognisable()
     {
+        // Dragged out of its folder, the name has to say which device and which
+        // day it belongs to; the model is squeezed into one token so the serial
+        // stays the last thing on the name, which is where a shop looks for it.
         string stem = LabelWriter.FileStem(Phone(), new DateTime(2026, 3, 4, 15, 6, 7));
-        Assert.Equal("356938035643809-20260304-150607", stem);
+        Assert.Equal("2026-03-04 13Pro 356938035643809", stem);
     }
 
     [Fact]
@@ -466,7 +469,10 @@ public class LabelExportTests : IDisposable
     [Fact]
     public void ADeviceWithNoIdentifierIsStillNamedSomething()
     {
-        Assert.StartsWith("unknown-", LabelWriter.FileStem(new DeviceData()));
+        // No model either: the name keeps the date and says unknown rather than
+        // carrying a placeholder that reads as a value.
+        string stem = LabelWriter.FileStem(new DeviceData(), new DateTime(2026, 3, 4, 15, 6, 7));
+        Assert.Equal("2026-03-04 unknown", stem);
     }
 
     public void Dispose()

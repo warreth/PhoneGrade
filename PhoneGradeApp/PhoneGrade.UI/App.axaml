@@ -972,6 +972,52 @@
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
 
+        <!--
+            The collapsed "for this one inspection only" fold in the finish panel.
+            A ToggleButton header so the whole strip is the hit target, with a
+            chevron that turns as it opens; the body is a plain panel the header's
+            own state shows, so the collapsed state is the default and the everyday
+            case is a preview and a button.
+        -->
+        <Style Selector="ToggleButton.foldHead">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="ToggleButton.foldHead:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource TrackColor}"/>
+        </Style>
+        <Style Selector="ToggleButton.foldHead:checked /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Path.chevron">
+            <Setter Property="Fill" Value="{DynamicResource TextDimColor}"/>
+            <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+        </Style>
+        <Style Selector="ToggleButton.foldHead:checked Path.chevron">
+            <Setter Property="RenderTransform" Value="rotate(90deg)"/>
+        </Style>
+
+        <!--
+            One row of the "as configured" list in the finish panel: the setting on
+            the left at a fixed width so the values line up under each other, and
+            the value beside it.
+        -->
+        <Style Selector="TextBlock.configuredLabel">
+            <Setter Property="Foreground" Value="{DynamicResource TextDimColor}"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Width" Value="92"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.configuredValue">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
         <!-- ============ Logbook viewer: rows that paint themselves, containers that do not ============ -->
         <!--
             The log list is a ListBox so that its panel virtualizes, but it is a

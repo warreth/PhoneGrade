@@ -690,6 +690,14 @@
                                     Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Connection"
                                     Content="{DynamicResource Settings_SecConnection}"/>
                             <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Label}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Label"
+                                    Content="{DynamicResource Settings_SecLabel}"/>
+                            <Button Classes="navItem"
+                                    Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Quality}"
+                                    Command="{Binding SelectSettingsSectionCommand}" CommandParameter="Quality"
+                                    Content="{DynamicResource Settings_SecQuality}"/>
+                            <Button Classes="navItem"
                                     Classes.current="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=ImeiApi}"
                                     Command="{Binding SelectSettingsSectionCommand}" CommandParameter="ImeiApi"
                                     Content="{DynamicResource Settings_SecImeiApi}"/>
@@ -1056,6 +1064,231 @@
                             </StackPanel>
 
                             <!--
+                                Label: how every label looks. The preview on the
+                                right is the same plate the finish panel draws and
+                                the label PDF is written from, so what a shop
+                                configures here is what comes out of the printer.
+                                Everything on this page is a once-per-shop choice;
+                                the finish panel never asks again.
+                            -->
+                            <Grid ColumnDefinitions="*,1.2*"
+                                  IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Label}">
+                                <StackPanel Grid.Column="0" Spacing="14" Margin="0,0,18,0">
+                                    <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_SecLabel}"/>
+                                    <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LabelLead}"/>
+
+                                    <Border Classes="settingCard">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Export_Stock}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Export_StockNote}"/>
+                                            <ComboBox ItemsSource="{Binding LabelSettings.Layouts}"
+                                                      SelectedItem="{Binding LabelSettings.Stock}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:LabelLayoutItem">
+                                                        <StackPanel Spacing="1">
+                                                            <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                            <TextBlock Classes="valueHint" Text="{Binding PartNumber}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Classes="settingCard">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_LabelVariant}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LabelVariantDesc}"/>
+                                            <ComboBox ItemsSource="{Binding LabelSettings.Variants}"
+                                                      SelectedItem="{Binding LabelSettings.VariantItem}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:LabelVariantItem">
+                                                        <StackPanel Spacing="1">
+                                                            <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                            <TextBlock Classes="valueHint"
+                                                                       Text="{Binding NoteKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Classes="settingCard" Padding="0">
+                                        <StackPanel>
+                                            <StackPanel Spacing="6" Margin="16">
+                                                <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_LabelBarcodeTitle}"/>
+                                                <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LabelBarcodeDesc}"/>
+                                                <CheckBox IsChecked="{Binding LabelSettings.BarcodeEnabled}"
+                                                          Content="{DynamicResource Settings_LabelBarcode}"/>
+                                                <TextBlock Classes="settingDesc" Margin="26,0,0,0" TextWrapping="Wrap"
+                                                           Text="{DynamicResource Settings_LabelBarcodeNote}"/>
+                                            </StackPanel>
+
+                                            <ToggleButton x:Name="LabelBarcodeFold" Classes="foldHead">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Classes="settingTitle" VerticalAlignment="Center"
+                                                               Text="{DynamicResource Settings_LabelBarcodeAdvanced}"/>
+                                                    <Path Grid.Column="1" Classes="chevron"
+                                                          Data="M 0,0 L 6,6 L 0,12" Stroke="{DynamicResource TextDimColor}"
+                                                          StrokeThickness="2" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                                </Grid>
+                                            </ToggleButton>
+
+                                            <StackPanel Spacing="12" Margin="16,0,16,16"
+                                                        IsVisible="{Binding #LabelBarcodeFold.IsChecked}">
+                                                <StackPanel Spacing="6">
+                                                    <TextBlock Classes="fieldCaption" Text="{DynamicResource Export_BarcodeTitle}"/>
+                                                    <ComboBox ItemsSource="{Binding LabelSettings.BarcodeModes}"
+                                                              SelectedItem="{Binding LabelSettings.Barcode}"
+                                                              HorizontalAlignment="Stretch">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:LabelBarcodeItem">
+                                                                <Border Classes="optionRow" Opacity="{Binding RowStrength}">
+                                                                    <StackPanel Spacing="3">
+                                                                        <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                                        <TextBlock Classes="optionRowNote" TextWrapping="Wrap"
+                                                                                   IsVisible="{Binding ShowUnavailableReason}"
+                                                                                   Text="{Binding UnavailableKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                                    </StackPanel>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                                               Text="{Binding LabelSettings.Barcode.NoteKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                </StackPanel>
+
+                                                <StackPanel Spacing="6">
+                                                    <TextBlock Classes="fieldCaption" Text="{DynamicResource Export_SymbologyTitle}"/>
+                                                    <ComboBox ItemsSource="{Binding LabelSettings.Symbologies}"
+                                                              SelectedItem="{Binding LabelSettings.Symbology}"
+                                                              HorizontalAlignment="Stretch">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:LabelSymbologyItem">
+                                                                <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                    <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                                               Text="{Binding LabelSettings.Symbology.NoteKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Classes="settingCard">
+                                        <StackPanel Spacing="6">
+                                            <CheckBox IsChecked="{Binding LabelSettings.ShowCycles}"
+                                                      Content="{DynamicResource Export_LabelShowCycles}"/>
+                                            <TextBlock Classes="settingDesc" Margin="26,0,0,0" TextWrapping="Wrap"
+                                                       Text="{DynamicResource Settings_LabelCyclesNote}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Spacing="14">
+                                    <TextBlock Classes="cardTitle" Text="{DynamicResource Settings_LabelPreview}"/>
+                                    <views:LabelView Plate="{Binding LabelSettings.Plate}"
+                                                    Layout="{Binding LabelSettings.Layout}"
+                                                    MaxWidth="420"
+                                                    HorizontalAlignment="Center"/>
+                                    <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LabelPreviewNote}"/>
+
+                                    <Border Classes="settingCard">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_LabelFiles}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LabelFilesNote}"/>
+                                            <CheckBox IsChecked="{Binding LabelSettings.WritesDymo}"
+                                                      Content="{DynamicResource Export_FormatDymo}"/>
+                                            <CheckBox IsChecked="{Binding LabelSettings.WritesReportPdf}"
+                                                      Content="{DynamicResource Export_FormatReportPdf}"/>
+                                            <CheckBox IsChecked="{Binding LabelSettings.WritesLabelPdf}"
+                                                      Content="{DynamicResource Export_FormatLabelPdf}"/>
+                                            <CheckBox IsChecked="{Binding LabelSettings.WritesJson}"
+                                                      Content="{DynamicResource Export_FormatJson}"/>
+                                            <CheckBox IsChecked="{Binding LabelSettings.WritesCsv}"
+                                                      Content="{DynamicResource Export_FormatCsv}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Classes="settingCard">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_LabelFolder}"/>
+                                            <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_LabelFolderDesc}"/>
+                                            <ComboBox ItemsSource="{Binding LabelSettings.FolderSchemes}"
+                                                      SelectedItem="{Binding LabelSettings.FolderScheme}"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:ExportFolderItem">
+                                                        <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock Classes="settingDesc" Text="{Binding LabelSettings.FolderExample}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <!--
+                                Quality: when a value counts as a problem. The
+                                thresholds decide the marker on the label and what
+                                the report counts as a deviation, so they sit
+                                together with the sentence that says what they do.
+                            -->
+                            <StackPanel Spacing="14"
+                                        IsVisible="{Binding SelectedSettingsSection, Converter={StaticResource SectionMatch}, ConverterParameter=Quality}">
+                                <TextBlock Classes="sectionTitle" Text="{DynamicResource Settings_SecQuality}"/>
+                                <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_QualityLead}"/>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_QualityBatteryThreshold}"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_QualityBatteryThresholdDesc}"/>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Slider Grid.Column="0" Minimum="50" Maximum="95"
+                                                    TickFrequency="5" IsSnapToTickEnabled="True"
+                                                    Value="{Binding LabelSettings.BatteryThreshold}"/>
+                                            <TextBlock Grid.Column="1" Classes="valueText" FontWeight="Bold"
+                                                       MinWidth="48" TextAlignment="Right"
+                                                       Text="{Binding LabelSettings.BatteryThresholdText}"/>
+                                        </Grid>
+                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                                   Text="{Binding LabelSettings.BatteryExample}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Classes="settingTitle" Text="{DynamicResource Settings_QualityCyclesThreshold}"/>
+                                        <TextBlock Classes="settingDesc" Text="{DynamicResource Settings_QualityCyclesThresholdDesc}"/>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Slider Grid.Column="0" Minimum="0" Maximum="1500"
+                                                    TickFrequency="50" IsSnapToTickEnabled="True"
+                                                    Value="{Binding LabelSettings.CyclesThreshold}"/>
+                                            <TextBlock Grid.Column="1" Classes="valueText" FontWeight="Bold"
+                                                       MinWidth="48" TextAlignment="Right"
+                                                       Text="{Binding LabelSettings.CyclesThresholdText}"/>
+                                        </Grid>
+                                        <TextBlock Classes="settingDesc" TextWrapping="Wrap"
+                                                   Text="{Binding LabelSettings.CyclesExample}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox IsChecked="{Binding LabelSettings.BatteryCheck}"
+                                                  Content="{DynamicResource Settings_Enable85Checker}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0"
+                                                   Text="{DynamicResource Settings_Enable85CheckerDesc}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!--
                                 Licensing lives in the panel the title bar pill
                                 opens, so this is only a pointer: the tier as it
                                 stands, and one button over to where a key gets
@@ -1149,13 +1382,6 @@
                                     <StackPanel Spacing="6">
                                         <CheckBox Content="{DynamicResource Settings_RunDiagnostics}" IsChecked="{Binding RunDiagnostics}"/>
                                         <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_RunDiagnosticsDesc}"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Classes="settingCard">
-                                    <StackPanel Spacing="6">
-                                        <CheckBox Content="{DynamicResource Settings_Enable85Checker}" IsChecked="{Binding Enable85PercentChecker}"/>
-                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" Text="{DynamicResource Settings_Enable85CheckerDesc}"/>
                                     </StackPanel>
                                 </Border>
 

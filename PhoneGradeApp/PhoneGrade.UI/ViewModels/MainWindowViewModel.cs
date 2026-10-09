@@ -82,6 +82,17 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     /// </summary>
     public ExportViewModel? ExportViewModel { get; private set; }
 
+    /// <summary>
+    /// The label settings and their live preview, for the settings page.
+    /// </summary>
+    /// <remarks>
+    /// Separate from the export panel because it answers a different question: the
+    /// panel is "what does this phone's label look like", the settings are "what
+    /// does every label look like". They read the same stored values and both draw
+    /// through the same plate.
+    /// </remarks>
+    public LabelSettingsViewModel? LabelSettings { get; private set; }
+
     // USB Event Monitoring & ADB Tutorial
     private readonly AdbDeviceDirector _adbDirector;
     public AdbTutorialViewModel AdbTutorialViewModel { get; }
@@ -576,7 +587,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             _settings.LabelStockPartNumber = wanted;
             _settings.Save();
             this.RaiseAndSetIfChanged(ref _labelStockPartNumber, wanted);
-            ExportViewModel?.ReloadLabelSettings();
+            LabelSettingsChanged();
         }
     }
 
@@ -589,7 +600,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             _settings.LabelBarcodeMode = value;
             _settings.Save();
             this.RaisePropertyChanged();
-            ExportViewModel?.ReloadLabelSettings();
+            this.RaisePropertyChanged(nameof(EffectiveLabelBarcodeMode));
+            LabelSettingsChanged();
         }
     }
 
@@ -611,11 +623,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             _settings.LabelSymbology = value;
             _settings.Save();
             this.RaisePropertyChanged();
-            ExportViewModel?.ReloadLabelSettings();
+            LabelSettingsChanged();
         }
     }
 
-    /// <summary>Called by the export panel's pickers, which own the collections.</summary>
+    /// <summary>Called by the label settings picker, which owns the collection.</summary>
     public void SetLabelStock(LabelStock stock)
     {
         if (string.Equals(_labelStockPartNumber, stock.PartNumber, StringComparison.Ordinal)) return;
@@ -624,67 +636,161 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         _settings.Save();
         this.RaiseAndSetIfChanged(ref _labelStockPartNumber, stock.PartNumber);
         this.RaisePropertyChanged(nameof(LabelStock));
+        LabelSettingsChanged();
     }
 
-    /// <summary>Called by the export panel's picker.</summary>
+    /// <summary>Called by the label settings picker.</summary>
     public void SetLabelSymbology(LabelCodeSymbology symbology) => LabelSymbology = symbology;
 
-    /// <summary>Called by the export panel's picker.</summary>
+    /// <summary>Called by the label settings picker.</summary>
     public void SetLabelBarcodeMode(LabelBarcodeMode mode)
     {
         if (_settings.LabelBarcodeMode == mode) return;
         _settings.LabelBarcodeMode = mode;
         _settings.Save();
         this.RaisePropertyChanged(nameof(LabelBarcodeMode));
-        ExportViewModel?.ReloadLabelSettings();
+        this.RaisePropertyChanged(nameof(EffectiveLabelBarcodeMode));
+        LabelSettingsChanged();
     }
 
     /// <summary>The stock, as the label writers take it.</summary>
     public LabelStock LabelStock => LabelStock.FromPartNumber(_labelStockPartNumber);
 
     /// <summary>
-    /// The switches that decide what the label says, as the settings page shows them.
+    /// The switches that decide what the label says, as the writers take them.
     /// </summary>
     /// <remarks>
     /// Gathered into one object so the label's wording is passed around as a single
     /// value. Every renderer takes it, which is the only way the preview can promise
     /// it is showing what the file will contain.
+    ///
+    /// The faults and the locks are always on. They used to be switches, and a switch
+    /// that takes the locks off a label takes off the one line that stops a FRP locked
+    /// phone being sold; the panel wording said so and it was still the wrong thing to
+    /// offer. A clean phone carries neither line because there is nothing to say, not
+    /// because somebody turned the line off.
     /// </remarks>
     public LabelContent LabelContent => new(
-        _settings.LabelShowBatteryCycles,
-        _settings.LabelShowFaults,
-        _settings.LabelShowLocks);
+        BatteryCycles: _settings.LabelShowBatteryCycles,
+        Faults: true,
+        Locks: true);
 
-    /// <summary>Whether the charge count is on the label.</summary>
+    /// <summary>Whether the charge count is on the label at all.</summary>
     public bool LabelShowBatteryCycles
     {
         get => _settings.LabelShowBatteryCycles;
         set { _settings.LabelShowBatteryCycles = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _labelShowBatteryCycles, value); LabelSettingsChanged(); }
     }
 
-    /// <summary>Whether the faults are on the label.</summary>
-    public bool LabelShowFaults
+    private bool _labelShowBatteryCycles = true;
+
+    /// <summary>
+    /// How the label is arranged: the single specification line, the structured
+    /// arrangement, or the grade as a block of its own.
+    /// </summary>
+    public LabelVariant LabelVariant
     {
-        get => _settings.LabelShowFaults;
-        set { _settings.LabelShowFaults = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _labelShowFaults, value); LabelSettingsChanged(); }
+        get => _settings.LabelVariant;
+        set { _settings.LabelVariant = value; _settings.Save(); this.RaisePropertyChanged(); LabelSettingsChanged(); }
     }
 
     /// <summary>
-    /// Whether the locks are on the label. A shop that turns this off should know
-    /// that it removes the one line that stops a FRP locked phone being sold.
+    /// Whether the label carries a barcode at all.
     /// </summary>
-    public bool LabelShowLocks
+    /// <remarks>
+    /// Off is for the shop whose scanner cannot read one; the barcode itself is one
+    /// Code39 code with the serial number, which is what every till reads. What the
+    /// code carries and which symbology it is drawn in stay in the label settings
+    /// behind this switch, because a shop that scans nothing has no use for either.
+    /// </remarks>
+    public bool LabelBarcodeEnabled
     {
-        get => _settings.LabelShowLocks;
-        set { _settings.LabelShowLocks = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _labelShowLocks, value); LabelSettingsChanged(); }
+        get => _settings.LabelBarcodeEnabled;
+        set
+        {
+            _settings.LabelBarcodeEnabled = value;
+            _settings.Save();
+            this.RaisePropertyChanged();
+            this.RaisePropertyChanged(nameof(LabelBarcodeMode));
+            LabelSettingsChanged();
+        }
     }
 
-    private bool _labelShowBatteryCycles = true;
-    private bool _labelShowFaults = true;
-    private bool _labelShowLocks = true;
+    /// <summary>The barcode mode the writers actually use: none when the switch is off.</summary>
+    public LabelBarcodeMode EffectiveLabelBarcodeMode =>
+        _settings.LabelBarcodeEnabled ? _settings.LabelBarcodeMode : LabelBarcodeMode.None;
+
+    /// <summary>
+    /// The battery percentage under which the marker goes on the label, and under
+    /// which the report counts the battery as a deviation.
+    /// </summary>
+    public int LabelBatteryThreshold
+    {
+        get => _settings.LabelBatteryThreshold;
+        set
+        {
+            int wanted = Math.Clamp(value, 50, 95);
+            if (_settings.LabelBatteryThreshold == wanted) return;
+            _settings.LabelBatteryThreshold = wanted;
+            _settings.Save();
+            this.RaisePropertyChanged();
+            LabelSettingsChanged();
+        }
+    }
+
+    /// <summary>Below this charge count the number is left off the label.</summary>
+    public int LabelCyclesThreshold
+    {
+        get => _settings.LabelCyclesThreshold;
+        set
+        {
+            int wanted = Math.Clamp(value, 0, 5000);
+            if (_settings.LabelCyclesThreshold == wanted) return;
+            _settings.LabelCyclesThreshold = wanted;
+            _settings.Save();
+            this.RaisePropertyChanged();
+            LabelSettingsChanged();
+        }
+    }
+
+    /// <summary>The files a finished inspection writes without being asked.</summary>
+    public List<ExportFormat> ExportFormats
+    {
+        get => _settings.ExportFormats;
+        set
+        {
+            _settings.ExportFormats = value;
+            _settings.Save();
+            this.RaisePropertyChanged();
+        }
+    }
+
+    /// <summary>Whether a format is in the set a finish writes.</summary>
+    public bool WritesFormat(ExportFormat format) => _settings.ExportFormats.Contains(format);
+
+    /// <summary>Adds or removes one format from the set a finish writes.</summary>
+    public void SetWritesFormat(ExportFormat format, bool wanted)
+    {
+        var formats = new List<ExportFormat>(_settings.ExportFormats);
+        if (wanted && !formats.Contains(format)) formats.Add(format);
+        if (!wanted) formats.Remove(format);
+
+        ExportFormats = formats;
+    }
+
+    /// <summary>How the exports are grouped in the folder the operator sees.</summary>
+    public ExportFolderScheme ExportFolderScheme
+    {
+        get => _settings.ExportFolderScheme;
+        set { _settings.ExportFolderScheme = value; _settings.Save(); this.RaisePropertyChanged(); }
+    }
 
     /// <summary>Tells the preview and the writers that the label's wording changed.</summary>
-    private void LabelSettingsChanged() => ExportViewModel?.ReloadLabelSettings();
+    private void LabelSettingsChanged()
+    {
+        ExportViewModel?.ReloadLabelSettings();
+        LabelSettings?.Refresh();
+    }
 
     private bool _enableUsbEventMonitoring;
     public bool EnableUsbEventMonitoring
@@ -924,6 +1030,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             this.RaisePropertyChanged(nameof(SelectedGradeDisplay));
             this.RaisePropertyChanged(nameof(SelectedInvoiceMethod));
             this.RaisePropertyChanged(nameof(SelectedInvoiceMethodDisplay));
+            LabelSettingsChanged();
         }
     }
 
@@ -1112,7 +1219,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
     public string[] ThemeOptions { get; } = ["Dark", "Light", "System"];
     public string[] QualityOptions { get; } = ["", "A", "B", "C"];
-    public string[] PaymentOptions { get; } = ["", "Marge", "BTW"];
+    public string[] PaymentOptions { get; } = ["", "Marge", "BTW", PaymentMethods.NeverAsk];
 
     public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
     public ReactiveCommand<Unit, Unit> StartCommand { get; }
@@ -1266,6 +1373,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         FinishInspectionCommand = ReactiveCommand.CreateFromTask(FinishInspectionAsync);
 
         ExportViewModel = new ExportViewModel(this);
+        LabelSettings = new LabelSettingsViewModel(this);
         _labelTemplatePath = _settings.TemplatePath ?? "";
         OpenExportCommand = ReactiveCommand.Create(ExportViewModel.Open);
 
@@ -2324,7 +2432,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         SelectedGrade = quality;
         IsQualityPopupVisible = false;
 
-        if (DefaultPaymentMethod is { Length: > 0 })
+        if (DefaultPaymentMethod == PaymentMethods.NeverAsk)
+        {
+            // A shop that does not record an invoice method is not stopped for one.
+            // The device keeps no method, the label leaves the field off and the
+            // report says nothing about it, which is what "not asked" means.
+            await ContinueAfterPaymentAsync("");
+        }
+        else if (DefaultPaymentMethod is { Length: > 0 })
         {
             await ContinueAfterPaymentAsync(DefaultPaymentMethod);
         }

@@ -186,7 +186,7 @@
     <x:String x:Key="Active_ColFactory">Fabriekswaarde</x:String>
     <x:String x:Key="Active_ColRead">Gelezen waarde</x:String>
     <x:String x:Key="Summary_ColStatus">Status</x:String>
-    <x:String x:Key="Summary_BtnPrint">DYMO LABEL AFDRUKKEN</x:String>
+    <x:String x:Key="Summary_BtnPrint">Afronden</x:String>
     <x:String x:Key="Summary_BtnRetest">Opnieuw Testen</x:String>
     <x:String x:Key="Summary_BtnNext">Volgend Toestel (Klaar)</x:String>
     <x:String x:Key="Summary_SimLockFree">Vrijgeschakeld (Simlockvrij)</x:String>
@@ -196,10 +196,10 @@
     <!-- Het scherm dat de operator opent vanaf het inspectierapport. Het is de
          enige plek die van labels, rapporten en ruwe getallen weet, dus de knop op
          het rapport opent dit scherm en nergens anders wordt een bestand geschreven. -->
-    <x:String x:Key="Export_Title">Exporteren en afdrukken</x:String>
-    <x:String x:Key="Export_Lead">Bewaar het label, het rapport en de getallen, of druk het label meteen af.</x:String>
+    <x:String x:Key="Export_Title">Afronden</x:String>
+    <x:String x:Key="Export_Lead">Controleer het label. Printen en opslaan gebeurt in één keer.</x:String>
     <x:String x:Key="Export_PreviewTitle">Labelvoorbeeld</x:String>
-    <x:String x:Key="Export_PreviewNote">Getekend uit dezelfde waarden als het bestand. Wat ontbreekt staat als plaatshouder.</x:String>
+    <x:String x:Key="Export_PreviewNote">Getekend uit dezelfde waarden als het bestand, op de maat van de rol.</x:String>
     <x:String x:Key="Export_PreviewScaled">Kleiner getekend dan het label zodat het hier past. De verhouding klopt, het formaat niet.</x:String>
     <x:String x:Key="Export_Stock">Labelvoorraad</x:String>
     <x:String x:Key="Export_StockNote">De rol in de printer, op het artikelnummer waar hij besteld wordt.</x:String>
@@ -226,13 +226,7 @@
     <x:String x:Key="Export_Symbology39Note">Wat elke kassa en scanner in een telefoonwinkel al leest. Draagt hoofdletters en een handvol tekens, dus een modelnaam komt als streepjes op de code.</x:String>
     <x:String x:Key="Export_Symbology128">Code 128</x:String>
     <x:String x:Key="Export_Symbology128Note">Dichter, dus één code kan het serienummer en de specificatie samen dragen waar Code39 dat niet kan. Je scanner moet erop ingesteld staan.</x:String>
-    <x:String x:Key="Export_LabelShowTitle">Op het label</x:String>
     <x:String x:Key="Export_LabelShowCycles">Laadcycli</x:String>
-    <x:String x:Key="Export_LabelShowCyclesNote">Hoe vaak de batterij is opgeladen, wat een percentage je niet kan vertellen.</x:String>
-    <x:String x:Key="Export_LabelShowFaults">Fouten</x:String>
-    <x:String x:Key="Export_LabelShowFaultsNote">Een getelde lijst van wat er mis is, zoals 2x niet-origineel scherm.</x:String>
-    <x:String x:Key="Export_LabelShowLocks">FRP en activeringsvergrendeling</x:String>
-    <x:String x:Key="Export_LabelShowLocksNote">Wordt in groter letterwerk gedrukt als een van beide aanstaat. Uitzetten haalt de regel weg die verhindert dat een vergrendelde telefoon wordt verkocht.</x:String>
     <x:String x:Key="Export_LabelPreviewTitle">Het label</x:String>
     <x:String x:Key="Export_LabelPreviewNote">Getekend op de maat van de rol hierboven, uit dezelfde waarden als het bestand.</x:String>
     <x:String x:Key="Export_LabelTooNarrow">Het serienummer is te lang voor een barcode op deze voorraad, dus het wordt als tekst gedrukt.</x:String>
@@ -785,4 +779,78 @@
 
     <x:String x:Key="Licensing_PanelSeatsFree">{0} plaatsen over op deze sleutel</x:String>
     <x:String x:Key="Licensing_PanelSeatFreeOne">{0} plaats over op deze sleutel</x:String>
+
+    <!-- Shop profile: exporting the shop-wide settings to another computer -->
+
+    <x:String x:Key="Export_BtnPrintAndFinish">Label printen en afronden</x:String>
+    <x:String x:Key="Export_BtnSaveAndFinish">Opslaan en afronden</x:String>
+    <x:String x:Key="Export_AgainFold">Deze keer anders</x:String>
+    <x:String x:Key="Export_AgainFoldNote">Alleen als deze inspectie afwijkt van de standaard.</x:String>
+    <x:String x:Key="Export_RollOverride">Andere rol</x:String>
+    <x:String x:Key="Export_RollOverrideNote">Alleen voor deze keer; de standaard blijft staan.</x:String>
+    <x:String x:Key="Export_NoPrint">Alleen opslaan, niet printen</x:String>
+    <x:String x:Key="Export_NoPrintNote">Voor een toestel dat nog niet de werkbank af mag.</x:String>
+    <x:String x:Key="Export_ExtraFiles">Extra bestanden</x:String>
+    <x:String x:Key="Export_ExtraFilesNote">Schrijft ook de ruwe getallen als JSON en CSV.</x:String>
+    <x:String x:Key="Export_AsConfigured">Zoals ingesteld</x:String>
+    <x:String x:Key="Export_ConfiguredLabel">Label</x:String>
+    <x:String x:Key="Export_ConfiguredFormats">Formaten</x:String>
+    <x:String x:Key="Export_ConfiguredFolder">Map</x:String>
+    <x:String x:Key="Export_ConfiguredRoll">Rol</x:String>
+    <x:String x:Key="Export_ConfiguredPrinter">Printer</x:String>
+    <x:String x:Key="Export_ConfiguredChange">Wijzigen in Instellingen</x:String>
+    <x:String x:Key="Export_ConfiguredNoFiles">Geen bestanden gekozen</x:String>
+    <x:String x:Key="Export_FolderLine">Wordt opgeslagen in {0}</x:String>
+    <x:String x:Key="Export_MissingTitle">Nog niet compleet</x:String>
+    <x:String x:Key="Export_MissingBody">Voor het label ontbreekt nog:</x:String>
+    <x:String x:Key="Export_BtnFix">Vul aan in de editor</x:String>
+    <x:String x:Key="Export_BtnSaveWithoutLabel">Alleen dossier opslaan</x:String>
+    <x:String x:Key="Export_BtnNextDevice">Volgend toestel</x:String>
+    <x:String x:Key="Export_PrintedAndSaved">Geprint en opgeslagen in {0}</x:String>
+    <x:String x:Key="LabelField_Identifier">serienummer</x:String>
+    <x:String x:Key="LabelField_Model">model</x:String>
+    <x:String x:Key="LabelField_Grade">grade</x:String>
+    <x:String x:Key="LabelField_Color">kleur</x:String>
+    <x:String x:Key="Settings_SecLabel">Label</x:String>
+    <x:String x:Key="Settings_LabelLead">Zo ziet elk label eruit, voor elke inspectie.</x:String>
+    <x:String x:Key="Settings_LabelVariant">Labelvariant</x:String>
+    <x:String x:Key="Settings_LabelVariantDesc">Kies de opbouw die bij jullie past; het voorbeeld verandert mee.</x:String>
+    <x:String x:Key="Settings_LabelVariantClean">Zoals nu (opgeschoond)</x:String>
+    <x:String x:Key="Settings_LabelVariantCleanNote">Eén regel met alle waarden, zoals het label altijd was.</x:String>
+    <x:String x:Key="Settings_LabelVariantStructured">Gestructureerd</x:String>
+    <x:String x:Key="Settings_LabelVariantStructuredNote">Model en opslag apart, de waarden samen, fouten en locks eronder.</x:String>
+    <x:String x:Key="Settings_LabelVariantGradeBlock">Grade-blok</x:String>
+    <x:String x:Key="Settings_LabelVariantGradeBlockNote">De grade als groot blok; de rest ernaast.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeTitle">Barcode</x:String>
+    <x:String x:Key="Settings_LabelBarcode">Barcode met serienummer</x:String>
+    <x:String x:Key="Settings_LabelBarcodeDesc">Eén Code 39-code met het serienummer. Elke kassa leest die.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeNote">Zet uit voor een winkel waar de scanner er geen één kan lezen; het label krijgt dan alleen zijn woorden.</x:String>
+    <x:String x:Key="Settings_LabelBarcodeAdvanced">Geavanceerd voor eigen scanners</x:String>
+    <x:String x:Key="Settings_LabelCyclesNote">Hoe vaak de batterij is opgeladen; onder de drempel uit Kwaliteit laat het label het weg.</x:String>
+    <x:String x:Key="Settings_LabelPreview">Voorbeeld</x:String>
+    <x:String x:Key="Settings_LabelPreviewNote">Getekend uit dezelfde waarden als het bestand, op de maat van de rol.</x:String>
+    <x:String x:Key="Settings_LabelFiles">Bestanden</x:String>
+    <x:String x:Key="Settings_LabelFilesNote">Wat elke afronding standaard wegschrijft.</x:String>
+    <x:String x:Key="Settings_LabelFolder">Mapindeling</x:String>
+    <x:String x:Key="Settings_LabelFolderDesc">Hoe de exports gegroepeerd worden.</x:String>
+    <x:String x:Key="Settings_FolderDay">Per dag</x:String>
+    <x:String x:Key="Settings_FolderDayNote">Eén map per dag, met de datum als naam.</x:String>
+    <x:String x:Key="Settings_FolderWeek">Per week</x:String>
+    <x:String x:Key="Settings_FolderWeekNote">Eén map per ISO-week, de standaard.</x:String>
+    <x:String x:Key="Settings_FolderMonth">Per maand</x:String>
+    <x:String x:Key="Settings_FolderMonthNote">Eén map per maand.</x:String>
+    <x:String x:Key="Settings_FolderInspection">Per toestel</x:String>
+    <x:String x:Key="Settings_FolderInspectionNote">Eén map per serienummer.</x:String>
+    <x:String x:Key="Settings_SecQuality">Kwaliteit</x:String>
+    <x:String x:Key="Settings_QualityLead">Wanneer een waarde een markering krijgt op het label en in het rapport.</x:String>
+    <x:String x:Key="Settings_QualityBatteryThreshold">Batterij markeren onder</x:String>
+    <x:String x:Key="Settings_QualityBatteryThresholdDesc">Een batterij onder deze grens krijgt een [X] op het label.</x:String>
+    <x:String x:Key="Settings_QualityBatteryExample">Deze telefoon: {0}.</x:String>
+    <x:String x:Key="Settings_QualityBatteryUnknown">geen accuwaarde gelezen</x:String>
+    <x:String x:Key="Settings_QualityCyclesThreshold">Laadcycli tonen vanaf</x:String>
+    <x:String x:Key="Settings_QualityCyclesThresholdDesc">Onder deze grens zegt het aantal niets en laat het label het weg. In het rapport staat de waarde altijd.</x:String>
+    <x:String x:Key="Settings_QualityCyclesShown">Deze telefoon heeft {0} cycli en dat komt op het label.</x:String>
+    <x:String x:Key="Settings_QualityCyclesHidden">Deze telefoon heeft {0} cycli en dat blijft van het label af.</x:String>
+    <x:String x:Key="Settings_PaymentNever">Niet vragen (leeg laten)</x:String>
+    <x:String x:Key="Settings_QualityCyclesUnknown">geen laadcycli gelezen</x:String>
 </ResourceDictionary>

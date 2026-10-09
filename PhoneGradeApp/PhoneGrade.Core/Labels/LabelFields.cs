@@ -85,6 +85,31 @@ public sealed record LabelFields
     /// </summary>
     public bool IsIdentifiable => Identifier != DevicePlaceholders.Identifier;
 
+    /// <summary>
+    /// The values a label cannot be drawn without, still missing.
+    /// </summary>
+    /// <remarks>
+    /// The four the shop identifies and prices the device by. A phone that has one of
+    /// these unread is not labelled: the panel offers the editor instead of printing,
+    /// because a label without a serial or a grade is a tag that gets the wrong price
+    /// put on it. Everything else may be missing and is simply left off the paper.
+    /// </remarks>
+    public IReadOnlyList<LabelField> MissingForLabel
+    {
+        get
+        {
+            var missing = new List<LabelField>();
+            if (Identifier == DevicePlaceholders.Identifier) missing.Add(LabelField.Identifier);
+            if (Model == DevicePlaceholders.Model) missing.Add(LabelField.Model);
+            if (Grade == DevicePlaceholders.Grade) missing.Add(LabelField.Grade);
+            if (ColorReported == DevicePlaceholders.Color) missing.Add(LabelField.Color);
+            return missing;
+        }
+    }
+
+    /// <summary>Whether every value a label needs was reported.</summary>
+    public bool HasRequiredForLabel => MissingForLabel.Count == 0;
+
     /// <summary>True when a value is still a placeholder and must not reach a label.</summary>
     public bool IsComplete =>
         Identifier != DevicePlaceholders.Identifier
@@ -103,7 +128,7 @@ public sealed record LabelFields
     /// </summary>
     /// <param name="data">what the phone reported</param>
     /// <param name="flagLowBattery">
-    /// Whether a battery below <see cref="LowBatteryPercent"/> carries the marker.
+    /// Whether a battery below <paramref name="batteryThreshold"/> carries the marker.
     /// The setting is off for shops that grade every battery as it stands; without
     /// the switch the marker is on the label whether the operator wants it or not.
     /// </param>
@@ -115,14 +140,19 @@ public sealed record LabelFields
     /// dictionaries, and a label that said "Wit" while the window said "White" is the
     /// thing this parameter exists to stop. Left out, the key is printed as it stands.
     /// </param>
+    /// <param name="batteryThreshold">
+    /// The percentage under which a battery is flagged. The shop chooses it in the
+    /// quality settings; 85 is the default the label has always used.
+    /// </param>
     public static LabelFields From(
         DeviceData data,
         bool flagLowBattery = true,
         LabelFaults? faults = null,
         LabelContent? content = null,
-        Func<string?, string>? colour = null)
+        Func<string?, string>? colour = null,
+        int batteryThreshold = LowBatteryPercent)
     {
-        (string battery, bool low) = BatteryField(data.BatteryHealth, flagLowBattery);
+        (string battery, bool low) = BatteryField(data.BatteryHealth, flagLowBattery, batteryThreshold);
         return new LabelFields
         {
             Battery = battery,
@@ -157,7 +187,7 @@ public sealed record LabelFields
     /// capacity counters are readable and a status word when they are not, and a
     /// word with a percent sign behind it ("Good%") is nonsense on a label.
     /// </summary>
-    private static (string Text, bool Low) BatteryField(string health, bool flagLowBattery)
+    private static (string Text, bool Low) BatteryField(string health, bool flagLowBattery, int threshold)
     {
         string value = health?.Trim() ?? "";
         if (value.Length == 0 || value == DevicePlaceholders.Battery) return (value, false);
@@ -165,7 +195,7 @@ public sealed record LabelFields
         string digits = value.EndsWith('%') ? value[..^1].Trim() : value;
         if (!int.TryParse(digits, out int percent)) return (value, false);
 
-        bool low = percent < LowBatteryPercent;
+        bool low = percent < threshold;
         string text = $"{percent}%";
         return (low && flagLowBattery ? $"{text} {LabelMarkers.LowBattery}" : text, low);
     }
@@ -191,6 +221,18 @@ public static class DevicePlaceholders
     public const string PayMethod = "NOPAY";
     public const string Storage = "NOSTORAGE";
     public const string BatteryCycles = "NOCYCLES";
+}
+
+/// <summary>
+/// One of the values a label cannot be drawn without. Named rather than carried as
+/// text so the panel can say which one is missing in the operator's own language.
+/// </summary>
+public enum LabelField
+{
+    Identifier,
+    Model,
+    Grade,
+    Color,
 }
 
 /// <summary>The marks that go on a label, in the glyphs DYMO printers have to offer.</summary>

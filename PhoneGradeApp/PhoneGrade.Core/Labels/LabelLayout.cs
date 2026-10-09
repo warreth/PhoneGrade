@@ -107,8 +107,27 @@ public sealed record LabelLayout(LabelStock Stock)
     public float TextHeightMm(LabelBarcodeMode mode) => TextHeightMm(LabelCode.BarcodeCount(mode));
 
     /// <summary>The first line: what the device is and what it is worth.</summary>
+    /// <remarks>
+    /// The values the phone reported, and only those. A placeholder is left out
+    /// rather than printed: NOMODEL or NOPAY on a label is a word a customer reads as
+    /// part of what the shop is selling. When one of the four values a label cannot
+    /// do without is missing the panel stops the print altogether; everything else
+    /// that is missing is simply not on the paper.
+    /// </remarks>
     public static string TextLine(LabelFields fields) =>
-        $"{fields.Model} {fields.Storage} {fields.Color} {fields.Grade} {fields.Battery} {fields.PayMethod}";
+        string.Join(" ", new[]
+        {
+            LabelValue(fields.Model, DevicePlaceholders.Model),
+            LabelValue(fields.Storage, DevicePlaceholders.Storage),
+            LabelValue(fields.Color, DevicePlaceholders.Color),
+            LabelValue(fields.Grade, DevicePlaceholders.Grade),
+            LabelValue(fields.Battery, DevicePlaceholders.Battery),
+            LabelValue(fields.PayMethod, DevicePlaceholders.PayMethod),
+        }.Where(part => part.Length > 0));
+
+    /// <summary>The value, or nothing when it is the word for "the phone did not say".</summary>
+    private static string LabelValue(string value, string placeholder) =>
+        value.Length > 0 && value != placeholder ? value : "";
 
     /// <summary>
     /// The first line again, short enough for a barcode.
@@ -163,15 +182,30 @@ public sealed record LabelLayout(LabelStock Stock)
     /// clean phone so its presence is itself the news. The locks are not repeated
     /// here because they get a line of their own, set larger.
     /// </summary>
-    public static string DetailLine(LabelFields fields)
+    /// <param name="cyclesMinimum">
+    /// Below this charge count the number is left off. A battery at 90 percent after
+    /// nine hundred charges is worse than one at 80 after fifty, and a shop that only
+    /// cares about the second reading says so here. Zero shows every count.
+    /// </param>
+    public static string DetailLine(LabelFields fields, int cyclesMinimum = 0)
     {
         string faults = fields.Content.Faults ? fields.Faults.FaultsOnly : "";
         string cycles = !fields.Content.BatteryCycles
             || fields.BatteryCycles == DevicePlaceholders.BatteryCycles
+            || Below(fields.BatteryCycles, cyclesMinimum)
                 ? ""
                 : fields.BatteryCycles + " CYCLES";
 
         return string.Join(" ", new[] { cycles, faults }.Where(part => part.Length > 0));
+    }
+
+    /// <summary>Whether a charge count is below the minimum a shop prints.</summary>
+    private static bool Below(string cycles, int minimum)
+    {
+        if (minimum <= 0) return false;
+        return !int.TryParse(cycles, System.Globalization.NumberStyles.Integer,
+                   System.Globalization.CultureInfo.InvariantCulture, out int count)
+               || count < minimum;
     }
 
     /// <summary>The third line: the locks, on their own and never shared.</summary>
@@ -179,8 +213,8 @@ public sealed record LabelLayout(LabelStock Stock)
         fields.Content.Locks ? fields.Faults.LockLine : "";
 
     /// <summary>How many text lines this label carries.</summary>
-    public static int Lines(LabelFields fields) =>
-        1 + (DetailLine(fields).Length > 0 ? 1 : 0) + (LockLine(fields).Length > 0 ? 1 : 0);
+    public static int Lines(LabelFields fields, int cyclesMinimum = 0) =>
+        1 + (DetailLine(fields, cyclesMinimum).Length > 0 ? 1 : 0) + (LockLine(fields).Length > 0 ? 1 : 0);
 
     /// <summary>
     /// Everything the label says about this device, in the order it says it.

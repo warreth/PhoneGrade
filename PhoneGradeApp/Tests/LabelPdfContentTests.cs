@@ -31,12 +31,13 @@ public class LabelPdfContentTests : IDisposable
 
     private (byte[] Pdf, LabelLayout Size, LabelBarcodeMode Mode, DeviceData Phone) Written(
         DeviceData? phone = null, LabelLayout? layout = null,
-        LabelBarcodeMode mode = LabelBarcodeMode.Identifier)
+        LabelBarcodeMode mode = LabelBarcodeMode.Identifier,
+        LabelVariant variant = LabelVariant.Clean)
     {
         DeviceData what = phone ?? Phone();
         LabelLayout size = layout ?? LabelLayout.Address;
         string path = Path.Combine(_folder, $"{Guid.NewGuid():N}.pdf");
-        LabelPdfWriter.Write(path, LabelFields.From(what), size, mode);
+        LabelPdfWriter.Write(path, LabelFields.From(what), size, mode, LabelCodeSymbology.Code39, variant);
         return (File.ReadAllBytes(path), size, mode, what);
     }
 
@@ -74,6 +75,65 @@ public class LabelPdfContentTests : IDisposable
         Assert.True(bars > 500, $"the barcode drew {bars} pixels of ink, which is not a barcode");
         Assert.True(words > 200,
             $"below the barcode the label holds {words} pixels of ink; the words are not on it");
+    }
+
+    /// <summary>
+    /// The three arrangements, so an arrangement added to the settings is covered
+    /// the day it is added rather than the day somebody remembers.
+    /// </summary>
+    public static IEnumerable<object[]> EveryVariant =>
+        Enum.GetValues<LabelVariant>().Select(variant => new object[] { variant });
+
+    [Theory]
+    [MemberData(nameof(EveryVariant))]
+    public void EveryArrangementPrintsItsWords(LabelVariant variant)
+    {
+        // What the plate planned is what the page carries: the plate is the one
+        // place the lines and their sizes are decided, and a writer that drew
+        // something else would show up here as missing ink.
+        var written = Written(variant: variant);
+        using var picture = LabelPicture.Of(written.Pdf);
+
+        var fields = LabelFields.From(written.Phone);
+        LabelPlate plate = LabelPlate.Build(
+            fields, written.Size, written.Mode, LabelCodeSymbology.Code39, variant);
+
+        double text = TextTop(written.Size, written.Mode, fields);
+        long words = picture.InkBetween(text, 1d);
+
+        Assert.True(plate.Lines.Count > 0);
+        Assert.True(words > 200,
+            $"{variant} printed {words} pixels of ink below the barcode; the words are not on it");
+    }
+
+    [Theory]
+    [MemberData(nameof(EveryVariant))]
+    public void TheLocksKeepTheirEmphasis_OnTheArrangementsThatInvertThem(LabelVariant variant)
+    {
+        // A thermal label cannot print colour, so emphasis has to come out of black.
+        // The inverted arrangements carry a solid band around the locks; measured as
+        // ink density, a band is unmistakable against a line of type.
+        var written = Written(variant: variant);
+        using var picture = LabelPicture.Of(written.Pdf);
+
+        var fields = LabelFields.From(written.Phone);
+        LabelPlate plate = LabelPlate.Build(
+            fields, written.Size, written.Mode, LabelCodeSymbology.Code39, variant);
+
+        double text = TextTop(written.Size, written.Mode, fields);
+        var bands = picture.InkBands().Where(band => band.Bottom > text).ToList();
+        Assert.NotEmpty(bands);
+
+        (double top, double bottom) = bands[^1];
+        double area = (picture.Width / 2.0) * ((bottom - top) * picture.Height / 2.0);
+        double density = area > 0 ? picture.InkBetween(top, bottom) / area : 0;
+
+        if (plate.LocksInverted)
+            Assert.True(density > 0.4,
+                $"{variant} drew its locks band at {density:P0} ink; the black band is not on the page");
+        else
+            Assert.True(density < 0.4,
+                $"{variant} drew its plain locks line at {density:P0} ink; it reads as a black band");
     }
 
     [Fact]

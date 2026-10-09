@@ -18,14 +18,14 @@ using PhoneGrade.Tests;
 
 namespace Tests;
 
-// ============ The export panel, measured on the laid out window ============
+// ============ The finish panel, measured on the laid out window ============
 //
-// The panel is one screen for the label, the report and the numbers, and it is
-// reached from the button an operator presses at the end of every inspection. A
-// fault here is not a crash: it is a button that looks enabled and does nothing,
-// a label drawn at the wrong shape, or a row that has gone off the bottom of a
-// panel that is not scrollable. None of those show up in a return value, so all
-// of these are measured on the window after it has been laid out.
+// The panel is the last screen of an inspection: the label as it will print, and
+// one button that prints it and files the record. A fault here is not a crash: it
+// is a button that looks enabled and does nothing, a label drawn from settings the
+// files do not use, or a phone that gets labelled without a serial number. None of
+// those show up in a return value, so all of these are measured on the window after
+// it has been laid out.
 
 [Collection(LanguageCollection.Name)]
 public class ExportPanelTests : IDisposable
@@ -56,15 +56,14 @@ public class ExportPanelTests : IDisposable
         vm.OpenExportCommand.Execute().Subscribe();
         Layout(window);
 
-        Assert.True(vm.IsExportOpen, "the report screen's button does not open the export panel");
+        Assert.True(vm.IsExportOpen, "the report screen's button does not open the finish panel");
     }
 
     [AvaloniaFact]
     public void NothingIsWrittenBeforeAnythingIsPressed()
     {
-        // The panel is opened on the way to the report and it offers five formats.
-        // Opening it must not have written any of them, or a device nobody has
-        // chosen yet has a file named after it on disk.
+        // Opening the panel must not write anything, or a device nobody has chosen
+        // yet has a file named after it on disk.
         var vm = new MainWindowViewModel { DeviceData = Demo() };
         vm.ExportViewModel!.Open();
 
@@ -73,54 +72,56 @@ public class ExportPanelTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void ThreeFormatsAreTickedToStartWith_SoTheCommonExportIsOneClick()
+    public void TheLabelAndTheReportAreWrittenToStartWith_SoTheCommonFinishIsOneClick()
     {
-        // A fresh install must be able to export without choosing anything, and
-        // the three that matter are the label, the label as a PDF for a printer
-        // that is not a DYMO, and the numbers for the shop's own records.
-        ExportViewModel panel = Panel();
-        panel.Open();
+        // A fresh install must be able to finish without choosing anything: the
+        // label for the printer in front of the operator and the report the shop
+        // keeps. The second label format and the raw numbers are opt in, because
+        // they are for a shop with a use for them.
+        var vm = new MainWindowViewModel { DeviceData = Demo() };
 
-        var ticked = panel.Options.Where(option => option.Selected).Select(option => option.Format).ToHashSet();
-        Assert.Equal(ExportService.DefaultSet, ticked);
+        Assert.Equal(
+            new[] { ExportFormat.DymoLabel, ExportFormat.ReportPdf },
+            vm.ExportFormats.OrderBy(format => format.ToString()).ToArray());
     }
 
     [AvaloniaFact]
-    public void EveryFormatIsOffered_WithWhatItIsFor()
+    public void TheConfiguredListNamesWhatEveryFinishWrites()
     {
-        // A format chosen by its extension is a format chosen wrongly: a JSON file
-        // and a CSV file are both "the numbers", and only one of them is what a
-        // shop pastes into its own system.
+        // The panel never asks what to write; it shows what the settings say it
+        // writes. A list that cannot resolve a name is a list an operator cannot
+        // check.
         ExportViewModel panel = Panel();
 
-        Assert.Equal(ExportService.All.Count, panel.Options.Count);
-        foreach (ExportOption option in panel.Options)
-        {
-            string title = LocalizationManager.GetString(option.TitleKey);
-            string note = LocalizationManager.GetString(option.NoteKey);
+        string formats = panel.ConfiguredFormats;
+        Assert.Contains(LocalizationManager.GetString("Export_FormatDymo"), formats, StringComparison.Ordinal);
+        Assert.Contains(LocalizationManager.GetString("Export_FormatReportPdf"), formats, StringComparison.Ordinal);
 
-            Assert.NotEqual(option.TitleKey, title);
-            Assert.NotEqual(option.NoteKey, note);
-            Assert.True(note.Length > 20, $"the note for {title} says nothing: {note}");
-        }
+        Assert.NotEqual("Settings_LabelVariantClean", panel.ConfiguredVariant);
+        Assert.False(string.IsNullOrWhiteSpace(panel.ConfiguredRoll));
+        Assert.Contains("export", panel.FolderLine, StringComparison.OrdinalIgnoreCase);
     }
 
     [AvaloniaFact]
-    public void ClearingTheLastTickDisablesWriting_SoTheButtonCannotDoNothing()
+    public void NothingToWriteDisablesTheButton_SoItCannotDoNothing()
     {
-        ExportViewModel panel = Panel();
+        var vm = new MainWindowViewModel { DeviceData = Demo() };
+        ExportViewModel panel = vm.ExportViewModel!;
         panel.Open();
 
-        foreach (ExportOption option in panel.Options) option.Selected = false;
+        vm.ExportFormats = [];
+        panel.ExtraFiles = false;
+        Assert.False(panel.CanFinish, "the finish button stays enabled with nothing to write");
 
-        Assert.False(panel.CanExport, "the write button stays enabled with nothing ticked");
-
-        // The command's own can-execute has to follow the same thing, or a
-        // keyboard shortcut reaches a command that refuses.
+        // The command's own can-execute has to follow the same thing, or a keyboard
+        // shortcut reaches a command that refuses.
         bool? commandAllows = null;
-        using var subscription = panel.ExportCommand.CanExecute
+        using var subscription = panel.FinishCommand.CanExecute
             .Subscribe(allowed => commandAllows = allowed);
-        Assert.True(commandAllows == false, "the write command still runs with nothing ticked");
+        Assert.True(commandAllows == false, "the finish command still runs with nothing to write");
+
+        panel.ExtraFiles = true;
+        Assert.True(panel.CanFinish, "the extra files do not count as something to write");
     }
 
     [AvaloniaFact]
@@ -134,49 +135,24 @@ public class ExportPanelTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void TheSheetKeepsTheShapeOfTheStock_AtEverySize()
+    public void TheFoldCanChangeTheRollForOneInspection_WithoutChangingTheStandard()
     {
-        // A preview drawn at a fixed size shows a 54mm label and a 106mm label as
-        // the same rectangle, which is the opposite of a preview. The shape it is
-        // compared against is the paper rather than the printable area inside it,
-        // because the sheet stands for the label the operator holds.
+        // "Deze keer anders" is for one phone. A roll chosen in the fold that wrote
+        // itself back into the settings would silently move every label after it.
         ExportViewModel panel = Panel();
+        LabelLayoutItem other = panel.Layouts.First(item => item.Stock.PartNumber == "30336");
 
-        foreach (LabelLayoutItem stock in panel.Layouts)
-        {
-            panel.Stock = stock;
+        panel.Stock = other;
 
-            LabelStock paper = stock.Stock;
-            double expected = paper.HeightMm / paper.WidthMm;
-            double drawn = panel.SheetHeight / panel.SheetWidth;
-
-            Assert.True(Math.Abs(expected - drawn) < 0.001,
-                $"{stock.Label} is drawn {drawn:F3} tall for every width, and the stock is {expected:F3}");
-        }
+        Assert.Equal(other.Stock, panel.Layout.Stock);
+        Assert.NotEqual("30336", panel.ConfiguredRoll);
     }
 
     [AvaloniaFact]
-    public void TheSheetIsNeverDrawnWiderThanItsColumn()
+    public void ThePreviewShowsTheSameValuesAsTheLabelFile()
     {
-        using MainWindow window = Shown(width: 850);
-        var vm = (MainWindowViewModel)window.DataContext!;
-        ReportWithPanelOpen(window, vm);
-
-        Border sheet = window.GetVisualDescendants().OfType<Border>()
-            .First(border => border.Classes.Contains("labelSheet"));
-
-        var column = window.GetVisualDescendants().OfType<Border>()
-            .First(border => border.Classes.Contains("previewColumn"));
-
-        Assert.True(sheet.Bounds.Width <= column.Bounds.Width + 1,
-            $"the sheet is {sheet.Bounds.Width:F0}px wide in a {column.Bounds.Width:F0}px column");
-    }
-
-    [AvaloniaFact]
-    public void ThePreviewShowsTheSameTextAsTheLabelFile()
-    {
-        // Read from the panel and from what the writer put in the file. A preview
-        // that disagrees with the label is worse than no preview.
+        // Read from the panel and from what the writer would put in the file. A
+        // preview that disagrees with the label is worse than no preview.
         var vm = new MainWindowViewModel
         {
             DeviceData = new DeviceData
@@ -190,24 +166,96 @@ public class ExportPanelTests : IDisposable
 
         LabelFields expected = LabelFields.From(vm.DeviceData);
         Assert.Equal(expected.Battery, panel.Label.Battery);
-        Assert.Contains("68% [X]", panel.LabelTextLine);
+
+        string all = string.Join(" | ", panel.Plate!.Lines.Select(line => line.Text));
+        Assert.Contains("68% [X]", all, StringComparison.Ordinal);
     }
 
     [AvaloniaFact]
-    public void ABatteryUnderTheThresholdShowsTheMarker_OnThePreview()
+    public void ABatteryUnderTheThresholdShowsTheMarker_AtTheShopThreshold()
     {
-        // The preview exists so this is caught before the label is on a device.
+        // The threshold is a shop norm, not a constant: 68 percent is a tired
+        // battery to one shop and a normal one to another, and the setting decides.
         var vm = new MainWindowViewModel { DeviceData = new DeviceData { BatteryHealth = "68" } };
-        Assert.Contains("68% [X]", vm.ExportViewModel!.LabelTextLine);
+        ExportViewModel panel = vm.ExportViewModel!;
+
+        Assert.Contains("68% [X]", string.Join(" ", panel.Plate!.Lines.Select(line => line.Text)), StringComparison.Ordinal);
+
+        vm.LabelBatteryThreshold = 50;
+
+        Assert.DoesNotContain("[X]", string.Join(" ", panel.Plate!.Lines.Select(line => line.Text)), StringComparison.Ordinal);
     }
 
     [AvaloniaFact]
-    public void AValueThatWasNeverReportedShowsAsAPlaceholder_OnThePreview()
+    public void CyclesUnderTheThresholdAreLeftOffTheLabel()
     {
-        // A phone whose colour could not be read. The gap would be invisible, so
-        // the label has to say what is missing.
+        // Below the floor the number says nothing and the paper is worth more to
+        // the faults; above it, it is the thing a battery percentage cannot say.
+        var vm = new MainWindowViewModel
+        {
+            DeviceData = new DeviceData
+            {
+                Identifier = "356938035643809", Model = "13 Pro", Color = ColorKeys.White,
+                Storage = "256GB", BatteryHealth = "90", Quality = "A", BatteryCycleCount = 300,
+            },
+        };
+        ExportViewModel panel = vm.ExportViewModel!;
+
+        Assert.DoesNotContain("300 CYCLES", string.Join(" ", panel.Plate!.Lines.Select(line => line.Text)), StringComparison.Ordinal);
+
+        vm.DeviceData.BatteryCycleCount = 612;
+        vm.ExportViewModel!.ReloadLabelSettings();
+
+        Assert.Contains("612 CYCLES", string.Join(" ", panel.Plate!.Lines.Select(line => line.Text)), StringComparison.Ordinal);
+    }
+
+    [AvaloniaFact]
+    public void AValueThatWasNeverReportedIsLeftOff_AndBlocksTheLabel()
+    {
+        // A placeholder on paper is a word a customer reads as part of what the
+        // shop is selling. The four values a label cannot do without block the
+        // print instead, and the panel says which one is missing.
         var vm = new MainWindowViewModel { DeviceData = new DeviceData() };
-        Assert.Contains(DevicePlaceholders.Color, vm.ExportViewModel!.LabelTextLine);
+        ExportViewModel panel = vm.ExportViewModel!;
+
+        string all = string.Join(" ", panel.Plate!.Lines.Select(line => line.Text));
+        Assert.DoesNotContain(DevicePlaceholders.Model, all, StringComparison.Ordinal);
+        Assert.DoesNotContain(DevicePlaceholders.PayMethod, all, StringComparison.Ordinal);
+
+        Assert.True(panel.IsLabelBlocked, "a phone with no serial can be labelled");
+        Assert.Contains(LabelField.Identifier, panel.MissingFields);
+        Assert.Contains(LabelField.Model, panel.MissingFields);
+        Assert.Contains(LabelField.Grade, panel.MissingFields);
+        Assert.Contains(LabelField.Color, panel.MissingFields);
+
+        Assert.NotEqual("LabelField_Identifier", LocalizationManager.GetString("LabelField_Identifier"));
+        Assert.Contains(LocalizationManager.GetString("LabelField_Identifier"), panel.MissingFieldsText, StringComparison.Ordinal);
+    }
+
+    [AvaloniaFact]
+    public void TheFinishPanelAndTheLabelSettingsDrawTheSamePlate()
+    {
+        // The settings preview and the finish preview are the same drawing of the
+        // same plate. Two renderers is how a shop configures one label and prints
+        // another, and this is the test that says there is one.
+        var vm = new MainWindowViewModel
+        {
+            DeviceData = new DeviceData
+            {
+                Identifier = "356938035643809", Model = "13 Pro", Color = ColorKeys.White,
+                Storage = "256GB", BatteryHealth = "90", Quality = "A", BatteryCycleCount = 612,
+            },
+        };
+        vm.LabelVariant = LabelVariant.GradeBlock;
+
+        ExportViewModel panel = vm.ExportViewModel!;
+        panel.Open();
+
+        string fromPanel = string.Join("|", panel.Plate!.Lines.Select(line => line.Text));
+        string fromSettings = string.Join("|", vm.LabelSettings!.Plate!.Lines.Select(line => line.Text));
+
+        Assert.Equal(fromPanel, fromSettings);
+        Assert.Equal(LabelVariant.GradeBlock, vm.LabelSettings.Plate.Variant);
     }
 
     [AvaloniaFact]
@@ -304,7 +352,7 @@ public class ExportPanelTests : IDisposable
         Assert.True(panel.StatusIsError, "the failure is not marked as one");
 
         // The line has to name the format that failed, or the operator has to
-        // guess which of five buttons to press again.
+        // guess which file to look at again.
         string failed = LocalizationManager.GetString(
             panel.Results.First(result => !result.Succeeded).TitleKey);
 
@@ -313,20 +361,30 @@ public class ExportPanelTests : IDisposable
     }
 
     [AvaloniaFact]
-    public void TheActionBarIsOnScreenAtTheSmallestWindowTheAppOpensAt()
+    public void ThePrimaryButtonIsOnScreenAtTheSmallestWindowTheAppOpensAt()
     {
-        // The write button is the reason the panel exists. Below this it is not
-        // reachable without scrolling, and there is nothing to scroll the bar.
+        // The finish button is the reason the panel exists. Below this it is not
+        // reachable without scrolling. The device has to be a real one: a phone
+        // without a serial gets the blocked card instead of the button.
         using MainWindow window = Shown(width: 850, height: 620);
         var vm = (MainWindowViewModel)window.DataContext!;
+        vm.DeviceData = Demo();
         ReportWithPanelOpen(window, vm);
 
-        Button write = window.GetVisualDescendants().OfType<Button>()
-            .First(button => button.IsEffectivelyVisible
-                             && LocalizationManager.GetString("Export_BtnWrite") == button.Content);
+        string wanted = LocalizationManager.GetString("Export_BtnPrintAndFinish");
+        var visible = window.GetVisualDescendants().OfType<Button>()
+            .Where(button => button.IsEffectivelyVisible)
+            .Select(button => button.Content?.ToString() ?? "")
+            .ToList();
 
-        Assert.True(write.Bounds.Bottom <= 620,
-            $"the write button reaches to {write.Bounds.Bottom:F0}px in a 620px window");
+        Assert.True(visible.Contains(wanted),
+            $"the finish button ('{wanted}') is not on screen; visible buttons: {string.Join(" | ", visible)}");
+
+        Button finish = window.GetVisualDescendants().OfType<Button>()
+            .First(button => button.IsEffectivelyVisible && Equals(button.Content, wanted));
+
+        Assert.True(finish.Bounds.Bottom <= 620,
+            $"the finish button reaches to {finish.Bounds.Bottom:F0}px in a 620px window");
     }
 
     [AvaloniaFact]
@@ -363,7 +421,7 @@ public class ExportPanelTests : IDisposable
             .Where(text => text.Length > 0)
             .ToList();
 
-        Assert.True(buttons.Count >= 4, $"the panel only has {buttons.Count} buttons with wording");
+        Assert.True(buttons.Count >= 3, $"the panel only has {buttons.Count} buttons with wording");
         foreach (string text in buttons)
             Assert.True(dictionary.Contains(text),
                 $"the panel shows \"{text}\", which is in no dictionary in either language");
@@ -415,11 +473,11 @@ public class ExportPanelTests : IDisposable
     /// <summary>
     /// Puts the window on the report screen with the panel open, and lets it lay
     /// out.
- ///
- /// The commands run through the dispatcher, so the dispatcher has to be pumped
+    ///
+    /// The commands run through the dispatcher, so the dispatcher has to be pumped
     /// between the press and the layout. Without it the window is still on the
     /// idle screen while the test believes it pressed the button, and every
-  /// assertion after that is measuring the wrong screen.
+    /// assertion after that is measuring the wrong screen.
     /// </summary>
     private static void ReportWithPanelOpen(Window window, MainWindowViewModel vm)
     {

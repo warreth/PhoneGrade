@@ -25,10 +25,44 @@ public class AppSettings
     public int EstimatedAndroidDevices { get; set; } = 10; // For cost calculator
 
     public bool RunDiagnostics { get; set; } = true;
+
+    /// <summary>
+    /// Whether a battery under the quality threshold carries the marker on the label.
+    /// </summary>
+    /// <remarks>
+    /// The switch sits in the quality settings with the threshold it applies to. It is
+    /// off for shops that grade every battery as it stands.
+    /// </remarks>
     public bool Enable85PercentChecker { get; set; } = true;
+
+    /// <summary>The battery percentage under which the marker goes on the label.</summary>
+    /// <remarks>
+    /// A shop norm rather than an app rule: what counts as a tired battery differs
+    /// between a shop selling budget Android phones and one selling iPhones. The
+    /// default is the percentage the label has always used.
+    /// </remarks>
+    public int LabelBatteryThreshold { get; set; } = LabelFields.LowBatteryPercent;
+
+    /// <summary>
+    /// Below this charge count the number is left off the label.
+    /// </summary>
+    /// <remarks>
+    /// A percentage on its own is the number most likely to mislead: a battery at 90
+    /// percent after nine hundred charges is worse than one at 80 after fifty. Below
+    /// this floor the count says nothing and the paper is worth more to the rest of
+    /// the label. The report keeps the real number either way.
+    /// </remarks>
+    public int LabelCyclesThreshold { get; set; } = 500;
+
     public bool OpenEditorBeforePrint { get; set; } = false;
     public string DefaultQuality { get; set; } = "";       // "", "A", "B", "C": empty asks
-    public string DefaultPaymentMethod { get; set; } = "";  // "", "Marge", "BTW"
+
+    /// <summary>
+    /// The invoice method a finished inspection starts with: "", "Marge", "BTW", or
+    /// <see cref="PaymentMethods.NeverAsk"/> for a shop that does not record one and
+    /// does not want to be asked.
+    /// </summary>
+    public string DefaultPaymentMethod { get; set; } = "";
     public string? TemplatePath { get; set; }             // custom my.dymo override
 
     /// <summary>
@@ -61,23 +95,37 @@ public class AppSettings
     public LabelCodeSymbology LabelSymbology { get; set; } = LabelCodeSymbology.Code39;
 
     /// <summary>
-    /// Whether the charge count is on the label.
-    ///
-    /// On by default, and worth saying why it can be off: it is the first thing a
-    /// shop that only cares about the grade stops printing.
+    /// Whether the charge count is on the label at all. The threshold that decides
+    /// when it is shown lives in the quality settings.
     /// </summary>
     public bool LabelShowBatteryCycles { get; set; } = true;
 
-    /// <summary>Whether the faults are on the label.</summary>
-    public bool LabelShowFaults { get; set; } = true;
+    /// <summary>
+    /// How the label is arranged: the single specification line, the structured
+    /// arrangement, or the grade as a block of its own.
+    /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public LabelVariant LabelVariant { get; set; } = LabelVariant.Clean;
 
     /// <summary>
-    /// Whether the locks are on the label.
-    ///
-    /// Off is a deliberate choice a shop can make, and it is a dangerous one: a
-    /// FRP-locked phone that the next owner activates wipes itself.
+    /// Whether the label carries a barcode. On is one Code39 code with the serial
+    /// number, which is what every till reads; off is for the shop whose scanner
+    /// cannot read one at all.
     /// </summary>
-    public bool LabelShowLocks { get; set; } = true;
+    public bool LabelBarcodeEnabled { get; set; } = true;
+
+    /// <summary>
+    /// The files a finished inspection writes without being asked. The label and the
+    /// report are the default; the numbers and the second label format are turned on
+    /// by a shop that has a use for them.
+    /// </summary>
+    [JsonConverter(typeof(ExportFormatListConverter))]
+    public List<ExportFormat> ExportFormats { get; set; } =
+        [ExportFormat.DymoLabel, ExportFormat.ReportPdf];
+
+    /// <summary>How the exports are grouped in the folder the operator sees.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public ExportFolderScheme ExportFolderScheme { get; set; } = ExportFolderScheme.Week;
 
     public bool EnableVerboseNetworkLogging { get; set; } = false; // Trace HTTP requests, CLI stdout/stderr, JSON payloads
     public bool IsDebugMode { get; set; } = false; // Global debug toggle for mobile PWA overlay and verbose tracing
@@ -188,5 +236,56 @@ public class AppSettings
                 new JsonSerializerOptions { WriteIndented = true }));
         }
         catch { /* read-only dir / permission → keep running with in-memory settings */ }
+    }
+}
+
+/// <summary>
+/// Reads and writes the export format set as names rather than numbers.
+/// </summary>
+/// <remarks>
+/// A settings file is a file a person may open, and a list of numbers is a list
+/// nobody can check. Numbers are still read, because a file written by a build that
+/// stored them is a file that has to keep loading: an enum member inserted in the
+/// middle renumbers everything after it, and silently changing what a shop exports
+/// over an app update is worse than any wording. The framework's own string enum
+/// converter does not apply to a collection, which is why this exists.
+/// </remarks>
+public sealed class ExportFormatListConverter : JsonConverter<List<ExportFormat>>
+{
+    public override List<ExportFormat> Read(
+        ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var formats = new List<ExportFormat>();
+        if (reader.TokenType != JsonTokenType.StartArray)
+        {
+            reader.Skip();
+            return formats;
+        }
+
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+        {
+            if (reader.TokenType == JsonTokenType.String
+                && Enum.TryParse(reader.GetString(), ignoreCase: true, out ExportFormat named))
+            {
+                formats.Add(named);
+            }
+            else if (reader.TokenType == JsonTokenType.Number
+                     && reader.TryGetInt32(out int number)
+                     && Enum.IsDefined(typeof(ExportFormat), number))
+            {
+                formats.Add((ExportFormat)number);
+            }
+        }
+
+        return formats;
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer, List<ExportFormat> value, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray();
+        foreach (ExportFormat format in value)
+            writer.WriteStringValue(format.ToString());
+        writer.WriteEndArray();
     }
 }

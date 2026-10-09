@@ -50,6 +50,7 @@ public class PaymentOptionLabelConverter : IValueConverter
         return value?.ToString() switch
         {
             "" or null => empty,
+            PhoneGrade.Core.PaymentMethods.NeverAsk => LocalizationManager.GetString("Settings_PaymentNever"),
             "Marge" => LocalizationManager.GetString("Payment_Marge"),
             "BTW" => LocalizationManager.GetString("Payment_BTW"),
             var other => other,

@@ -74,7 +74,10 @@ public static class LabelWriter
         LabelContent? Content = null,
         ReportWording? Wording = null,
         ExportWording? Messages = null,
-        Func<string?, string>? Colour = null)
+        Func<string?, string>? Colour = null,
+        LabelVariant Variant = LabelVariant.Clean,
+        int BatteryThreshold = LabelFields.LowBatteryPercent,
+        int CyclesMinimum = 0)
     {
         public static Request One(ExportFormat format, string? folder = null, string? fileName = null) =>
             new([format], folder, fileName);
@@ -88,7 +91,8 @@ public static class LabelWriter
     public static async Task<Batch> WriteAsync(DeviceData data, Request request, CancellationToken cancellation = default)
     {
         LabelFields fields = LabelFields.From(
-            data, request.FlagLowBattery, content: request.Content, colour: request.Colour);
+            data, request.FlagLowBattery, content: request.Content, colour: request.Colour,
+            batteryThreshold: request.BatteryThreshold);
         LabelLayout layout = request.Layout ?? LabelLayout.Address;
 
         string folder = request.Folder is { Length: > 0 } chosen ? chosen : ExportService.ExportDir;
@@ -146,8 +150,8 @@ public static class LabelWriter
         {
             return format switch
             {
-                ExportFormat.DymoLabel => DymoLabel(path, fields, layout, request.Barcode, request.TemplatePath, messages),
-                ExportFormat.LabelPdf => LabelPdf(path, fields, layout, request.Barcode, drawn),
+                ExportFormat.DymoLabel => DymoLabel(path, fields, layout, request.Barcode, request.TemplatePath, messages, request.CyclesMinimum),
+                ExportFormat.LabelPdf => LabelPdf(path, fields, layout, request.Barcode, drawn, request.Variant, request.CyclesMinimum),
                 ExportFormat.ReportPdf => ReportPdf(path, data, request.Wording),
                 ExportFormat.Json => Json(path, data),
                 ExportFormat.Csv => Csv(path, data),
@@ -173,7 +177,7 @@ public static class LabelWriter
     }
 
     private static Outcome DymoLabel(string path, LabelFields fields, LabelLayout layout,
-        LabelBarcodeMode mode, string? templatePath, ExportWording messages)
+        LabelBarcodeMode mode, string? templatePath, ExportWording messages, int cyclesMinimum)
     {
         string template = DymoTemplateFiles.Read(templatePath, messages);
 
@@ -181,7 +185,7 @@ public static class LabelWriter
         // barcodes carry, so the .dymo file cannot come out with something on it
         // that the label PDF and the preview do not also have. Its symbology is the
         // one the template declares, which is what the file has to carry.
-        DymoFillResult filled = DymoTemplate.Fill(template, fields, layout, mode, messages);
+        DymoFillResult filled = DymoTemplate.Fill(template, fields, layout, mode, messages, cyclesMinimum);
 
         File.WriteAllText(path, filled.Text, new System.Text.UTF8Encoding(false));
 
@@ -195,10 +199,10 @@ public static class LabelWriter
 
     private static Outcome LabelPdf(
         string path, LabelFields fields, LabelLayout layout, LabelBarcodeMode mode,
-        LabelCodeSymbology symbology)
+        LabelCodeSymbology symbology, LabelVariant variant, int cyclesMinimum)
     {
         ReportFonts.Ensure();
-        LabelPdfWriter.Write(path, fields, layout, mode, symbology);
+        LabelPdfWriter.Write(path, fields, layout, mode, symbology, variant, cyclesMinimum);
         return new Outcome(ExportFormat.LabelPdf, path, true, null);
     }
 
@@ -222,17 +226,40 @@ public static class LabelWriter
     }
 
     /// <summary>
-    /// The name every file of one inspection shares. Readable, ordered and free of
-    /// characters a file system or a URL cannot take, because these names end up
-    /// in both.
+    /// The name every file of one inspection shares: the date, the model and the
+    /// serial number, so a file that is dragged out of its folder still says which
+    /// device and which day it belongs to.
     /// </summary>
+    /// <remarks>
+    /// Spaces between the parts rather than hyphens, because the model is a word a
+    /// person reads. A model with spaces in it is squeezed into one token so the
+    /// serial number stays the last thing on the name, which is where a shop looks
+    /// for it.
+    /// </remarks>
     public static string FileStem(DeviceData data, DateTime? moment = null)
     {
-        string identifier = Sanitize(data.Identifier);
-        if (identifier == DevicePlaceholders.Identifier) identifier = "unknown";
+        string date = (moment ?? DateTime.Now).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        string model = ModelToken(data.Model);
+        string identifier = DeviceToken(data);
 
-        string stamp = (moment ?? DateTime.Now).ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
-        return $"{identifier}-{stamp}";
+        return string.Join(" ", new[] { date, model, identifier }.Where(part => part.Length > 0));
+    }
+
+    /// <summary>
+    /// The serial number as a name, or "unknown" when the phone did not report one.
+    /// Used on its own for the folder a device is filed under.
+    /// </summary>
+    public static string DeviceToken(DeviceData data)
+    {
+        string identifier = Sanitize(data.Identifier);
+        return identifier.Length == 0 || identifier == DevicePlaceholders.Identifier ? "unknown" : identifier;
+    }
+
+    /// <summary>The model as one file name token, or nothing when it was not reported.</summary>
+    private static string ModelToken(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model) || model == DevicePlaceholders.Model) return "";
+        return Sanitize(string.Concat(model.Where(character => !char.IsWhiteSpace(character))));
     }
 
     /// <summary>

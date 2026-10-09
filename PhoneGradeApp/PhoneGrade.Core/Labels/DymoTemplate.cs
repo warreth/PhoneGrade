@@ -132,17 +132,22 @@ public static class DymoTemplate
 
     /// <summary>Every sentinel this app can fill, given a stock and a barcode mode.</summary>
     private static IReadOnlyDictionary<string, Func<LabelFields, string>> ValuesFor(
-        LabelLayout layout, LabelBarcodeMode mode, LabelCodeSymbology symbology)
+        LabelLayout layout, LabelBarcodeMode mode, LabelCodeSymbology symbology, int cyclesMinimum)
     {
         var values = new Dictionary<string, Func<LabelFields, string>>(
             Sentinels, StringComparer.Ordinal);
+
+        // The detail line follows the shop's charge count floor, so the .dymo file
+        // and the label the app draws leave the number off at the same size.
+        values["DETAIL"] = fields => LabelLayout.DetailLine(fields, cyclesMinimum);
 
         values[FirstBarcodeSentinel] =
             fields => Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(0) ?? "";
         values[SecondBarcodeSentinel] =
             fields => Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(1) ?? "";
         values[SpelledSentinel] =
-            fields => string.Join(" ", Barcodes(layout, mode, symbology, fields).Spelled);
+            fields => string.Join(" ", Barcodes(layout, mode, symbology, fields).Spelled
+                .Select(value => value.Trim('*')));
 
         return values;
     }
@@ -187,15 +192,19 @@ public static class DymoTemplate
     /// override it would be a setting whose only correct value happened to be the one
     /// already in force.
     /// </param>
+    /// <param name="cyclesMinimum">
+    /// The same charge count floor the label PDF and the preview use, so the file a
+    /// DYMO prints and the file this app draws leave the number off at the same size.
+    /// </param>
     public static DymoFillResult Fill(string templateText, LabelFields fields,
         LabelLayout? layout = null, LabelBarcodeMode mode = LabelBarcodeMode.Identifier,
-        ExportWording? wording = null)
+        ExportWording? wording = null, int cyclesMinimum = 0)
     {
         ExportWording words = wording ?? ExportWording.English;
         var unknown = UnknownFields(templateText).ToList();
 
         IReadOnlyDictionary<string, Func<LabelFields, string>> values =
-            ValuesFor(layout ?? LabelLayout.Address, mode, DeclaredSymbology(templateText));
+            ValuesFor(layout ?? LabelLayout.Address, mode, DeclaredSymbology(templateText), cyclesMinimum);
 
         if (!values.Keys.Any(name => Mentions(templateText, name)))
             throw new InvalidDataException(words.TemplateHasNoFields);
