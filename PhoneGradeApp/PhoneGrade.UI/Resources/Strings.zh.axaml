@@ -780,6 +780,28 @@
     <x:String x:Key="Licensing_PanelSeatFreeOne">这把密钥还剩 {0} 个名额</x:String>
 
     <!-- Shop profile: exporting the shop-wide settings to another computer -->
+    <x:String x:Key="Settings_SecShopProfile">店铺配置文件</x:String>
+    <x:String x:Key="Settings_ShopProfileLead">把这台电脑的设置带到你的其他电脑。导出的配置文件中包含全店设置，例如 IMEI 密钥、工作流程和标签设置。在另一台电脑上导入该文件时，会先显示将要更改的内容。</x:String>
+    <x:String x:Key="Settings_ShopProfileNote">注意：如果你已设置 imei.info API 密钥，文件会包含该密钥。请只与自己的电脑分享此文件。许可证、首次启动和调试设置保留在每台电脑上。</x:String>
+    <x:String x:Key="Settings_ShopProfileExport">导出配置文件...</x:String>
+    <x:String x:Key="Settings_ShopProfileImport">导入配置文件...</x:String>
+    <x:String x:Key="Settings_ShopProfileExportDone">配置文件已保存为 {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileExportFailed">导出失败：{0}</x:String>
+    <x:String x:Key="Settings_ShopProfileReadFailed">无法读取文件：{0}</x:String>
+    <x:String x:Key="Settings_ShopProfilePickerFailed">选择文件失败：{0}</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorInvalid">这不是 PhoneGrade 配置文件。</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorNewer">此配置文件由更新版本的 PhoneGrade 创建。请先更新这台电脑。</x:String>
+    <x:String x:Key="Settings_ShopProfileNoChanges">此配置文件与当前设置相同。</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewTitle">将要更改的内容</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewSummary">将覆盖 {0} 项设置</x:String>
+    <x:String x:Key="Settings_ShopProfileApply">应用</x:String>
+    <x:String x:Key="Settings_ShopProfileCancel">取消</x:String>
+    <x:String x:Key="Settings_ShopProfileApplied">配置文件已应用</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOn">开</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOff">关</x:String>
+    <x:String x:Key="Settings_ShopProfileValueSet">已设置</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNotSet">未设置</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNone">无</x:String>
 
     <x:String x:Key="Export_BtnPrintAndFinish">打印标签并完成</x:String>
     <x:String x:Key="Export_BtnSaveAndFinish">保存并完成</x:String>

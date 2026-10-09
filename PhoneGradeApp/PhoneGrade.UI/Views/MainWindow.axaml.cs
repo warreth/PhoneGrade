@@ -1,13 +1,29 @@
 using System;
 using System.Reactive;
 using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using PhoneGrade.Core;
+using PhoneGrade.UI.Services;
+using PhoneGrade.UI.ShopProfiles;
 using PhoneGrade.UI.ViewModels;
 
 namespace PhoneGrade.UI.Views;
 
 public partial class MainWindow : Window, IDisposable
 {
+    /// <summary>
+    /// The only file type a profile can be, offered to the pickers. The Apple
+    /// identifier is named because the macOS picker filters by type rather than
+    /// by extension, and a file that cannot be picked is a file that cannot be
+    /// imported on one of the three systems.
+    /// </summary>
+    private static readonly FilePickerFileType JsonFileType = new("JSON")
+    {
+        Patterns = ["*.json"],
+        MimeTypes = ["application/json"],
+        AppleUniformTypeIdentifiers = ["public.json"],
+    };
+
     public MainWindow()
     {
         InitializeComponent();
@@ -32,6 +48,50 @@ public partial class MainWindow : Window, IDisposable
             });
 
             editor.Show();
+        };
+
+        // The shop profile pickers live here because a file dialog needs a
+        // window. The view model keeps the file work, the preview and the apply,
+        // which is also what the tests drive without a picker.
+        vm.ShopProfileExportRequested += async () =>
+        {
+            try
+            {
+                var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = LocalizationManager.GetString("Settings_ShopProfileExport"),
+                    SuggestedFileName = ShopProfile.SuggestedFileName,
+                    DefaultExtension = "json",
+                    FileTypeChoices = [JsonFileType],
+                });
+
+                if (file?.TryGetLocalPath() is { Length: > 0 } path)
+                    vm.ExportShopProfileTo(path);
+            }
+            catch (Exception ex)
+            {
+                vm.ReportShopProfilePickerFailed(ex.Message);
+            }
+        };
+
+        vm.ShopProfileImportRequested += async () =>
+        {
+            try
+            {
+                var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = LocalizationManager.GetString("Settings_ShopProfileImport"),
+                    AllowMultiple = false,
+                    FileTypeFilter = [JsonFileType],
+                });
+
+                if (files.Count > 0 && files[0].TryGetLocalPath() is { Length: > 0 } path)
+                    vm.PreviewShopProfileImport(path);
+            }
+            catch (Exception ex)
+            {
+                vm.ReportShopProfilePickerFailed(ex.Message);
+            }
         };
     }
 

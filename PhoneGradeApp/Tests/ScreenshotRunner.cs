@@ -512,7 +512,7 @@ class ScreenshotRunner
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", settingsDir);
         File.WriteAllText(Path.Combine(settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":true}""");
 
-        string[] sections = { "General", "Workflow", "Connection", "License", "Support", "Advanced", "ImeiApi" };
+        string[] sections = { "General", "Workflow", "Connection", "Label", "Quality", "License", "Support", "Advanced", "ImeiApi", "ShopProfile" };
         foreach (string section in sections)
         {
             var vm = BuildDemoViewModel();
@@ -529,6 +529,48 @@ class ScreenshotRunner
             Capture(new MainWindow { DataContext = vm },
                 Path.Combine(outDir, $"settings-{section.ToLowerInvariant()}-dark.png"), 1050, height);
         }
+
+        // The import preview: a profile with a handful of changes, so the review
+        // card is photographed with real rows rather than an empty frame. The
+        // API key is in it because that is the field a shop cares about most.
+        var preview = BuildDemoViewModel();
+        preview.Theme = "Dark";
+        preview.IsSettingsDrawerOpen = true;
+        preview.SelectedSettingsSection = "ShopProfile";
+        string profilePath = Path.Combine(settingsDir, "preview-profile.json");
+        File.WriteAllText(profilePath, """
+            {
+              "SchemaVersion": 1,
+              "Theme": "Light",
+              "LabelStockPartNumber": "1983172",
+              "RequirePwaTest": false,
+              "LabelVariant": "Structured",
+              "ExportFolderScheme": "Month",
+              "ExportFormats": ["DymoLabel", "ReportPdf", "Csv"],
+              "ImeiInfoApiKey": "demo-key"
+            }
+            """);
+        preview.PreviewShopProfileImport(profilePath);
+        Capture(new MainWindow { DataContext = preview },
+            Path.Combine(outDir, "settings-shopprofile-preview-dark.png"), 1050, 1300);
+
+        // The minimum window, where the rail has to hold ten topics and the
+        // preview rows have to hold their long values without pushing the labels
+        // out of the frame.
+        var narrow = BuildDemoViewModel();
+        narrow.Theme = "Dark";
+        narrow.IsSettingsDrawerOpen = true;
+        narrow.SelectedSettingsSection = "ShopProfile";
+        Capture(new MainWindow { DataContext = narrow },
+            Path.Combine(outDir, "settings-shopprofile-narrow.png"), 850, 620);
+
+        var narrowPreview = BuildDemoViewModel();
+        narrowPreview.Theme = "Dark";
+        narrowPreview.IsSettingsDrawerOpen = true;
+        narrowPreview.SelectedSettingsSection = "ShopProfile";
+        narrowPreview.PreviewShopProfileImport(profilePath);
+        Capture(new MainWindow { DataContext = narrowPreview },
+            Path.Combine(outDir, "settings-shopprofile-preview-narrow.png"), 850, 1300);
 
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
     }

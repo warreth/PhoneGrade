@@ -780,6 +780,28 @@
     <x:String x:Key="Licensing_PanelSeatFreeOne">{0} seat left on this key</x:String>
 
     <!-- Shop profile: exporting the shop-wide settings to another computer -->
+    <x:String x:Key="Settings_SecShopProfile">Shop profile</x:String>
+    <x:String x:Key="Settings_ShopProfileLead">Carry this computer's settings to your other computers. You export a profile file with the shop-wide settings, such as the IMEI key, the workflow and the label settings. On another computer you import that file and see what will change first.</x:String>
+    <x:String x:Key="Settings_ShopProfileNote">Note: the file contains your imei.info API key if you have set one. Share it only with your own computers. Licence, first start and debug stay per computer.</x:String>
+    <x:String x:Key="Settings_ShopProfileExport">Export profile...</x:String>
+    <x:String x:Key="Settings_ShopProfileImport">Import profile...</x:String>
+    <x:String x:Key="Settings_ShopProfileExportDone">Profile saved as {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileExportFailed">Export failed: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileReadFailed">Could not read the file: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfilePickerFailed">Choosing a file failed: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorInvalid">This is not a PhoneGrade profile file.</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorNewer">This profile was made with a newer version of PhoneGrade. Update this computer first.</x:String>
+    <x:String x:Key="Settings_ShopProfileNoChanges">This profile matches the current settings.</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewTitle">What will change</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewSummary">{0} settings will be overwritten</x:String>
+    <x:String x:Key="Settings_ShopProfileApply">Apply</x:String>
+    <x:String x:Key="Settings_ShopProfileCancel">Cancel</x:String>
+    <x:String x:Key="Settings_ShopProfileApplied">Profile applied</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOn">On</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOff">Off</x:String>
+    <x:String x:Key="Settings_ShopProfileValueSet">set</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNotSet">not set</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNone">none</x:String>
 
     <x:String x:Key="Export_BtnPrintAndFinish">Print label and finish</x:String>
     <x:String x:Key="Export_BtnSaveAndFinish">Save and finish</x:String>

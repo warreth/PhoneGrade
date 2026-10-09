@@ -780,6 +780,28 @@
     <x:String x:Key="Licensing_PanelSeatFreeOne">{0} Platz auf diesem Schlüssel frei</x:String>
 
     <!-- Shop profile: exporting the shop-wide settings to another computer -->
+    <x:String x:Key="Settings_SecShopProfile">Shop-Profil</x:String>
+    <x:String x:Key="Settings_ShopProfileLead">Übertragen Sie die Einstellungen dieses Computers auf Ihre anderen Computer. Sie exportieren eine Profildatei mit den betriebsweiten Einstellungen, wie dem IMEI-Schlüssel, dem Arbeitsablauf und den Etiketteneinstellungen. Auf einem anderen Computer importieren Sie die Datei und sehen zuerst, was sich ändert.</x:String>
+    <x:String x:Key="Settings_ShopProfileNote">Hinweis: Die Datei enthält Ihren imei.info-API-Schlüssel, wenn Sie einen eingerichtet haben. Teilen Sie sie nur mit Ihren eigenen Computern. Lizenz, erster Start und Debug bleiben pro Computer.</x:String>
+    <x:String x:Key="Settings_ShopProfileExport">Profil exportieren...</x:String>
+    <x:String x:Key="Settings_ShopProfileImport">Profil importieren...</x:String>
+    <x:String x:Key="Settings_ShopProfileExportDone">Profil gespeichert als {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileExportFailed">Export fehlgeschlagen: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileReadFailed">Datei konnte nicht gelesen werden: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfilePickerFailed">Dateiauswahl fehlgeschlagen: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorInvalid">Dies ist keine PhoneGrade-Profildatei.</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorNewer">Dieses Profil wurde mit einer neueren Version von PhoneGrade erstellt. Aktualisieren Sie zuerst diesen Computer.</x:String>
+    <x:String x:Key="Settings_ShopProfileNoChanges">Dieses Profil entspricht den aktuellen Einstellungen.</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewTitle">Was sich ändert</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewSummary">{0} Einstellungen werden überschrieben</x:String>
+    <x:String x:Key="Settings_ShopProfileApply">Übernehmen</x:String>
+    <x:String x:Key="Settings_ShopProfileCancel">Abbrechen</x:String>
+    <x:String x:Key="Settings_ShopProfileApplied">Profil übernommen</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOn">An</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOff">Aus</x:String>
+    <x:String x:Key="Settings_ShopProfileValueSet">gesetzt</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNotSet">nicht gesetzt</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNone">keine</x:String>
 
     <x:String x:Key="Export_BtnPrintAndFinish">Etikett drucken und abschließen</x:String>
     <x:String x:Key="Export_BtnSaveAndFinish">Speichern und abschließen</x:String>

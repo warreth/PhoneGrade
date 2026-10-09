@@ -781,6 +781,28 @@
     <x:String x:Key="Licensing_PanelSeatFreeOne">{0} plaats over op deze sleutel</x:String>
 
     <!-- Shop profile: exporting the shop-wide settings to another computer -->
+    <x:String x:Key="Settings_SecShopProfile">Winkelprofiel</x:String>
+    <x:String x:Key="Settings_ShopProfileLead">Neem de instellingen van deze computer mee naar je andere computers. Je exporteert een profielbestand met de winkelspecifieke instellingen, zoals de IMEI-sleutel, de werkwijze en de labelinstellingen. Op een andere computer importeer je dat bestand en zie je eerst wat er verandert.</x:String>
+    <x:String x:Key="Settings_ShopProfileNote">Let op: het bestand bevat je imei.info API-sleutel als je die hebt ingesteld. Deel het alleen met je eigen computers. Licentie, eerste start en debug blijven per computer.</x:String>
+    <x:String x:Key="Settings_ShopProfileExport">Profiel exporteren...</x:String>
+    <x:String x:Key="Settings_ShopProfileImport">Profiel importeren...</x:String>
+    <x:String x:Key="Settings_ShopProfileExportDone">Profiel opgeslagen als {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileExportFailed">Exporteren mislukt: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileReadFailed">Bestand lezen mislukt: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfilePickerFailed">Bestand kiezen mislukt: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorInvalid">Dit is geen PhoneGrade-profielbestand.</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorNewer">Dit profiel is gemaakt met een nieuwere versie van PhoneGrade. Werk deze computer eerst bij.</x:String>
+    <x:String x:Key="Settings_ShopProfileNoChanges">Dit profiel is gelijk aan de huidige instellingen.</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewTitle">Wat er verandert</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewSummary">{0} instellingen worden overschreven</x:String>
+    <x:String x:Key="Settings_ShopProfileApply">Toepassen</x:String>
+    <x:String x:Key="Settings_ShopProfileCancel">Annuleren</x:String>
+    <x:String x:Key="Settings_ShopProfileApplied">Profiel toegepast</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOn">Aan</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOff">Uit</x:String>
+    <x:String x:Key="Settings_ShopProfileValueSet">ingesteld</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNotSet">niet ingesteld</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNone">geen</x:String>
 
     <x:String x:Key="Export_BtnPrintAndFinish">Label printen en afronden</x:String>
     <x:String x:Key="Export_BtnSaveAndFinish">Opslaan en afronden</x:String>

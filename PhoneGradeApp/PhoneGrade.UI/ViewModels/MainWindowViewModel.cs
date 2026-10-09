@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading;
@@ -9,6 +10,7 @@ using PhoneGrade.Core.Licensing;
 using PhoneGrade.Core.Usb;
 using PhoneGrade.UI.Models;
 using PhoneGrade.UI.Services;
+using PhoneGrade.UI.ShopProfiles;
 using PhoneGrade.UI.Web;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -233,6 +235,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             // than stored, so the two summary rows have to be asked to re-read.
             this.RaisePropertyChanged(nameof(SelectedGradeDisplay));
             this.RaisePropertyChanged(nameof(SelectedInvoiceMethodDisplay));
+            // The import preview is made of words the diff already spoke, so it
+            // is built again rather than patched.
+            RebuildShopProfilePreview();
         }
     }
     
@@ -813,6 +818,58 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
+    // ============ Shop profile: carrying settings to another computer ============
+    //
+    // A profile is the shareable half of the settings, written to a file the
+    // operator carries to the next computer. Import shows what would change
+    // before anything is written, so a wrong file is caught at the bench rather
+    // than after the label settings have already moved.
+
+    /// <summary>
+    /// A profile that was read but not applied yet. Kept so the preview can be
+    /// built again (after a language switch) and so Apply knows what to write.
+    /// </summary>
+    private ShopProfile? _pendingShopProfile;
+
+    private string _shopProfileStatus = "";
+
+    /// <summary>The sentence under the export and import buttons.</summary>
+    public string ShopProfileStatus
+    {
+        get => _shopProfileStatus;
+        set => this.RaiseAndSetIfChanged(ref _shopProfileStatus, value);
+    }
+
+    private string _shopProfileStatusColor = "Transparent";
+
+    /// <summary>Green for done, amber for nothing to do, red for a failure.</summary>
+    public string ShopProfileStatusColor
+    {
+        get => _shopProfileStatusColor;
+        set => this.RaiseAndSetIfChanged(ref _shopProfileStatusColor, value);
+    }
+
+    private IReadOnlyList<ShopProfileChange> _shopProfileChanges = [];
+
+    /// <summary>The rows of the import preview, in the order the settings appear in the app.</summary>
+    public IReadOnlyList<ShopProfileChange> ShopProfileChanges
+    {
+        get => _shopProfileChanges;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _shopProfileChanges, value);
+            this.RaisePropertyChanged(nameof(HasShopProfilePreview));
+            this.RaisePropertyChanged(nameof(ShopProfilePreviewSummary));
+        }
+    }
+
+    /// <summary>True when a picked profile differs from this computer's settings.</summary>
+    public bool HasShopProfilePreview => _pendingShopProfile is not null && _shopProfileChanges.Count > 0;
+
+    /// <summary>How many settings the preview is about to overwrite.</summary>
+    public string ShopProfilePreviewSummary => string.Format(
+        LocalizationManager.GetString("Settings_ShopProfilePreviewSummary"), _shopProfileChanges.Count);
+
     private bool _busy;
     public bool Busy
     {
@@ -1271,7 +1328,23 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> OpenImeiDashboardCommand { get; }
     public ReactiveCommand<Unit, Unit> NavigateToImeiSettingsCommand { get; }
 
+    // Shop profile commands
+    public ReactiveCommand<Unit, Unit> ExportShopProfileCommand { get; }
+    public ReactiveCommand<Unit, Unit> ImportShopProfileCommand { get; }
+    public ReactiveCommand<Unit, Unit> ApplyShopProfileCommand { get; }
+    public ReactiveCommand<Unit, Unit> CancelShopProfileImportCommand { get; }
+
     public event Action<DeviceData>? DataEditorRequested;
+
+    /// <summary>
+    /// Raised when the operator asks to export a profile. The window answers it
+    /// because only a control can open a file picker; the view model does the
+    /// writing once the window hands it a path.
+    /// </summary>
+    public event Action? ShopProfileExportRequested;
+
+    /// <summary>The same split for import: the window picks a path, the view model reads it.</summary>
+    public event Action? ShopProfileImportRequested;
 
     public MainWindowViewModel(LemonSqueezyClient? licenseClient = null)
     {
@@ -1469,6 +1542,13 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
         ToggleSettingsCommand = ReactiveCommand.Create(() => { IsSettingsDrawerOpen = !IsSettingsDrawerOpen; });
         SelectSettingsSectionCommand = ReactiveCommand.Create<string>(section => SelectedSettingsSection = section);
+
+        // Shop profile: the pickers live in the window, the file work lives here.
+        ExportShopProfileCommand = ReactiveCommand.Create(() => ShopProfileExportRequested?.Invoke());
+        ImportShopProfileCommand = ReactiveCommand.Create(() => ShopProfileImportRequested?.Invoke());
+        ApplyShopProfileCommand = ReactiveCommand.Create(ApplyShopProfile);
+        CancelShopProfileImportCommand = ReactiveCommand.Create(CancelShopProfileImport);
+
         OpenLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = true; IsSettingsDrawerOpen = false; });
         CloseLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = false; });
         OpenTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = true; IsSettingsDrawerOpen = false; });
@@ -2606,6 +2686,168 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             ImeiInfoApiKeyStatus = string.Format(LocalizationManager.GetString("Settings_ImeiInfoKeyInvalid") ?? "Invalid API Key: {0}", error ?? LocalizationManager.GetString("Settings_ImeiInfoKeyUnknownError") ?? "Unknown error");
             ImeiInfoApiKeyStatusColor = "#ef4444"; // Red
         }
+    }
+
+    // ============ Shop profile: export and import ============
+
+    /// <summary>
+    /// Writes the shareable settings of this computer to <paramref name="path"/>.
+    /// A failure lands on the status line rather than in a dialog: the only
+    /// thing the operator can do about it is pick another folder.
+    /// </summary>
+    public void ExportShopProfileTo(string path)
+    {
+        try
+        {
+            ShopProfile profile = ShopProfileMapper.FromSettings(_settings, AutoUpdater.RunningVersion());
+            File.WriteAllText(path, ShopProfileCodec.Serialize(profile));
+            ShopProfileStatus = string.Format(
+                LocalizationManager.GetString("Settings_ShopProfileExportDone"), Path.GetFileName(path));
+            ShopProfileStatusColor = "#22c55e"; // Green
+        }
+        catch (Exception ex)
+        {
+            ShopProfileStatus = string.Format(
+                LocalizationManager.GetString("Settings_ShopProfileExportFailed"), ex.Message);
+            ShopProfileStatusColor = "#ef4444"; // Red
+        }
+    }
+
+    /// <summary>
+    /// Reads a profile and shows what it would change, without changing
+    /// anything. An unreadable or unrecognised file clears any earlier preview
+    /// and says why on the status line.
+    /// </summary>
+    public void PreviewShopProfileImport(string path)
+    {
+        string json;
+        try
+        {
+            json = File.ReadAllText(path);
+        }
+        catch (Exception ex)
+        {
+            ClearShopProfilePreview();
+            ShopProfileStatus = string.Format(
+                LocalizationManager.GetString("Settings_ShopProfileReadFailed"), ex.Message);
+            ShopProfileStatusColor = "#ef4444"; // Red
+            return;
+        }
+
+        if (!ShopProfileCodec.TryParse(json, out ShopProfile? profile, out string? errorKey) || profile is null)
+        {
+            ClearShopProfilePreview();
+            ShopProfileStatus = LocalizationManager.GetString(errorKey!);
+            ShopProfileStatusColor = "#ef4444"; // Red
+            return;
+        }
+
+        _pendingShopProfile = profile;
+        ShopProfileChanges = ShopProfileDiff.Compare(_settings, profile);
+
+        if (_shopProfileChanges.Count == 0)
+        {
+            ClearShopProfilePreview();
+            ShopProfileStatus = LocalizationManager.GetString("Settings_ShopProfileNoChanges");
+            ShopProfileStatusColor = "#f59e0b"; // Amber
+            return;
+        }
+
+        // The preview card speaks for itself, so the line under the buttons
+        // stays empty until something is applied or goes wrong.
+        ShopProfileStatus = "";
+        ShopProfileStatusColor = "Transparent";
+    }
+
+    /// <summary>
+    /// Applies the pending profile. Every value goes through the same public
+    /// property the settings screen binds to, so the side effects of a change
+    /// happen exactly as if the operator had made it by hand: the theme is
+    /// applied, the language dictionary swaps, the USB watcher starts or stops,
+    /// the label preview reloads.
+    /// </summary>
+    public void ApplyShopProfile()
+    {
+        if (_pendingShopProfile is not { } profile) return;
+
+        if (profile.Theme is { } theme) Theme = theme;
+        if (profile.Language is { } language) Language = SupportedLanguages.NameOf(language);
+
+        if (profile.AutoActivate is { } autoActivate) AutoActivate = autoActivate;
+        if (profile.AutoDetectOnPlug is { } autoDetect) AutoDetectOnPlug = autoDetect;
+        if (profile.AutoStartWebTest is { } autoStart) AutoStartWebTest = autoStart;
+        if (profile.ShowSummaryScreenAfterTesting is { } showSummary) ShowSummaryScreenAfterTesting = showSummary;
+        if (profile.RequirePwaTest is { } requirePwa) RequirePwaTest = requirePwa;
+        if (profile.AutoFinishAfterTest is { } autoFinish) AutoFinishAfterTest = autoFinish;
+        if (profile.EnableUsbEventMonitoring is { } usbMonitoring) EnableUsbEventMonitoring = usbMonitoring;
+
+        if (profile.ImeiInfoApiKey is { } apiKey) ImeiInfoApiKey = apiKey;
+        if (profile.SelectedImeiChecks is { } checks) SelectedImeiChecks = new List<string>(checks);
+        if (profile.EstimatedAppleDevices is { } appleDevices) EstimatedAppleDevices = Math.Max(0, appleDevices);
+        if (profile.EstimatedAndroidDevices is { } androidDevices) EstimatedAndroidDevices = Math.Max(0, androidDevices);
+
+        if (profile.DefaultQuality is { } quality) DefaultQuality = quality;
+        if (profile.DefaultPaymentMethod is { } payment) DefaultPaymentMethod = payment;
+
+        if (profile.LabelStockPartNumber is { } stock) LabelStockPartNumber = stock;
+        if (profile.LabelBarcodeMode is { } barcodeMode) LabelBarcodeMode = barcodeMode;
+        if (profile.LabelSymbology is { } symbology) LabelSymbology = symbology;
+        if (profile.LabelBarcodeEnabled is { } barcodeEnabled) LabelBarcodeEnabled = barcodeEnabled;
+        if (profile.LabelVariant is { } variant) LabelVariant = variant;
+        if (profile.LabelShowBatteryCycles is { } cycles) LabelShowBatteryCycles = cycles;
+        if (profile.LabelBatteryThreshold is { } batteryThreshold) LabelBatteryThreshold = batteryThreshold;
+        if (profile.LabelCyclesThreshold is { } cyclesThreshold) LabelCyclesThreshold = cyclesThreshold;
+        if (profile.ExportFormats is { } exportFormats) ExportFormats = new List<ExportFormat>(exportFormats);
+        if (profile.ExportFolderScheme is { } folderScheme) ExportFolderScheme = folderScheme;
+
+        if (profile.UseSecureOrigin is { } secureOrigin) UseSecureOrigin = secureOrigin;
+        if (profile.UsePublicTunnel is { } publicTunnel) UsePublicTunnel = publicTunnel;
+
+        if (profile.RunDiagnostics is { } diagnostics) RunDiagnostics = diagnostics;
+        if (profile.Enable85PercentChecker is { } checker) Enable85PercentChecker = checker;
+        if (profile.OpenEditorBeforePrint is { } openEditor) OpenEditorBeforePrint = openEditor;
+        if (profile.IncludePrereleases is { } prereleases) IncludePrereleases = prereleases;
+
+        ClearShopProfilePreview();
+        ShopProfileStatus = LocalizationManager.GetString("Settings_ShopProfileApplied");
+        ShopProfileStatusColor = "#22c55e"; // Green
+    }
+
+    /// <summary>Drops a pending import and its preview without touching the settings.</summary>
+    public void CancelShopProfileImport()
+    {
+        ClearShopProfilePreview();
+        ShopProfileStatus = "";
+        ShopProfileStatusColor = "Transparent";
+    }
+
+    /// <summary>
+    /// A file picker that could not open. The window calls this so a platform
+    /// failure still ends on the same status line as everything else.
+    /// </summary>
+    public void ReportShopProfilePickerFailed(string detail)
+    {
+        ShopProfileStatus = string.Format(
+            LocalizationManager.GetString("Settings_ShopProfilePickerFailed"), detail);
+        ShopProfileStatusColor = "#ef4444"; // Red
+    }
+
+    private void ClearShopProfilePreview()
+    {
+        _pendingShopProfile = null;
+        ShopProfileChanges = [];
+    }
+
+    /// <summary>
+    /// Re-says the preview after a language switch. The label keys would follow
+    /// on their own through the converter, but the values (on and off, a
+    /// language name, a stock name) were formed by the diff, so the list is
+    /// built again rather than patched.
+    /// </summary>
+    private void RebuildShopProfilePreview()
+    {
+        if (_pendingShopProfile is not { } profile) return;
+        ShopProfileChanges = ShopProfileDiff.Compare(_settings, profile);
     }
 
     }

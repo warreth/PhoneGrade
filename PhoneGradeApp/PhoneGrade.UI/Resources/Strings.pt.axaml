@@ -780,6 +780,28 @@
     <x:String x:Key="Licensing_PanelSeatFreeOne">{0} lugar livre nesta chave</x:String>
 
     <!-- Shop profile: exporting the shop-wide settings to another computer -->
+    <x:String x:Key="Settings_SecShopProfile">Perfil da loja</x:String>
+    <x:String x:Key="Settings_ShopProfileLead">Leve as configurações deste computador para os seus outros computadores. Você exporta um arquivo de perfil com as configurações da loja, como a chave IMEI, o fluxo de trabalho e as configurações de etiqueta. Em outro computador, você importa esse arquivo e vê primeiro o que vai mudar.</x:String>
+    <x:String x:Key="Settings_ShopProfileNote">Atenção: o arquivo contém sua chave de API do imei.info se você tiver configurado uma. Compartilhe-o apenas com os seus próprios computadores. Licença, primeira execução e depuração ficam por computador.</x:String>
+    <x:String x:Key="Settings_ShopProfileExport">Exportar perfil...</x:String>
+    <x:String x:Key="Settings_ShopProfileImport">Importar perfil...</x:String>
+    <x:String x:Key="Settings_ShopProfileExportDone">Perfil salvo como {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileExportFailed">Falha ao exportar: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileReadFailed">Não foi possível ler o arquivo: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfilePickerFailed">Falha ao escolher o arquivo: {0}</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorInvalid">Este não é um arquivo de perfil do PhoneGrade.</x:String>
+    <x:String x:Key="Settings_ShopProfileErrorNewer">Este perfil foi criado com uma versão mais recente do PhoneGrade. Atualize primeiro este computador.</x:String>
+    <x:String x:Key="Settings_ShopProfileNoChanges">Este perfil é igual às configurações atuais.</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewTitle">O que vai mudar</x:String>
+    <x:String x:Key="Settings_ShopProfilePreviewSummary">{0} configurações serão substituídas</x:String>
+    <x:String x:Key="Settings_ShopProfileApply">Aplicar</x:String>
+    <x:String x:Key="Settings_ShopProfileCancel">Cancelar</x:String>
+    <x:String x:Key="Settings_ShopProfileApplied">Perfil aplicado</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOn">Ativado</x:String>
+    <x:String x:Key="Settings_ShopProfileValueOff">Desativado</x:String>
+    <x:String x:Key="Settings_ShopProfileValueSet">definida</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNotSet">não definida</x:String>
+    <x:String x:Key="Settings_ShopProfileValueNone">nenhuma</x:String>
 
     <x:String x:Key="Export_BtnPrintAndFinish">Imprimir etiqueta e concluir</x:String>
     <x:String x:Key="Export_BtnSaveAndFinish">Guardar e concluir</x:String>
