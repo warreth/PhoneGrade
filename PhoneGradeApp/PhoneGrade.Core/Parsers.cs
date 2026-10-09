@@ -263,66 +263,118 @@ public static class Parsers
     }
 
     /// <summary>
-    /// Extracts IMEI from the Parcel hex-dump returned by <c>service call iphonesubinfo 1</c>
-    /// (or 2 for the second SIM). The output format is:
-    /// <c>Result: Parcel( 0x00000000: 00000000 0000000f 00350033 00360039 ... )</c>
-    /// where each line has an address prefix, then hex words. The first 8 bytes are a Parcel header
-    /// (two 32-bit integers: flags and length), followed by the UTF-16BE encoded IMEI digits.
-    /// Returns empty string when the output cannot be parsed.
+    /// Extracts an IMEI from the Parcel dump <c>service call iphonesubinfo</c>
+    /// answers with. The shell prints two shapes:
+    ///
+    /// the multi-line hexdump a call that returned data prints, four words per
+    /// line behind an address:
+    /// <c>0x00000000: 00000000 0000000f 00360038 00330038 '........8.6.8.3.'</c>
+    ///
+    /// and the single line an error or a null answer prints:
+    /// <c>Result: Parcel( fffffffc ffffffff 00000000  '............')</c>
+    ///
+    /// The words are little-endian views of the parcel memory: every word after
+    /// the leading status and length holds two UTF-16 code units, low half
+    /// first. A parcel whose first word is a negative status carries no string
+    /// at all, and decoding one anyway would turn an error into a number. The
+    /// result is accepted only when the string is 14 to 16 digits and nothing
+    /// else, so a parcel that is not an IMEI comes back empty instead of as a
+    /// made-up one.
     /// </summary>
     public static string ParseAndroidImei(string? serviceCallOutput)
     {
         if (string.IsNullOrWhiteSpace(serviceCallOutput)) return "";
 
-        // Match hex words (4 hex digits) that appear after a colon on each line.
-        // This avoids matching the address prefixes like "0x00000000:".
-        var hexGroups = new List<string>();
-        foreach (string line in serviceCallOutput.Split('\n'))
+        var words = ExtractParcelWords(serviceCallOutput);
+        if (words.Count < 3) return "";
+
+        // The first word of a failed transaction is the negative binder status.
+        // There is no string behind it; every word after it is an error code.
+        if (words[0] > int.MaxValue) return "";
+
+        // A successful parcel is [status 0][length][chars...]. Some builds drop
+        // the leading status, so the same read is attempted with the length
+        // first. The length is what bounds the decode; the rest of the words are
+        // padding.
+        foreach (int start in new[] { 2, 1 })
         {
-            int colonIdx = line.IndexOf(':');
-            if (colonIdx < 0) continue;
-            string dataPart = line[(colonIdx + 1)..];
-            foreach (Match m in Regex.Matches(dataPart, @"([0-9a-fA-F]{4})"))
-            {
-                hexGroups.Add(m.Groups[1].Value);
-            }
-        }
+            if (start >= words.Count) continue;
 
-        if (hexGroups.Count < 6) return ""; // Need at least header (4 groups) + some data
+            long length = words[start - 1];
+            if (length is < 14 or > 16) continue;
 
-        // Skip the first 4 groups (8 bytes = Parcel header: two uint32)
-        // The 5th group onwards contains the UTF-16BE string data
-        var dataGroups = hexGroups.Skip(4).ToList();
-
-        var bytes = new List<byte>();
-        foreach (string hex in dataGroups)
-        {
-            byte high = Convert.ToByte(hex.Substring(0, 2), 16);
-            byte low = Convert.ToByte(hex.Substring(2, 2), 16);
-            bytes.Add(high);
-            bytes.Add(low);
-        }
-
-        if (bytes.Count == 0) return "";
-
-        try
-        {
-            // Decode as UTF-16BE (big endian)
-            string decoded = Encoding.BigEndianUnicode.GetString(bytes.ToArray());
-
-            // Extract only digits (the IMEI is numeric)
-            var digits = new string(decoded.Where(char.IsDigit).ToArray());
-
-            // Valid IMEI is 14-16 digits (15 is standard, 16 with check digit)
-            if (digits.Length >= 14 && digits.Length <= 16)
-                return digits;
-        }
-        catch
-        {
-            // Ignore decoding errors
+            string text = DecodeParcelString(words, start, (int)length);
+            if (text.Length is >= 14 and <= 16 && text.All(char.IsAsciiDigit))
+                return text;
         }
 
         return "";
+    }
+
+    /// <summary>
+    /// The 32-bit words of a <c>service call</c> parcel, in the order the shell
+    /// printed them. Address prefixes and the quoted ASCII pane are dropped, and
+    /// on the single-line shape only the part behind <c>Parcel(</c> is read, so
+    /// the letters of the words "Result" and "Parcel" cannot arrive as data.
+    /// </summary>
+    private static List<uint> ExtractParcelWords(string output)
+    {
+        var words = new List<uint>();
+
+        var addressLines = output.Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("0x", StringComparison.OrdinalIgnoreCase) && line.Contains(':'))
+            .ToList();
+
+        if (addressLines.Count > 0)
+        {
+            foreach (string line in addressLines)
+            {
+                string data = line[(line.IndexOf(':') + 1)..];
+                int quote = data.IndexOf('\'');
+                if (quote >= 0) data = data[..quote];
+                AddWords(words, data);
+            }
+            return words;
+        }
+
+        int parcel = output.IndexOf("Parcel(", StringComparison.Ordinal);
+        if (parcel < 0) return words;
+
+        string text = output[(parcel + "Parcel(".Length)..];
+        int ascii = text.IndexOf('\'');
+        if (ascii >= 0) text = text[..ascii];
+        AddWords(words, text);
+        return words;
+    }
+
+    private static void AddWords(List<uint> words, string text)
+    {
+        foreach (Match match in Regex.Matches(text, @"[0-9a-fA-F]+"))
+        {
+            if (uint.TryParse(match.Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint word))
+                words.Add(word);
+        }
+    }
+
+    /// <summary>
+    /// The characters packed into the words from <paramref name="start"/>, at
+    /// most <paramref name="length"/> of them, stopping at the first NUL.
+    /// </summary>
+    private static string DecodeParcelString(List<uint> words, int start, int length)
+    {
+        var chars = new List<char>(length);
+
+        for (int i = start; i < words.Count && chars.Count < length; i++)
+        {
+            chars.Add((char)(words[i] & 0xFFFF));
+            if (chars.Count >= length) break;
+            chars.Add((char)(words[i] >> 16));
+        }
+
+        int end = chars.IndexOf('\0');
+        if (end < 0) end = chars.Count;
+        return new string(chars.Take(end).ToArray());
     }
 
     /// <summary>
@@ -356,6 +408,90 @@ public static class Parsers
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// The full-charge capacity Android learned for the battery, in mAh, from
+    /// <c>dumpsys batterystats</c>. The sysfs counters under
+    /// /sys/class/power_supply are closed to the shell on several builds,
+    /// including Honor's Android 14, while the learned capacity is still
+    /// readable there. Returns 0 when the dump carries none.
+    ///
+    /// "Last learned" is preferred because it is what the platform currently
+    /// believes the battery holds; the min and max are kept as fallbacks for
+    /// dumps that carry only one side of the learning. Anything outside a
+    /// phone-sized range is treated as absent rather than stored.
+    /// </summary>
+    public static int ParseAndroidBatteryCapacity(string? dumpsysBatterystats)
+    {
+        if (string.IsNullOrWhiteSpace(dumpsysBatterystats)) return 0;
+
+        var patterns = new[]
+        {
+            @"^\s*Last learned battery capacity:\s*(\d+)\s*mAh",
+            @"^\s*Max learned battery capacity:\s*(\d+)\s*mAh",
+            @"^\s*Min learned battery capacity:\s*(\d+)\s*mAh",
+            @"^\s*Estimated battery capacity:\s*(\d+)\s*mAh"
+        };
+
+        foreach (string pattern in patterns)
+        {
+            var match = Regex.Match(dumpsysBatterystats, pattern, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+            if (match.Success && long.TryParse(match.Groups[1].Value, out long value) && value is >= 100 and <= 100000)
+                return (int)value;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// The interface address out of <c>ip addr show &lt;iface&gt;</c> output. The
+    /// shell cannot read /sys/class/net/*/address on every build, and ip is the
+    /// next thing that answers. What comes back may be a randomized address the
+    /// phone uses on the network rather than the factory one; the platform hides
+    /// the factory address from the shell on Android 10 and later either way.
+    /// Returns empty when no address is printed.
+    /// </summary>
+    public static string ParseIpInterfaceMac(string? ipOutput)
+    {
+        var match = Regex.Match(ipOutput ?? "", @"link/ether\s+([0-9a-fA-F:]{17})");
+        return match.Success ? match.Groups[1].Value : "";
+    }
+
+    /// <summary>
+    /// The controller address out of <c>dumpsys bluetooth_manager</c> output
+    /// ("address: EC:53:..."). The secure setting the shell used to read is
+    /// refused on current builds, and dumpsys still prints the address.
+    /// Returns empty when the dump carries none.
+    /// </summary>
+    public static string ParseBluetoothManagerMac(string? dumpsysOutput)
+    {
+        var match = Regex.Match(dumpsysOutput ?? "", @"^\s*address:\s*([0-9a-fA-F:]{17})", RegexOptions.Multiline);
+        return match.Success ? match.Groups[1].Value : "";
+    }
+
+    /// <summary>
+    /// The Wi-Fi address <c>dumpsys wifi</c> remembers for the interface
+    /// (<c>mPersistentRandomizedMacAddress = aa:bb:...</c>). It is stable for
+    /// the device even when per-network randomization is on, which the current
+    /// interface address is not. Returns empty when the dump carries none.
+    /// </summary>
+    public static string ParseDumpsysWifiMac(string? dumpsysOutput)
+    {
+        var match = Regex.Match(dumpsysOutput ?? "", @"mPersistentRandomizedMacAddress\s*[=:]\s*([0-9a-fA-F:]{17})");
+        return match.Success ? match.Groups[1].Value : "";
+    }
+
+    /// <summary>
+    /// True when a <c>service call</c> answer carries a binder error status
+    /// instead of a string. That is a refusal of the read even though the shell
+    /// exited zero, and the withheld list has to be able to say so.
+    /// </summary>
+    public static bool IsParcelError(string? serviceCallOutput)
+    {
+        if (string.IsNullOrWhiteSpace(serviceCallOutput)) return false;
+        var words = ExtractParcelWords(serviceCallOutput);
+        return words.Count > 0 && words[0] > int.MaxValue;
     }
 
     /// <summary>Cleans and normalizes serial numbers, decoding ASCII hex or base64 if needed.</summary>

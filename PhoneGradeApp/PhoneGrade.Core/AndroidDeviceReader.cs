@@ -30,6 +30,13 @@ public sealed record AndroidDeviceFacts
     public long DataBytes { get; init; }
 
     public string DumpsysBattery { get; init; } = "";
+
+    /// <summary>
+    /// Full <c>dumpsys batterystats</c> output. Carries the learned battery
+    /// capacity on builds that keep the sysfs counters closed to the shell.
+    /// </summary>
+    public string DumpsysBatterystats { get; init; } = "";
+
     public string ChargeFull { get; init; } = "";
     public string ChargeFullDesign { get; init; } = "";
 
@@ -39,10 +46,10 @@ public sealed record AndroidDeviceFacts
     public string VerifiedBootState { get; init; } = "";
     public string WarrantyBit { get; init; } = "";
 
-    /// <summary>Primary IMEI from service call iphonesubinfo 1.</summary>
+    /// <summary>Primary IMEI, read from the phone's first slot on Android 10 and later.</summary>
     public string Imei1 { get; init; } = "";
 
-    /// <summary>Secondary IMEI from service call iphonesubinfo 2 (dual SIM / eSIM).</summary>
+    /// <summary>Secondary IMEI, read from the phone's second slot (dual SIM / eSIM).</summary>
     public string Imei2 { get; init; } = "";
 
     /// <summary>Battery cycle count, null when the handset reports none.</summary>
@@ -153,16 +160,55 @@ public sealed class AndroidDeviceReader
 
         string df = await SafeAsync("df -k /data");
         string battery = await SafeAsync("dumpsys battery");
+        string batterystats = await SafeAsync("dumpsys batterystats");
         var (chargeFull, chargeFullRefused) = await Ask("cat /sys/class/power_supply/battery/charge_full", "charge_full");
         var (chargeFullDesign, chargeFullDesignRefused) = await Ask("cat /sys/class/power_supply/battery/charge_full_design", "charge_full_design");
 
-        // The IMEI needs a privileged read that Android took away from the shell
-        // in version 10, so an empty answer here is expected rather than odd.
-        string imei1Raw = await SafeAsync("service call iphonesubinfo 1");
-        string imei2Raw = await SafeAsync("service call iphonesubinfo 2");
+        // Android 10 took the IMEI away from the plain shell call, but the phone
+        // still answers when the request names a package that holds the phone
+        // state permission and belongs to the uid the shell runs as. That is
+        // "com.android.shell" itself. The slot-numbered call is asked first
+        // because it is the one that answers on a handset with no subscription;
+        // the older spellings follow for builds that know no other.
+        string imei1 = await ReadImeiAsync(
+        [
+            "service call iphonesubinfo 4 i32 0 s16 com.android.shell",
+            "service call iphonesubinfo 1 s16 com.android.shell",
+            "service call iphonesubinfo 1",
+        ], "imei1", withheld);
 
+        string imei2 = await ReadImeiAsync(
+        [
+            "service call iphonesubinfo 4 i32 1 s16 com.android.shell",
+            "service call iphonesubinfo 2 s16 com.android.shell",
+            "service call iphonesubinfo 2",
+        ], "imei2", withheld);
+
+        // The Wi-Fi and Bluetooth addresses the shell used to read are refused
+        // on current builds. ip and dumpsys still print them, so a refusal is
+        // only kept when every route came back empty.
         var (wifiRaw, wifiRefused) = await Ask("cat /sys/class/net/wlan0/address 2>/dev/null", "wlan0_address");
+        if (!IsMacAddress(wifiRaw))
+        {
+            string viaIp = Parsers.ParseIpInterfaceMac(await SafeAsync("ip addr show wlan0"));
+            if (IsMacAddress(viaIp)) (wifiRaw, wifiRefused) = (viaIp, false);
+            else
+            {
+                string viaDumpsys = Parsers.ParseDumpsysWifiMac(await SafeAsync("dumpsys wifi"));
+                if (IsMacAddress(viaDumpsys)) (wifiRaw, wifiRefused) = (viaDumpsys, false);
+            }
+
+            if (!wifiRefused) withheld.Remove("wlan0_address");
+        }
+
         var (btRaw, btRefused) = await Ask("settings get secure bluetooth_address 2>/dev/null", "bluetooth_address");
+        if (!IsMacAddress(btRaw))
+        {
+            string viaDumpsys = Parsers.ParseBluetoothManagerMac(await SafeAsync("dumpsys bluetooth_manager"));
+            if (IsMacAddress(viaDumpsys)) (btRaw, btRefused) = (viaDumpsys, false);
+
+            if (!btRefused) withheld.Remove("bluetooth_address");
+        }
 
         return new AndroidDeviceFacts
         {
@@ -183,6 +229,7 @@ public sealed class AndroidDeviceReader
             DataBytes = Parsers.ParseAndroidDataBytes(df),
 
             DumpsysBattery = battery,
+            DumpsysBatterystats = batterystats,
             ChargeFull = chargeFull,
             ChargeFullDesign = chargeFullDesign,
 
@@ -192,8 +239,8 @@ public sealed class AndroidDeviceReader
             VerifiedBootState = First("ro.boot.verifiedbootstate"),
             WarrantyBit = First("ro.boot.warranty_bit", "ro.warranty_bit"),
 
-            Imei1 = Parsers.ParseAndroidImei(imei1Raw),
-            Imei2 = Parsers.ParseAndroidImei(imei2Raw),
+            Imei1 = imei1,
+            Imei2 = imei2,
 
             BatteryCycleCount = Parsers.ParseAndroidBatteryCycleCount(battery),
 
@@ -202,6 +249,32 @@ public sealed class AndroidDeviceReader
 
             Withheld = withheld,
         };
+    }
+
+    /// <summary>
+    /// Asks each spelling of the IMEI read in turn and returns the first answer
+    /// that decodes to an IMEI. The name is remembered as withheld only when a
+    /// handset refused every route: an answer that ran but carried no IMEI (a
+    /// second slot with no card behind it) is an absent value, not a refusal.
+    /// </summary>
+    private async Task<string> ReadImeiAsync(string[] commands, string withheldName, List<string> withheld)
+    {
+        bool anyRefused = false;
+
+        foreach (string command in commands)
+        {
+            var (stdout, refused) = _guardedShell is null
+                ? (await SafeAsync(command), false)
+                : await _guardedShell(command);
+
+            anyRefused |= refused;
+
+            string imei = Parsers.ParseAndroidImei(stdout);
+            if (imei.Length > 0) return imei;
+        }
+
+        if (anyRefused) withheld.Add(withheldName);
+        return "";
     }
 
     /// <summary>
@@ -230,7 +303,8 @@ public sealed class AndroidDeviceReader
     /// <summary>
     /// True when the shell answered with a refusal rather than with a value.
     /// Some builds write the refusal to stdout instead of stderr, so the wording
-    /// is checked as well as the exit code.
+    /// is checked as well as the exit code. A <c>service call</c> that comes back
+    /// with a binder error is a refusal too even though the shell exited zero.
     /// </summary>
     private static bool IsRefusal(string? stdout)
     {
@@ -241,7 +315,8 @@ public sealed class AndroidDeviceReader
             || text.Contains("SecurityException", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Exception occurred while executing", StringComparison.OrdinalIgnoreCase)
             || text.StartsWith("cat:", StringComparison.OrdinalIgnoreCase)
-            || text.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase);
+            || text.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase)
+            || Parsers.IsParcelError(text);
     }
 
     /// <summary>
@@ -308,6 +383,11 @@ public sealed class AndroidDeviceReader
         // Prefer IMEI1 as the primary identifier, fall back to serial
         string primaryIdentifier = !string.IsNullOrWhiteSpace(facts.Imei1) ? facts.Imei1 : serial;
 
+        // A dual SIM handset without a second card answers the primary IMEI for
+        // the second slot as well. Storing it twice would read as two IMEIs,
+        // which is a claim about the phone that is not true.
+        string imei2 = string.Equals(facts.Imei2, facts.Imei1, StringComparison.Ordinal) ? "" : facts.Imei2;
+
         var data = new DeviceData
         {
             DeviceId = facts.Serial,
@@ -316,7 +396,7 @@ public sealed class AndroidDeviceReader
             Identifier = primaryIdentifier,
             MotherboardSerialNumber = serial,
             IosVersion = string.IsNullOrWhiteSpace(facts.AndroidVersion) ? "Android" : $"Android {facts.AndroidVersion}",
-            Imei2 = facts.Imei2,
+            Imei2 = imei2,
             WifiMacAddress = facts.WifiMacAddress,
             BluetoothMacAddress = facts.BluetoothMacAddress,
         };
@@ -327,11 +407,24 @@ public sealed class AndroidDeviceReader
 
         // Condition and charge level are different things. dumpsys only carries the
         // charge level and a status code, so the condition comes from the capacity
-        // counters and the status code is what is left over.
+        // counters and the status code is what is left over. The sysfs counters are
+        // closed to the shell on several builds; the capacity the platform learned
+        // is still readable in batterystats, and it stands in for the counter that
+        // was refused so the health percentage is not lost with it.
         int level = Parsers.ParseAndroidChargeLevel(facts.DumpsysBattery);
         if (level > 0) data.BatteryLevel = level;
 
-        int condition = Parsers.ParseAndroidBatteryCondition(facts.ChargeFull, facts.ChargeFullDesign);
+        int learnedCapacity = Parsers.ParseAndroidBatteryCapacity(facts.DumpsysBatterystats);
+        data.BatteryCurrentCapacity = learnedCapacity > 0
+            ? learnedCapacity
+            : ToMilliampHours(ReadCapacity(facts.ChargeFull));
+        data.BatteryDesignCapacity = ToMilliampHours(ReadCapacity(facts.ChargeFullDesign));
+
+        string chargeFull = learnedCapacity > 0 && !long.TryParse(facts.ChargeFull.Trim(), out _)
+            ? learnedCapacity.ToString(CultureInfo.InvariantCulture)
+            : facts.ChargeFull;
+
+        int condition = Parsers.ParseAndroidBatteryCondition(chargeFull, facts.ChargeFullDesign);
         data.BatteryHealth = condition > 0
             ? $"{condition}%"
             : Parsers.ParseAndroidBatteryStatus(facts.DumpsysBattery);
@@ -343,4 +436,16 @@ public sealed class AndroidDeviceReader
 
         return data;
     }
+
+    /// <summary>A positive sysfs counter as an integer, or zero when it is absent or garbled.</summary>
+    private static int ReadCapacity(string? raw) =>
+        long.TryParse((raw ?? "").Trim(), out long value) && value is > 0 and <= int.MaxValue ? (int)value : 0;
+
+    /// <summary>
+    /// The capacity counters under /sys are in microamp-hours and the learned
+    /// capacity from batterystats is already in milliamp-hours. A raw counter in
+    /// the micro range is scaled down so the report carries one unit whichever
+    /// read answered.
+    /// </summary>
+    private static int ToMilliampHours(int raw) => raw > 20_000 ? raw / 1000 : raw;
 }

@@ -79,13 +79,18 @@ public static class FrpLockService
             string simState = (await shell("getprop gsm.sim.state")).Trim();
             if (simState.Length > 0) status.SIMState = simState;
 
-            // gsm.operator.alpha is the current Android answer. ro.carrier is kept
-            // as the fallback for older builds that have nothing else.
-            string carrier = (await shell("getprop gsm.operator.alpha")).Trim();
-            if (carrier.Length == 0 || carrier.Equals("unknown", StringComparison.OrdinalIgnoreCase))
-                carrier = (await shell("getprop ro.carrier")).Trim();
+            // gsm.operator.alpha is the current Android answer. The other two are
+            // the fallbacks: the SIM's own name for a phone with no service yet,
+            // and ro.carrier for older builds that have nothing else. A handset
+            // with no card answers the first one with a bare separator (","), and
+            // a separator is not a network.
+            string carrier = CleanCarrierName(await shell("getprop gsm.operator.alpha"));
+            if (carrier.Length == 0)
+                carrier = CleanCarrierName(await shell("getprop gsm.sim.operator.alpha"));
+            if (carrier.Length == 0)
+                carrier = CleanCarrierName(await shell("getprop ro.carrier"));
 
-            if (carrier.Length > 0 && !carrier.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+            if (carrier.Length > 0)
                 status.CarrierName = carrier;
 
             status.IsCarrierLocked = null;
@@ -96,5 +101,17 @@ public static class FrpLockService
         }
 
         return status;
+    }
+
+    /// <summary>
+    /// A property that names a network, with the separators an absent card
+    /// leaves behind taken off. "unknown" is the other spelling absence uses.
+    /// </summary>
+    private static string CleanCarrierName(string raw)
+    {
+        string cleaned = (raw ?? "").Trim().Trim(',').Trim();
+        if (cleaned.Length == 0 || cleaned.Equals("unknown", StringComparison.OrdinalIgnoreCase))
+            return "";
+        return cleaned;
     }
 }

@@ -135,19 +135,26 @@ public class ParsersTests
         [ro.surface_flinger.has_wide_color_display]: [true]
         """;
 
-    /// <summary>Simulated `service call iphonesubinfo 1` output for IMEI 356938035643809.</summary>
+    /// <summary>
+    /// Simulated <c>service call iphonesubinfo 1</c> output for IMEI
+    /// 356938035643809. The words carry the string the way the shell prints it:
+    /// a status word, a length word, then two UTF-16 code units per word with
+    /// the low half first.
+    /// </summary>
     private const string Pixel8ProImei1 = """
         Result: Parcel(
-          0x00000000: 00000000 0000000f 00330035 00360039 00330038 00300033 00350036 00340033
-          0x00000020: 00380030 00390000 00000000
+          0x00000000: 00000000 0000000f 00350033 00390036
+          0x00000010: 00380033 00330030 00360035 00330034
+          0x00000020: 00300038 00000039
         )
         """;
 
-    /// <summary>Simulated `service call iphonesubinfo 2` output for IMEI2 (eSIM) 356938035643810.</summary>
+    /// <summary>Simulated <c>service call iphonesubinfo 2</c> output for IMEI2 (eSIM) 356938035643810.</summary>
     private const string Pixel8ProImei2 = """
         Result: Parcel(
-          0x00000000: 00000000 0000000f 00330035 00360039 00330038 00300033 00350036 00340033
-          0x00000020: 00380031 00300000 00000000
+          0x00000000: 00000000 0000000f 00350033 00390036
+          0x00000010: 00380033 00330030 00360035 00330034
+          0x00000020: 00310038 00000030
         )
         """;
 
@@ -171,7 +178,7 @@ public class ParsersTests
         [ro.product.vendor.model]: [Bengal for arm64]
         [ro.build.fingerprint]: [HONOR/LLY-LX1EEA/HNLLY-Q:14/HONORLLY-L31/8.0.0.366C431E205R2P3:user/release-keys]
         [ro.build.version.release]: [14]
-        [ro.serialno]: [AAUF6R3C19003414]
+        [ro.serialno]: [TEST0000000001A]
         [ro.boot.flash.locked]: [1]
         [ro.boot.verifiedbootstate]: [green]
         """;
@@ -335,6 +342,8 @@ public class ParsersTests
         "dumpsys battery" => Pixel8ProDumpsys,
         "cat /sys/class/power_supply/battery/charge_full" => "4618000\n",
         "cat /sys/class/power_supply/battery/charge_full_design" => "5022000\n",
+        "service call iphonesubinfo 4 i32 0 s16 com.android.shell" => Pixel8ProImei1,
+        "service call iphonesubinfo 4 i32 1 s16 com.android.shell" => Pixel8ProImei2,
         "service call iphonesubinfo 1" => Pixel8ProImei1,
         "service call iphonesubinfo 2" => Pixel8ProImei2,
         _ => "",
@@ -394,13 +403,13 @@ public class ParsersTests
         // The factory code identifies the handset, but the bench knows the phone
         // as the name in ro.config.marketing_name. Driven end to end, so the
         // reader and the display mapper are proved together and not per helper.
-        var reader = new AndroidDeviceReader("AAUF6R3C19003414", command =>
+        var reader = new AndroidDeviceReader("TEST0000000001A", command =>
             Task.FromResult(command == "getprop" ? HonorX8bGetprop : ""));
         var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
 
         Assert.Equal("Honor X8b", data.Model);
         Assert.Equal("Android (Honor X8b)", data.ProductType);
-        Assert.Equal("AAUF6R3C19003414", data.Identifier);
+        Assert.Equal("TEST0000000001A", data.Identifier);
         Assert.Equal("Android 14", data.IosVersion);
     }
 
@@ -467,7 +476,7 @@ public class ParsersTests
     {
         // The device list reads brand and name from one dump instead of one adb
         // process per value, so it must land in the same lookup the parser builds.
-        var reader = new AndroidDeviceReader("AAUF6R3C19003414", command =>
+        var reader = new AndroidDeviceReader("TEST0000000001A", command =>
             Task.FromResult(command == "getprop" ? HonorX8bGetprop : "unrelated\n"));
 
         var props = await reader.GetPropsAsync();
@@ -675,6 +684,87 @@ public class ParsersTests
     [InlineData("No such service")]
     public void ParseAndroidImei_ReturnsEmptyForInvalidInput(string input)
         => Assert.Equal("", Parsers.ParseAndroidImei(input));
+
+    /// <summary>
+    /// The multi-line shape adb prints for a successful call: an address in
+    /// front of every four words, and the ASCII pane on the right. The pane
+    /// carries digits of its own, and none of them may end up in the number.
+    /// </summary>
+    [Fact]
+    public void ParseAndroidImei_ReadsTheAddressPrefixedHexDump()
+    {
+        string dump = """
+            Result: Parcel(
+            0x00000000: 00000000 0000000f 00350033 00320031 '........3.5.1.2.'
+            0x00000010: 00340033 00360035 00380037 00300039 '3.4.5.6.7.8.9.0.'
+            0x00000020: 00320031 00000037                   '1.2.7...        ')
+            """;
+
+        Assert.Equal("351234567890127", Parsers.ParseAndroidImei(dump));
+        Assert.False(Parsers.IsParcelError(dump));
+    }
+
+    /// <summary>
+    /// The binder error an unprivileged call comes back with is a refusal. It
+    /// carries a negative status word and no string, and neither the error code
+    /// nor the letters of "Parcel" may arrive as an IMEI.
+    /// </summary>
+    [Fact]
+    public void ParseAndroidImei_RefusesAnErrorParcel()
+    {
+        const string refusal = "Result: Parcel(\tfffffffc ffffffff 00000000  '............')";
+
+        Assert.Equal("", Parsers.ParseAndroidImei(refusal));
+        Assert.True(Parsers.IsParcelError(refusal));
+    }
+
+    /// <summary>
+    /// The capacity the platform learned, which is the read that still answers
+    /// when the sysfs counters are closed.
+    /// </summary>
+    [Theory]
+    [InlineData("  Last learned battery capacity: 4180 mAh\n", 4180)]
+    [InlineData("  Max learned battery capacity: 4180 mAh\n", 4180)]
+    [InlineData("  Min learned battery capacity: 3900 mAh\n", 3900)]
+    [InlineData("  Estimated battery capacity: 3500 mAh\n", 3500)]
+    public void ParseAndroidBatteryCapacity_ReadsTheLearnedCapacity(string dumpsys, int expected)
+        => Assert.Equal(expected, Parsers.ParseAndroidBatteryCapacity(dumpsys));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  Last learned battery capacity: 9 mAh\n")]
+    [InlineData("  Last learned battery capacity: 9999999 mAh\n")]
+    [InlineData("  level: 50\n")]
+    public void ParseAndroidBatteryCapacity_RejectsNonsense(string dumpsys)
+        => Assert.Equal(0, Parsers.ParseAndroidBatteryCapacity(dumpsys));
+
+    /// <summary>
+    /// The address routes that still answer when the sysfs file and the secure
+    /// setting are closed.
+    /// </summary>
+    [Fact]
+    public void ParseMacAddresses_ReadsIpAndDumpsysRoutes()
+    {
+        const string ip = "36: wlan0: <BROADCAST,MULTICAST,UP> mtu 1500\n    link/ether aa:bb:cc:dd:ee:02 brd ff:ff:ff:ff:ff:ff\n";
+        Assert.Equal("aa:bb:cc:dd:ee:02", Parsers.ParseIpInterfaceMac(ip));
+
+        const string bluetooth = "Bluetooth Status\n  enabled: false\n  address: 00:11:22:33:44:55\n  name: HONOR X8b\n";
+        Assert.Equal("00:11:22:33:44:55", Parsers.ParseBluetoothManagerMac(bluetooth));
+
+        const string wifi = "Dump of WifiServiceImpl\nmPersistentRandomizedMacAddress = 66:77:88:99:aa:bb\n";
+        Assert.Equal("66:77:88:99:aa:bb", Parsers.ParseDumpsysWifiMac(wifi));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("no address here")]
+    [InlineData("address: not a mac")]
+    public void ParseMacAddresses_ReturnEmptyWhenNothingAnswers(string dump)
+    {
+        Assert.Equal("", Parsers.ParseIpInterfaceMac(dump));
+        Assert.Equal("", Parsers.ParseBluetoothManagerMac(dump));
+        Assert.Equal("", Parsers.ParseDumpsysWifiMac(dump));
+    }
 
     [Theory]
     [InlineData("  cycle count: 450\n", 450)]
