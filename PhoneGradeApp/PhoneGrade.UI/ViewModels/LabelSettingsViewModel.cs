@@ -105,7 +105,11 @@ public sealed class LabelBarcodeItem : ReactiveObject
         get => _isAvailable;
         private set
         {
-            if (!this.RaiseAndSetIfChanged(ref _isAvailable, value)) return;
+            // The field is asked, not the return value: ReactiveUI 20 returns the
+            // new value from RaiseAndSetIfChanged, so the old guard skipped the
+            // dependent raises exactly when a mode became unavailable.
+            if (_isAvailable == value) return;
+            this.RaiseAndSetIfChanged(ref _isAvailable, value);
 
             this.RaisePropertyChanged(nameof(IsClosed));
             this.RaisePropertyChanged(nameof(RowStrength));

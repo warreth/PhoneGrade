@@ -333,7 +333,13 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         get => _useSecureOrigin;
         set
         {
-            if (!this.RaiseAndSetIfChanged(ref _useSecureOrigin, value)) return;
+            // ReactiveUI 20 returns the newly set value from RaiseAndSetIfChanged,
+            // not a changed flag, so the guard asks the field directly. The old
+            // `if (!RaiseAndSetIfChanged(...)) return;` skipped the body whenever
+            // the new value was false, which is how a switch meant to turn the
+            // cable route off turned nothing off.
+            if (_useSecureOrigin == value) return;
+            this.RaiseAndSetIfChanged(ref _useSecureOrigin, value);
             _settings.UseSecureOrigin = value;
             _settings.Save();
             RefreshWebRunnerAddress();
@@ -351,7 +357,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         get => _usePublicTunnel;
         set
         {
-            if (!this.RaiseAndSetIfChanged(ref _usePublicTunnel, value)) return;
+            // Same guard as UseSecureOrigin, for the same ReactiveUI 20 reason.
+            if (_usePublicTunnel == value) return;
+            this.RaiseAndSetIfChanged(ref _usePublicTunnel, value);
             _settings.UsePublicTunnel = value;
             _settings.Save();
             if (!value) _ = _quickTunnel.StopAsync();
@@ -974,8 +982,13 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         get => _isLicenceAccepted;
         set
         {
-            if (this.RaiseAndSetIfChanged(ref _isLicenceAccepted, value))
-                this.RaisePropertyChanged(nameof(CanFinishIntro));
+            // The field is asked, not the return value: ReactiveUI 20 returns the
+            // new value from RaiseAndSetIfChanged, so `if (RaiseAndSetIfChanged(...))`
+            // ran the dependent raise only when the box was ticked and skipped it
+            // when it was cleared.
+            if (_isLicenceAccepted == value) return;
+            this.RaiseAndSetIfChanged(ref _isLicenceAccepted, value);
+            this.RaisePropertyChanged(nameof(CanFinishIntro));
         }
     }
 

@@ -283,7 +283,11 @@ public class ExportViewModel : ReactiveObject
         get => _saveOnly;
         set
         {
-            if (!this.RaiseAndSetIfChanged(ref _saveOnly, value)) return;
+            // The field is asked, not the return value: ReactiveUI 20 returns the
+            // new value from RaiseAndSetIfChanged, so the old guard skipped the
+            // button-wording refresh whenever the tick was cleared.
+            if (_saveOnly == value) return;
+            this.RaiseAndSetIfChanged(ref _saveOnly, value);
             this.RaisePropertyChanged(nameof(PrimaryLabelKey));
         }
     }
@@ -297,7 +301,9 @@ public class ExportViewModel : ReactiveObject
         get => _extraFiles;
         set
         {
-            if (!this.RaiseAndSetIfChanged(ref _extraFiles, value)) return;
+            // Same guard as SaveOnly, for the same ReactiveUI 20 reason.
+            if (_extraFiles == value) return;
+            this.RaiseAndSetIfChanged(ref _extraFiles, value);
             this.RaisePropertyChanged(nameof(HasFormats));
             this.RaisePropertyChanged(nameof(CanFinish));
         }
