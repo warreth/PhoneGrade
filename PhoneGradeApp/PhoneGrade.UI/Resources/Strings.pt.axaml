@@ -835,7 +835,7 @@
     <x:String x:Key="Settings_SecLabel">Etiqueta</x:String>
     <x:String x:Key="Settings_LabelLead">É assim que todas as etiquetas ficam, em cada inspeção.</x:String>
     <x:String x:Key="Settings_LabelVariant">Disposição da etiqueta</x:String>
-    <x:String x:Key="Settings_LabelVariantDesc">Escolha a disposição que serve; a pré-visualização acompanha.</x:String>
+    <x:String x:Key="Settings_LabelVariantDesc">Escolha a disposição que serve; a etiqueta e o ficheiro acompanham.</x:String>
     <x:String x:Key="Settings_LabelVariantClean">Como antes (limpo)</x:String>
     <x:String x:Key="Settings_LabelVariantCleanNote">Uma linha com todos os valores, como sempre.</x:String>
     <x:String x:Key="Settings_LabelVariantStructured">Estruturado</x:String>

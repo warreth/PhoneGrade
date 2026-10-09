@@ -38,7 +38,33 @@ public static class DymoTemplate
             ["LOCKS"] = f => f.Faults.LockLine,
             ["DETAIL"] = f => LabelLayout.DetailLine(f),
             ["SPEC"] = f => LabelLayout.TextLine(f),
+
+            // The variant lines. The cleaned arrangement draws SPEC/DETAIL/LOCKS;
+            // the structured and grade block templates draw these, and both are
+            // built from the same reading of the values as the app's own drawing.
+            ["TITLE"] = f => LabelTexts.From(f).Title,
+            ["META"] = f => LabelTexts.From(f).Meta,
+            ["SHORTMETA"] = f => LabelTexts.From(f).ShortMeta,
+            ["FAULTSONLY"] = f => LabelTexts.From(f).Faults,
+            ["CODES"] = f => LabelTexts.From(f).Codes,
+            ["GRADE"] = f => LabelTexts.From(f).Grade,
         };
+
+    /// <summary>
+    /// The position sentinels a variant template carries: the tops of its text
+    /// objects, so one template serves one code and two.
+    /// </summary>
+    /// <remarks>
+    /// Not in <see cref="Sentinels"/> because a position is not a value: it is
+    /// worked out from the stock and the barcode count, which are the two things
+    /// the fill knows and a plain value cannot.
+    /// </remarks>
+    public static readonly IReadOnlyList<string> PositionSentinels =
+    [
+        "B2Y", "T1Y", "T2Y", "T3Y", "T4Y",
+        "BOXY", "BOXH", "INF1Y", "INF2Y", "INF3Y", "INFH",
+        "LOCKY", "LOCKH", "LINEH",
+    ];
 
     /// <summary>
     /// The sentinels that depend on the stock and on the barcode mode.
@@ -128,18 +154,25 @@ public static class DymoTemplate
     /// barcode is not reported as carrying a field this app knows nothing about.
     /// </remarks>
     public static IReadOnlyList<string> KnownSentinels { get; } =
-        [.. Sentinels.Keys, FirstBarcodeSentinel, SecondBarcodeSentinel, SpelledSentinel];
+        [.. Sentinels.Keys, FirstBarcodeSentinel, SecondBarcodeSentinel, SpelledSentinel, .. PositionSentinels];
 
     /// <summary>Every sentinel this app can fill, given a stock and a barcode mode.</summary>
     private static IReadOnlyDictionary<string, Func<LabelFields, string>> ValuesFor(
-        LabelLayout layout, LabelBarcodeMode mode, LabelCodeSymbology symbology, int cyclesMinimum)
+        LabelLayout layout, LabelBarcodeMode mode, LabelCodeSymbology symbology,
+        int cyclesMinimum, LabelVariant variant)
     {
         var values = new Dictionary<string, Func<LabelFields, string>>(
             Sentinels, StringComparer.Ordinal);
 
-        // The detail line follows the shop's charge count floor, so the .dymo file
-        // and the label the app draws leave the number off at the same size.
+        // The lines follow the shop's charge count floor, so the .dymo file and the
+        // label the app draws leave the number off at the same size.
         values["DETAIL"] = fields => LabelLayout.DetailLine(fields, cyclesMinimum);
+        values["TITLE"] = fields => LabelTexts.From(fields, cyclesMinimum).Title;
+        values["META"] = fields => LabelTexts.From(fields, cyclesMinimum).Meta;
+        values["SHORTMETA"] = fields => LabelTexts.From(fields, cyclesMinimum).ShortMeta;
+        values["FAULTSONLY"] = fields => LabelTexts.From(fields, cyclesMinimum).Faults;
+        values["CODES"] = fields => LabelTexts.From(fields, cyclesMinimum).Codes;
+        values["GRADE"] = fields => LabelTexts.From(fields, cyclesMinimum).Grade;
 
         values[FirstBarcodeSentinel] =
             fields => Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(0) ?? "";
@@ -148,6 +181,28 @@ public static class DymoTemplate
         values[SpelledSentinel] =
             fields => string.Join(" ", Barcodes(layout, mode, symbology, fields).Spelled
                 .Select(value => value.Trim('*')));
+
+        // Where the text objects sit, which the number of barcodes decides. The
+        // positions are worked out per fill from the same payloads the barcodes are
+        // filled from, so a template cannot be given positions for a count it does
+        // not have.
+        Func<LabelFields, DymoPositions> positions = fields =>
+            DymoGeometry.For(variant, Barcodes(layout, mode, symbology, fields).Barred.Count);
+
+        values["B2Y"] = fields => DymoGeometry.Inches(positions(fields).Barcode2Y);
+        values["T1Y"] = fields => DymoGeometry.Inches(positions(fields).T1Y);
+        values["T2Y"] = fields => DymoGeometry.Inches(positions(fields).T2Y);
+        values["T3Y"] = fields => DymoGeometry.Inches(positions(fields).T3Y);
+        values["T4Y"] = fields => DymoGeometry.Inches(positions(fields).T4Y);
+        values["BOXY"] = fields => DymoGeometry.Inches(positions(fields).BoxY);
+        values["BOXH"] = fields => DymoGeometry.Inches(positions(fields).BoxH);
+        values["INF1Y"] = fields => DymoGeometry.Inches(positions(fields).Info1Y);
+        values["INF2Y"] = fields => DymoGeometry.Inches(positions(fields).Info2Y);
+        values["INF3Y"] = fields => DymoGeometry.Inches(positions(fields).Info3Y);
+        values["INFH"] = fields => DymoGeometry.Inches(positions(fields).InfoH);
+        values["LOCKY"] = fields => DymoGeometry.Inches(positions(fields).LockY);
+        values["LOCKH"] = fields => DymoGeometry.Inches(positions(fields).LockH);
+        values["LINEH"] = fields => DymoGeometry.Inches(positions(fields).LineH);
 
         return values;
     }
@@ -196,18 +251,33 @@ public static class DymoTemplate
     /// The same charge count floor the label PDF and the preview use, so the file a
     /// DYMO prints and the file this app draws leave the number off at the same size.
     /// </param>
+    /// <param name="variant">
+    /// Which arrangement the template belongs to. Only the position sentinels use
+    /// it: the lines are the same whichever arrangement a template places them in.
+    /// </param>
     public static DymoFillResult Fill(string templateText, LabelFields fields,
         LabelLayout? layout = null, LabelBarcodeMode mode = LabelBarcodeMode.Identifier,
-        ExportWording? wording = null, int cyclesMinimum = 0)
+        ExportWording? wording = null, int cyclesMinimum = 0,
+        LabelVariant variant = LabelVariant.Clean)
     {
         ExportWording words = wording ?? ExportWording.English;
         var unknown = UnknownFields(templateText).ToList();
 
         IReadOnlyDictionary<string, Func<LabelFields, string>> values =
-            ValuesFor(layout ?? LabelLayout.Address, mode, DeclaredSymbology(templateText), cyclesMinimum);
+            ValuesFor(layout ?? LabelLayout.Address, mode, DeclaredSymbology(templateText), cyclesMinimum, variant);
 
         if (!values.Keys.Any(name => Mentions(templateText, name)))
             throw new InvalidDataException(words.TemplateHasNoFields);
+
+        // An unused barcode object is not nothing: DYMO's own renderer answers an
+        // empty code with a minimal one, a small stub under the first code, and it
+        // would print that too. When the mode carries fewer codes than the template
+        // has objects, the spare objects are taken out of the file rather than left
+        // for the renderer to fill in.
+        int barred = Barcodes(layout ?? LabelLayout.Address, mode,
+            DeclaredSymbology(templateText), fields).Barred.Count;
+        if (barred < 2) templateText = RemoveBarcodeObject(templateText, SecondBarcodeSentinel);
+        if (barred < 1) templateText = RemoveBarcodeObject(templateText, FirstBarcodeSentinel);
 
         var result = new StringBuilder(templateText.Length + 64);
         int copied = 0;
@@ -238,6 +308,36 @@ public static class DymoTemplate
         }
 
         return new DymoFillResult(result.ToString(), unknown);
+    }
+
+    /// <summary>
+    /// Takes one barcode object out of a template, by the object a sentinel sits in.
+    /// </summary>
+    /// <remarks>
+    /// A text edit on the template in the same spirit as the substitution itself:
+    /// the file is never re-serialised, so the whitespace and the empty-element
+    /// forms DYMO's deserializer wants are the template's own. The object is found
+    /// by its data sentinel rather than by its name, because a template may name
+    /// its objects anything.
+    /// </remarks>
+    private static string RemoveBarcodeObject(string templateText, string sentinel)
+    {
+        int marker = templateText.IndexOf(sentinel, StringComparison.Ordinal);
+        if (marker < 0) return templateText;
+
+        int open = templateText.LastIndexOf("<BarcodeObject>", marker, StringComparison.Ordinal);
+        int close = templateText.IndexOf("</BarcodeObject>", marker, StringComparison.Ordinal);
+        if (open < 0 || close < 0) return templateText;
+
+        close += "</BarcodeObject>".Length;
+
+        // Take the object's own line with it, so the file keeps its shape rather
+        // than gaining a blank line where an object used to be.
+        int line = open;
+        while (line > 0 && (templateText[line - 1] == ' ' || templateText[line - 1] == '\t')) line--;
+        if (line > 0 && templateText[line - 1] == '\n') line--;
+
+        return templateText.Remove(line, close - line);
     }
 
     /// <summary>

@@ -835,7 +835,7 @@
     <x:String x:Key="Settings_SecLabel">Label</x:String>
     <x:String x:Key="Settings_LabelLead">This is what every label looks like, for every inspection.</x:String>
     <x:String x:Key="Settings_LabelVariant">Label layout</x:String>
-    <x:String x:Key="Settings_LabelVariantDesc">Choose the layout that suits the shop; the preview follows.</x:String>
+    <x:String x:Key="Settings_LabelVariantDesc">Choose the layout that suits the shop; the label and the file follow.</x:String>
     <x:String x:Key="Settings_LabelVariantClean">As before (cleaned up)</x:String>
     <x:String x:Key="Settings_LabelVariantCleanNote">One line with every value, as the label always was.</x:String>
     <x:String x:Key="Settings_LabelVariantStructured">Structured</x:String>

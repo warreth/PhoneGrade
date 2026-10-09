@@ -835,7 +835,7 @@
     <x:String x:Key="Settings_SecLabel">标签</x:String>
     <x:String x:Key="Settings_LabelLead">所有检查的标签都按这里的设置打印。</x:String>
     <x:String x:Key="Settings_LabelVariant">标签样式</x:String>
-    <x:String x:Key="Settings_LabelVariantDesc">选择适合店铺的排版，右侧预览会同步变化。</x:String>
+    <x:String x:Key="Settings_LabelVariantDesc">选择适合店铺的排版，标签和文件都会随之变化。</x:String>
     <x:String x:Key="Settings_LabelVariantClean">与原来相同（已清理）</x:String>
     <x:String x:Key="Settings_LabelVariantCleanNote">所有值在同一行，和以前的标签一样。</x:String>
     <x:String x:Key="Settings_LabelVariantStructured">分栏样式</x:String>

@@ -384,8 +384,15 @@ public class LabelPdfContentTests : IDisposable
                 : element.Descendants("Text").FirstOrDefault()?.Value.Trim() ?? "";
         }
 
-        Assert.Equal(barred.ElementAtOrDefault(0) ?? "", values["BARCODE_1"]);
-        Assert.Equal(barred.ElementAtOrDefault(1) ?? "", values["BARCODE_2"]);
+        // An object with no code to carry is not in the file at all: DYMO's own
+        // renderer answers an empty barcode with a minimal stub, so the spare
+        // object is taken out rather than left for the renderer to fill in.
+        Assert.Equal(barred.Count >= 1, values.ContainsKey("BARCODE_1"));
+        if (barred.Count >= 1) Assert.Equal(barred[0], values["BARCODE_1"]);
+
+        Assert.Equal(barred.Count >= 2, values.ContainsKey("BARCODE_2"));
+        if (barred.Count >= 2) Assert.Equal(barred[1], values["BARCODE_2"]);
+
         Assert.Equal(string.Join(" ", spelled), values["TEKST_1"]);
         Assert.Equal(LabelLayout.TextLine(fields), values["TEKST_2"]);
         Assert.Equal(LabelLayout.DetailLine(fields), values["TEKST_3"]);

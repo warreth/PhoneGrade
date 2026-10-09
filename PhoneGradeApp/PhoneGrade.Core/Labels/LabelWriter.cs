@@ -150,7 +150,7 @@ public static class LabelWriter
         {
             return format switch
             {
-                ExportFormat.DymoLabel => DymoLabel(path, fields, layout, request.Barcode, request.TemplatePath, messages, request.CyclesMinimum),
+                ExportFormat.DymoLabel => DymoLabel(path, fields, layout, request.Barcode, request.TemplatePath, messages, request.CyclesMinimum, request.Variant),
                 ExportFormat.LabelPdf => LabelPdf(path, fields, layout, request.Barcode, drawn, request.Variant, request.CyclesMinimum),
                 ExportFormat.ReportPdf => ReportPdf(path, data, request.Wording),
                 ExportFormat.Json => Json(path, data),
@@ -177,15 +177,17 @@ public static class LabelWriter
     }
 
     private static Outcome DymoLabel(string path, LabelFields fields, LabelLayout layout,
-        LabelBarcodeMode mode, string? templatePath, ExportWording messages, int cyclesMinimum)
+        LabelBarcodeMode mode, string? templatePath, ExportWording messages, int cyclesMinimum,
+        LabelVariant variant)
     {
-        string template = DymoTemplateFiles.Read(templatePath, messages);
+        string template = DymoTemplateFiles.Read(templatePath, variant, messages);
 
         // The template is filled in one pass by the same code that decides what the
         // barcodes carry, so the .dymo file cannot come out with something on it
         // that the label PDF and the preview do not also have. Its symbology is the
         // one the template declares, which is what the file has to carry.
-        DymoFillResult filled = DymoTemplate.Fill(template, fields, layout, mode, messages, cyclesMinimum);
+        DymoFillResult filled = DymoTemplate.Fill(
+            template, fields, layout, mode, messages, cyclesMinimum, variant);
 
         File.WriteAllText(path, filled.Text, new System.Text.UTF8Encoding(false));
 

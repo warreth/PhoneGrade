@@ -836,7 +836,7 @@
     <x:String x:Key="Settings_SecLabel">Label</x:String>
     <x:String x:Key="Settings_LabelLead">Zo ziet elk label eruit, voor elke inspectie.</x:String>
     <x:String x:Key="Settings_LabelVariant">Labelvariant</x:String>
-    <x:String x:Key="Settings_LabelVariantDesc">Kies de opbouw die bij jullie past; het voorbeeld verandert mee.</x:String>
+    <x:String x:Key="Settings_LabelVariantDesc">Kies de opbouw die bij jullie past; het label en het bestand veranderen mee.</x:String>
     <x:String x:Key="Settings_LabelVariantClean">Zoals nu (opgeschoond)</x:String>
     <x:String x:Key="Settings_LabelVariantCleanNote">Eén regel met alle waarden, zoals het label altijd was.</x:String>
     <x:String x:Key="Settings_LabelVariantStructured">Gestructureerd</x:String>

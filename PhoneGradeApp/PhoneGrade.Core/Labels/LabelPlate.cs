@@ -160,25 +160,17 @@ public sealed record LabelPlate
         // paper for a person to read.
         string spelledLine = string.Join("  ", spelled.Select(value => value.Trim('*')));
 
-        // The real values, with the placeholders and the empty optional fields left
-        // out. A label never says NOPAY or NOCOLOR: a value the phone did not report
-        // is not a value, and the panel stops a label being printed at all when one
-        // of the four that matter is missing.
-        string model = Real(fields.Model, DevicePlaceholders.Model);
-        string storage = Real(fields.Storage, DevicePlaceholders.Storage);
-        string colour = Real(fields.Color, DevicePlaceholders.Color);
-        string grade = Real(fields.Grade, DevicePlaceholders.Grade);
-        string battery = Real(fields.Battery, DevicePlaceholders.Battery);
-        string pay = Real(fields.PayMethod, DevicePlaceholders.PayMethod);
-        string cycles = CycleToken(fields, cyclesMinimum);
-        string faults = fields.Content.Faults ? fields.Faults.FaultsOnly : "";
-        string locks = LabelLayout.LockLine(fields);
+        // Every line this label can say, through the one place that decides what the
+        // values read like. The .dymo fill asks the same type, so the file a DYMO
+        // prints and the sheet this app draws cannot come out with different words on
+        // them.
+        LabelTexts texts = LabelTexts.From(fields, cyclesMinimum);
 
         var planned = variant switch
         {
-            LabelVariant.Structured => StructuredLines(model, storage, colour, grade, battery, cycles, pay, faults),
-            LabelVariant.GradeBlock => GradeBlockLines(model, storage, colour, battery, pay, cycles, faults),
-            _ => CleanLines(model, storage, colour, grade, battery, pay, cycles, faults, locks),
+            LabelVariant.Structured => StructuredLines(texts.Title, texts.Meta, texts.Faults),
+            LabelVariant.GradeBlock => GradeBlockLines(texts.Title, texts.ShortMeta, texts.Codes),
+            _ => CleanLines(texts.Spec, texts.Detail, texts.Locks),
         };
 
         var block = new List<string>();
@@ -193,9 +185,9 @@ public sealed record LabelPlate
             : layout.WidthMm;
 
         float body = LabelType.BlockSize(block, layout, barred.Count, textWidth);
-        bool hasLocks = locks.Length > 0;
+        bool hasLocks = texts.Locks.Length > 0;
         float locksPoint = hasLocks
-            ? LabelType.LineSize(locks, layout, barred.Count, body * LabelType.LocksLargerThanBody, body)
+            ? LabelType.LineSize(texts.Locks, layout, barred.Count, body * LabelType.LocksLargerThanBody, body)
             : body;
 
         // The grade block is taller than the lines of type beside it and has to be
@@ -230,7 +222,7 @@ public sealed record LabelPlate
         // block, where they sit below the block) still carry them, and a plate that
         // forgot them would print a locked phone as a free one.
         if (hasLocks && !planned.Any(line => line.Role == LabelLineRole.Locks))
-            lines.Add(new LabelLine(locks, LabelLineRole.Locks, locksPoint, Bold: true));
+            lines.Add(new LabelLine(texts.Locks, LabelLineRole.Locks, locksPoint, Bold: true));
 
         return new LabelPlate
         {
@@ -241,7 +233,7 @@ public sealed record LabelPlate
             Lines = lines,
             BodyPoint = body,
             LocksPoint = locksPoint,
-            Grade = variant == LabelVariant.GradeBlock ? grade : "",
+            Grade = variant == LabelVariant.GradeBlock ? texts.Grade : "",
             GradePoint = variant == LabelVariant.GradeBlock ? gradePoint : 0f,
             LocksInverted = variant is not LabelVariant.Clean && hasLocks,
             TopOffsetMm = slack,
@@ -255,60 +247,115 @@ public sealed record LabelPlate
     /// The single specification line and the two lines under it, which is the label
     /// as it has always been drawn with the placeholders cleaned off it.
     /// </summary>
-    private static List<PlannedLine> CleanLines(
-        string model, string storage, string colour, string grade, string battery,
-        string pay, string cycles, string faults, string locks)
-    {
-        string spec = string.Join(" ", new[] { model, storage, colour, grade, battery, pay }
-            .Where(part => part.Length > 0));
-        string detail = string.Join(" ", new[] { cycles, faults }.Where(part => part.Length > 0));
-
-        return
-        [
-            new(spec, LabelLineRole.Title, Bold: true),
-            new(detail, LabelLineRole.Faults, Bold: false),
-            new(locks, LabelLineRole.Locks, Bold: true),
-        ];
-    }
+    private static List<PlannedLine> CleanLines(string spec, string detail, string locks) =>
+    [
+        new(spec, LabelLineRole.Title, Bold: true),
+        new(detail, LabelLineRole.Faults, Bold: false),
+        new(locks, LabelLineRole.Locks, Bold: true),
+    ];
 
     /// <summary>Model and storage, then the values, then the faults, then the locks.</summary>
-    private static List<PlannedLine> StructuredLines(
-        string model, string storage, string colour, string grade, string battery,
-        string cycles, string pay, string faults)
-    {
-        string title = string.Join(" ", new[] { model, storage }.Where(part => part.Length > 0));
-        string meta = string.Join(Dot, new[] { colour, grade, battery, cycles, pay }.Where(part => part.Length > 0));
-
-        return
-        [
-            new(title, LabelLineRole.Title, Bold: true),
-            new(meta, LabelLineRole.Meta, Bold: false),
-            new(faults, LabelLineRole.Faults, Bold: true),
-        ];
-    }
+    private static List<PlannedLine> StructuredLines(string title, string meta, string faults) =>
+    [
+        new(title, LabelLineRole.Title, Bold: true),
+        new(meta, LabelLineRole.Meta, Bold: false),
+        new(faults, LabelLineRole.Faults, Bold: true),
+    ];
 
     /// <summary>
     /// The values beside the grade block, and the faults under it, without the locks,
     /// which go on their own line below everything.
     /// </summary>
-    private static List<PlannedLine> GradeBlockLines(
-        string model, string storage, string colour, string battery, string pay,
-        string cycles, string faults)
-    {
-        string title = string.Join(" ", new[] { model, storage }.Where(part => part.Length > 0));
-        string meta = string.Join(Dot, new[] { colour, battery, pay }.Where(part => part.Length > 0));
-        string codes = string.Join(Dot, new[] { cycles, faults }.Where(part => part.Length > 0));
-
-        return
-        [
-            new(title, LabelLineRole.Title, Bold: true),
-            new(meta, LabelLineRole.Meta, Bold: false),
-            new(codes, LabelLineRole.Faults, Bold: false),
-        ];
-    }
+    private static List<PlannedLine> GradeBlockLines(string title, string meta, string codes) =>
+    [
+        new(title, LabelLineRole.Title, Bold: true),
+        new(meta, LabelLineRole.Meta, Bold: false),
+        new(codes, LabelLineRole.Faults, Bold: false),
+    ];
 
     /// <summary>The size the grade block is drawn at, in millimetres.</summary>
     public float GradeBoxHeightMm => GradePoint * GradeBoxOverLetter * (25.4f / 72f);
+}
+
+/// <summary>
+/// Every line a label can say, decided in one place.
+/// </summary>
+/// <remarks>
+/// The plate draws these and the .dymo fill writes them into a template, so the
+/// words on the sheet a shop checks and the words on the file a DYMO prints come
+/// from the same reading of the same values. A second spelling of "2x NON-OEM" is
+/// how the preview and the paper start disagreeing.
+/// </remarks>
+public sealed record LabelTexts
+{
+    /// <summary>The single specification line, which the cleaned arrangement draws.</summary>
+    public required string Spec { get; init; }
+
+    /// <summary>The charge count and the faults as one line, for the cleaned arrangement.</summary>
+    public required string Detail { get; init; }
+
+    /// <summary>What the device is: model and storage.</summary>
+    public required string Title { get; init; }
+
+    /// <summary>Colour, grade, battery, charge count and payment, as one line.</summary>
+    public required string Meta { get; init; }
+
+    /// <summary>The same values without the charge count, which the grade block gives its own line.</summary>
+    public required string ShortMeta { get; init; }
+
+    /// <summary>What is wrong, without the locks.</summary>
+    public required string Faults { get; init; }
+
+    /// <summary>The charge count and the faults, for the grade block's second line.</summary>
+    public required string Codes { get; init; }
+
+    /// <summary>The locks, on their own and never shared.</summary>
+    public required string Locks { get; init; }
+
+    /// <summary>The grade letter, for the grade block.</summary>
+    public required string Grade { get; init; }
+
+    /// <summary>
+    /// Reads the lines off an inspection.
+    /// </summary>
+    /// <param name="fields">What the label carries, already through the value rules.</param>
+    /// <param name="cyclesMinimum">
+    /// Below this charge count the number is left off every line that would carry
+    /// it, exactly as the app's own drawing leaves it off.
+    /// </param>
+    public static LabelTexts From(LabelFields fields, int cyclesMinimum = 0)
+    {
+        string model = Real(fields.Model, DevicePlaceholders.Model);
+        string storage = Real(fields.Storage, DevicePlaceholders.Storage);
+        string colour = Real(fields.Color, DevicePlaceholders.Color);
+        string grade = Real(fields.Grade, DevicePlaceholders.Grade);
+        string battery = Real(fields.Battery, DevicePlaceholders.Battery);
+        string pay = Real(fields.PayMethod, DevicePlaceholders.PayMethod);
+        string cycles = CycleToken(fields, cyclesMinimum);
+        string faults = fields.Content.Faults ? fields.Faults.FaultsOnly : "";
+        string locks = LabelLayout.LockLine(fields);
+
+        string title = Join(" ", model, storage);
+
+        return new LabelTexts
+        {
+            Spec = Join(" ", model, storage, colour, grade, battery, pay),
+            Detail = Join(" ", cycles, faults),
+            Title = title,
+            Meta = Join(Dot, colour, grade, battery, cycles, pay),
+            ShortMeta = Join(Dot, colour, battery, pay),
+            Faults = faults,
+            Codes = Join(Dot, cycles, faults),
+            Locks = locks,
+            Grade = grade,
+        };
+    }
+
+    /// <summary>
+    /// The separator between the values on one line of the structured and grade block
+    /// arrangements.
+    /// </summary>
+    public const string Dot = "  ·  ";
 
     /// <summary>The charge count as a token, or empty when it is not shown.</summary>
     private static string CycleToken(LabelFields fields, int cyclesMinimum)
@@ -327,4 +374,8 @@ public sealed record LabelPlate
     /// <summary>The value, or nothing when it is the word for "the phone did not say".</summary>
     private static string Real(string value, string placeholder) =>
         value.Length > 0 && value != placeholder ? value : "";
+
+    /// <summary>The parts that have something to say, joined by one separator.</summary>
+    private static string Join(string separator, params string[] parts) =>
+        string.Join(separator, parts.Where(part => part.Length > 0));
 }
