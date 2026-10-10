@@ -98,7 +98,7 @@ public static class LabelWriter
         string folder = request.Folder is { Length: > 0 } chosen ? chosen : ExportService.ExportDir;
         Directory.CreateDirectory(folder);
 
-        string stem = Sanitize(request.FileName ?? FileStem(data));
+        string stem = FileNames.Sanitize(request.FileName ?? FileStem(data), "export");
         var files = new List<Outcome>();
 
         var wanted = new HashSet<ExportFormat>(request.Formats);
@@ -253,7 +253,7 @@ public static class LabelWriter
     /// </summary>
     public static string DeviceToken(DeviceData data)
     {
-        string identifier = Sanitize(data.Identifier);
+        string identifier = FileNames.Sanitize(data.Identifier, "export");
         return identifier.Length == 0 || identifier == DevicePlaceholders.Identifier ? "unknown" : identifier;
     }
 
@@ -261,19 +261,7 @@ public static class LabelWriter
     private static string ModelToken(string? model)
     {
         if (string.IsNullOrWhiteSpace(model) || model == DevicePlaceholders.Model) return "";
-        return Sanitize(string.Concat(model.Where(character => !char.IsWhiteSpace(character))));
-    }
-
-    /// <summary>
-    /// Replaces what a file system or a browser will not take. Deliberately wider
-    /// than Path.GetInvalidFileNameChars: this stem is used for downloads and for
-    /// paths as well as for disk files, and a slash in it is a directory change.
-    /// </summary>
-    internal static string Sanitize(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return "export";
-        char[] forbidden = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
-        return string.Concat(name.Select(character => forbidden.Contains(character) ? '_' : character)).Trim();
+        return FileNames.Sanitize(string.Concat(model.Where(character => !char.IsWhiteSpace(character))), "export");
     }
 }
 

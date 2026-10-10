@@ -61,10 +61,6 @@ public static class DeviceService
         }
     }
 
-    /// <summary>All connected devices: UDID → "Name: Model" for display (iOS and Android).</summary>
-    public static async Task<Dictionary<string, string>> GetConnectedDevicesAsync() =>
-        (await GetConnectedDevicesWithStateAsync()).Devices;
-
     /// <summary>
     /// One probe for both the display names and the diagnostic state. Splitting
     /// these into two calls would run <see cref="ListUdidsSafeAsync"/> twice per
@@ -653,10 +649,6 @@ public static class DeviceService
         {
             data.ActivationLock = await SecurityServices.ActivationLockService.DetectAsync(udid);
             data.CarrierLockIOS = await SecurityServices.ActivationLockService.DetectCarrierLockAsync(udid);
-            
-            // Enhanced component verification with AST2
-            var verification = await SecurityServices.ComponentVerificationService.VerifyComponentsAsync(udid, data);
-            data.ComponentChecks = verification.ComponentChecks;
         }
         else
         {
@@ -713,7 +705,7 @@ public static class DeviceService
 
         if (data.BatteryHealth == "NOBATT" && data.BatteryDesignCapacity > 0 && data.BatteryCurrentCapacity > 0)
         {
-            data.BatteryHealth = $"{Math.Min((double)data.BatteryCurrentCapacity / data.BatteryDesignCapacity * 100, 100):F0}";
+            data.BatteryHealth = Parsers.BatteryHealthPercent(data.BatteryDesignCapacity, data.BatteryCurrentCapacity);
         }
     }
 

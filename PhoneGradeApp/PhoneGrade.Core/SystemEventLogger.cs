@@ -104,22 +104,10 @@ public static class SystemEventLogger
         {
             lock (FileLock)
             {
-                Directory.CreateDirectory(LogDir);
-                if (File.Exists(LogFilePath))
-                {
-                    var fileInfo = new FileInfo(LogFilePath);
-                    if (fileInfo.Length > MaxLogSizeBytes)
-                    {
-                        string oldPath = Path.Combine(LogDir, "phonegrade.log.1");
-                        if (File.Exists(oldPath)) File.Delete(oldPath);
-                        File.Move(LogFilePath, oldPath);
-                    }
-                }
-                
                 string formatted = $"[{logEvent.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss.fff}] [{logEvent.Level}] [{logEvent.Source}] {logEvent.Message}";
                 if (logEvent.SessionId != null) formatted += $" (Session: {logEvent.SessionId})";
-                
-                File.AppendAllText(LogFilePath, formatted + Environment.NewLine, Encoding.UTF8);
+
+                RollingLogFile.Append(LogFilePath, formatted + Environment.NewLine, MaxLogSizeBytes);
             }
         }
         catch 

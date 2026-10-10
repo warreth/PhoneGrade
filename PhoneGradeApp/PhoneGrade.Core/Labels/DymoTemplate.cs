@@ -410,38 +410,6 @@ public static class DymoTemplate
         return false;
     }
 
-    /// <summary>
-    /// The runs of upper case letters that sit in a text node rather than in a tag.
-    /// The XML tags are upper case too, and they are not fields.
-    /// </summary>
-    private static IEnumerable<string> Words(string templateText)
-    {
-        int index = 0;
-        while (index < templateText.Length)
-        {
-            if (templateText[index] == '<')
-            {
-                int close = templateText.IndexOf('>', index);
-                if (close < 0) yield break;
-                index = close + 1;
-                continue;
-            }
-
-            int start = index;
-            while (index < templateText.Length && (char.IsUpper(templateText[index]) || char.IsDigit(templateText[index])))
-                index++;
-            if (index > start) yield return templateText[start..index];
-
-            if (index < templateText.Length && templateText[index] != '<') index++;
-        }
-    }
-
-    /// <summary>
-    /// Escapes a value on its own, for a caller that is building label text rather
-    /// than filling a template. Same five characters, same reason.
-    /// </summary>
-    public static string EscapeValue(string value) => Escape(value);
-
     /// <summary>Whether the offset falls between a &lt; and the &gt; that closes it.</summary>
     private static bool IsInsideTag(string text, int offset)
     {

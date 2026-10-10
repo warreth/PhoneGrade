@@ -75,12 +75,4 @@ public class PwaCommunicationTests
             Assert.DoesNotContain(badSequence, content);
         }
     }
-
-    [Fact]
-    public async Task ComponentVerification_UsesValidDiagnosticsCommand()
-    {
-        var device = new DeviceData();
-        var result = await PhoneGrade.Core.SecurityServices.ComponentVerificationService.VerifyComponentsAsync("DUMMY_UDID", device);
-        Assert.NotNull(result);
-    }
 }

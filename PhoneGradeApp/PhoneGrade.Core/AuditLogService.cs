@@ -16,7 +16,7 @@ public static class AuditLogService
         string dir = customDir ?? AuditDir;
         Directory.CreateDirectory(dir);
 
-        string fileName = $"audit_{SanitizeFileName(data.Identifier)}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
+        string fileName = $"audit_{FileNames.Sanitize(data.Identifier, "UNKNOWN")}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
         string path = Path.Combine(dir, fileName);
 
         var auditRecord = new
@@ -64,12 +64,5 @@ public static class AuditLogService
 
         File.WriteAllText(path, json);
         return path;
-    }
-
-    private static string SanitizeFileName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return "UNKNOWN";
-        char[] invalid = Path.GetInvalidFileNameChars();
-        return string.Concat(name.Select(c => invalid.Contains(c) ? '_' : c));
     }
 }

@@ -266,22 +266,10 @@ public static class ToolRunner
         {
             lock (LogLock)
             {
-                Directory.CreateDirectory(LogDir);
-                if (File.Exists(LogFilePath))
-                {
-                    var fileInfo = new FileInfo(LogFilePath);
-                    if (fileInfo.Length > MaxLogSizeBytes)
-                    {
-                        string oldPath = Path.Combine(LogDir, "toolrunner.log.1");
-                        File.Delete(oldPath);
-                        File.Move(LogFilePath, oldPath);
-                    }
-                }
-
                 string entry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Path: {executable} | Args: {arguments} | Exit: {exitCode}"
                              + (string.IsNullOrEmpty(stderr) ? "" : $"{Environment.NewLine}  Stderr: {stderr}")
                              + Environment.NewLine;
-                File.AppendAllText(LogFilePath, entry, Encoding.UTF8);
+                RollingLogFile.Append(LogFilePath, entry, MaxLogSizeBytes);
             }
         }
         catch

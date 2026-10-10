@@ -112,13 +112,6 @@ public sealed class AndroidDeviceReader
         return (stdout, refused);
     });
 
-    /// <summary>Reads a single property. Kept because callers outside the collector want one value.</summary>
-    public async Task<string> GetPropAsync(string propName)
-    {
-        try { return (await _shell($"getprop {propName}")).Trim(); }
-        catch { return ""; }
-    }
-
     /// <summary>The whole property dump as a lookup, for callers that need more than one value.</summary>
     public async Task<Dictionary<string, string>> GetPropsAsync() =>
         ParseGetpropOutput(await SafeAsync("getprop"));

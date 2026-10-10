@@ -24,9 +24,6 @@ public static class ExportService
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "PhoneGrade", "exports");
 
-    /// <summary>Opens a folder in the file manager.</summary>
-    public static PrintService.Attempt OpenExportFolder() => PrintService.OpenFolder(ExportDir);
-
     /// <summary>
     /// Whether a path is a template this app can fill. Used by the settings screen
     /// to reject a file that is not a template before it becomes the one every

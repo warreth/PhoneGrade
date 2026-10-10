@@ -50,21 +50,11 @@ public static class ExportFolders
             ExportFolderScheme.Day => Path.Combine(root, moment.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)),
             ExportFolderScheme.Week => Path.Combine(root, WeekName(moment)),
             ExportFolderScheme.Month => Path.Combine(root, moment.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)),
-            _ => Path.Combine(root, Sanitize(deviceToken)),
+            _ => Path.Combine(root, FileNames.Sanitize(deviceToken, "unknown")),
         };
     }
 
     /// <summary>An ISO week as a folder name, for example 2026-w41.</summary>
     public static string WeekName(DateTime moment) =>
         $"{System.Globalization.ISOWeek.GetYear(moment):0000}-w{System.Globalization.ISOWeek.GetWeekOfYear(moment):00}";
-
-    /// <summary>
-    /// The same characters a file name cannot take are taken out of a folder name.
-    /// </summary>
-    internal static string Sanitize(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return "unknown";
-        char[] forbidden = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
-        return string.Concat(name.Select(character => forbidden.Contains(character) ? '_' : character)).Trim();
-    }
 }

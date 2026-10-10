@@ -190,8 +190,15 @@ public static class Parsers
                     ?? PlistInt(plist, "MaxCapacity")
                     ?? PlistInt(plist, "NominalChargeCapacity");
         if (current is not > 0) return "NOBATT";
-        return $"{Math.Min((double)current / design.Value * 100, 100):F0}";
+        return BatteryHealthPercent(design.Value, current.Value);
     }
+
+    /// <summary>
+    /// Battery health as a percentage: what the battery can still hold against
+    /// what it held when new, capped at 100.
+    /// </summary>
+    public static string BatteryHealthPercent(int designCapacity, int currentCapacity) =>
+        $"{Math.Min((double)currentCapacity / designCapacity * 100, 100):F0}";
 
     /// <summary>
     /// Battery condition percentage for Android from the capacity counters under
@@ -637,8 +644,5 @@ public static class Parsers
     }
 
     private static Regex KeyRegex(string key) => new(Regex.Escape($"<key>{key}</key>"), RegexOptions.IgnoreCase);
-    private static Regex ValueIntRegex() => new(@"<integer>\s*(-?\d+)\s*</integer>", RegexOptions.IgnoreCase);
-    private static Regex ValueStringRegex() => new(@"<string>\s*([^<]*)\s*</string>", RegexOptions.IgnoreCase);
-    private static Regex ValueDataRegex() => new(@"<data>\s*([^<]*)\s*</data>", RegexOptions.IgnoreCase);
     private static Regex LineRegex(string key) => new(Regex.Escape($"{key}:") + @"\s*(.+)", RegexOptions.IgnoreCase);
 }
