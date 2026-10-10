@@ -31,24 +31,8 @@ namespace PhoneGrade.UI.Tests.Web;
 [Collection(LanguageCollection.Name)]
 public sealed class LicenceAgreementTests : IDisposable
 {
-    private readonly string _settingsDir =
-        Path.Combine(Path.GetTempPath(), $"licence-agreement-{Guid.NewGuid():N}");
-    private readonly string? _original = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
     /// <summary>IntroSeen false, so the introduction is up, which is the state being tested.</summary>
-    public LicenceAgreementTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":false}""");
-    }
-
-    public void Dispose()
-    {
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _original);
-        try { Directory.Delete(_settingsDir, recursive: true); }
-        catch { /* a scratch directory that will not go is not a test failure */ }
-    }
+    private readonly global::Tests.SettingsScratch _settings = new("""{"Theme":"Dark","IntroSeen":false}""");
 
     private static MainWindowViewModel Fresh() => new();
 
@@ -378,4 +362,7 @@ public sealed class LicenceAgreementTests : IDisposable
 
         return Path.Combine(root, relative);
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

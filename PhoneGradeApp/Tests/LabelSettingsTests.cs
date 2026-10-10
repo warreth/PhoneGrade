@@ -20,15 +20,10 @@ namespace Tests;
 [Collection(LanguageCollection.Name)]
 public class LabelSettingsTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"label-settings-{Guid.NewGuid():N}");
-    private readonly string? _origSettingsDir = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
+    private readonly SettingsScratch _settings = new("""{"Theme":"Dark","IntroSeen":true,"Language":"en"}""");
 
     public LabelSettingsTests()
     {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"),
-            """{"Theme":"Dark","IntroSeen":true,"Language":"en"}""");
         LocalizationManager.SetLanguage("en");
     }
 
@@ -176,10 +171,6 @@ public class LabelSettingsTests : IDisposable
         Assert.Equal(LabelBarcodeMode.Identifier, vm.LabelBarcodeMode);
     }
 
-    public void Dispose()
-    {
-        if (_origSettingsDir is null) Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origSettingsDir);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

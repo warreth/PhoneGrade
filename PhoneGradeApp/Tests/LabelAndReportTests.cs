@@ -29,15 +29,7 @@ namespace Tests;
 
 public class LabelAndReportTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"label-report-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public LabelAndReportTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":true}""");
-    }
+    private readonly SettingsScratch _settings = new("""{"Theme":"Dark","IntroSeen":true}""");
 
     [AvaloniaFact]
     public void TheReportStopsWhereItsContentDoes_RatherThanCarryingAnEmptyHalf()
@@ -135,15 +127,6 @@ public class LabelAndReportTests : IDisposable
 
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
-
     // ---- helpers ----
 
     private static MainWindow Shown(double width, double height)
@@ -190,4 +173,7 @@ public class LabelAndReportTests : IDisposable
 
         return null;
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

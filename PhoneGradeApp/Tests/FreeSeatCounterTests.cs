@@ -31,23 +31,7 @@ namespace PhoneGrade.UI.Tests.Web;
 [Collection(LanguageCollection.Name)]
 public class FreeSeatCounterTests : IDisposable
 {
-    private readonly string _settingsDir =
-        Path.Combine(Path.GetTempPath(), $"free-seats-{Guid.NewGuid():N}");
-    private readonly string? _original = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public FreeSeatCounterTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":true}""");
-    }
-
-    public void Dispose()
-    {
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _original);
-        try { Directory.Delete(_settingsDir, recursive: true); }
-        catch { /* a scratch directory that will not go is not a test failure */ }
-    }
+    private readonly global::Tests.SettingsScratch _settings = new("""{"Theme":"Dark","IntroSeen":true}""");
 
     [AvaloniaFact]
     public async Task ThePanelSaysHowManySeatsAreFree()
@@ -187,4 +171,7 @@ public class FreeSeatCounterTests : IDisposable
         $"{{\"activated\":true,\"error\":null,\"license_key\":{{\"id\":7,\"status\":\"active\",\"activation_limit\":{limit},\"activation_usage\":{used}}},"
         + "\"instance\":{\"id\":996,\"name\":\"pg-0123456789abcdef0123456789abcdef\",\"created_at\":\"2026-01-02T03:04:05.000000Z\"},"
         + "\"meta\":{\"product_id\":1422604,\"variant_id\":12}}";
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

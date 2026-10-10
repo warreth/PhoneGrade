@@ -28,17 +28,7 @@ namespace Tests;
 
 public class UsbDebuggingGuideTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"usb-guide-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public UsbDebuggingGuideTests()
-    {
-        // The overlay uses DynamicResource colours, so the theme has to be loaded
-        // from a known state rather than left over from whichever test ran before.
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark"}""");
-    }
+    private readonly SettingsScratch _settings = new();
 
     // ---- when it is on screen at all ----
 
@@ -641,15 +631,6 @@ public class UsbDebuggingGuideTests : IDisposable
         return 0.2126 * brush!.Color.R + 0.7152 * brush.Color.G + 0.0722 * brush.Color.B;
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
-
     // ---- helpers ----
 
     /// <summary>The whole overlay, in the order it lays out.</summary>
@@ -737,4 +718,7 @@ public class UsbDebuggingGuideTests : IDisposable
         var lines = Descendants(root).OfType<TextBlock>().Select(t => t.Text ?? "");
         return string.Join("\n", lines);
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

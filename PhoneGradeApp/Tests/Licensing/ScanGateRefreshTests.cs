@@ -20,15 +20,7 @@ namespace Tests;
 /// </summary>
 public class ScanGateRefreshTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"scan-gate-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public ScanGateRefreshTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark"}""");
-    }
+    private readonly SettingsScratch _settings = new();
 
     [AvaloniaFact]
     public async Task PassScanGateAsync_AfterAFreeScan_RaisesTheCountAndStatusText()
@@ -70,13 +62,13 @@ public class ScanGateRefreshTests : IDisposable
 
         // Both storage locations must hold the incremented count right away: a
         // crash before the next ordinary settings save may not lose the scan.
-        string settingsPath = Path.Combine(_settingsDir, "settings.json");
+        string settingsPath = Path.Combine(_settings.Directory, "settings.json");
         string token = System.Text.Json.Nodes.JsonNode
             .Parse(File.ReadAllText(settingsPath))!["TrialToken"]!.GetValue<string>();
         var fromSettings = PhoneGrade.Core.Licensing.TrialStateCipher.TryDecryptState(token);
         Assert.Equal(1, fromSettings!.ScanCount);
 
-        string backupPath = Path.Combine(_settingsDir, "sys_cache.dat");
+        string backupPath = Path.Combine(_settings.Directory, "sys_cache.dat");
         var fromBackup = PhoneGrade.Core.Licensing.TrialStateCipher.TryDecryptState(File.ReadAllText(backupPath));
         Assert.Equal(1, fromBackup!.ScanCount);
     }
@@ -87,7 +79,7 @@ public class ScanGateRefreshTests : IDisposable
         // A user who already spent all ten scans must see the limit immediately.
         var exhausted = PhoneGrade.Core.Licensing.TrialStateCipher.Encrypt(
             new PhoneGrade.Core.Licensing.TrialState { ScanCount = 10 });
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"),
+        File.WriteAllText(Path.Combine(_settings.Directory, "settings.json"),
             $"{{\"Theme\":\"Dark\",\"TrialToken\":\"{exhausted}\"}}");
 
         using var vm = new MainWindowViewModel();
@@ -122,12 +114,6 @@ public class ScanGateRefreshTests : IDisposable
         Assert.Contains("/10", vm.LicensingStatusText);
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

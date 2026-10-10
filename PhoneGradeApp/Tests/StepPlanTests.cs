@@ -27,20 +27,12 @@ namespace Tests;
 
 public class StepPlanTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"step-plan-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
+    private readonly SettingsScratch _settings = new();
 
     private static readonly string[] PlanClasses =
     {
         "stepPlan", "stepPlanTitle", "stepItem", "stepRail", "stepBadge", "stepBody",
     };
-
-    public StepPlanTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark"}""");
-    }
 
     [AvaloniaFact]
     public void BothHowTos_DrawTheirStepsWithTheSameStyles()
@@ -98,15 +90,6 @@ public class StepPlanTests : IDisposable
             AssertRailsRunTheirWholeRow(imei);
         HeadlessRender.Drain();
 
-    }
-
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
     }
 
     // ---- helpers ----
@@ -175,4 +158,7 @@ public class StepPlanTests : IDisposable
             foreach (var grand in Descendants(child)) yield return grand;
         }
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

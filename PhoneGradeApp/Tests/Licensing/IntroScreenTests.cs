@@ -18,15 +18,7 @@ namespace Tests;
 /// </summary>
 public class IntroScreenTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"intro-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public IntroScreenTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        WriteSettings("{}");
-    }
+    private readonly SettingsScratch _settings = new("{}");
 
     [AvaloniaFact]
     public void FreshInstall_ShowsTheIntroductionScreen()
@@ -53,7 +45,7 @@ public class IntroScreenTests : IDisposable
         // The flag has to survive a restart, or every launch would nag again.
         AppSettings reloaded = AppSettings.Load();
         Assert.True(reloaded.IntroSeen);
-        Assert.Contains("\"IntroSeen\": true", File.ReadAllText(Path.Combine(_settingsDir, "settings.json")));
+        Assert.Contains("\"IntroSeen\": true", File.ReadAllText(Path.Combine(_settings.Directory, "settings.json")));
     }
 
     [AvaloniaFact]
@@ -242,18 +234,8 @@ public class IntroScreenTests : IDisposable
     }
 
     private void WriteSettings(string json) =>
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), json);
+        File.WriteAllText(Path.Combine(_settings.Directory, "settings.json"), json);
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        try
-        {
-            if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-        }
-        catch { /* temp cleanup never fails a test */ }
-    }
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

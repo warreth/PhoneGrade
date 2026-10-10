@@ -19,8 +19,10 @@ namespace Tests;
 /// the numbers around it must not move, and the phone itself has no say in it.
 /// The payload is the shape <c>buildSuiteResult()</c> in app.js builds.
 /// </summary>
-public class DismissedTestReportTests
+public class DismissedTestReportTests : IDisposable
 {
+    private readonly SettingsScratch _settings = new(null);
+
     private const string SuitePayload = """
         {
           "type": "suite_complete",
@@ -43,24 +45,6 @@ public class DismissedTestReportTests
         }
         """;
 
-    private sealed class Scope : IDisposable
-    {
-        private readonly string _dir = Path.Combine(Path.GetTempPath(), $"dismissed-{Guid.NewGuid():N}");
-        private readonly string? _before = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-        public Scope()
-        {
-            Directory.CreateDirectory(_dir);
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _dir);
-        }
-
-        public void Dispose()
-        {
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _before);
-            try { Directory.Delete(_dir, recursive: true); } catch (IOException) { }
-        }
-    }
-
     /// <summary>The server reads it exactly this way: case-insensitive, because
     /// the phone writes camelCase and the model is PascalCase.</summary>
     private static InteractiveTestSuiteResult ReadSuite(string json)
@@ -82,7 +66,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void DismissingOneOfTwoFailuresLeavesTheOtherOnTheReport()
     {
-        using var _ = new Scope();
         using var vm = Loaded();
 
         Assert.Equal(2, vm.FailedInteractiveTests.Count);
@@ -100,7 +83,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void TheReportSaysHowMuchItIsHidingInsteadOfQuietlyDroppingRows()
     {
-        using var _ = new Scope();
         using var vm = Loaded();
 
         vm.DismissInteractiveTestCommand.Execute(vm.FailedInteractiveTests[0]).Subscribe();
@@ -117,7 +99,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void TheGreenLineIsWithdrawnOnceEveryFailureHasBeenDismissed()
     {
-        using var _ = new Scope();
         using var vm = Loaded();
         Assert.False(vm.NoInteractiveTestProblems);
 
@@ -134,7 +115,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void TheSummaryKeepsReportingWhatWasMeasured()
     {
-        using var _ = new Scope();
         using var vm = Loaded();
         string before = vm.InteractiveTestSummary;
 
@@ -147,7 +127,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void RestoringPutsTheRowBackOnTheReport()
     {
-        using var _ = new Scope();
         using var vm = Loaded();
         var row = vm.FailedInteractiveTests[0];
 
@@ -168,7 +147,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void ADismissedRowStaysGoneWhenTheSameResultsArriveAgain()
     {
-        using var _ = new Scope();
         using var vm = Loaded();
         var row = vm.FailedInteractiveTests[0];
 
@@ -183,7 +161,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void ANewRunShowsTheRowAgain()
     {
-        using var _ = new Scope();
         using var vm = Loaded();
 
         vm.DismissInteractiveTestCommand.Execute(vm.FailedInteractiveTests[0]).Subscribe();
@@ -202,7 +179,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void ThePhoneCannotHideItsOwnFailure()
     {
-        using var _ = new Scope();
         using var vm = new MainWindowViewModel();
         vm.ApplyInteractiveResults(ReadSuite(SuitePayload.Replace(
             """{ "id": "camera", "name": "Camera", "status": "failed",""",
@@ -221,7 +197,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void TheCrossOnTheRowIsWiredUpAndTakesThatRowOut()
     {
-        using var _ = new Scope();
         using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
 
@@ -256,7 +231,6 @@ public class DismissedTestReportTests
     [AvaloniaFact]
     public void TheReportMentionsHidingRowsOnlyWhileItIsHidingThem()
     {
-        using var _ = new Scope();
         using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
 
@@ -280,4 +254,7 @@ public class DismissedTestReportTests
         HeadlessRender.Drain();
 
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

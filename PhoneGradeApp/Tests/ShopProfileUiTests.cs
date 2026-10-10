@@ -30,20 +30,14 @@ namespace Tests;
 [Collection(LanguageCollection.Name)]
 public class ShopProfileUiTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"shop-profile-ui-{Guid.NewGuid():N}");
+    // Machine-local values that an import must leave alone, plus defaults for
+    // everything the profile does carry.
+    private readonly SettingsScratch _settings = new("""{"Theme":"Dark","Language":"nl","IntroSeen":true,"TrialToken":"seeded-token","LastSeenVersion":"0.0.1","IsDebugMode":true,"TemplatePath":"/tmp/machine-template.dymo"}""");
     private readonly string _profileDir = Path.Combine(Path.GetTempPath(), $"shop-profile-files-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
 
     public ShopProfileUiTests()
     {
-        Directory.CreateDirectory(_settingsDir);
         Directory.CreateDirectory(_profileDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-
-        // Machine-local values that an import must leave alone, plus defaults for
-        // everything the profile does carry.
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"),
-            """{"Theme":"Dark","Language":"nl","IntroSeen":true,"TrialToken":"seeded-token","LastSeenVersion":"0.0.1","IsDebugMode":true,"TemplatePath":"/tmp/machine-template.dymo"}""");
 
         // Status lines are asserted in English so the wording comes from the
         // dictionary rather than from whichever language ran last.
@@ -333,14 +327,9 @@ public class ShopProfileUiTests : IDisposable
 
     public void Dispose()
     {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-
+        _settings.Dispose();
         LocalizationManager.SetLanguage("nl");
 
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
         if (Directory.Exists(_profileDir)) Directory.Delete(_profileDir, true);
     }
 

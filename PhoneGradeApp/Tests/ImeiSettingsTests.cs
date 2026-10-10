@@ -29,15 +29,7 @@ namespace Tests;
 
 public class ImeiSettingsTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"imei-settings-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public ImeiSettingsTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":true}""");
-    }
+    private readonly SettingsScratch _settings = new("""{"Theme":"Dark","IntroSeen":true}""");
 
     [AvaloniaFact]
     public void TheSection_ExplainsTheKeyBeforeItAsksForOne()
@@ -90,15 +82,6 @@ public class ImeiSettingsTests : IDisposable
 
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
-
     // ---- helpers ----
 
     /// <summary>The window with the IMEI API topic open and laid out.</summary>
@@ -147,4 +130,7 @@ public class ImeiSettingsTests : IDisposable
             foreach (var grand in Descendants(child)) yield return grand;
         }
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

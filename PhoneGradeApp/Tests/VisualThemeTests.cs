@@ -15,16 +15,7 @@ namespace Tests;
 
 public class VisualThemeTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"visual-settings-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public VisualThemeTests()
-    {
-        // Isolate settings so a previous test's Theme=Light can't leak in.
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark"}""");
-    }
+    private readonly SettingsScratch _settings = new();
 
     [AvaloniaFact]
     public void DarkTheme_RendersDarkBackground()
@@ -62,15 +53,6 @@ public class VisualThemeTests : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
-
     private static double RenderAverageLuminance(Window window)
     {
         window.Show();
@@ -89,4 +71,7 @@ public class VisualThemeTests : IDisposable
         frame.Save(ms);
         return PngLuminance.Average(ms.ToArray());
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

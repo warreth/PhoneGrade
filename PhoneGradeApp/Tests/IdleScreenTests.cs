@@ -28,15 +28,7 @@ namespace Tests;
 
 public class IdleScreenTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"idle-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public IdleScreenTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark"}""");
-    }
+    private readonly SettingsScratch _settings = new();
 
     [AvaloniaFact]
     public void TheIdleScreen_HasExactlyOneWayToScan()
@@ -89,15 +81,6 @@ public class IdleScreenTests : IDisposable
 
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
-
     // ---- helpers ----
 
     private static MainWindow ShowIdle()
@@ -124,4 +107,7 @@ public class IdleScreenTests : IDisposable
 
     private static IEnumerable<Control> Descendants(Control root) =>
         root.GetVisualDescendants().OfType<Control>();
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

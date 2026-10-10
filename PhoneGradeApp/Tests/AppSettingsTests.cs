@@ -8,10 +8,7 @@ namespace Tests;
 
 public class AppSettingsTests : IDisposable
 {
-    private readonly string _dir = Path.Combine(Path.GetTempPath(), $"settings-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public AppSettingsTests() => Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _dir);
+    private readonly SettingsScratch _settings = new(null);
 
     [Fact]
     public void SaveLoad_RoundTrips()
@@ -71,13 +68,13 @@ public class AppSettingsTests : IDisposable
         // still loads, because silently changing what a shop exports over an app
         // update is worse than any wording.
         new AppSettings { ExportFormats = [ExportFormat.DymoLabel, ExportFormat.ReportPdf] }.Save();
-        string text = File.ReadAllText(Path.Combine(_dir, "settings.json"));
+        string text = File.ReadAllText(Path.Combine(_settings.Directory, "settings.json"));
 
         Assert.Contains("DymoLabel", text, StringComparison.Ordinal);
         Assert.Contains("ReportPdf", text, StringComparison.Ordinal);
 
-        Directory.CreateDirectory(_dir);
-        File.WriteAllText(Path.Combine(_dir, "settings.json"),
+        Directory.CreateDirectory(_settings.Directory);
+        File.WriteAllText(Path.Combine(_settings.Directory, "settings.json"),
             """{"ExportFormats":["ReportPdf","Json"]}""");
         Assert.Equal(
             new[] { ExportFormat.ReportPdf, ExportFormat.Json },
@@ -87,8 +84,8 @@ public class AppSettingsTests : IDisposable
     [Fact]
     public void Load_CorruptFile_FallsBackToDefaults()
     {
-        Directory.CreateDirectory(_dir);
-        File.WriteAllText(Path.Combine(_dir, "settings.json"), "{ this is not json ]");
+        Directory.CreateDirectory(_settings.Directory);
+        File.WriteAllText(Path.Combine(_settings.Directory, "settings.json"), "{ this is not json ]");
         Assert.Equal("Dark", AppSettings.Load().Theme);
     }
 
@@ -116,15 +113,9 @@ public class AppSettingsTests : IDisposable
     public void Save_WritableDir_CreatesFile()
     {
         new AppSettings().Save();
-        Assert.True(File.Exists(Path.Combine(_dir, "settings.json")));
+        Assert.True(File.Exists(Path.Combine(_settings.Directory, "settings.json")));
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
-    }
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

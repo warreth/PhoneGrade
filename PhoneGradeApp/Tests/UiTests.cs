@@ -20,17 +20,7 @@ namespace Tests;
 
 public class UiTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"ui-settings-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public UiTests()
-    {
-        // Isolate from the real user settings file so tests are order-independent.
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"),
-            """{"Theme":"Dark"}""");
-    }
+    private readonly SettingsScratch _settings = new();
 
     [AvaloniaFact]
     public void MainWindow_Constructs_WithNativeChrome()
@@ -351,14 +341,8 @@ public class UiTests : IDisposable
         HeadlessRender.Drain();
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }
 
 public static class TestAppBuilder

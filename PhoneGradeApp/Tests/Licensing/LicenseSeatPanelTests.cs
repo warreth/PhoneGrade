@@ -22,15 +22,7 @@ namespace Tests;
 /// </summary>
 public class LicenseSeatPanelTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"seats-{Guid.NewGuid():N}");
-    private readonly string? _originalSettingsDir = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public LicenseSeatPanelTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark"}""");
-    }
+    private readonly SettingsScratch _settings = new();
 
     // ---- what the panel says -----------------------------------------------------
 
@@ -242,9 +234,6 @@ public class LicenseSeatPanelTests : IDisposable
         return vm;
     }
 
-    public void Dispose()
-    {
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _originalSettingsDir);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

@@ -202,24 +202,13 @@ public class BetaChannelTests
     [Fact]
     public void TheChoiceIsRemembered()
     {
-        string dir = Path.Combine(Path.GetTempPath(), $"beta-channel-{Guid.NewGuid():N}");
-        string? original = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-        try
-        {
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", dir);
+        using var settings = new global::Tests.SettingsScratch(null);
 
-            new AppSettings { IncludePrereleases = true }.Save();
-            Assert.True(AppSettings.Load().IncludePrereleases);
+        new AppSettings { IncludePrereleases = true }.Save();
+        Assert.True(AppSettings.Load().IncludePrereleases);
 
-            new AppSettings { IncludePrereleases = false }.Save();
-            Assert.False(AppSettings.Load().IncludePrereleases);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", original);
-            try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
-            catch { /* a scratch directory that will not go is not a test failure */ }
-        }
+        new AppSettings { IncludePrereleases = false }.Save();
+        Assert.False(AppSettings.Load().IncludePrereleases);
     }
 
     /// <summary>

@@ -24,16 +24,8 @@ namespace Tests;
 
 public class UiThreadTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"ui-thread-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
+    private readonly SettingsScratch _settings = new("""{"Theme":"Dark","IntroSeen":true}""");
     private readonly Func<Task<ScanAuthorization>>? _origGate = DeviceService.ScanGate;
-
-    public UiThreadTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":true}""");
-    }
 
     [AvaloniaFact]
     public async Task TheScanGate_BringsItsUiWorkBackToTheUiThread()
@@ -124,13 +116,6 @@ public class UiThreadTests : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

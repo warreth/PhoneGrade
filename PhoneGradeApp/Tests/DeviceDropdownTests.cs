@@ -25,16 +25,7 @@ namespace Tests;
 // message out. Both the cause and the symptom are covered that way.
 public class DeviceDropdownTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"dropdown-settings-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public DeviceDropdownTests()
-    {
-        // Isolate settings so another test's Theme or defaults can't leak in.
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark"}""");
-    }
+    private readonly SettingsScratch _settings = new();
 
     [AvaloniaFact]
     public void RebuildingTheDeviceList_LeavesNoErrorOnTheDropdown()
@@ -129,15 +120,6 @@ public class DeviceDropdownTests : IDisposable
 
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
-
     private static ComboBox DeviceDropdown(Visual root, MainWindowViewModel vm) =>
         root.GetVisualDescendants().OfType<ComboBox>()
             .First(control => ReferenceEquals(control.ItemsSource, vm.Devices));
@@ -171,4 +153,7 @@ public class DeviceDropdownTests : IDisposable
         return (AvaloniaProperty?)field.GetValue(null)
             ?? throw new InvalidOperationException("DataValidationErrors.HasErrorsProperty was never set.");
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }

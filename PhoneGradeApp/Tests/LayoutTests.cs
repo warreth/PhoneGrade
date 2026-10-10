@@ -19,15 +19,7 @@ namespace Tests;
 
 public class LayoutTests : IDisposable
 {
-    private readonly string _settingsDir = Path.Combine(Path.GetTempPath(), $"layout-settings-{Guid.NewGuid():N}");
-    private readonly string? _origOverride = Environment.GetEnvironmentVariable("AUTODYMO_SETTINGS_DIR");
-
-    public LayoutTests()
-    {
-        Directory.CreateDirectory(_settingsDir);
-        Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _settingsDir);
-        File.WriteAllText(Path.Combine(_settingsDir, "settings.json"), """{"Theme":"Dark","IntroSeen":true}""");
-    }
+    private readonly SettingsScratch _settings = new("""{"Theme":"Dark","IntroSeen":true}""");
 
     [AvaloniaFact]
     public void TopBarFitsTheSmallestWindow()
@@ -213,15 +205,6 @@ public class LayoutTests : IDisposable
         HeadlessRender.Drain();
     }
 
-    public void Dispose()
-    {
-        if (_origOverride is null)
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", null);
-        else
-            Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", _origOverride);
-        if (Directory.Exists(_settingsDir)) Directory.Delete(_settingsDir, true);
-    }
-
     /// <summary>Opens the window at the size the title bar clamps it to.</summary>
     private static MainWindow ShowAtMinimumSize()
     {
@@ -233,4 +216,7 @@ public class LayoutTests : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         return window;
     }
+
+    /// <summary>Restores the settings variable and deletes the scratch folder.</summary>
+    public void Dispose() => _settings.Dispose();
 }
