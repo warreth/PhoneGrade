@@ -163,6 +163,10 @@ class ScreenshotRunner
                 if (section is "" or "lic") CaptureLicensingStates(outDir);
                 if (section is "" or "flow") CaptureWorkflowStates(outDir);
                 if (section is "" or "settings") CaptureSettingsSections(outDir);
+                // The label edge cases, drawn by the panel's own preview control. Its
+                // own section rather than part of the main run: it is a matrix, not a
+                // screen an operator meets.
+                if (section is "labels") CaptureLabelMatrix(outDir);
 
                 Console.WriteLine("done");
                 if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -288,6 +292,196 @@ class ScreenshotRunner
         // The grade block on the narrow roll, where the block and the words have to
         // share what little width there is.
         Shot("label-gradeblock-narrow.png", "30336", LabelVariant.GradeBlock);
+    }
+
+    // ============ The label matrix ============
+    //
+    // Every edge case the exporter can meet, drawn by the same control the panel
+    // and the settings screen use. The names match the engine renders and the label
+    // PDFs of the same cases one for one, so a label that draws differently in the
+    // three renderers sits side by side instead of being a matter of trust.
+
+    sealed record LabelCase(
+        string Name,
+        Func<DeviceData> Build,
+        LabelBarcodeMode Mode = LabelBarcodeMode.Identifier,
+        LabelCodeSymbology Symbology = LabelCodeSymbology.Code39,
+        int CyclesMinimum = 0,
+        string? Stock = null,
+        LabelContent? Content = null);
+
+    static void CaptureLabelMatrix(string outDir)
+    {
+        foreach (LabelCase test in LabelCases())
+        {
+            foreach (LabelVariant variant in new[] { LabelVariant.Clean, LabelVariant.Structured, LabelVariant.GradeBlock })
+            {
+                LabelFields fields = LabelFields.From(test.Build(), content: test.Content);
+                var layout = new LabelLayout(LabelStock.FromPartNumber(test.Stock));
+                LabelPlate plate = LabelPlate.Build(
+                    fields, layout, test.Mode, test.Symbology, variant, test.CyclesMinimum);
+
+                string stem = $"preview-{test.Name}-{variant.ToString().ToLowerInvariant()}.png";
+
+                // Life size as the control measures it: 120 dots per inch, which is
+                // the size the panel draws the sheet at, never larger. A preview
+                // bigger than this one would be a picture of a label that does not
+                // exist, and the matrix is about comparing the real thing.
+                double width = Math.Round(layout.PaperWidthMm * 120.0 / 25.4);
+                double height = Math.Round(layout.PaperHeightMm * 120.0 / 25.4);
+                var view = new LabelView { Plate = plate, Layout = layout, Width = width, Height = height };
+
+                // A few dots of room on every side, in the paper's own colour, so the
+                // label is never the thing a window edge cuts.
+                Capture(new Window { Content = view, Background = Avalonia.Media.Brushes.White },
+                    Path.Combine(outDir, stem), width + 8, height + 8);
+                Console.WriteLine($"{stem,-46} view {view.Bounds.Width:F0}x{view.Bounds.Height:F0} top {plate.TopOffsetMm:F2}mm body {plate.BodyPoint:F1}pt");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The cases, in the same names as the engine and PDF renders. All of them are
+    /// printable: a phone whose label is refused by the panel is the panel's test,
+    /// not this one.
+    /// </summary>
+    static IReadOnlyList<LabelCase> LabelCases() =>
+    [
+        new("standard", FaultyPhone),
+        new("clean", CleanPhone),
+        new("frp-only", () => Locked(CleanPhone(), frp: true)),
+        new("act-only", () => Locked(CleanPhone(), act: true)),
+        new("all-locks", () =>
+        {
+            var phone = Locked(CleanPhone(), frp: true, act: true);
+            phone.CarrierLockAndroid = new PhoneGrade.Core.Android.FrpLockService.CarrierLockStatus
+            {
+                IsCarrierLocked = true,
+                CarrierName = "Vodafone",
+            };
+            phone.Blacklist = new PhoneGrade.Core.SecurityServices.BlacklistCheckService.BlacklistStatus
+            {
+                IsBlacklisted = true,
+            };
+            return phone;
+        }),
+        new("bare-minimum", () => new DeviceData
+        {
+            Identifier = "356938035643809",
+            Model = "iPhone 13",
+            Color = "Blue",
+            Quality = "B",
+        }),
+        new("long-model", () =>
+        {
+            var phone = CleanPhone();
+            phone.Model = "Samsung Galaxy S24 Ultra Enterprise Edition";
+            phone.Storage = "1TB";
+            phone.Color = "Titanium Gray";
+            phone.BatteryHealth = "89";
+            phone.BatteryCycleCount = 42;
+            phone.Quality = "A";
+            return phone;
+        }),
+        new("xml-special", () =>
+        {
+            var phone = CleanPhone();
+            phone.Model = "iPhone 15 & 16 Pro";
+            phone.PayMethod = "Contant <cash>";
+            return phone;
+        }),
+        new("many-faults", () =>
+        {
+            var phone = FaultyPhone();
+            phone.ComponentChecks =
+            [
+                new PhoneGrade.Core.ComponentStatus { Name = T("Batterij", "Battery"), SerialRead = "L9", SerialOriginal = "K1", Status = PhoneGrade.Core.ComponentStatusType.Mismatch },
+                new PhoneGrade.Core.ComponentStatus { Name = T("Scherm", "Screen"), SerialRead = "S2", SerialOriginal = "S1", Status = PhoneGrade.Core.ComponentStatusType.Mismatch },
+                new PhoneGrade.Core.ComponentStatus { Name = T("Camera", "Camera"), SerialRead = "C2", SerialOriginal = "C1", Status = PhoneGrade.Core.ComponentStatusType.Untrusted },
+            ];
+            phone.InteractiveTests = FailedTests(
+                ("CAMERA", "Camera"), ("TOUCH", "Touchscreen"), ("SCREEN", "Display"), ("AUDIO", "Speaker"));
+            return phone;
+        }),
+        new("serial-alnum", () =>
+        {
+            var phone = CleanPhone();
+            phone.Identifier = "R58M71ABCDX";
+            phone.Model = "Samsung Galaxy A54 5G";
+            return phone;
+        }),
+        new("serial-special", () =>
+        {
+            var phone = CleanPhone();
+            phone.Identifier = "SM-A536B/DS*7";
+            return phone;
+        }),
+        new("serial-17", () =>
+        {
+            var phone = CleanPhone();
+            phone.Identifier = "35693803564380912";
+            return phone;
+        }),
+        new("no-barcode", FaultyPhone, Mode: LabelBarcodeMode.None),
+        new("split", FaultyPhone, Mode: LabelBarcodeMode.Split),
+        new("small-stock", FaultyPhone, Stock: "30336"),
+        new("shipping-stock", FaultyPhone, Stock: "30256"),
+        new("cycles-floor-hidden", FaultyPhone, CyclesMinimum: 700),
+        new("battery-100", () =>
+        {
+            var phone = CleanPhone();
+            phone.BatteryHealth = "100";
+            phone.BatteryCycleCount = 3;
+            return phone;
+        }),
+        new("content-minimal", FaultyPhone, Content: new LabelContent(false, false, false)),
+        new("grade-a", () => { var phone = CleanPhone(); phone.Quality = "A"; return phone; }),
+        new("long-colour", () => { var phone = CleanPhone(); phone.Color = "Titanium Black"; return phone; }),
+        // The phone on the desk: a real Pixel 8 Pro, read over adb on 2026-10-10.
+        // Real values rather than plausible ones, because a serial with letters in
+        // it and a battery at 92 percent are this device's numbers.
+        new("pixel-8-pro", () => new DeviceData
+        {
+            Identifier = "38091FDJG00EMF",
+            Model = "Pixel 8 Pro",
+            Color = "Obsidian",
+            Storage = "128GB",
+            Memory = "12GB",
+            BatteryHealth = "92",
+            BatteryCycleCount = 537,
+            Quality = "B",
+            PayMethod = "BTW",
+            FactoryResetProtection = PhoneGrade.Core.Android.FrpLockService.FrpLockStatus.Unlocked,
+            ActivationLock = PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Unlocked,
+        }),
+    ];
+
+    static DeviceData CleanPhone()
+    {
+        var phone = FaultyPhone();
+        phone.FactoryResetProtection = PhoneGrade.Core.Android.FrpLockService.FrpLockStatus.Unlocked;
+        phone.ActivationLock = PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Unlocked;
+        phone.ComponentChecks = [];
+        phone.InteractiveTests = null;
+        return phone;
+    }
+
+    static DeviceData Locked(DeviceData phone, bool frp = false, bool act = false)
+    {
+        if (frp) phone.FactoryResetProtection = PhoneGrade.Core.Android.FrpLockService.FrpLockStatus.Locked;
+        if (act) phone.ActivationLock = PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Locked;
+        return phone;
+    }
+
+    static InteractiveTestSuiteResult FailedTests(params (string Code, string Name)[] tests)
+    {
+        var suite = new InteractiveTestSuiteResult { SessionId = "matrix" };
+        foreach ((string code, string name) in tests)
+            suite.Tests.Add(new InteractiveTestResult
+            {
+                Id = name, Name = name, Status = TestStatus.Failed, LabelCode = code,
+            });
+        return suite;
     }
 
     // A phone with something wrong on it, which is the case the label's second and
