@@ -39,7 +39,7 @@ public sealed class AdbRequiredEventArgs : EventArgs
 ///
 /// The gate is the whole point of the class. An iPad on the same cable reports
 /// an Apple vendor ID and an Apple description, gets no brand out of
-/// <see cref="AndroidBrandDetector"/>, and never reaches adb at all - so
+/// <see cref="UsbVendors"/>, and never reaches adb at all - so
 /// <see cref="AdbRequired"/> cannot fire for it, whatever adb happens to say.
 /// </summary>
 public sealed class AdbDeviceDirector : IDisposable
@@ -146,7 +146,7 @@ public sealed class AdbDeviceDirector : IDisposable
         {
             foreach (UsbDeviceInfo device in _connectedDevices())
             {
-                string manufacturer = AndroidBrandDetector.Detect(device);
+                string manufacturer = UsbVendors.BrandFor(device);
                 if (manufacturer.Length == 0) continue;
 
                 return (manufacturer, ReadModelWhenPublished(device));
@@ -242,7 +242,7 @@ public sealed class AdbDeviceDirector : IDisposable
 
         // The brand is the gate: an Apple device, or one nothing recognises,
         // stops here and never reaches adb or the guide.
-        string manufacturer = AndroidBrandDetector.Detect(deviceInfo);
+        string manufacturer = UsbVendors.BrandFor(deviceInfo);
         if (manufacturer.Length == 0) return;
 
         // Avoid duplicate processing for the same device instance

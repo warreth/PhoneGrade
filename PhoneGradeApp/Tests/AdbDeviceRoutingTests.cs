@@ -14,7 +14,7 @@ namespace PhoneGrade.Tests;
 // on the list" and "Apple is forbidden" behave the same until the day a device
 // shows up whose description mentions both.
 
-public class AndroidBrandDetectorTests
+public class UsbVendorKnowledgeTests
 {
     [Fact]
     public void TheVendorId_WinsOverTheDescription()
@@ -24,7 +24,7 @@ public class AndroidBrandDetectorTests
         // the wrong half of the record.
         var device = new UsbDeviceInfo(0x04E8, 0x6860, @"USB\VID_04E8&PID_6860", "SAMSUNG Mobile USB Serial Port");
 
-        Assert.Equal("Samsung", AndroidBrandDetector.Detect(device));
+        Assert.Equal("Samsung", UsbVendors.BrandFor(device));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class AndroidBrandDetectorTests
         // brand is written out.
         var device = new UsbDeviceInfo(0x1234, 0x5678, @"USB\VID_1234&PID_5678", "HONOR 600 Lite (LNA-NX1)");
 
-        Assert.Equal("Honor", AndroidBrandDetector.Detect(device));
+        Assert.Equal("Honor", UsbVendors.BrandFor(device));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class AndroidBrandDetectorTests
         // without needing to know which of the three it is.
         var ipad = new UsbDeviceInfo(0x05AC, 0x12A8, @"USB\VID_05AC&PID_12A8", "Apple iPad");
 
-        Assert.Equal("", AndroidBrandDetector.Detect(ipad));
+        Assert.Equal("", UsbVendors.BrandFor(ipad));
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class AndroidBrandDetectorTests
         // phone, which is exactly the mix-up the deny list exists to prevent.
         var suspicious = new UsbDeviceInfo(0x05AC, 0x8600, @"USB\VID_05AC&PID_8600", "SAMSUNG Mobile USB Serial Port");
 
-        Assert.Equal("", AndroidBrandDetector.Detect(suspicious));
+        Assert.Equal("", UsbVendors.BrandFor(suspicious));
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class AndroidBrandDetectorTests
     {
         var ipad = new UsbDeviceInfo(0x1234, 0x5678, @"USB\VID_1234&PID_5678", "iPad13,18");
 
-        Assert.Equal("", AndroidBrandDetector.Detect(ipad));
+        Assert.Equal("", UsbVendors.BrandFor(ipad));
     }
 
     [Fact]
@@ -73,9 +73,9 @@ public class AndroidBrandDetectorTests
     {
         // "iPad" beside a word from the brand table is the precise collision
         // this guard exists for: substring matching would call it a phone.
-        Assert.Equal("", AndroidBrandDetector.FromDescription("samsung ipad adapter"));
-        Assert.Equal("", AndroidBrandDetector.FromDescription("Apple iPhone"));
-        Assert.Equal("", AndroidBrandDetector.FromDescription("iPod"));
+        Assert.Equal("", UsbVendors.BrandFromDescription("samsung ipad adapter"));
+        Assert.Equal("", UsbVendors.BrandFromDescription("Apple iPhone"));
+        Assert.Equal("", UsbVendors.BrandFromDescription("iPod"));
     }
 
     [Fact]
@@ -85,11 +85,11 @@ public class AndroidBrandDetectorTests
         // nobody has catalogued must not be handed to a guide about phones.
         var keyboard = new UsbDeviceInfo(0x046D, 0xC31C, @"USB\VID_046D&PID_C31C", "Logitech USB Keyboard");
 
-        Assert.Equal("", AndroidBrandDetector.Detect(keyboard));
-        Assert.Equal("", AndroidBrandDetector.Detect(new UsbDeviceInfo(0x1234, 0x5678, "x", "")));
-        Assert.Equal("", AndroidBrandDetector.FromDescription(""));
-        Assert.Equal("", AndroidBrandDetector.FromDescription(null));
-        Assert.Equal("", AndroidBrandDetector.FromDescription("   "));
+        Assert.Equal("", UsbVendors.BrandFor(keyboard));
+        Assert.Equal("", UsbVendors.BrandFor(new UsbDeviceInfo(0x1234, 0x5678, "x", "")));
+        Assert.Equal("", UsbVendors.BrandFromDescription(""));
+        Assert.Equal("", UsbVendors.BrandFromDescription(null));
+        Assert.Equal("", UsbVendors.BrandFromDescription("   "));
     }
 
     [Fact]
@@ -98,10 +98,10 @@ public class AndroidBrandDetectorTests
         // Honor split from Huawei and took a vendor ID of its own. Without it
         // the vendor ID lookup returns nothing and the overlay falls back to
         // generic steps for a phone that has its own menus.
-        Assert.Equal("Honor", AndroidBrandDetector.Detect(new UsbDeviceInfo(0x339B, 0x0001, "x", "")));
-        Assert.Equal("ZTE", AndroidBrandDetector.Detect(new UsbDeviceInfo(0x19D2, 0x0001, "x", "")));
-        Assert.Equal("Meizu", AndroidBrandDetector.Detect(new UsbDeviceInfo(0x2A45, 0x0001, "x", "")));
-        Assert.Equal("Hisense", AndroidBrandDetector.Detect(new UsbDeviceInfo(0x109B, 0x0001, "x", "")));
+        Assert.Equal("Honor", UsbVendors.BrandFor(new UsbDeviceInfo(0x339B, 0x0001, "x", "")));
+        Assert.Equal("ZTE", UsbVendors.BrandFor(new UsbDeviceInfo(0x19D2, 0x0001, "x", "")));
+        Assert.Equal("Meizu", UsbVendors.BrandFor(new UsbDeviceInfo(0x2A45, 0x0001, "x", "")));
+        Assert.Equal("Hisense", UsbVendors.BrandFor(new UsbDeviceInfo(0x109B, 0x0001, "x", "")));
     }
 
     [Fact]
@@ -109,14 +109,61 @@ public class AndroidBrandDetectorTests
     {
         // A vendor in both would be a rule that reads one way in the source and
         // another at runtime, because the deny list is consulted first.
-        foreach (ushort vendorId in VendorIdDictionary.NonAndroidVendors)
+        foreach (ushort vendorId in UsbVendors.NonAndroidVendors)
         {
-            Assert.False(VendorIdDictionary.IsAndroidVendor(vendorId),
+            Assert.False(UsbVendors.IsAndroidVendor(vendorId),
                 $"0x{vendorId:X4} is listed as both an Android vendor and not one");
         }
 
-        Assert.True(VendorIdDictionary.IsKnownNonAndroidVendor(0x05AC));
-        Assert.False(VendorIdDictionary.IsKnownNonAndroidVendor(0x04E8));
+        Assert.True(UsbVendors.IsKnownNonAndroidVendor(0x05AC));
+        Assert.False(UsbVendors.IsKnownNonAndroidVendor(0x04E8));
+    }
+
+    /// <summary>The manufacturer the app would name for one vendor ID.</summary>
+    private static string Manufacturer(ushort vendorId) =>
+        UsbVendors.BrandFor(new UsbDeviceInfo(vendorId, 0x0001, "x"));
+
+    [Fact]
+    public void TheIdsTheTwoOldTablesDisagreedOnAreOneAnswer()
+    {
+        // OPPO, Vivo, Sony and Qualcomm were known to one table and not the
+        // other: the how-to read the cable as a phone while the diagnostics
+        // called it a stranger. Both spellings of the OPPO and Vivo IDs have to
+        // land on the same maker now.
+        Assert.Equal("Oppo", Manufacturer(0x22D9));
+        Assert.Equal("Oppo", Manufacturer(0x2E3C));
+        Assert.Equal("Vivo", Manufacturer(0x29A9));
+        Assert.Equal("Vivo", Manufacturer(0x2856));
+        Assert.Equal("Sony", Manufacturer(0x0FCE));
+        Assert.True(UsbVendors.IsAndroidVendor(0x05C6), "Qualcomm carries phones in EDL mode");
+    }
+
+    [Fact]
+    public void EverySpokenWordResolvesToTheBrandOfItsRow()
+    {
+        // The words and the ID rows are one table now. A word that resolved to
+        // a different brand than its own row carries would put a phone found by
+        // description on another maker's guide.
+        foreach (UsbVendors.Vendor vendor in UsbVendors.Known)
+        {
+            foreach (string word in vendor.SpokenWords)
+            {
+                Assert.Equal(vendor.Manufacturer,
+                    UsbVendors.BrandFromDescription($"USB {word} device"));
+            }
+        }
+    }
+
+    [Fact]
+    public void TheBrandsWithTheirOwnStepsHaveARow()
+    {
+        // The how-to keys its brand-specific steps on these exact strings; a
+        // rename here without one there moves that brand to the generic steps
+        // without anything failing.
+        foreach (string brand in new[] { "Samsung", "Xiaomi", "Google", "Motorola", "Sony", "Huawei", "OnePlus" })
+        {
+            Assert.Contains(UsbVendors.Known, vendor => vendor.Manufacturer == brand);
+        }
     }
 }
 

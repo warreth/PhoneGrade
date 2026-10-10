@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using PhoneGrade.Core.Usb;
 
 namespace PhoneGrade.Core;
 
@@ -429,13 +431,19 @@ public static class TroubleshootService
                             string pid = File.Exists(idProductFile) ? (await File.ReadAllTextAsync(idProductFile)).Trim() : "unknown";
                             string prod = File.Exists(productFile) ? (await File.ReadAllTextAsync(productFile)).Trim() : "";
 
-                            if (vid == "05ac") // Apple Inc.
+                            // The vendor table decides, so a phone the how-to has
+                            // learned to recognise is not a stranger here. The
+                            // two used to keep their own lists.
+                            if (ushort.TryParse(vid, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ushort vendorId))
                             {
-                                report.RawUsbDevices.Add($"Apple Device (VID: 05ac, PID: {pid}) - {prod}");
-                            }
-                            else if (IsKnownAndroidVendor(vid))
-                            {
-                                report.RawUsbDevices.Add($"Android Device (VID: {vid}, PID: {pid}) - {prod}");
+                                if (vendorId == UsbVendors.Apple)
+                                {
+                                    report.RawUsbDevices.Add($"Apple Device (VID: {vid}, PID: {pid}) - {prod}");
+                                }
+                                else if (UsbVendors.IsAndroidVendor(vendorId))
+                                {
+                                    report.RawUsbDevices.Add($"Android Device (VID: {vid}, PID: {pid}) - {prod}");
+                                }
                             }
                         }
                     }
@@ -503,19 +511,4 @@ public static class TroubleshootService
             });
         }
     }
-
-    private static bool IsKnownAndroidVendor(string vid) => vid switch
-    {
-        "18d1" => true, // Google
-        "04e8" => true, // Samsung
-        "2717" => true, // Xiaomi
-        "12d1" => true, // Huawei
-        "22b8" => true, // Motorola
-        "0bb4" => true, // HTC
-        "1004" => true, // LG
-        "2a70" => true, // OnePlus
-        "22d9" => true, // OPPO
-        "29a9" => true, // Vivo
-        _ => false
-    };
 }
