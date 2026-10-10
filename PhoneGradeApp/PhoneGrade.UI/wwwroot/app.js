@@ -656,9 +656,8 @@ class TestRunner {
     }
 
     showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(el => el.style.display = 'none');
-        const screen = document.getElementById(screenId);
-        if (screen) screen.style.display = 'block';
+        document.querySelectorAll('.screen').forEach(el =>
+            el.classList.toggle('screen-active', el.id === screenId));
     }
 
     updateTestListUI() {
@@ -733,14 +732,14 @@ class TestRunner {
         if (!banner) return;
 
         if (!canResume(progress)) {
-            banner.style.display = 'none';
+            banner.hidden = true;
             return;
         }
 
         const text = banner.querySelector('.resume-text');
         if (text) text.textContent = describeResume(progress);
 
-        banner.style.display = 'flex';
+        banner.hidden = false;
     }
 }
 
@@ -760,7 +759,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     if (isIos && !isStandalone) {
         const banner = document.getElementById('ios-standalone-banner');
-        if (banner) banner.style.display = 'block';
+        if (banner) banner.hidden = false;
     }
     const wsClient = new RestApiClient();
 

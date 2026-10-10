@@ -8,11 +8,13 @@ import {
     createInspection,
     recordVerdict,
     verdictOf,
+    colorName,
     defectiveColorIds,
     defectiveColorNames,
     isDisplayFaulty,
     describeDefects
 } from '../modules/DisplayInspection.js';
+import { setLocale } from '../modules/i18n.js';
 
 test('a fresh inspection has judged nothing and found nothing', () => {
     const insp = createInspection();
@@ -86,8 +88,23 @@ test('the colours are the five a panel fault shows up under', () => {
     // White, red, green, blue and black. Grey is a blend of the others and adds
     // time without adding a fault the five would have missed.
     assert.deepEqual(INSPECTION_COLORS.map(c => c.id), ['white', 'red', 'green', 'blue', 'black']);
-    assert.ok(INSPECTION_COLORS.every(c => c.name && c.hex),
+    assert.ok(INSPECTION_COLORS.every(c => colorName(c) && c.hex),
         'each colour needs a name for the label and a fill for the screen');
+});
+
+test('the colour names follow the language the page is read in', () => {
+    // The names used to be literals in the module, so an English operator read
+    // "Wit, Rood" on the label. They come out of the dictionary now.
+    assert.equal(colorName(INSPECTION_COLORS[1]), 'Rood');
+
+    setLocale('en');
+    assert.equal(colorName(INSPECTION_COLORS[1]), 'Red');
+
+    const insp = createInspection();
+    recordVerdict(insp, 'white', VERDICT_DEFECTIVE);
+    assert.deepEqual(defectiveColorNames(insp), ['White']);
+
+    setLocale('nl');
 });
 
 test('two inspections stay independent', () => {

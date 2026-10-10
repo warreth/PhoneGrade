@@ -153,7 +153,7 @@ body {
     color: var(--color-success-text);
 }
 
-.connection-status.error, .connection-status.disconnected {
+.connection-status.error {
     background: var(--color-error-bg);
     border-color: #fecaca;
     color: var(--color-error-text);
@@ -170,8 +170,23 @@ body {
     background: var(--color-success);
 }
 
-.connection-status.error .status-dot, .connection-status.disconnected .status-dot {
+.connection-status.error .status-dot {
     background: var(--color-error);
+}
+
+/*
+ * Offline: the result is saved on the phone and syncs when the network comes
+ * back, so it reads as a warning rather than a failure. Without a rule of its
+ * own it looked the same as connected.
+ */
+.connection-status.offline {
+    background: var(--color-warning-bg);
+    border-color: #fde68a;
+    color: var(--color-warning-text);
+}
+
+.connection-status.offline .status-dot {
+    background: var(--color-warning);
 }
 
 /* Main Content */
@@ -197,23 +212,11 @@ body {
     display: flex;
 }
 
-/* When test is running, hide header, footer, test-list to be 100% full screen */
+/* While a step is running, only its own screen is on the page */
 body.test-running .app-header,
-body.test-running .app-footer,
 #test-screen.test-running #test-list,
-#test-screen.test-running .test-header,
-#test-screen.test-running .progress-bar {
+#test-screen.test-running .test-header {
     display: none !important;
-}
-
-
-#test-screen.test-running .main-content {
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: 100% !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    height: 100dvh !important;
 }
 
 @keyframes fadeIn {
@@ -242,31 +245,6 @@ body.test-running .app-footer,
     color: var(--color-text-secondary);
     font-size: 13px;
     margin-bottom: var(--spacing-md);
-}
-
-.device-info {
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-}
-
-.info-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 4px 0;
-    font-size: 13px;
-}
-
-.info-row .label {
-    color: var(--color-text-secondary);
-    font-weight: 500;
-}
-
-.info-row .value {
-    color: var(--color-text-primary);
-    font-weight: 600;
 }
 
 .test-overview p {
@@ -435,6 +413,16 @@ body.test-running .app-footer,
     color: var(--color-text-primary);
 }
 
+/* iOS: the page was opened in Safari instead of from the home screen */
+.ios-banner {
+    background: var(--color-warning);
+    color: #ffffff;
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
 .resume-text {
     flex: 1;
 }
@@ -450,27 +438,44 @@ body.test-running .app-footer,
     margin-bottom: var(--spacing-md);
 }
 
-.progress-bar-container {
-    height: 6px;
-    background: var(--color-bg-tertiary);
-    border-radius: 9999px;
-    overflow: hidden;
-    margin-bottom: var(--spacing-sm);
-}
-
-.progress-bar {
-    height: 100%;
-    background: var(--color-accent);
-    width: 0%;
-    transition: width 0.3s ease;
-}
-
-.test-meta {
+/*
+ * The list of steps, filled in by the runner. Each row is tinted by how the
+ * step stands: neutral until it runs, then green, red or amber.
+ */
+.test-list {
+    list-style: none;
     display: flex;
-    justify-content: space-between;
-    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.test-item {
+    font-size: 11px;
     font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    background: var(--color-bg-tertiary);
     color: var(--color-text-secondary);
+}
+
+.test-item.running {
+    background: var(--color-accent);
+    color: #ffffff;
+}
+
+.test-item.passed {
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
+}
+
+.test-item.failed {
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
+}
+
+.test-item.skipped {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
 }
 
 
@@ -732,6 +737,270 @@ body.test-running .app-footer,
 
 .step-actions .btn {
     flex: 1;
+}
+
+/* A fault button that sits under the card it belongs to */
+.step-fault {
+    margin-top: var(--spacing-lg);
+}
+
+/* The touch grid: one cell per part of the glass, filled in as it responds */
+.touch-wrap {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #0f172a;
+    z-index: 10000;
+    touch-action: none;
+    user-select: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.touch-instruction-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 23, 42, 0.92);
+    color: #ffffff;
+    padding: 20px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+    z-index: 10005;
+    border: 2px solid var(--color-accent);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.3s ease;
+}
+
+.touch-instruction-card.is-hidden {
+    opacity: 0;
+}
+
+.touch-instruction-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #38bdf8;
+}
+
+.touch-info-bar {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85);
+    color: #ffffff;
+    padding: 6px 18px;
+    border-radius: 9999px;
+    font-size: 14px;
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 10002;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.touch-progress {
+    color: #4ade80;
+}
+
+.touch-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--touch-cols, 8), 1fr);
+    grid-template-rows: repeat(var(--touch-rows, 14), 1fr);
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    box-sizing: border-box;
+    background: #1e293b;
+}
+
+.touch-trail-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10001;
+}
+
+.touch-cell {
+    background: #334155;
+    border: 1px solid #475569;
+    border-radius: 3px;
+    transition: background 80ms ease;
+}
+
+.touch-cell.is-touched {
+    background: #16a34a;
+    border-color: #22c55e;
+    animation: touchPop 120ms ease;
+}
+
+@keyframes touchPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(0.96); }
+    100% { transform: scale(1); }
+}
+
+/* Force touch: press the target and watch the circle grow */
+.pressure-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 250px;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    margin-top: var(--spacing-xl);
+    touch-action: none;
+}
+
+.pressure-target {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #000000;
+    font-weight: bold;
+    transition: transform 0.1s;
+    box-shadow: 0 0 15px var(--color-accent);
+    transform: scale(var(--pressure-scale, 1));
+}
+
+.pressure-target.is-pressed {
+    background: var(--color-success);
+    box-shadow: 0 0 25px var(--color-success);
+}
+
+.pressure-readout {
+    text-align: center;
+    margin-top: var(--spacing-lg);
+}
+
+.pressure-value {
+    font-size: 24px;
+    font-weight: bold;
+    font-family: monospace;
+}
+
+.pressure-level {
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+}
+
+/* Screen rotation: the readout while the phone turns */
+.rotation-panel {
+    text-align: center;
+    padding: var(--spacing-xl);
+}
+
+.rotation-label {
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-text-secondary);
+}
+
+.rotation-display {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-accent);
+    margin-bottom: var(--spacing-lg);
+    font-family: monospace;
+}
+
+.rotation-prompt {
+    color: var(--color-text-secondary);
+    margin-bottom: 10px;
+}
+
+.rotation-count {
+    font-size: 14px;
+    color: var(--color-text-tertiary);
+    font-family: monospace;
+}
+
+.rotation-safe-area {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: var(--spacing-lg);
+    font-family: monospace;
+}
+
+/* Calling: open the dialer and confirm that it opened */
+.call-panel {
+    padding: var(--spacing-lg);
+}
+
+.call-heading {
+    color: var(--color-accent);
+    margin-bottom: var(--spacing-lg);
+}
+
+.call-intro {
+    margin-bottom: var(--spacing-xl);
+}
+
+.call-card {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    text-align: center;
+    border: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-xl);
+}
+
+.call-button {
+    display: inline-block;
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+    text-decoration: none;
+}
+
+.call-hint {
+    font-size: 13px;
+    color: var(--color-text-tertiary);
+}
+
+.call-feedback {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.call-question {
+    text-align: center;
+    font-weight: 600;
+}
+
+.call-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.call-actions .btn {
+    flex: 1;
+}
+
+/* The microphone picker */
+.mic-select {
+    max-width: 400px;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* The vibration question, between the card's controls and its answers */
+.vibration-question {
+    margin: var(--spacing-lg) 0 var(--spacing-md);
 }
 
 /* One sensor readout */

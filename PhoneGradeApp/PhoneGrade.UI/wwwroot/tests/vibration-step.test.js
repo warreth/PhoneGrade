@@ -191,7 +191,7 @@ test('a browser with no vibration API is handed over as a manual check', () => {
     assert.equal(container.querySelector('#btn-vibe-pulse'), null,
         'a button that would do nothing is a button that lies');
     assert.equal(container.querySelector('#vibe-echo'), null);
-    assert.equal(t.details.browserApi, 'handmatig');
+    assert.equal(t.details.browserApi, 'manual');
     assert.match(container.html, /Handmatige controle/);
     assert.match(container.html, /stille modus schakelaar/);
     assert.match(container.html, /Deze browser kan de trilmotor niet aansturen/);

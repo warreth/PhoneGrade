@@ -11,22 +11,26 @@ export class ForceTouchTest extends DeviceTest {
         this.reportProgress(wsClient, 0, t('force.progressReady'));
 
         container.innerHTML = `
-            <h3 style="color: var(--color-accent); margin-bottom: 16px;">${t('force.title')}</h3>
-            <p class="test-instructions">${t('force.pressHint')}</p>
-             
-            <div style="display: flex; justify-content: center; align-items: center; height: 250px; background: var(--color-bg-secondary); border-radius: var(--radius-lg); margin-top: 24px; touch-action: none;" id="pressure-area">
-                <div id="pressure-target" style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-accent); display: flex; justify-content: center; align-items: center; color: #000; font-weight: bold; transition: transform 0.1s; box-shadow: 0 0 15px var(--color-accent);">
-                    ${t('force.pressButton')}
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title">${t('force.title')}</h3>
+                    <p class="step-lead">${t('force.pressHint')}</p>
+
+                    <div id="pressure-area" class="pressure-area">
+                        <div id="pressure-target" class="pressure-target">
+                            ${t('force.pressButton')}
+                        </div>
+                    </div>
+
+                    <div class="pressure-readout">
+                        <p id="pressure-value" class="pressure-value">0.00</p>
+                        <p class="pressure-level">${t('force.pressureLevel')}</p>
+                    </div>
+
+                    <div class="step-actions">
+                        <button id="skip-pressure" class="btn btn-secondary">${t('force.skipButton')}</button>
+                    </div>
                 </div>
-            </div>
-             
-            <div style="text-align: center; margin-top: 16px;">
-                <p id="pressure-value" style="font-size: 24px; font-weight: bold; font-family: monospace;">0.00</p>
-                <p style="font-size: 12px; color: var(--color-text-tertiary);">${t('force.pressureLevel')}</p>
-            </div>
-             
-            <div style="text-align: center; margin-top: 16px;">
-                <button id="skip-pressure" class="btn btn-secondary">${t('force.skipButton')}</button>
             </div>
         `;
 
@@ -52,11 +56,10 @@ export class ForceTouchTest extends DeviceTest {
                 
                 // Visual feedback
                 const scale = 1 + (pressure * 1.5);
-                target.style.transform = `scale(${scale})`;
+                target.style.setProperty('--pressure-scale', String(scale));
                 
                 if (pressure > 0.6) { // Detected higher than normal static touch
-                    target.style.background = 'var(--color-success)';
-                    target.style.boxShadow = '0 0 25px var(--color-success)';
+                    target.classList.add('is-pressed');
                     
                     this.pass(t('force.detected', { pressure: maxPressure.toFixed(2) }));
                     this.details.maxPressure = maxPressure;
@@ -75,7 +78,7 @@ export class ForceTouchTest extends DeviceTest {
             area.addEventListener('pointermove', handlePointer, {passive: false});
             
             area.addEventListener('pointerup', () => {
-                target.style.transform = 'scale(1)';
+                target.style.setProperty('--pressure-scale', '1');
             });
 
             skipBtn.addEventListener('click', () => {

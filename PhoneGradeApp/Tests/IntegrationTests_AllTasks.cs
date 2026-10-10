@@ -259,7 +259,7 @@ public class IntegrationTests_AllTasks : IAsyncLifetime
         // a manual check, instead of asking the operator to grade hardware the
         // page never touched.
         DictionarySays.Says(step, "Handmatige controle");
-        Assert.Contains("'handmatig'", step);
+        Assert.Contains("'manual'", step);
 
         // The two answers are tinted in the shared stylesheet, on both platforms.
         var styles = RepoPath.Read("PhoneGradeApp/PhoneGrade.UI/wwwroot/styles.css");

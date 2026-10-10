@@ -248,18 +248,19 @@ test('the shell is written in the language in use', () => {
 test('switching to English rewrites the shell', () => {
     setLocale('nl');
     const welcome = fakeElement({ i18n: 'shell.welcome' });
-    const skip = fakeElement({ i18n: 'shell.skipTest' }, 'Skip Test');
-    const doc = fakeDocument([welcome, skip]);
+    const retry = fakeElement({ i18n: 'results.retry' }, 'Retry');
+    const doc = fakeDocument([welcome, retry]);
 
     applyStaticText(doc);
     assert.equal(welcome.textContent, 'Welkom bij PhoneGrade');
+    assert.equal(retry.textContent, 'Opnieuw');
 
     setLocale('en');
     const changed = applyStaticText(doc);
 
     assert.equal(welcome.textContent, 'Welcome to PhoneGrade');
-    assert.equal(skip.textContent, 'Skip Test');
-    assert.equal(skip.getAttribute('aria-label'), null);
+    assert.equal(retry.textContent, 'Retry');
+    assert.equal(retry.getAttribute('aria-label'), null);
     assert.equal(doc.documentElement.lang, 'en');
     assert.equal(changed, 2);
 

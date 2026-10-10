@@ -14,7 +14,9 @@
  *
  * The five colours stay apart, because a panel with a green cast under white and
  * a clean red is a different fault from one that is wrong under all five, and
- * the label has to be able to say which colours were affected.
+ * the label has to be able to say which colours were affected. Their names come
+ * out of the dictionary like every other word on screen, so the five read in
+ * the operator's language rather than in the language this file was written in.
  *
  * The verdicts are a map keyed by colour id: judging a colour twice keeps the
  * later verdict, and the colours a run marked come back in the order the panel
@@ -27,12 +29,33 @@ export const VERDICT_OK = 'ok';
 export const VERDICT_DEFECTIVE = 'defective';
 
 export const INSPECTION_COLORS = [
-    { id: 'white', name: 'Wit', hex: '#ffffff' },
-    { id: 'red', name: 'Rood', hex: '#ff0000' },
-    { id: 'green', name: 'Groen', hex: '#00ff00' },
-    { id: 'blue', name: 'Blauw', hex: '#0000ff' },
-    { id: 'black', name: 'Zwart', hex: '#000000' }
+    { id: 'white', hex: '#ffffff' },
+    { id: 'red', hex: '#ff0000' },
+    { id: 'green', hex: '#00ff00' },
+    { id: 'blue', hex: '#0000ff' },
+    { id: 'black', hex: '#000000' }
 ];
+
+/**
+ * The name of each colour, asked for by its own key.
+ *
+ * Spelled out rather than built from the id: the dictionary scan in the tests
+ * reads the literal keys written at the call sites, so a key built at runtime
+ * would be a sentence nothing verifies until an operator sees the raw key.
+ */
+const COLOR_NAME = {
+    white: () => t('inspect.color.white'),
+    red: () => t('inspect.color.red'),
+    green: () => t('inspect.color.green'),
+    blue: () => t('inspect.color.blue'),
+    black: () => t('inspect.color.black')
+};
+
+/** The name of one colour as the operator reads it. */
+export function colorName(color) {
+    const name = COLOR_NAME[color.id];
+    return name ? name() : color.id;
+}
 
 export function createInspection() {
     return { verdicts: new Map() };
@@ -62,7 +85,7 @@ export function defectiveColorIds(inspection) {
 
 export function defectiveColorNames(inspection) {
     return defectiveColorIds(inspection)
-        .map(id => INSPECTION_COLORS.find(color => color.id === id).name);
+        .map(id => colorName(INSPECTION_COLORS.find(color => color.id === id)));
 }
 
 export function isDisplayFaulty(inspection) {

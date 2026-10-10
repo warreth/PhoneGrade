@@ -136,7 +136,7 @@ Object.defineProperty(global, 'navigator', {
 });
 
 import { DisplayTest } from '../modules/DisplayTest.js';
-import { INSPECTION_COLORS } from '../modules/DisplayInspection.js';
+import { INSPECTION_COLORS, colorName } from '../modules/DisplayInspection.js';
 
 test('a fresh display step has judged nothing', () => {
     const d = new DisplayTest();
@@ -261,9 +261,9 @@ test('every colour fills the screen and offers Goed and Slecht', async () => {
 
     for (const color of INSPECTION_COLORS) {
         const overlay = currentOverlay();
-        assert.ok(overlay, `${color.name} must be on screen`);
+        assert.ok(overlay, `${colorName(color)} must be on screen`);
         assert.equal(overlay.style.background, color.hex, 'the whole screen is the colour being judged');
-        assert.equal(colorOn(overlay), color.name);
+        assert.equal(colorOn(overlay), colorName(color));
         assert.match(overlay.innerHTML, /id="color-ok"[^>]*>Goed</);
         assert.match(overlay.innerHTML, /id="color-defect"[^>]*>Slecht</);
         assert.equal(document.body.children.length, 1, 'the previous colour must be off the screen');

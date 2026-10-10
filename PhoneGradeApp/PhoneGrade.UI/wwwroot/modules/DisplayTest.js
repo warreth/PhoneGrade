@@ -7,6 +7,7 @@ import {
     createInspection,
     recordVerdict,
     verdictOf,
+    colorName,
     defectiveColorNames,
     isDisplayFaulty,
     describeDefects
@@ -89,7 +90,7 @@ export class DisplayTest extends DeviceTest {
         while (index < this.colors.length) {
             const color = this.colors[index];
             this.currentIndex = index;
-            this.reportProgress(wsClient, (index / this.colors.length) * 100, t('display.currentColor', { name: color.name }));
+            this.reportProgress(wsClient, (index / this.colors.length) * 100, t('display.currentColor', { name: colorName(color) }));
 
             const answer = await this.showColor(color, index);
 
@@ -109,18 +110,18 @@ export class DisplayTest extends DeviceTest {
                 wsClient,
                 ((index + 1) / this.colors.length) * 100,
                 t('display.colorVerdict', {
-                    name: color.name,
+                    name: colorName(color),
                     verdict: answer === VERDICT_DEFECTIVE ? t('display.verdictDefective') : t('display.verdictOk')
                 }),
                 this.id,
-                `${this.name} (${color.name})`);
+                `${this.name} (${colorName(color)})`);
 
             index += 1;
         }
 
         const faulty = isDisplayFaulty(this.inspection);
 
-        this.details.colorsChecked = this.colors.map(c => c.name);
+        this.details.colorsChecked = this.colors.map(c => colorName(c));
         this.details.defectiveColors = defectiveColorNames(this.inspection);
         this.details.suspectedFaulty = faulty;
 
@@ -207,7 +208,7 @@ export class DisplayTest extends DeviceTest {
             overlay.innerHTML = `
                 <div class="display-bar">
                     <div class="display-bar-title">
-                        <span class="display-color-name">${color.name}</span>
+                        <span class="display-color-name">${colorName(color)}</span>
                         <span class="display-progress">${t('display.colorCounter', { current: index + 1, total: this.colors.length })}</span>
                     </div>
                     <p class="display-hint">${t('display.hint')}</p>

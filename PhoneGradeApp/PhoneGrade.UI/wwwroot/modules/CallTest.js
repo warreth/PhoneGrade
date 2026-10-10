@@ -15,24 +15,24 @@ export class CallTest extends DeviceTest {
         const testNumber = params.get('testPhoneNumber') || '*#06#';
 
         container.innerHTML = `
-            <div style="padding: 16px;">
-                <h3 style="color: var(--color-accent); margin-bottom: 16px;">${t('call.heading')}</h3>
-                <p class="test-instructions" style="margin-bottom: 24px;">
+            <div class="call-panel">
+                <h3 class="call-heading">${t('call.heading')}</h3>
+                <p class="test-instructions call-intro">
                     ${t('call.intro')}
                 </p>
 
-                <div style="background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: 24px; text-align: center; border: 1px solid var(--color-border); margin-bottom: 24px;">
-                    <a href="tel:${testNumber}" id="make-call-btn" class="btn btn-primary" style="display: inline-block; width: 100%; margin-bottom: 16px; text-decoration: none;">
+                <div class="call-card">
+                    <a href="tel:${testNumber}" id="make-call-btn" class="btn btn-primary call-button">
                         ${t('call.openDialer')}
                     </a>
-                    <p style="font-size: 13px; color: var(--color-text-tertiary);">${t('call.dialerHint')}</p>
+                    <p class="call-hint">${t('call.dialerHint')}</p>
                 </div>
 
-                <div id="call-feedback" style="display: none; flex-direction: column; gap: 16px;">
-                    <p style="text-align: center; font-weight: 600;">${t('call.didOpenQuestion')}</p>
-                    <div style="display: flex; gap: 12px;">
-                        <button id="btn-call-yes" class="btn btn-success" style="flex: 1; background: var(--color-success); color: #000; border: none;">${t('call.yesButton')}</button>
-                        <button id="btn-call-no" class="btn btn-error" style="flex: 1; background: var(--color-error); color: #fff; border: none;">${t('call.noButton')}</button>
+                <div id="call-feedback" class="call-feedback" hidden>
+                    <p class="call-question">${t('call.didOpenQuestion')}</p>
+                    <div class="call-actions">
+                        <button id="btn-call-yes" class="btn btn-success">${t('call.yesButton')}</button>
+                        <button id="btn-call-no" class="btn btn-danger">${t('call.noButton')}</button>
                     </div>
                 </div>
             </div>
@@ -45,7 +45,7 @@ export class CallTest extends DeviceTest {
 
         return new Promise((resolve) => {
             callBtn.addEventListener('click', () => {
-                feedbackSection.style.display = 'flex';
+                feedbackSection.hidden = false;
                 this.reportProgress(wsClient, 50, t('call.progressAwaiting'));
             });
 

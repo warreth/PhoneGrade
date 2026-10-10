@@ -727,7 +727,7 @@ export class CameraTest extends DeviceTest {
                 result: {
                     kind: CAPABILITY.MISSING,
                     name: 'MediaDevicesUnavailable',
-                    message: 'navigator.mediaDevices is niet beschikbaar',
+                    message: t('camera.mediaDevicesUnavailable'),
                     fixable: false
                 }
             };

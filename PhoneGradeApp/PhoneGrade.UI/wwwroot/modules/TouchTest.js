@@ -42,18 +42,18 @@ export class TouchTest extends DeviceTest {
         this.reportProgress(wsClient, 0, t('touch.progressStart'));
 
         container.innerHTML = `
-            <div id="touch-wrap" style="position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; background: #0f172a; z-index: 10000; touch-action: none; user-select: none; overflow: hidden; display: flex; flex-direction: column;">
-                <div id="touch-instruction-card" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15,23,42,0.92); color: #ffffff; padding: 20px 24px; border-radius: 12px; font-size: 16px; font-weight: 600; text-align: center; pointer-events: none; z-index: 10005; border: 2px solid #2563eb; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: opacity 0.3s ease;">
-                    <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #38bdf8;">${t('touch.name')}</div>
+            <div id="touch-wrap" class="touch-wrap">
+                <div id="touch-instruction-card" class="touch-instruction-card">
+                    <div class="touch-instruction-title">${t('touch.name')}</div>
                     <div>${t('touch.gridInstruction')}</div>
                 </div>
 
-                <div id="touch-info-bar" style="position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #ffffff; padding: 6px 18px; border-radius: 9999px; font-size: 14px; font-weight: 700; pointer-events: none; z-index: 10002; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-                    ${t('touch.coverageLabel')} <span id="touch-progress" style="color: #4ade80;">0%</span>
+                <div id="touch-info-bar" class="touch-info-bar">
+                    ${t('touch.coverageLabel')} <span id="touch-progress" class="touch-progress">0%</span>
                 </div>
 
-                <div id="touch-grid" style="display: grid; grid-template-columns: repeat(${this.gridCols}, 1fr); grid-template-rows: repeat(${this.gridRows}, 1fr); gap: 2px; width: 100%; height: 100%; padding: 4px; box-sizing: border-box; background: #1e293b;"></div>
-                <canvas id="touch-trail-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10001;"></canvas>
+                <div id="touch-grid" class="touch-grid"></div>
+                <canvas id="touch-trail-canvas" class="touch-trail-canvas"></canvas>
             </div>
         `;
 
@@ -61,6 +61,11 @@ export class TouchTest extends DeviceTest {
         const canvas = container.querySelector('#touch-trail-canvas');
         const progressDisplay = container.querySelector('#touch-progress');
         const instructionCard = container.querySelector('#touch-instruction-card');
+
+        // The grid is built from the constants above; the stylesheet reads them
+        // so the cell count and the layout cannot drift apart.
+        grid.style.setProperty('--touch-cols', String(this.gridCols));
+        grid.style.setProperty('--touch-rows', String(this.gridRows));
 
         const dpr = window.devicePixelRatio || 1;
         await new Promise(r => requestAnimationFrame(r));
@@ -75,7 +80,6 @@ export class TouchTest extends DeviceTest {
             const cell = document.createElement('div');
             cell.className = 'touch-cell';
             cell.dataset.index = i;
-            cell.style.cssText = 'background: #334155; border: 1px solid #475569; border-radius: 3px; transition: background 80ms ease, transform 80ms ease;';
             grid.appendChild(cell);
         }
 
@@ -101,8 +105,8 @@ export class TouchTest extends DeviceTest {
             e.preventDefault();
 
             // Hide instruction card as soon as the user starts touching
-            if (instructionCard && instructionCard.style.opacity !== '0') {
-                instructionCard.style.opacity = '0';
+            if (instructionCard && !instructionCard.classList.contains('is-hidden')) {
+                instructionCard.classList.add('is-hidden');
             }
 
             const touches = e.touches ? Array.from(e.touches) : [e];
@@ -128,10 +132,7 @@ export class TouchTest extends DeviceTest {
                     const index = element.dataset.index;
                     if (!this.touchedCells.has(index)) {
                         this.touchedCells.add(index);
-                        element.style.background = '#16a34a';
-                        element.style.borderColor = '#22c55e';
-                        element.style.transform = 'scale(0.96)';
-                        setTimeout(() => element.style.transform = 'scale(1)', 100);
+                        element.classList.add('is-touched');
 
                         if (this.haptic) this.haptic.tap();
 

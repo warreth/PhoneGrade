@@ -42,34 +42,35 @@ export class VibrationTest extends DeviceTest {
 
         const hasApi = typeof navigator.vibrate === 'function';
 
-        this.details.browserApi = hasApi ? 'navigator.vibrate' : 'handmatig';
+        this.details.browserApi = hasApi ? 'navigator.vibrate' : 'manual';
 
         container.innerHTML = `
-            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; width: 100%;">
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: var(--shadow-md); width: 100%; max-width: 400px;">
-                    <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: var(--color-text-primary);">${t('vibration.heading')}</h3>
+            <div class="step-screen">
+                <div class="step-column">
+                    <h3 class="step-title">${t('vibration.heading')}</h3>
+                    <div class="step-card">
+                        ${hasApi ? `
+                            <p class="step-hint">${t('vibration.pulseHint')}</p>
+                            <button id="btn-vibe-pulse" class="btn btn-primary step-block">${t('vibration.pulseButton')}</button>
+                            <p id="vibe-echo" class="vibe-echo" role="status" aria-live="polite">${t('vibration.echoIdle')}</p>
+                            <p class="step-hint">${t('vibration.checkSilentFirst')}</p>
+                        ` : `
+                            <div class="step-note">
+                                <strong>${t('vibration.manualCheck')}</strong>
+                                ${t('vibration.manualIntro')}
+                                <strong>${t('vibration.manualSwitch')}</strong>
+                                ${t('vibration.manualSwitchTail')}
+                            </div>
+                        `}
 
-                    ${hasApi ? `
-                        <p class="step-hint">${t('vibration.pulseHint')}</p>
-                        <button id="btn-vibe-pulse" class="btn btn-primary" style="width: 100%; margin-bottom: 8px;">${t('vibration.pulseButton')}</button>
-                        <p id="vibe-echo" class="vibe-echo" role="status" aria-live="polite">${t('vibration.echoIdle')}</p>
-                        <p class="step-hint">${t('vibration.checkSilentFirst')}</p>
-                    ` : `
-                        <div class="step-note">
-                            <strong>${t('vibration.manualCheck')}</strong>
-                            ${t('vibration.manualIntro')}
-                            <strong>${t('vibration.manualSwitch')}</strong>
-                            ${t('vibration.manualSwitchTail')}
+                        <p class="step-question vibration-question">
+                            ${t('vibration.question')}
+                        </p>
+
+                        <div class="step-actions">
+                            <button id="btn-vibe-yes" class="btn btn-success">${t('vibration.yesButton')}</button>
+                            <button id="btn-vibe-no" class="btn btn-danger">${t('vibration.noButton')}</button>
                         </div>
-                    `}
-
-                    <p class="step-question" style="margin: 16px 0 12px;">
-                        ${t('vibration.question')}
-                    </p>
-
-                    <div class="step-actions">
-                        <button id="btn-vibe-yes" class="btn btn-success">${t('vibration.yesButton')}</button>
-                        <button id="btn-vibe-no" class="btn btn-danger">${t('vibration.noButton')}</button>
                     </div>
                 </div>
             </div>

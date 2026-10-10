@@ -205,7 +205,7 @@ export class MicrophoneTest extends DeviceTest {
                         <div class="step-card">
                             <p class="step-lead">${t('microphone.micSelectionHint')}</p>
                             <div class="step-stack">
-                                <select id="mic-select" class="form-select" style="max-width: 400px; margin-bottom: 16px;">
+                                <select id="mic-select" class="form-select mic-select">
                                     <option value="" disabled selected>${t('microphone.selectMic')}</option>
                                     ${optionsHtml}
                                 </select>

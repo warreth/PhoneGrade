@@ -15,16 +15,16 @@ export class ScreenRotationTest extends DeviceTest {
         let isModernApi = !!(window.screen && window.screen.orientation);
         
         container.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <p style="margin-bottom: 20px; color: #64748b;">${t('rotation.currentOrientation')}</p>
-                <div id="orientation-display" style="font-size: 32px; font-weight: 700; color: #2563eb; margin-bottom: 20px; font-family: monospace;">
+            <div class="rotation-panel">
+                <p class="rotation-label">${t('rotation.currentOrientation')}</p>
+                <div id="orientation-display" class="rotation-display">
                     ${this.getOrientationType(isModernApi)}
                 </div>
-                <p style="color: #64748b; margin-bottom: 10px;">${t('rotation.rotatePrompt')}</p>
-                <p id="rotation-count" style="font-size: 14px; color: #94a3b8; font-family: monospace;">
+                <p class="rotation-prompt">${t('rotation.rotatePrompt')}</p>
+                <p id="rotation-count" class="rotation-count">
                     ${t('rotation.detected', { count: 0 })}
                 </p>
-                <p id="safe-area-info" style="font-size: 12px; color: #64748b; margin-top: 20px; font-family: monospace;">
+                <p id="safe-area-info" class="rotation-safe-area">
                     ${t('rotation.safeAreaTop', { top: this.getSafeAreaInset('top') })}
                 </p>
             </div>

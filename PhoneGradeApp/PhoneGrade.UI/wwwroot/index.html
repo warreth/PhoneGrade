@@ -23,7 +23,7 @@
 </head>
 <body>
     <div id="app" class="app-container">
-        <div id="ios-standalone-banner" data-i18n="shell.iosBanner" style="display: none; background: var(--color-warning); color: #fff; text-align: center; padding: 10px; font-size: 13px; font-weight: bold;">
+        <div id="ios-standalone-banner" class="ios-banner" data-i18n="shell.iosBanner" hidden>
             For borderless kiosk view, tap Share and select Add to Home Screen.
         </div>
         <header class="app-header" role="banner">
@@ -50,17 +50,6 @@
                         <div class="card-header">
                             <h2 data-i18n="shell.welcome">Welcome to PhoneGrade</h2>
                             <p class="subtitle" data-i18n="shell.subtitle">Professional Hardware Testing</p>
-                        </div>
-
-                        <div class="device-info" id="device-info">
-                            <div class="info-row">
-                                <span class="label" data-i18n="shell.device">Device:</span>
-                                <span class="value" id="device-type" data-i18n="shell.detecting">Detecting...</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="label" data-i18n="shell.browser">Browser:</span>
-                                <span class="value" id="browser-info" data-i18n="shell.detecting">Detecting...</span>
-                            </div>
                         </div>
 
                         <div class="test-overview">
@@ -99,7 +88,7 @@
                             </ul>
                         </div>
 
-                        <div id="resume-banner" class="resume-banner" style="display: none;" role="status">
+                        <div id="resume-banner" class="resume-banner" role="status" hidden>
                             <span class="resume-text"></span>
                             <button id="resume-btn" class="btn btn-secondary resume-btn" data-i18n="shell.resume">Doorgaan</button>
                         </div>
@@ -121,15 +110,10 @@
                 <div class="test-header">
                     <div class="test-title-block">
                         <h2 id="current-test-name" data-i18n="shell.loadingTest">Loading Test...</h2>
-                        <p id="current-test-description" class="test-description" data-i18n="shell.pleaseWait">Please wait...</p>
                     </div>
                     <div class="test-counter" id="test-counter" aria-live="polite">
                         <span id="current-test-num">0</span>/<span id="total-tests">0</span>
                     </div>
-                </div>
-
-                <div class="progress-bar">
-                    <div class="progress-fill" id="test-progress-fill"></div>
                 </div>
 
                 <div id="test-list" class="test-list" role="list"></div>
@@ -141,7 +125,6 @@
             <!-- Results Screen -->
             <section id="results-screen" class="screen" role="region" aria-label="Test results screen" data-i18n-label="aria.resultsScreen">
                 <div class="results-header">
-                    <div id="results-status-icon" class="status-icon" aria-hidden="true"></div>
                     <h2 id="results-title" data-i18n="results.title">Test Suite Complete</h2>
                 </div>
 
@@ -173,10 +156,6 @@
                 </div>
             </section>
         </main>
-
-        <footer class="app-footer" role="contentinfo">
-            <div id="session-info" class="session-info" aria-live="polite"></div>
-        </footer>
     </div>
 
     <script type="module" src="/app.js"></script>

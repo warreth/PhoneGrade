@@ -130,8 +130,7 @@ export class DeviceTest {
      */
     offerFaultButton(container, label, onPress) {
         const button = document.createElement('button');
-        button.className = 'btn btn-danger step-block';
-        button.style.marginTop = '16px';
+        button.className = 'btn btn-danger step-block step-fault';
         button.textContent = label;
 
         // One press, one result. A second press after the test has settled would write
