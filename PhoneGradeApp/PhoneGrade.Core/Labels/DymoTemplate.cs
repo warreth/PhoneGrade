@@ -63,7 +63,7 @@ public static class DymoTemplate
     [
         "B2Y", "T1Y", "T2Y", "T3Y", "T4Y",
         "BOXY", "BOXH", "INF1Y", "INF2Y", "INF3Y", "INFH",
-        "LOCKY", "LOCKH", "LINEH",
+        "LOCKY", "LOCKH", "LOCKX", "LOCKW", "LINEH",
     ];
 
     /// <summary>
@@ -202,6 +202,10 @@ public static class DymoTemplate
         values["INFH"] = fields => DymoGeometry.Inches(positions(fields).InfoH);
         values["LOCKY"] = fields => DymoGeometry.Inches(positions(fields).LockY);
         values["LOCKH"] = fields => DymoGeometry.Inches(positions(fields).LockH);
+        values["LOCKX"] = fields => DymoGeometry.Inches(
+            DymoGeometry.LockBandLeftInches(LabelLayout.LockLine(fields)));
+        values["LOCKW"] = fields => DymoGeometry.Inches(
+            DymoGeometry.LockBandWidthInches(LabelLayout.LockLine(fields)));
         values["LINEH"] = fields => DymoGeometry.Inches(positions(fields).LineH);
 
         return values;
@@ -276,8 +280,15 @@ public static class DymoTemplate
         // for the renderer to fill in.
         int barred = Barcodes(layout ?? LabelLayout.Address, mode,
             DeclaredSymbology(templateText), fields).Barred.Count;
-        if (barred < 2) templateText = RemoveBarcodeObject(templateText, SecondBarcodeSentinel);
-        if (barred < 1) templateText = RemoveBarcodeObject(templateText, FirstBarcodeSentinel);
+        if (barred < 2) templateText = RemoveObject(templateText, SecondBarcodeSentinel, "BarcodeObject");
+        if (barred < 1) templateText = RemoveObject(templateText, FirstBarcodeSentinel, "BarcodeObject");
+
+        // The same for an empty locks line: its object is the one with the black
+        // band, and a band with nothing on it prints as a black stripe where the
+        // label has no business having one. A phone without locks carries no locks
+        // object at all, which is also what the app's own drawing does with the line.
+        if (LabelLayout.LockLine(fields).Length == 0)
+            templateText = RemoveObject(templateText, "LOCKS", "TextObject");
 
         var result = new StringBuilder(templateText.Length + 64);
         int copied = 0;
@@ -311,25 +322,30 @@ public static class DymoTemplate
     }
 
     /// <summary>
-    /// Takes one barcode object out of a template, by the object a sentinel sits in.
+    /// Takes one object out of a template, by the sentinel that sits in it.
     /// </summary>
     /// <remarks>
     /// A text edit on the template in the same spirit as the substitution itself:
     /// the file is never re-serialised, so the whitespace and the empty-element
     /// forms DYMO's deserializer wants are the template's own. The object is found
-    /// by its data sentinel rather than by its name, because a template may name
-    /// its objects anything.
+    /// by its sentinel rather than by its name, because a template may name its
+    /// objects anything.
     /// </remarks>
-    private static string RemoveBarcodeObject(string templateText, string sentinel)
+    /// <param name="sentinel">The text the object carries, for example BARCODE2 or LOCKS.</param>
+    /// <param name="element">The element to remove around it, BarcodeObject or TextObject.</param>
+    private static string RemoveObject(string templateText, string sentinel, string element)
     {
         int marker = templateText.IndexOf(sentinel, StringComparison.Ordinal);
         if (marker < 0) return templateText;
 
-        int open = templateText.LastIndexOf("<BarcodeObject>", marker, StringComparison.Ordinal);
-        int close = templateText.IndexOf("</BarcodeObject>", marker, StringComparison.Ordinal);
+        string openTag = $"<{element}>";
+        string closeTag = $"</{element}>";
+
+        int open = templateText.LastIndexOf(openTag, marker, StringComparison.Ordinal);
+        int close = templateText.IndexOf(closeTag, marker, StringComparison.Ordinal);
         if (open < 0 || close < 0) return templateText;
 
-        close += "</BarcodeObject>".Length;
+        close += closeTag.Length;
 
         // Take the object's own line with it, so the file keeps its shape rather
         // than gaining a blank line where an object used to be.

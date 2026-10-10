@@ -453,11 +453,11 @@
           </FormattedText>
           <ObjectLayout>
             <DYMOPoint>
-              <X>0.23</X>
+              <X>LOCKX</X>
               <Y>T4Y</Y>
             </DYMOPoint>
             <Size>
-              <Width>3.21</Width>
+              <Width>LOCKW</Width>
               <Height>LOCKH</Height>
             </Size>
           </ObjectLayout>

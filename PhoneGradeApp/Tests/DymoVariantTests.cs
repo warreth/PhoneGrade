@@ -221,6 +221,52 @@ public class DymoVariantTests
         }
     }
 
+    [Fact]
+    public void AnUnlockedPhoneCarriesNoLocksObjectAtAll()
+    {
+        // The locks object is the one with the black band. Left in an unlocked
+        // phone's file it prints as an empty black stripe, which is exactly what a
+        // clean phone must not come out of the printer with.
+        foreach (LabelVariant variant in new[] { LabelVariant.Structured, LabelVariant.GradeBlock })
+        {
+            var (text, xml) = Filled(variant, device: UnlockedPhone());
+
+            Assert.DoesNotContain("FRP", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("LOCKS", text, StringComparison.Ordinal);
+
+            foreach (XElement textObject in xml.Descendants("TextObject"))
+            {
+                XElement background = textObject.Descendants("BackgroundBrush").First().Descendants("Color").First();
+                Assert.False(background.Attribute("A")!.Value == "1" && background.Attribute("R")!.Value == "0",
+                    $"{variant} keeps a black band on an unlocked phone");
+            }
+        }
+    }
+
+    [Fact]
+    public void TheLocksBandHugsItsWords()
+    {
+        // The band sits around the codes, as the app's own drawing and the PDF draw
+        // it, rather than as a rule across the whole roll.
+        var (_, xml) = Filled(LabelVariant.Structured);
+
+        float width = Component(xml, "TEKST_4", "Width");
+        float left = Component(xml, "TEKST_4", "X");
+
+        Assert.InRange(width, 0.3f, 3.0f);
+        float centred = 0.23f + ((3.21f - width) / 2f);
+        Assert.True(Math.Abs(left - centred) < 0.01f,
+            $"the band starts at {left} and should be centred at {centred}");
+    }
+
+    private static DeviceData UnlockedPhone()
+    {
+        var phone = Phone();
+        phone.FactoryResetProtection = PhoneGrade.Core.SecurityServices.FrpLockService.FrpLockStatus.Unlocked;
+        phone.ActivationLock = PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked;
+        return phone;
+    }
+
     private static float Top(XDocument xml, string name) => Component(xml, name, "Y");
     private static float Height(XDocument xml, string name) => Component(xml, name, "Height");
 

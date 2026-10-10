@@ -181,6 +181,39 @@ public static class DymoGeometry
     /// <summary>One measurement as a template wants it: a plain number in inches.</summary>
     public static string Inches(float value) =>
         value.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>The size the locks are set at in the variant templates, in points.</summary>
+    public const float LockPoint = 8.5f;
+
+    /// <summary>How wide the black band around the locks is drawn, in inches.</summary>
+    /// <remarks>
+    /// The band hugs its words, like the app's own drawing and the PDF: a stripe
+    /// over the full roll reads as a rule rather than as a warning about this phone.
+    /// The width is estimated from the words at the size the templates set them,
+    /// with a little over it, because DYMO shrinks type that does not fit its box
+    /// and a locks line set smaller than everything else is the one line that must
+    /// not whisper.
+    /// </remarks>
+    public static float LockBandWidthInches(string locks)
+    {
+        if (locks.Length == 0) return 0f;
+
+        float mm = Math.Clamp(LabelType.EstimateWidthMm(locks, LockPoint) * 1.15f, 12f, 81.5f);
+        return mm / 25.4f;
+    }
+
+    /// <summary>Where the band starts so that it sits in the middle of the roll.</summary>
+    public static float LockBandLeftInches(string locks)
+    {
+        float band = LockBandWidthInches(locks);
+        return PageLeftInches + ((PageWidthInches - band) / 2f);
+    }
+
+    /// <summary>The label's left edge on the page.</summary>
+    public const float PageLeftInches = 0.23f;
+
+    /// <summary>The label's width on the page.</summary>
+    public const float PageWidthInches = 3.21f;
 }
 
 /// <summary>

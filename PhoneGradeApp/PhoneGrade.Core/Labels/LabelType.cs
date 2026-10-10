@@ -164,7 +164,21 @@ public static class LabelType
     /// </remarks>
     public const float LineHeightInMm = 0.3528f * 1.2f;
 
-    /// <summary>The biggest the text block is ever set.</summary>
+    /// <summary>
+    /// How wide a line of type comes out, in millimetres, as a sizing estimate.
+    /// </summary>
+    /// <remarks>
+    /// The same figure the block sizing works on, so a band drawn around a line and
+    /// the size the line is set at cannot disagree about how wide it is. A renderer
+    /// that measures for itself is how a black band ends up narrower than the words
+    /// on it, or twice as wide.
+    /// </remarks>
+    public static float EstimateWidthMm(string text, float point) =>
+        text.Length * point * AdvanceMmPerPoint;
+
+    /// <summary>
+    /// The biggest the text block is ever set.
+    /// </summary>
     public const float LargestBodyPoint = 9f;
 
     /// <summary>

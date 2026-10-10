@@ -393,10 +393,15 @@ public class LabelPdfContentTests : IDisposable
         Assert.Equal(barred.Count >= 2, values.ContainsKey("BARCODE_2"));
         if (barred.Count >= 2) Assert.Equal(barred[1], values["BARCODE_2"]);
 
+        // The same for the locks: a phone without them carries no locks object, so
+        // the black band cannot print as an empty stripe.
+        string locks = LabelLayout.LockLine(fields);
+        Assert.Equal(locks.Length > 0, values.ContainsKey("TEKST_4"));
+        if (locks.Length > 0) Assert.Equal(locks, values["TEKST_4"]);
+
         Assert.Equal(string.Join(" ", spelled), values["TEKST_1"]);
         Assert.Equal(LabelLayout.TextLine(fields), values["TEKST_2"]);
         Assert.Equal(LabelLayout.DetailLine(fields), values["TEKST_3"]);
-        Assert.Equal(LabelLayout.LockLine(fields), values["TEKST_4"]);
     }
 
     [Fact]
