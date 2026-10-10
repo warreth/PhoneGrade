@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using PhoneGrade.Core.Android;
+using PhoneGrade.Core.Apple;
 using PhoneGrade.Core.Licensing;
-using PhoneGrade.Core.Usb;
 
 namespace PhoneGrade.Core;
 
@@ -582,13 +583,13 @@ public static class DeviceService
         // Android has no equivalent of Apple's AST2, so a per-component serial
         // cannot be verified here. What every Android device does expose is
         // checked instead, rather than leaving the panel blank.
-        data.ComponentChecks = SecurityServices.AndroidIntegrityChecks.Build(facts);
+        data.ComponentChecks = Android.AndroidIntegrityChecks.Build(facts);
 
-        data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(serial);
+        data.CarrierLockAndroid = await Android.FrpLockService.DetectCarrierLockAsync(serial);
 
         // Factory Reset Protection decides whether a wiped phone comes back usable.
         // It was read by a service nobody called, so the state was never reported.
-        data.FactoryResetProtection = await SecurityServices.FrpLockService.DetectAsync(serial);
+        data.FactoryResetProtection = await Android.FrpLockService.DetectAsync(serial);
 
         if (data.WithheldReads.Count > 0)
         {
@@ -647,13 +648,13 @@ public static class DeviceService
 
         if (isIOS)
         {
-            data.ActivationLock = await SecurityServices.ActivationLockService.DetectAsync(udid);
-            data.CarrierLockIOS = await SecurityServices.ActivationLockService.DetectCarrierLockAsync(udid);
+            data.ActivationLock = await Apple.ActivationLockService.DetectAsync(udid);
+            data.CarrierLockIOS = await Apple.ActivationLockService.DetectCarrierLockAsync(udid);
         }
         else
         {
             // Android device
-            data.CarrierLockAndroid = await SecurityServices.FrpLockService.DetectCarrierLockAsync(udid);
+            data.CarrierLockAndroid = await Android.FrpLockService.DetectCarrierLockAsync(udid);
         }
 
         return data;

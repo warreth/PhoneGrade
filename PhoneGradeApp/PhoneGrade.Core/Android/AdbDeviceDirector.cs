@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using PhoneGrade.Core.Diagnostics;
+using PhoneGrade.Core.Usb;
 
-namespace PhoneGrade.Core.Usb;
+namespace PhoneGrade.Core.Android;
 
 /// <summary>
 /// Event arguments for when ADB authorization is required.

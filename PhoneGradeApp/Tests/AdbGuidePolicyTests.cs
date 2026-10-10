@@ -1,5 +1,5 @@
 using PhoneGrade.Core;
-using PhoneGrade.Core.Usb;
+using PhoneGrade.Core.Android;
 using Xunit;
 
 namespace Tests;

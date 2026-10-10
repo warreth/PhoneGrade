@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reactive.Linq;
 using Avalonia.Threading;
-using PhoneGrade.Core.Usb;
+using PhoneGrade.Core.Android;
 using PhoneGrade.UI.Services;
 using ReactiveUI;
 

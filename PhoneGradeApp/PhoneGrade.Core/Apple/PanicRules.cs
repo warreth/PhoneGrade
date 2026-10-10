@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace PhoneGrade.Core.Diagnostics;
+namespace PhoneGrade.Core.Apple;
 
 /// <summary>A single panic-string rule: regex over raw log text → human explanation.</summary>
 /// <param name="Pattern">Case-insensitive regex matched against the panic string and product description.</param>

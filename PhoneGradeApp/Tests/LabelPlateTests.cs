@@ -18,8 +18,8 @@ public class LabelPlateTests
         Identifier = "356938035643809", Model = "iPhone 13 Pro", Color = ColorKeys.Graphite,
         Storage = "256GB", Memory = "6GB", BatteryHealth = "78", BatteryCycleCount = 612,
         Quality = "C", PayMethod = "BTW",
-        FactoryResetProtection = PhoneGrade.Core.SecurityServices.FrpLockService.FrpLockStatus.Locked,
-        ActivationLock = PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked,
+        FactoryResetProtection = PhoneGrade.Core.Android.FrpLockService.FrpLockStatus.Locked,
+        ActivationLock = PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Locked,
         ComponentChecks =
         [
             new ComponentStatus

@@ -1,6 +1,6 @@
 using Xunit;
 using PhoneGrade.Core;
-using PhoneGrade.Core.SecurityServices;
+using PhoneGrade.Core.Apple;
 
 namespace Tests;
 

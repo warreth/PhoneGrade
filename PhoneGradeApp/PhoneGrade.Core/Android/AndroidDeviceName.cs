@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace PhoneGrade.Core.Usb;
+namespace PhoneGrade.Core.Android;
 
 /// <summary>
 /// Turns the name the operating system reported for a device into something

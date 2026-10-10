@@ -305,8 +305,8 @@ class ScreenshotRunner
         BatteryCycleCount = 612,
         Quality = "C",
         PayMethod = "Btw",
-        FactoryResetProtection = PhoneGrade.Core.SecurityServices.FrpLockService.FrpLockStatus.Locked,
-        ActivationLock = PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked,
+        FactoryResetProtection = PhoneGrade.Core.Android.FrpLockService.FrpLockStatus.Locked,
+        ActivationLock = PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Locked,
         ComponentChecks =
         [
             new PhoneGrade.Core.ComponentStatus

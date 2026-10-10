@@ -1,4 +1,4 @@
-namespace PhoneGrade.Core;
+namespace PhoneGrade.Core.Apple;
 
 /// <summary>Automates iOS device activation and bypasses Setup Assistant (PurpleBuddy).</summary>
 public static class ActivationService

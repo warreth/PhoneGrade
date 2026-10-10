@@ -1,7 +1,8 @@
 using Xunit;
 using PhoneGrade.Core;
+using PhoneGrade.Core.Android;
+using PhoneGrade.Core.Apple;
 using PhoneGrade.Core.Diagnostics;
-using PhoneGrade.Core.SecurityServices;
 
 namespace Tests;
 

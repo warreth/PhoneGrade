@@ -1,4 +1,4 @@
-namespace PhoneGrade.Core.SecurityServices;
+namespace PhoneGrade.Core.Android;
 
 /// <summary>
 /// Integrity checks for Android devices.

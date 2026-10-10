@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using PhoneGrade.Core;
+using PhoneGrade.Core.Android;
+using PhoneGrade.Core.Apple;
 using PhoneGrade.Core.SecurityServices;
 using Xunit;
 

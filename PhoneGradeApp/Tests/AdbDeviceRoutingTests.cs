@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using PhoneGrade.Core.Android;
 using PhoneGrade.Core.Usb;
 using Xunit;
 

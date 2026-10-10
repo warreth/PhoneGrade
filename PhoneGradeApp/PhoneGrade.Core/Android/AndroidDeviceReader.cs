@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace PhoneGrade.Core;
+namespace PhoneGrade.Core.Android;
 
 /// <summary>
 /// One shot of everything an Android handset is willing to tell us over adb.

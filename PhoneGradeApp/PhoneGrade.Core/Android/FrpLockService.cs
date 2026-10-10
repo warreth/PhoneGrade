@@ -1,4 +1,4 @@
-namespace PhoneGrade.Core.SecurityServices;
+namespace PhoneGrade.Core.Android;
 
 /// <summary>
 /// Android Factory Reset Protection and carrier state, read over adb.

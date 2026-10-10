@@ -150,15 +150,15 @@ public class DeviceData : INotifyPropertyChanged
     public InteractiveTestSuiteResult? InteractiveTests { get; set; }
 
     // Security & Lock Status
-    public SecurityServices.ActivationLockService.ActivationLockStatus? ActivationLock { get; set; }
-    public SecurityServices.ActivationLockService.CarrierLockStatus? CarrierLockIOS { get; set; }
-    public SecurityServices.FrpLockService.CarrierLockStatus? CarrierLockAndroid { get; set; }
+    public Apple.ActivationLockService.ActivationLockStatus? ActivationLock { get; set; }
+    public Apple.ActivationLockService.CarrierLockStatus? CarrierLockIOS { get; set; }
+    public Android.FrpLockService.CarrierLockStatus? CarrierLockAndroid { get; set; }
 
     /// <summary>
     /// Android Factory Reset Protection. Null when the handset does not let the
     /// key be read, which is not the same as being switched off.
     /// </summary>
-    public SecurityServices.FrpLockService.FrpLockStatus? FactoryResetProtection { get; set; }
+    public Android.FrpLockService.FrpLockStatus? FactoryResetProtection { get; set; }
 
     public SecurityServices.BlacklistCheckService.BlacklistStatus? Blacklist { get; set; }
 

@@ -1,6 +1,6 @@
 using PhoneGrade.Core;
+using PhoneGrade.Core.Android;
 using PhoneGrade.Core.Diagnostics;
-using PhoneGrade.Core.SecurityServices;
 using Xunit;
 
 namespace PhoneGrade.Tests;

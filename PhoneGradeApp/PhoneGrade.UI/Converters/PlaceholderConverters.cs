@@ -137,13 +137,13 @@ public class ActivationLockConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus status)
+        if (value is not PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus status)
             return LocalizationManager.GetString("Value_Unknown");
 
         return status switch
         {
-            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked => LocalizationManager.GetString("ActivationLock_On"),
-            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked => LocalizationManager.GetString("ActivationLock_Off"),
+            PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Locked => LocalizationManager.GetString("ActivationLock_On"),
+            PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Unlocked => LocalizationManager.GetString("ActivationLock_Off"),
             _ => LocalizationManager.GetString("Value_Unknown"),
         };
     }
@@ -157,13 +157,13 @@ public class ActivationLockBrushConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus status)
+        if (value is not PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus status)
             return Avalonia.Media.Brushes.Gray;
 
         return status switch
         {
-            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked => Avalonia.Media.Brushes.Red,
-            PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked => Avalonia.Media.Brushes.Green,
+            PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Locked => Avalonia.Media.Brushes.Red,
+            PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Unlocked => Avalonia.Media.Brushes.Green,
             _ => Avalonia.Media.Brushes.Gray,
         };
     }

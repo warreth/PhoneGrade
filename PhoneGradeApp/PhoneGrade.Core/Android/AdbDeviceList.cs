@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace PhoneGrade.Core.Usb;
+namespace PhoneGrade.Core.Android;
 
 /// <summary>
 /// What adb currently reports about the phones plugged in.

@@ -1,4 +1,4 @@
-namespace PhoneGrade.Core.Usb;
+namespace PhoneGrade.Core.Android;
 
 /// <summary>What the USB debugging how-to should do with an answer.</summary>
 public enum AdbGuideDecision

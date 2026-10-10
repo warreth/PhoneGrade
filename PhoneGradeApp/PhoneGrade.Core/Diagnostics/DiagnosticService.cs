@@ -1,4 +1,6 @@
 
+using PhoneGrade.Core.Apple;
+
 namespace PhoneGrade.Core.Diagnostics;
 
 /// <summary>
@@ -73,7 +75,7 @@ public static partial class DiagnosticService
 
 
         // 3. Security, Carrier, and Component Validation (from new security services)
-        if (data.ActivationLock == PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Locked)
+        if (data.ActivationLock == PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Locked)
         {
             issues.Add(new DiagnosticIssue
             {
@@ -83,7 +85,7 @@ public static partial class DiagnosticService
                 Level = Severity.Error
             });
         }
-        else if (data.ActivationLock == PhoneGrade.Core.SecurityServices.ActivationLockService.ActivationLockStatus.Unlocked)
+        else if (data.ActivationLock == PhoneGrade.Core.Apple.ActivationLockService.ActivationLockStatus.Unlocked)
         {
             issues.Add(new DiagnosticIssue
             {
@@ -106,7 +108,7 @@ public static partial class DiagnosticService
             });
         }
 
-        if (data.FactoryResetProtection == SecurityServices.FrpLockService.FrpLockStatus.Locked)
+        if (data.FactoryResetProtection == PhoneGrade.Core.Android.FrpLockService.FrpLockStatus.Locked)
         {
             issues.Add(new DiagnosticIssue
             {

@@ -1,4 +1,4 @@
-namespace PhoneGrade.Core.SecurityServices;
+namespace PhoneGrade.Core.Apple;
 
 /// <summary>iOS activation lock detection via lockdownd queries.</summary>
 public static class ActivationLockService

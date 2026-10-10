@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PhoneGrade.Core;
+using PhoneGrade.Core.Android;
 using PhoneGrade.UI.Services;
 using PhoneGrade.UI.ViewModels;
 using Xunit;

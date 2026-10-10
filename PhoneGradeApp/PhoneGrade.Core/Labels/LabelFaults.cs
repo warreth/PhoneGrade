@@ -113,9 +113,9 @@ public static class LabelFaultReader
         var blockages = new List<string>();
         if (locks)
         {
-            if (data.FactoryResetProtection == SecurityServices.FrpLockService.FrpLockStatus.Locked)
+            if (data.FactoryResetProtection == Android.FrpLockService.FrpLockStatus.Locked)
                 blockages.Add(FaultCodes.Frp);
-            if (data.ActivationLock == SecurityServices.ActivationLockService.ActivationLockStatus.Locked)
+            if (data.ActivationLock == Apple.ActivationLockService.ActivationLockStatus.Locked)
                 blockages.Add(FaultCodes.ActivationLock);
             if (data.CarrierLockIOS?.IsCarrierLocked == true || data.CarrierLockAndroid?.IsCarrierLocked == true)
                 blockages.Add(FaultCodes.CarrierLock);

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace PhoneGrade.Core;
+namespace PhoneGrade.Core.Android;
 
 /// <summary>
 /// Points the test server at the phone through USB instead of the network.
