@@ -307,11 +307,13 @@ public class LabelSymbologyTests
         // the file is correct whatever the operator has chosen for the PDF.
         string filled = DymoTemplate.Fill(TestTemplate(), LabelFields.From(Phone())).Text;
 
-        // The template declares Code39, so the code goes in wrapped in the markers
-        // Code39 needs. The text field beside it holds the bare identifier, which is
-        // a different thing on the label and stays bare.
+        // The template declares Code39, so the data goes in without the markers:
+        // DYMO draws the bars and writes the start and stop itself, and a marker left
+        // in the data is one a scanner reads as the end of the code. The text field
+        // beside it holds the bare identifier too, which is the same value.
         Assert.Contains("<BarcodeFormat>Code39</BarcodeFormat>", filled);
-        Assert.Contains("<DataString>*356938035643809*</DataString>", filled);
+        Assert.Contains("<DataString>356938035643809</DataString>", filled);
+        Assert.DoesNotContain("<DataString>*", filled, StringComparison.Ordinal);
         Assert.Contains("<Text>356938035643809</Text>", filled);
     }
 

@@ -387,11 +387,23 @@ public class LabelPdfContentTests : IDisposable
         // An object with no code to carry is not in the file at all: DYMO's own
         // renderer answers an empty barcode with a minimal stub, so the spare
         // object is taken out rather than left for the renderer to fill in.
+        //
+        // The data itself is the value without the Code39 markers: DYMO adds those
+        // when it draws the bars and prints the data under them, so a marker left in
+        // it lands in the middle of the code, where a scanner reads the end.
         Assert.Equal(barred.Count >= 1, values.ContainsKey("BARCODE_1"));
-        if (barred.Count >= 1) Assert.Equal(barred[0], values["BARCODE_1"]);
+        if (barred.Count >= 1)
+        {
+            Assert.Equal(LabelBarcode.Readback(barred[0], LabelCodeSymbology.Code39), values["BARCODE_1"]);
+            Assert.DoesNotContain("*", values["BARCODE_1"], StringComparison.Ordinal);
+        }
 
         Assert.Equal(barred.Count >= 2, values.ContainsKey("BARCODE_2"));
-        if (barred.Count >= 2) Assert.Equal(barred[1], values["BARCODE_2"]);
+        if (barred.Count >= 2)
+        {
+            Assert.Equal(LabelBarcode.Readback(barred[1], LabelCodeSymbology.Code39), values["BARCODE_2"]);
+            Assert.DoesNotContain("*", values["BARCODE_2"], StringComparison.Ordinal);
+        }
 
         // The same for the locks: a phone without them carries no locks object, so
         // the black band cannot print as an empty stripe.

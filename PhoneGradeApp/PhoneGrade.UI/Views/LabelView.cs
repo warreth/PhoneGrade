@@ -86,8 +86,16 @@ public sealed class LabelView : Control
     /// <summary>How many millimetres a point of type is, which is 72 to the inch.</summary>
     private const double MillimetresPerPoint = 25.4 / 72.0;
 
-    /// <summary>How much taller the box around a line of type is than the type itself.</summary>
-    private const double LineBoxOverFontSize = 1.35;
+    /// <summary>
+    /// How much taller the box around a line of type is than the type itself.
+    /// </summary>
+    /// <remarks>
+    /// The same 1.2 the plate reserves for every line. A taller box here looked
+    /// better spaced and pushed the last line off the paper on a full label: the
+    /// plate had centred a block of one height and the preview drew another, and the
+    /// line that paid for it was the locks.
+    /// </remarks>
+    private const double LineBoxOverFontSize = 1.2;
 
     /// <summary>The size the value under the barcode is set at, as the PDF sets it.</summary>
     private const double CaptionPoint = 5.5;
@@ -129,36 +137,49 @@ public sealed class LabelView : Control
         LabelLayout sheet = Sheet;
         LabelPlate? plate = Plate;
 
+        // Never larger than life, and centred in whatever room is left over. The
+        // scale is the one the arrange settled on rather than the width divided
+        // again: the two used to disagree, and a control given more room than the
+        // sheet needed drew the label at one size inside a box of another, so the
+        // lower lines ran past the paper and the locks came off the label.
+        double design = sheet.PaperWidthMm * PixelsPerMm;
+        double scale = design > 0 ? Math.Min(1, bounds.Width / design) : 1;
+        if (scale <= 0) return;
+
+        double sheetWidth = design * scale;
+        double sheetHeight = sheet.PaperHeightMm * PixelsPerMm * scale;
+        double left = Math.Max(0, (bounds.Width - sheetWidth) / 2);
+
         // The sheet itself, whichever theme is on: a label is white paper, and the
         // preview has to show the ink on the paper rather than the ink on a dark card.
-        context.FillRectangle(Brushes.White, new Rect(0, 0, bounds.Width, bounds.Height));
+        context.FillRectangle(Brushes.White, new Rect(left, 0, sheetWidth, sheetHeight));
 
         if (plate is null || !plate.HasContent) return;
 
-        double design = sheet.PaperWidthMm * PixelsPerMm;
-        double scale = design > 0 ? bounds.Width / design : 1;
-        if (scale <= 0) return;
-
-        double side = sheet.Stock.SideMarginMm * PixelsPerMm * scale;
+        double side = left + (sheet.Stock.SideMarginMm * PixelsPerMm * scale);
         double top = sheet.Stock.TopMarginMm * PixelsPerMm * scale;
         double printable = sheet.WidthMm * PixelsPerMm * scale;
-        double center = bounds.Width / 2;
+        double center = left + (sheetWidth / 2);
 
         // The barcodes, each in its own band, placed by the same offsets the PDF
-        // uses so the words sit where the printed label puts them.
+        // uses so the words sit where the printed label puts them. The bars are
+        // drawn from the payload, which carries the Code39 markers; the caption is
+        // read back from the same payload without them, because a marker is the
+        // scanner's word and not part of the serial.
         int count = plate.BarcodeCount;
         double bandMm = sheet.BarcodeBandMm(count);
         double y = top + (plate.TopOffsetMm * PixelsPerMm * scale);
+        IReadOnlyList<string> captions = plate.Captions;
 
-        foreach (string payload in plate.Barred)
+        for (int index = 0; index < count; index++)
         {
             double band = bandMm * PixelsPerMm * scale;
             double caption = Math.Min(3, bandMm * 0.3) * PixelsPerMm * scale;
             double bars = band - caption;
 
-            DrawBarcode(context, payload, plate.Symbology, printable, y, bars, side);
-            DrawText(context, payload, CaptionPoint, bold: false, Brushes.Black,
-                new Rect(0, y + bars, bounds.Width, caption), TextAlignment.Center, scale);
+            DrawBarcode(context, plate.Barred[index], plate.Symbology, printable, y, bars, side);
+            DrawText(context, captions[index], CaptionPoint, bold: false, Brushes.Black,
+                new Rect(left, y + bars, sheetWidth, caption), TextAlignment.Center, scale);
 
             y += band + (LabelLayout.GapMm * PixelsPerMm * scale);
         }
@@ -167,7 +188,7 @@ public sealed class LabelView : Control
 
         if (plate.Variant == LabelVariant.GradeBlock)
         {
-            DrawGradeBlock(context, plate, sheet, scale, textTop, side, printable);
+            DrawGradeBlock(context, plate, sheet, scale, textTop, side, printable, left, sheetWidth);
             return;
         }
 
@@ -183,7 +204,7 @@ public sealed class LabelView : Control
             else
             {
                 DrawText(context, line.Text, line.PointSize, line.Bold, Brushes.Black,
-                    new Rect(0, textTop, bounds.Width, height), TextAlignment.Center, scale);
+                    new Rect(left, textTop, sheetWidth, height), TextAlignment.Center, scale);
             }
 
             textTop += height;
@@ -196,7 +217,7 @@ public sealed class LabelView : Control
     /// </summary>
     private void DrawGradeBlock(
         DrawingContext context, LabelPlate plate, LabelLayout sheet, double scale,
-        double top, double side, double printable)
+        double top, double side, double printable, double left, double sheetWidth)
     {
         double y = top;
 
@@ -206,7 +227,7 @@ public sealed class LabelView : Control
         {
             double size = spelled.PointSize * MillimetresPerPoint * PixelsPerMm * scale;
             DrawText(context, spelled.Text, spelled.PointSize, false, Brushes.Black,
-                new Rect(0, y, Bounds.Width, size * LineBoxOverFontSize), TextAlignment.Center, scale);
+                new Rect(left, y, sheetWidth, size * LineBoxOverFontSize), TextAlignment.Center, scale);
             y += size * LineBoxOverFontSize;
         }
 
@@ -246,9 +267,9 @@ public sealed class LabelView : Control
         LabelLine? locks = plate.Lines.FirstOrDefault(line => line.Role == LabelLineRole.Locks);
         if (locks is not null)
         {
-            y += 1 * PixelsPerMm * scale;
+            y += LabelPlate.GradeLockGapMm * PixelsPerMm * scale;
             double size = locks.PointSize * MillimetresPerPoint * PixelsPerMm * scale;
-            DrawInverted(context, locks.Text, size, Bounds.Width / 2, y, scale);
+            DrawInverted(context, locks.Text, size, left + (sheetWidth / 2), y, scale);
         }
     }
 

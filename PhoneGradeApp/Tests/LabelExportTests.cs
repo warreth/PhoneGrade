@@ -684,6 +684,18 @@ public class LabelBarcodeTests
     }
 
     [Fact]
+    public void AnAsteriskInTheMiddleOfASerialIsReplacedRatherThanCarried()
+    {
+        // The asterisk is where a Code39 begins and ends, not a character it can
+        // carry as data. One left as it stands puts a second start marker inside the
+        // serial, and a scanner reads everything up to it as the whole code: the
+        // device is filed under a serial that is missing its tail.
+        Assert.False(LabelBarcode.IsEncodable("35*68"));
+        Assert.Equal("*35-68*", LabelBarcode.Encode("35*68", out string? reason));
+        Assert.NotNull(reason);
+    }
+
+    [Fact]
     public void NothingEncodableProducesNoBarcodeAtAll()
     {
         // A barcode drawn from a placeholder would scan as NOID on every device.
@@ -792,6 +804,72 @@ public class Code39Tests
     {
         Assert.True(Code39.CanEncode("*ABC-123*"));
         Assert.False(Code39.CanEncode("*abc*"));
+    }
+
+    /// <summary>
+    /// The published pattern list, character for character.
+    /// </summary>
+    /// <remarks>
+    /// Written out here rather than read from the table the code carries, because a
+    /// test that reads what it checks cannot catch a row that is wrong. This is the
+    /// table every Code39 reader's firmware holds, and the rows are in the order the
+    /// app's alphabet has them: the digits, the symbols, the letters, then the
+    /// start and stop marker.
+    ///
+    /// It exists because the digit 3 was wrong. The code drew a pattern no reader
+    /// knows, every barcode with a 3 in it came back as nothing or as another
+    /// character, and every test in this suite was green: they all checked the table
+    /// against itself. A serial that scans as a different serial files a phone under
+    /// the wrong record, which is the one failure the label cannot have.
+    /// </remarks>
+    [Theory]
+    [InlineData('0', "NNNWWNWNN")]
+    [InlineData('1', "WNNWNNNNW")]
+    [InlineData('2', "NNWWNNNNW")]
+    [InlineData('3', "WNWWNNNNN")]
+    [InlineData('4', "NNNWWNNNW")]
+    [InlineData('5', "WNNWWNNNN")]
+    [InlineData('6', "NNWWWNNNN")]
+    [InlineData('7', "NNNWNNWNW")]
+    [InlineData('8', "WNNWNNWNN")]
+    [InlineData('9', "NNWWNNWNN")]
+    [InlineData('-', "NWNNNNWNW")]
+    [InlineData('.', "WWNNNNWNN")]
+    [InlineData(' ', "NWWNNNWNN")]
+    [InlineData('$', "NWNWNWNNN")]
+    [InlineData('/', "NWNWNNNWN")]
+    [InlineData('+', "NWNNNWNWN")]
+    [InlineData('%', "NNNWNWNWN")]
+    [InlineData('A', "WNNNNWNNW")]
+    [InlineData('B', "NNWNNWNNW")]
+    [InlineData('C', "WNWNNWNNN")]
+    [InlineData('D', "NNNNWWNNW")]
+    [InlineData('E', "WNNNWWNNN")]
+    [InlineData('F', "NNWNWWNNN")]
+    [InlineData('G', "NNNNNWWNW")]
+    [InlineData('H', "WNNNNWWNN")]
+    [InlineData('I', "NNWNNWWNN")]
+    [InlineData('J', "NNNNWWWNN")]
+    [InlineData('K', "WNNNNNNWW")]
+    [InlineData('L', "NNWNNNNWW")]
+    [InlineData('M', "WNWNNNNWN")]
+    [InlineData('N', "NNNNWNNWW")]
+    [InlineData('O', "WNNNWNNWN")]
+    [InlineData('P', "NNWNWNNWN")]
+    [InlineData('Q', "NNNNNNWWW")]
+    [InlineData('R', "WNNNNNWWN")]
+    [InlineData('S', "NNWNNNWWN")]
+    [InlineData('T', "NNNNWNWWN")]
+    [InlineData('U', "WWNNNNNNW")]
+    [InlineData('V', "NWWNNNNNW")]
+    [InlineData('W', "WWWNNNNNN")]
+    [InlineData('X', "NWNNWNNNW")]
+    [InlineData('Y', "WWNNWNNNN")]
+    [InlineData('Z', "NWWNWNNNN")]
+    [InlineData('*', "NWNNWNWNN")]
+    public void EveryCharacterMatchesThePublishedPatternList(char character, string pattern)
+    {
+        Assert.Equal(pattern, Code39.Encode(character.ToString()).Single());
     }
 }
 

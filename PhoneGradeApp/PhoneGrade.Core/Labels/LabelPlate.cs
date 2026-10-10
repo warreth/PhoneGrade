@@ -115,6 +115,19 @@ public sealed record LabelPlate
     public string SpelledLine => string.Join("  ", Spelled.Select(value => value.Trim('*')));
 
     /// <summary>
+    /// What each barcode is read back as, for the caption under its bars.
+    /// </summary>
+    /// <remarks>
+    /// A caption is the value a person checks the label against, so it carries the
+    /// number as the number is, without the Code39 markers. The bars themselves are
+    /// drawn from <see cref="Barred"/>, which keeps them: the markers are how the
+    /// bars begin and end. One list per purpose, so no renderer has to remember which
+    /// form it is holding.
+    /// </remarks>
+    public IReadOnlyList<string> Captions =>
+        Barred.Select(value => LabelBarcode.Readback(value, Symbology)).ToList();
+
+    /// <summary>
     /// The separator between the values on one line of the structured and grade block
     /// arrangements.
     /// </summary>
@@ -131,6 +144,15 @@ public sealed record LabelPlate
 
     /// <summary>How wide the grade block is drawn, in millimetres.</summary>
     public const float GradeBoxWidthMm = 15f;
+
+    /// <summary>
+    /// Room kept between the grade block and the locks line under it, in millimetres.
+    /// </summary>
+    /// <remarks>
+    /// The preview and the PDF both leave it, and the plate reserves it, so the three
+    /// agree on where the last line of the label sits.
+    /// </remarks>
+    public const float GradeLockGapMm = 1f;
 
     /// <summary>
     /// Turns an inspection into the drawing plan for one variant.
@@ -177,6 +199,30 @@ public sealed record LabelPlate
         if (spelledLine.Length > 0) block.Add(spelledLine);
         block.AddRange(planned.Where(line => line.Text.Length > 0).Select(line => line.Text));
 
+        // The lines drawn at the body size, and the locks, which may be one of them or
+        // an extra line below them: the cleaned arrangement counts its locks among its
+        // lines, the other two draw them on their own. Both the size and the centring
+        // have to pay for the lines the label really draws, or the locks line is the
+        // one that comes off the paper.
+        int bodyLines = planned.Count(line => line.Text.Length > 0 && line.Role != LabelLineRole.Locks)
+            + (spelledLine.Length > 0 ? 1 : 0);
+        bool hasLocks = texts.Locks.Length > 0;
+        float heightLines = bodyLines + (hasLocks ? LabelType.LocksLargerThanBody : 0f);
+
+        if (variant == LabelVariant.GradeBlock)
+        {
+            // The block is taller than the lines beside it and the gap under it is
+            // room, and both come out of the same height the lines do. The gap is
+            // counted at the smallest the body can be set, which reserves the most
+            // line heights for it: a block that fits at the smallest body fits at
+            // every larger one.
+            float boxLines = GradeLetterOverBody * GradeBoxOverLetter * (25.4f / 72f)
+                / LabelType.LineHeightInMm;
+            heightLines = Math.Max(bodyLines, boxLines)
+                + (hasLocks ? LabelType.LocksLargerThanBody : 0f)
+                + (hasLocks ? GradeLockGapMm / (LabelType.SmallestBodyPoint * LabelType.LineHeightInMm) : 0f);
+        }
+
         // The grade block takes width the words cannot use, so the body size is
         // measured against what is left of the paper. Without it a two line block on
         // an address label sizes to the full width and runs under the box.
@@ -184,25 +230,24 @@ public sealed record LabelPlate
             ? Math.Max(8f, layout.WidthMm - GradeBoxWidthMm - 2f)
             : layout.WidthMm;
 
-        float body = LabelType.BlockSize(block, layout, barred.Count, textWidth);
-        bool hasLocks = texts.Locks.Length > 0;
+        float body = LabelType.BlockSize(block, layout, barred.Count, textWidth, heightLines);
         float locksPoint = hasLocks
             ? LabelType.LineSize(texts.Locks, layout, barred.Count, body * LabelType.LocksLargerThanBody, body)
             : body;
 
         // The grade block is taller than the lines of type beside it and has to be
         // paid for out of the same room, or the locks come off the bottom of the
-        // label: the failure this arrangement would hit first.
+        // label: the failure this arrangement would hit first. The gap between the
+        // block and the locks under it is room too.
         float gradePoint = body * GradeLetterOverBody;
         float boxHeightMm = gradePoint * GradeBoxOverLetter * (25.4f / 72f);
-        int besideLines = planned.Count(line => line.Text.Length > 0) + (spelledLine.Length > 0 ? 1 : 0);
-        float besideMm = besideLines * body * LabelType.LineHeightInMm;
+        float besideMm = bodyLines * body * LabelType.LineHeightInMm;
         float extraMm = variant == LabelVariant.GradeBlock
-            ? Math.Max(0f, boxHeightMm - besideMm)
+            ? Math.Max(0f, boxHeightMm - besideMm) + (hasLocks ? GradeLockGapMm : 0f)
             : 0f;
 
         float slack = LabelType.Centring(
-            layout, barred.Count, body, lines: besideLines, locksSet: hasLocks, extraMm: extraMm);
+            layout, barred.Count, body, lines: bodyLines, locksSet: hasLocks, extraMm: extraMm);
 
         var lines = new List<LabelLine>();
         if (spelledLine.Length > 0)

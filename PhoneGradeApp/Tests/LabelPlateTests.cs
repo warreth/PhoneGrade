@@ -58,6 +58,106 @@ public class LabelPlateTests
     }
 
     [Fact]
+    public void TheCaptionUnderTheBarsIsTheSerialWithoutTheCode39Markers()
+    {
+        // The bars need the markers to have a beginning and an end; the caption is
+        // what a person checks the number against, and a serial is not spelled with
+        // asterisks. One plate, two forms, each used where it belongs.
+        LabelPlate plate = Plate();
+
+        Assert.Equal(new[] { "*356938035643809*" }, plate.Barred);
+        Assert.Equal(new[] { "356938035643809" }, plate.Captions);
+        Assert.DoesNotContain("*", plate.Captions[0], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(LabelVariant.Clean)]
+    [InlineData(LabelVariant.Structured)]
+    [InlineData(LabelVariant.GradeBlock)]
+    public void EveryArrangementKeepsItsLastLineOnThePaper(LabelVariant variant)
+    {
+        // The stack as the preview and the PDF draw it: the top margin, the centring,
+        // the barcode bands, then the lines at the size the plate set, with the grade
+        // block's own height and the gap under it. A plate whose stack is taller than
+        // the paper puts the locks line, which is the last one, under the edge of the
+        // label, and the preview is where an operator would not see it go.
+        LabelLayout layout = LabelLayout.Address;
+        float mmPerPoint = 25.4f / 72f;
+        const float box = 1.2f;
+
+        foreach (DeviceData device in Devices())
+        {
+            LabelFields fields = LabelFields.From(device);
+            LabelPlate plate = LabelPlate.Build(
+                fields, layout, LabelBarcodeMode.Identifier, LabelCodeSymbology.Code39, variant);
+
+            float stack;
+            if (variant == LabelVariant.GradeBlock)
+            {
+                float spelled = plate.Lines.Where(line => line.Role == LabelLineRole.Spelled)
+                    .Sum(line => line.PointSize * mmPerPoint * box);
+                float beside = plate.Lines.Where(line =>
+                        line.Role is not (LabelLineRole.Locks or LabelLineRole.Spelled))
+                    .Sum(line => line.PointSize * mmPerPoint * box);
+                float locks = plate.Lines.Any(line => line.Role == LabelLineRole.Locks)
+                    ? LabelPlate.GradeLockGapMm + (plate.LocksPoint * mmPerPoint * box)
+                    : 0f;
+
+                stack = spelled + Math.Max(beside, plate.GradeBoxHeightMm) + locks;
+            }
+            else
+            {
+                stack = plate.Lines.Sum(line => line.PointSize * mmPerPoint * box);
+            }
+
+            float end = layout.Stock.TopMarginMm + plate.TopOffsetMm
+                        + layout.TextYmm(plate.BarcodeCount) + stack;
+            float bottom = layout.PaperHeightMm - layout.Stock.BottomMarginMm;
+
+            Assert.True(end <= bottom + 0.05f,
+                $"{variant} on {device.Model}: the last line ends at {end:N2}mm of {bottom:N2}mm");
+        }
+    }
+
+    /// <summary>The devices a label has to fit: the ordinary one, and the extremes.</summary>
+    private static IEnumerable<DeviceData> Devices()
+    {
+        yield return Phone();
+
+        var allLocks = Phone();
+        allLocks.CarrierLockAndroid = new PhoneGrade.Core.Android.FrpLockService.CarrierLockStatus
+        {
+            IsCarrierLocked = true,
+            CarrierName = "Vodafone",
+        };
+        allLocks.Blacklist = new PhoneGrade.Core.SecurityServices.BlacklistCheckService.BlacklistStatus
+        {
+            IsBlacklisted = true,
+        };
+        yield return allLocks;
+
+        var manyFaults = Phone();
+        manyFaults.ComponentChecks =
+        [
+            new ComponentStatus { Name = "Battery", SerialRead = "L9", SerialOriginal = "K1", Status = ComponentStatusType.Mismatch },
+            new ComponentStatus { Name = "Screen", SerialRead = "S2", SerialOriginal = "S1", Status = ComponentStatusType.Mismatch },
+            new ComponentStatus { Name = "Camera", SerialRead = "C2", SerialOriginal = "C1", Status = ComponentStatusType.Untrusted },
+        ];
+        manyFaults.InteractiveTests = new InteractiveTestSuiteResult
+        {
+            SessionId = "test",
+            Tests =
+            {
+                new InteractiveTestResult { Id = "camera", Name = "Camera", Status = TestStatus.Failed, LabelCode = "CAMERA" },
+                new InteractiveTestResult { Id = "touch", Name = "Touchscreen", Status = TestStatus.Failed, LabelCode = "TOUCH" },
+                new InteractiveTestResult { Id = "screen", Name = "Display", Status = TestStatus.Failed, LabelCode = "SCREEN" },
+                new InteractiveTestResult { Id = "audio", Name = "Speaker", Status = TestStatus.Failed, LabelCode = "AUDIO" },
+            },
+        };
+        yield return manyFaults;
+    }
+
+    [Fact]
     public void TheStructuredPlateSeparatesWhatTheDeviceIsFromWhatItIsWorth()
     {
         LabelPlate plate = Plate(LabelVariant.Structured);

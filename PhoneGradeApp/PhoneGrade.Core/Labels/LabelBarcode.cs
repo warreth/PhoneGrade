@@ -110,11 +110,32 @@ public static class LabelBarcode
     /// <summary>Whether the identifier can go on a barcode exactly as it stands.</summary>
     public static bool IsEncodable(string identifier) => Encode(identifier, out _) == $"*{identifier}*";
 
+    /// <summary>
+    /// A value as it is read back from a code, without the Code39 markers.
+    /// </summary>
+    /// <remarks>
+    /// The markers belong to the scanner rather than to the number: they say where
+    /// the code begins and ends. What a person reads under a barcode, and what DYMO's
+    /// own software is given as its data, is the value itself; DYMO adds the markers
+    /// when it draws the bars, and filling it a code that already carries them gives
+    /// it a marker in the middle of the data, which is a code that does not scan.
+    /// </remarks>
+    public static string Readback(string value, LabelCodeSymbology symbology) =>
+        symbology == LabelCodeSymbology.Code39 ? value.Trim('*') : value;
+
     /// <summary>Whether a character this symbology can carry as it stands.</summary>
+    /// <remarks>
+    /// The asterisk is Code39's start and stop marker rather than a character it can
+    /// carry as data. Letting one through would put a second marker in the middle of
+    /// a serial, and a scanner reads that as the end of the code: the value comes
+    /// back as everything before the gap, or as nothing at all. An identifier with an
+    /// asterisk in it is rewritten like any other character the symbology cannot
+    /// carry, which is what <see cref="Encode"/> is for.
+    /// </remarks>
     public static bool CanCarry(char character, LabelCodeSymbology symbology) => symbology switch
     {
         LabelCodeSymbology.Code128 => Code128.CanEncode(character.ToString()),
-        _ => Code39.CanEncode(character.ToString()),
+        _ => character != '*' && Code39.CanEncode(character.ToString()),
     };
 
     /// <summary>Whether every character of a value can be carried as it stands.</summary>

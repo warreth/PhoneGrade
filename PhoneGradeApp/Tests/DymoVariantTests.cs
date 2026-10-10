@@ -92,6 +92,24 @@ public class DymoVariantTests
     }
 
     [Fact]
+    public void TheBarcodeCarriesTheSerialWithoutTheCode39Markers()
+    {
+        // DYMO draws the bars and writes the start and stop itself, and it prints the
+        // data under them as the caption. A value that already carries the markers
+        // gives it one in the middle of the serial, where a scanner reads the end of
+        // the code, and it prints the asterisks to the customer.
+        foreach (LabelVariant variant in Enum.GetValues<LabelVariant>())
+        {
+            var (text, xml) = Filled(variant);
+
+            Assert.DoesNotContain("<DataString>*", text, StringComparison.Ordinal);
+            Assert.Equal("356938035643809", string.Concat(xml.Descendants("BarcodeObject")
+                .SelectMany(barcode => barcode.Descendants("DataString"))
+                .Select(data => data.Value)));
+        }
+    }
+
+    [Fact]
     public void TheSameValuesAreOnTheFileAsOnTheAppDrawnLabel()
     {
         // One reading of the values feeds both renderers. If these ever drift, a

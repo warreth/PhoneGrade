@@ -258,9 +258,13 @@ public sealed record LabelLayout(LabelStock Stock)
             ["SPEC"] = TextLine(fields),
 
             // The two barcodes, named so the template's two objects can each take
-            // one and either can arrive empty.
-            ["BARCODE1"] = payloads.Count > 0 ? payloads[0] : string.Empty,
-            ["BARCODE2"] = payloads.Count > 1 ? payloads[1] : string.Empty,
+            // one and either can arrive empty. The Code39 markers come off here for
+            // the same reason as in the fill: DYMO adds its own, and a code that
+            // already carries them reads as nothing.
+            ["BARCODE1"] = payloads.Count > 0
+                ? LabelBarcode.Readback(payloads[0], symbology) : string.Empty,
+            ["BARCODE2"] = payloads.Count > 1
+                ? LabelBarcode.Readback(payloads[1], symbology) : string.Empty,
         };
     }
 }

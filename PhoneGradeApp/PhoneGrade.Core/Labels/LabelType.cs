@@ -38,8 +38,15 @@ public static class LabelType
     /// label has taken a share of it. The grade block does, and measuring the text
     /// against the full width put it under the block. Null means the printable width.
     /// </param>
+    /// <param name="heightLines">
+    /// How many line heights the label draws, when that is not one per line of the
+    /// block. An arrangement that draws its locks on a line below the block rather
+    /// than as one of its lines has a whole extra line to pay for, and sizing the
+    /// block as if it were the whole label is how the locks line came off the bottom.
+    /// </param>
     public static float BlockSize(
-        IReadOnlyList<string> block, LabelLayout layout, int barcodes, float? widthMm = null)
+        IReadOnlyList<string> block, LabelLayout layout, int barcodes, float? widthMm = null,
+        float? heightLines = null)
     {
         int longest = 0;
         foreach (string line in block) longest = Math.Max(longest, line.Length);
@@ -48,7 +55,7 @@ public static class LabelType
             ? LargestBodyPoint
             : (widthMm ?? layout.WidthMm) / (longest * AdvanceMmPerPoint);
 
-        return Math.Clamp(Math.Min(across, LargestFor(layout, barcodes, block.Count)),
+        return Math.Clamp(Math.Min(across, LargestFor(layout, barcodes, heightLines ?? block.Count)),
             SmallestBodyPoint, LargestBodyPoint);
     }
 
@@ -76,19 +83,17 @@ public static class LabelType
     /// </summary>
     /// <remarks>
     /// Counted in line heights rather than in lines, because the locks line is set
-    /// larger than the rest. Dividing the available height by the number of lines
-    /// and then setting one of them a third bigger is how the locks line came to be
-    /// dropped from the label: the block did not fit, and the layout engine answered
-    /// an overfull label by leaving out the last thing on it.
+    /// larger than the rest and the arrangements differ in whether it is one of the
+    /// block's lines or an extra one below it. The caller says how many line heights
+    /// the label actually draws. Dividing the available height by the number of
+    /// block lines and then setting one of them a third bigger is how the locks line
+    /// came to be dropped from the label: the block did not fit, and the layout
+    /// engine answered an overfull label by leaving out the last thing on it.
     /// </remarks>
-    private static float LargestFor(LabelLayout layout, int barcodes, int lines)
+    private static float LargestFor(LabelLayout layout, int barcodes, float lines)
     {
         float available = layout.TextHeightMm(barcodes);
-
-        // One line of the block is set larger than the others by this much, so it
-        // occupies more than one line height and has to be paid for.
-        float heights = lines + ((lines > 0 ? lines - 1 : 0) * (LocksLargerThanBody - 1));
-        float perLine = available / Math.Max(1f, heights);
+        float perLine = available / Math.Max(1f, lines);
 
         return Math.Clamp(perLine / LineHeightInMm, SmallestBodyPoint, LargestBodyPoint);
     }
@@ -112,15 +117,19 @@ public static class LabelType
     /// block is the thing this exists for: it has to be paid for out of the same room
     /// as the words or the locks come off the bottom of the label.
     /// </param>
+    /// <param name="lines">
+    /// The lines set at the body size, without the locks. Those are a line of their
+    /// own and are paid for here as one, because the arrangements that draw them
+    /// below the block rather than inside it were reserving a third of a line for
+    /// them and putting them under the paper with it.
+    /// </param>
     public static float Centring(
         LabelLayout layout, int barcodes, float body, int lines, bool locksSet,
         float extraMm = 0)
     {
         float room = layout.TextHeightMm(barcodes);
 
-        // The locks line is set larger than the rest, so it occupies more than one
-        // line height and has to be paid for out of the same room.
-        float taken = (lines * body + (locksSet ? body * (LocksLargerThanBody - 1) : 0)) * LineHeightInMm
+        float taken = (lines + (locksSet ? LocksLargerThanBody : 0)) * body * LineHeightInMm
                       + extraMm;
 
         return Math.Max(0f, (room - taken) / 2f);

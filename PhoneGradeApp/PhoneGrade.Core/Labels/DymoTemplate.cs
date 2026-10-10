@@ -174,10 +174,18 @@ public static class DymoTemplate
         values["CODES"] = fields => LabelTexts.From(fields, cyclesMinimum).Codes;
         values["GRADE"] = fields => LabelTexts.From(fields, cyclesMinimum).Grade;
 
+        // The data DYMO is given is the value without the Code39 markers. DYMO draws
+        // the bars and adds the start and stop itself, and it prints the data under
+        // them as the caption, so filling the payload with its markers does two wrong
+        // things at once: the printed value carries asterisks that are not part of
+        // the serial, and the decoder finds a marker in the middle of the data where
+        // it reads the end of the code.
+        Func<string, string> carried = value => LabelBarcode.Readback(value, symbology);
+
         values[FirstBarcodeSentinel] =
-            fields => Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(0) ?? "";
+            fields => carried(Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(0) ?? "");
         values[SecondBarcodeSentinel] =
-            fields => Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(1) ?? "";
+            fields => carried(Barcodes(layout, mode, symbology, fields).Barred.ElementAtOrDefault(1) ?? "");
         values[SpelledSentinel] =
             fields => string.Join(" ", Barcodes(layout, mode, symbology, fields).Spelled
                 .Select(value => value.Trim('*')));

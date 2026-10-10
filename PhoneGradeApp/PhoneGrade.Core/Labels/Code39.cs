@@ -48,7 +48,7 @@ public static class Code39
     private static readonly string[] Patterns =
     [
         // 0-9
-        "NNNWWNWNN", "WNNWNNNNW", "NNWWNNNNW", "WNWNNNNNW", "NNNWWNNNW",
+        "NNNWWNWNN", "WNNWNNNNW", "NNWWNNNNW", "WNWWNNNNN", "NNNWWNNNW",
         "WNNWWNNNN", "NNWWWNNNN", "NNNWNNWNW", "WNNWNNWNN", "NNWWNNWNN",
 
         // -  .  space  $  /  +  %

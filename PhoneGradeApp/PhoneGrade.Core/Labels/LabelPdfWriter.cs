@@ -119,13 +119,18 @@ public static class LabelPdfWriter
                         column.Item()
                             .PaddingTop(Points(index == 0 ? plate.TopOffsetMm : LabelLayout.GapMm))
                             .Element(container => Barcode(
-                                container, payload, size, plate.Barred.Count, family, symbology));
+                                container, payload, plate.Captions[index], size,
+                                plate.Barred.Count, family, symbology));
                     }
 
                     // The text, below however many barcodes there were. The plate
                     // decided what each line says and how large it is; this only
-                    // paints them.
-                    float above = plate.Barred.Count == 0 ? 0f : LabelLayout.GapMm + plate.TopOffsetMm;
+                    // paints them. The empty paper above the content was already paid
+                    // by the first barcode's own padding; adding it here as well put
+                    // the words a second helping of it lower than the plate had
+                    // centred them, and on a roomy roll that walked the locks line
+                    // off the printable area.
+                    float above = plate.Barred.Count == 0 ? plate.TopOffsetMm : LabelLayout.GapMm;
 
                     column.Item().PaddingTop(Points(above))
                         .Element(container => Block(container, plate, family));
@@ -193,7 +198,8 @@ public static class LabelPdfWriter
 
             LabelLine? locks = plate.Lines.FirstOrDefault(line => line.Role == LabelLineRole.Locks);
             if (locks is not null)
-                column.Item().PaddingTop(Points(1)).Element(item => Line(item, locks, plate, family));
+                column.Item().PaddingTop(Points(LabelPlate.GradeLockGapMm))
+                    .Element(item => Line(item, locks, plate, family));
         });
     }
 
@@ -240,11 +246,13 @@ public static class LabelPdfWriter
     /// units, and which units they are was decided by whoever built the list.
     ///
     /// The caption is what a barcode is read against. A code nobody can read back
-    /// is worse than no code, because the operator believes it was scanned.
+    /// is worse than no code, because the operator believes it was scanned. It is
+    /// handed in rather than read off the payload, because the payload carries the
+    /// Code39 markers the bars need and the caption must not have.
     /// </summary>
     private static void Barcode(
-        IContainer container, string value, LabelLayout size, int count, string? family,
-        LabelCodeSymbology symbology)
+        IContainer container, string value, string readback, LabelLayout size, int count,
+        string? family, LabelCodeSymbology symbology)
     {
         // The bar width is rounded to whole dots before anything else uses it, so
         // that the picture and the box it is handed are the same width. Rounding
@@ -275,7 +283,7 @@ public static class LabelPdfWriter
                     .Height(Points(bars))
                     .Image(Bars(value, symbology, narrowDots, bars)));
 
-            column.Item().AlignCenter().AlignMiddle().Text(value)
+            column.Item().AlignCenter().AlignMiddle().Text(readback)
                 .FontFamily(family ?? "Helvetica")
                 .FontSize(CaptionPoint)
                 .FontColor(Colors.Black);
