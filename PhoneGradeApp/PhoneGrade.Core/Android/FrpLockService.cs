@@ -77,7 +77,7 @@ public static class FrpLockService
         try
         {
             string simState = (await shell("getprop gsm.sim.state")).Trim();
-            if (simState.Length > 0) status.SIMState = simState;
+            if (simState.Length > 0) status.SIMState = FirstEntry(simState);
 
             // gsm.operator.alpha is the current Android answer. The other two are
             // the fallbacks: the SIM's own name for a phone with no service yet,
@@ -107,11 +107,30 @@ public static class FrpLockService
     /// A property that names a network, with the separators an absent card
     /// leaves behind taken off. "unknown" is the other spelling absence uses.
     /// </summary>
+    /// <remarks>
+    /// A dual SIM handset answers with one entry per slot, separated by a comma
+    /// ("NL KPN  ,vodafone NL"). The report has room for one network, and the
+    /// first entry is the one the phone registers on by default; printing the
+    /// whole string put "NL KPN  ,vodafone NL" on the label as if it were a
+    /// carrier's name.
+    /// </remarks>
     private static string CleanCarrierName(string raw)
     {
-        string cleaned = (raw ?? "").Trim().Trim(',').Trim();
+        string cleaned = FirstEntry(raw);
         if (cleaned.Length == 0 || cleaned.Equals("unknown", StringComparison.OrdinalIgnoreCase))
             return "";
         return cleaned;
+    }
+
+    /// <summary>The first of the comma separated entries a dual SIM handset answers with.</summary>
+    private static string FirstEntry(string raw)
+    {
+        foreach (string part in (raw ?? "").Split(','))
+        {
+            string cleaned = part.Trim();
+            if (cleaned.Length > 0) return cleaned;
+        }
+
+        return "";
     }
 }

@@ -40,6 +40,13 @@ public sealed record AndroidDeviceFacts
     public string ChargeFull { get; init; } = "";
     public string ChargeFullDesign { get; init; } = "";
 
+    /// <summary>
+    /// Raw contents of /sys/class/power_supply/battery/cycle_count. Empty when
+    /// the handset refuses the file or does not have it; a Pixels publishes the
+    /// counter here while its dumpsys carries none.
+    /// </summary>
+    public string CycleCount { get; init; } = "";
+
     public string BuildFingerprint { get; init; } = "";
     public string FlashLocked { get; init; } = "";
     public string VbmetaDeviceState { get; init; } = "";
@@ -157,6 +164,11 @@ public sealed class AndroidDeviceReader
         var (chargeFull, chargeFullRefused) = await Ask("cat /sys/class/power_supply/battery/charge_full", "charge_full");
         var (chargeFullDesign, chargeFullDesignRefused) = await Ask("cat /sys/class/power_supply/battery/charge_full_design", "charge_full_design");
 
+        // The battery's own cycle counter. Stock Android carries no cycle count in
+        // dumpsys battery or batterystats, but Pixels and several others publish it
+        // here, where the label's "N CYCLES" comes from.
+        var (cycleCount, cycleCountRefused) = await Ask("cat /sys/class/power_supply/battery/cycle_count", "cycle_count");
+
         // Android 10 took the IMEI away from the plain shell call, but the phone
         // still answers when the request names a package that holds the phone
         // state permission and belongs to the uid the shell runs as. That is
@@ -235,7 +247,11 @@ public sealed class AndroidDeviceReader
             Imei1 = imei1,
             Imei2 = imei2,
 
-            BatteryCycleCount = Parsers.ParseAndroidBatteryCycleCount(battery),
+            // The battery's own counter first, the dumpsys spellings as the
+            // fallback: a handset that publishes neither reports no count at all,
+            // which the label shows as NOCYCLES rather than as a zero.
+            BatteryCycleCount = Parsers.ParseAndroidCycleCountFile(cycleCount)
+                ?? Parsers.ParseAndroidBatteryCycleCount(battery),
 
             WifiMacAddress = ReadMac(wifiRaw, wifiRefused),
             BluetoothMacAddress = ReadMac(btRaw, btRefused),

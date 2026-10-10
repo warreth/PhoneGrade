@@ -799,6 +799,27 @@ public class ParsersTests
         Assert.Equal(0, Parsers.ParseAndroidBatteryCycleCount("  cycle count: 0\n"));
     }
 
+    [Theory]
+    [InlineData("537\n", 537)]
+    [InlineData("0", 0)]
+    [InlineData("  12  ", 12)]
+    public void ParseAndroidCycleCountFile_ReadsTheBatterysOwnCounter(string content, int expected)
+        => Assert.Equal(expected, Parsers.ParseAndroidCycleCountFile(content));
+
+    /// <summary>
+    /// A refused sysfs file, a directory that does not exist on this handset, or a
+    /// cat that printed its own error is not a count. Null and zero stay apart for
+    /// the same reason as above.
+    /// </summary>
+    [Fact]
+    public void ParseAndroidCycleCountFile_IsNullWhenTheFileIsNotANumber()
+    {
+        Assert.Null(Parsers.ParseAndroidCycleCountFile(""));
+        Assert.Null(Parsers.ParseAndroidCycleCountFile(null));
+        Assert.Null(Parsers.ParseAndroidCycleCountFile("n/a"));
+        Assert.Null(Parsers.ParseAndroidCycleCountFile("cat: /sys/class/power_supply/battery/cycle_count: Permission denied"));
+    }
+
     /// <summary>
     /// When the IOReg read times out or says nothing, the cycle count stays
     /// unreported. A zero that nobody measured reads as a battery that has never

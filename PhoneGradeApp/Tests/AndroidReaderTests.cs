@@ -275,9 +275,49 @@ public class AndroidReaderTests
         // With no card the operator property is a bare separator, which is not
         // a network and must not reach the report as one.
         var bare = await DetectCarrierAsync(gsmSimState: "ABSENT,ABSENT", carrier: "unknown", operatorAlpha: ",");
-        Assert.Equal("ABSENT,ABSENT", bare.SIMState);
+        Assert.Equal("ABSENT", bare.SIMState);
         Assert.Null(bare.CarrierName);
         Assert.Null(bare.IsCarrierLocked);
+
+        // A dual SIM handset answers with one entry per slot, separated by a
+        // comma. A Pixel 8 Pro with two cards read "NL KPN  ,vodafone NL", which
+        // is not a carrier's name and must not be printed as one.
+        var dual = await DetectCarrierAsync(gsmSimState: "LOADED,LOADED", carrier: "",
+            operatorAlpha: "NL KPN  ,vodafone NL");
+        Assert.Equal("NL KPN", dual.CarrierName);
+        Assert.Equal("LOADED", dual.SIMState);
+        Assert.Null(dual.IsCarrierLocked);
+    }
+
+    [Fact]
+    public async Task TheBatterysOwnCycleCounterIsReadWhenDumpsysCarriesNone()
+    {
+        // A Pixel 8 Pro on Android 17 publishes the counter in sysfs while both
+        // dumpsys battery and batterystats carry none. Without the sysfs read the
+        // label said NOCYCLES on a battery with 537 cycles on it.
+        var reader = Reader(command => command switch
+        {
+            "cat /sys/class/power_supply/battery/cycle_count" => "537\n",
+            "dumpsys battery" => DumpsysBattery,
+            _ => "",
+        });
+
+        var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
+        Assert.Equal(537, data.BatteryCycleCount);
+    }
+
+    [Fact]
+    public async Task ASysfsCounterThatIsNotANumberLeavesTheDumpsysOne()
+    {
+        var reader = Reader(command => command switch
+        {
+            "cat /sys/class/power_supply/battery/cycle_count" => "n/a",
+            "dumpsys battery" => "  cycle count: 42\n",
+            _ => "",
+        });
+
+        var data = AndroidDeviceReader.ToDeviceData(await reader.ReadAsync());
+        Assert.Equal(42, data.BatteryCycleCount);
     }
 
     [Fact]

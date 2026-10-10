@@ -418,6 +418,25 @@ public static class Parsers
     }
 
     /// <summary>
+    /// The battery's own cycle counter, read from
+    /// /sys/class/power_supply/battery/cycle_count.
+    ///
+    /// A Pixel on Android 17 publishes the counter here while neither
+    /// <c>dumpsys battery</c> nor <c>dumpsys batterystats</c> carries one, so
+    /// without this read a battery with 537 cycles came out as NOCYCLES. Null
+    /// when the file was refused or holds anything that is not a count; a real
+    /// zero stays a zero, because the handset sent it.
+    /// </summary>
+    public static int? ParseAndroidCycleCountFile(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return null;
+
+        return int.TryParse(content.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int count)
+            ? count
+            : null;
+    }
+
+    /// <summary>
     /// The full-charge capacity Android learned for the battery, in mAh, from
     /// <c>dumpsys batterystats</c>. The sysfs counters under
     /// /sys/class/power_supply are closed to the shell on several builds,
