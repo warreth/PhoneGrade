@@ -641,6 +641,10 @@
     <x:String x:Key="Diag_ResolveUsbmuxdMac">Zorg dat usbmuxd draait, of start de computer opnieuw op.</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdLinux">Voer 'sudo systemctl start usbmuxd' of 'sudo usbmuxd -f -v' uit.</x:String>
     <x:String x:Key="Diag_ResolveUsbCable">Controleer de USB-kabel, probeer een andere USB-poort direct op de computer (geen hub), ontgrendel de telefoon en tik op 'Vertrouwen' als dat wordt gevraagd.</x:String>
+    <x:String x:Key="Diag_TitleDymo">DYMO-software</x:String>
+    <x:String x:Key="Diag_MsgDymoInstalled">De labelsoftware van DYMO is geïnstalleerd, labels kunnen daarin worden geopend.</x:String>
+    <x:String x:Key="Diag_MsgDymoNotInstalled">De labelsoftware van DYMO is niet geïnstalleerd; labels worden via de pdf afgedrukt.</x:String>
+    <x:String x:Key="Diag_ResolveDymoInstall">Installeer DYMO Connect via dymo.com om labels direct vanuit DYMO af te drukken.</x:String>
 
     <!-- IMEI API Instellingen -->
     <x:String x:Key="Settings_ImeiInfoGuide">Installatiegids</x:String>

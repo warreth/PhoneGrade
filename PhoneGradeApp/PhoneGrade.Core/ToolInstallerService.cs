@@ -22,10 +22,33 @@ public static class ToolInstallerService
             "install_idevice_tools" => await InstallIdeviceToolsAsync(progress),
             "install_adb" => await InstallAdbAsync(progress),
             "install_cloudflared" => await InstallCloudflaredAsync(progress),
+            "install_dymo" => OpenDymoDownloadPage(),
             "fix_apple_service" or "install_apple_driver" => await FixAppleServiceAsync(progress),
             "start_usbmuxd" => await StartUsbmuxdAsync(progress),
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Opens DYMO's download page. DYMO ships no silent installer, so the page
+    /// the operator clicks through is the fix; there is nothing to download
+    /// here that the app could install on their behalf.
+    /// </summary>
+    private static bool OpenDymoDownloadPage()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("https://www.dymo.com/support")
+            {
+                UseShellExecute = true,
+            });
+            return true;
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Warning(LogSource.Desktop, $"Could not open the DYMO download page: {ex.Message}");
+            return false;
+        }
     }
 
     private static async Task<string?> GetLatestLibimobiledeviceAssetUrlAsync(string platform)

@@ -693,6 +693,10 @@
     <x:String x:Key="Diag_ResolveUsbmuxdMac">请确认 usbmuxd 正在运行，或重启电脑。</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdLinux">运行：'sudo systemctl start usbmuxd' 或 'sudo usbmuxd -f -v'。</x:String>
     <x:String x:Key="Diag_ResolveUsbCable">检查 USB 线缆，尝试直接插在电脑上的另一个 USB 接口（不要用集线器），并解锁手机，如出现提示请点按“信任”。</x:String>
+    <x:String x:Key="Diag_TitleDymo">DYMO 软件</x:String>
+    <x:String x:Key="Diag_MsgDymoInstalled">已安装 DYMO 标签软件，标签可在其中打开。</x:String>
+    <x:String x:Key="Diag_MsgDymoNotInstalled">未安装 DYMO 标签软件；标签将通过 PDF 打印。</x:String>
+    <x:String x:Key="Diag_ResolveDymoInstall">请从 dymo.com 安装 DYMO Connect，以便直接在 DYMO 中打印标签。</x:String>
 
     <!-- Colour names. The device data holds the key, and each of these is one
          key in one language. The Dutch values are the ones the app shipped

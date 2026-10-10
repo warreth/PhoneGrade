@@ -693,6 +693,10 @@
     <x:String x:Key="Diag_ResolveUsbmuxdMac">Verifique se o usbmuxd está a correr ou reinicie o computador.</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdLinux">Execute: 'sudo systemctl start usbmuxd' ou 'sudo usbmuxd -f -v'.</x:String>
     <x:String x:Key="Diag_ResolveUsbCable">Verifique o cabo USB, tente outra porta USB direto no computador (não um hub), desbloqueie o telefone e toque em 'Confiar' se ele pedir.</x:String>
+    <x:String x:Key="Diag_TitleDymo">Software DYMO</x:String>
+    <x:String x:Key="Diag_MsgDymoInstalled">O software de etiquetas da DYMO está instalado; as etiquetas podem abrir-se nele.</x:String>
+    <x:String x:Key="Diag_MsgDymoNotInstalled">O software de etiquetas da DYMO não está instalado; as etiquetas são impressas através do PDF.</x:String>
+    <x:String x:Key="Diag_ResolveDymoInstall">Instale o DYMO Connect em dymo.com para imprimir etiquetas diretamente a partir do DYMO.</x:String>
 
     <!-- Colour names. The device data holds the key, and each of these is one
          key in one language. The Dutch values are the ones the app shipped

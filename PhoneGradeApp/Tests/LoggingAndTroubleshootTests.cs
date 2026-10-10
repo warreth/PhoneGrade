@@ -137,6 +137,41 @@ public class LoggingAndTroubleshootTests
         Assert.Contains("Android", categories);
         Assert.Contains("Service", categories);
         Assert.Contains("Hardware", categories);
+
+        // And the label printing the finish screen promises is part of the scan.
+        Assert.Contains(report.Checks, c => c.TitleKey == "Diag_TitleDymo");
+    }
+
+    /// <summary>
+    /// The DYMO check decides between opening the .dymo in DYMO's software and
+    /// going through the label PDF, so both of its answers have to be the one
+    /// the print path expects. The machine it runs on decides which of the two
+    /// is the answer here.
+    /// </summary>
+    [Fact]
+    public void TroubleshootService_ReportsOnTheDymoSoftware()
+    {
+        DiagnosticCheckItem check = TroubleshootService.CheckDymoSoftware();
+
+        Assert.Equal("Diag_TitleDymo", check.TitleKey);
+        Assert.Equal("Printing", check.Category);
+
+        if (DymoSoftware.IsInstalled)
+        {
+            Assert.Equal(DiagnosticSeverity.Pass, check.Severity);
+            Assert.Equal("Diag_MsgDymoInstalled", check.MessageKey);
+            Assert.Null(check.ResolutionKey);
+            Assert.Null(check.FixActionKey);
+        }
+        else
+        {
+            // Missing software is information with a way to get it, not a fault:
+            // the PDF path still prints.
+            Assert.Equal(DiagnosticSeverity.Info, check.Severity);
+            Assert.Equal("Diag_MsgDymoNotInstalled", check.MessageKey);
+            Assert.Equal("Diag_ResolveDymoInstall", check.ResolutionKey);
+            Assert.Equal("install_dymo", check.FixActionKey);
+        }
     }
 
     [Fact]

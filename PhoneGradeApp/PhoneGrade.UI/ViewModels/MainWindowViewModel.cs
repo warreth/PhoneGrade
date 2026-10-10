@@ -1389,6 +1389,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         ToolRunner.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
         TestRunnerServer.EnableVerboseNetworkLogging = _settings.EnableVerboseNetworkLogging;
 
+        // The finish screen decides between opening the .dymo in DYMO's software
+        // and going through the label PDF. The probe runs here so the answer is
+        // ready before the first print, and the log keeps the answer readable
+        // for a shop wondering why its labels come out as PDF.
+        SystemEventLogger.Info(LogSource.Desktop, DymoSoftware.IsInstalled
+            ? "DYMO label software found; labels print through it."
+            : "DYMO label software not found; labels print through the PDF.");
+
         // Initialize cost calculator
         UpdateCostCalculator();
 

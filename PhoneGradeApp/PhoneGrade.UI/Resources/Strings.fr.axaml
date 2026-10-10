@@ -693,6 +693,10 @@
     <x:String x:Key="Diag_ResolveUsbmuxdMac">Vérifiez que usbmuxd tourne, ou redémarrez l'ordinateur.</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdLinux">Lancez « sudo systemctl start usbmuxd » ou « sudo usbmuxd -f -v ».</x:String>
     <x:String x:Key="Diag_ResolveUsbCable">Vérifiez le câble USB, essayez un autre port USB directement sur l'ordinateur (pas un hub), déverrouillez le téléphone et appuyez sur « Faire confiance » si cela vous est demandé.</x:String>
+    <x:String x:Key="Diag_TitleDymo">Logiciel DYMO</x:String>
+    <x:String x:Key="Diag_MsgDymoInstalled">Le logiciel d'étiquettes DYMO est installé, les étiquettes peuvent s'y ouvrir.</x:String>
+    <x:String x:Key="Diag_MsgDymoNotInstalled">Le logiciel d'étiquettes DYMO n'est pas installé ; les étiquettes s'impriment via le PDF.</x:String>
+    <x:String x:Key="Diag_ResolveDymoInstall">Installez DYMO Connect depuis dymo.com pour imprimer les étiquettes directement depuis DYMO.</x:String>
 
     <!-- Colour names. The device data holds the key, and each of these is one
          key in one language. The Dutch values are the ones the app shipped

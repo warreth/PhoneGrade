@@ -130,7 +130,10 @@ public static class TroubleshootService
         // 3. Low-level USB bus scan
         await CheckUsbSubsystemAsync(report);
 
-        // 4. Determine overall readiness
+        // 4. Label printing, which is the promise of the finish screen
+        report.Checks.Add(CheckDymoSoftware());
+
+        // 5. Determine overall readiness
         bool hasIosFail = report.Checks.Exists(c => c.Category == "iOS" && c.Severity == DiagnosticSeverity.Fail);
         bool hasAndroidFail = report.Checks.Exists(c => c.Category == "Android" && c.Severity == DiagnosticSeverity.Fail);
 
@@ -322,6 +325,27 @@ public static class TroubleshootService
             MessageKey = "Diag_MsgNoTunnel",
             ResolutionKey = "Diag_ResolveTunnel",
             FixActionKey = "install_cloudflared"
+        };
+    }
+
+    /// <summary>
+    /// DYMO's own label software, which decides how the print button hands the
+    /// label over: opened in DYMO when it is installed, through the label PDF
+    /// when it is not. Optional software, so a missing one is information with
+    /// a way to get it rather than a fault.
+    /// </summary>
+    public static DiagnosticCheckItem CheckDymoSoftware()
+    {
+        bool installed = DymoSoftware.IsInstalled;
+
+        return new DiagnosticCheckItem
+        {
+            Category = "Printing",
+            TitleKey = "Diag_TitleDymo",
+            Severity = installed ? DiagnosticSeverity.Pass : DiagnosticSeverity.Info,
+            MessageKey = installed ? "Diag_MsgDymoInstalled" : "Diag_MsgDymoNotInstalled",
+            ResolutionKey = installed ? null : "Diag_ResolveDymoInstall",
+            FixActionKey = installed ? null : "install_dymo"
         };
     }
 

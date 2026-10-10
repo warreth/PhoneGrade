@@ -683,6 +683,27 @@ public class ExportViewModel : ReactiveObject
             }
         }
 
+        // DYMO's own software, when it is on the machine, takes the .dymo file:
+        // opening it lands in the program the operator prints labels from, with
+        // the label's own layout, where the PDF would go through the generic
+        // print dialog. Reached when the direct service above did not take the
+        // job; a file that cannot be opened after all still falls through to
+        // the PDF, which works everywhere.
+        if (DymoSoftware.IsInstalled)
+        {
+            string? dymoFile = label?.Path ?? await ScratchFileAsync(ExportFormat.DymoLabel);
+            if (dymoFile is { Length: > 0 })
+            {
+                PrintService.Attempt opened = PrintService.Open(dymoFile, ExportWordingBuilder.Current());
+                if (opened.Outcome != PrintService.Outcome.Failed)
+                {
+                    Status = opened.Message;
+                    Confirmed = true;
+                    return;
+                }
+            }
+        }
+
         // Everything that is not a DYMO goes through the label PDF. The configured
         // set does not have to contain it: a shop that files a .dymo and a report
         // still prints, so the PDF is written to a scratch folder when it is needed.
@@ -691,24 +712,7 @@ public class ExportViewModel : ReactiveObject
 
         if (pdf is null)
         {
-            string scratch = Path.Combine(Path.GetTempPath(), "PhoneGrade", "print");
-            LabelWriter.Batch one = await LabelWriter.WriteAsync(_main.DeviceData, new LabelWriter.Request(
-                Formats: new System.Collections.Generic.HashSet<ExportFormat> { ExportFormat.LabelPdf },
-                Folder: scratch,
-                FileName: LabelWriter.FileStem(_main.DeviceData),
-                TemplatePath: _main.LabelTemplatePath,
-                Layout: Layout,
-                Barcode: EffectiveBarcode,
-                Symbology: _main.LabelSymbology,
-                FlagLowBattery: _main.Enable85PercentChecker,
-                Content: _main.LabelContent,
-                Messages: ExportWordingBuilder.Current(),
-                Colour: Services.ColorWording.OnLabel,
-                Variant: _main.LabelVariant,
-                BatteryThreshold: _main.LabelBatteryThreshold,
-                CyclesMinimum: _main.LabelCyclesThreshold));
-
-            pdf = one.Files.FirstOrDefault(file => file.Succeeded)?.Path;
+            pdf = await ScratchFileAsync(ExportFormat.LabelPdf);
         }
 
         if (pdf is null)
@@ -730,6 +734,34 @@ public class ExportViewModel : ReactiveObject
 
     /// <summary>How many labels one print puts out.</summary>
     public int Copies { get; set; } = 1;
+
+    /// <summary>
+    /// Writes one file into the scratch folder, for a print the configured set
+    /// does not carry. A shop that files a .dymo and a report still prints its
+    /// label, so the file the print needs is written where it is needed.
+    /// </summary>
+    private async Task<string?> ScratchFileAsync(ExportFormat format)
+    {
+        string scratch = Path.Combine(Path.GetTempPath(), "PhoneGrade", "print");
+
+        LabelWriter.Batch one = await LabelWriter.WriteAsync(_main.DeviceData, new LabelWriter.Request(
+            Formats: new System.Collections.Generic.HashSet<ExportFormat> { format },
+            Folder: scratch,
+            FileName: LabelWriter.FileStem(_main.DeviceData),
+            TemplatePath: _main.LabelTemplatePath,
+            Layout: Layout,
+            Barcode: EffectiveBarcode,
+            Symbology: _main.LabelSymbology,
+            FlagLowBattery: _main.Enable85PercentChecker,
+            Content: _main.LabelContent,
+            Messages: ExportWordingBuilder.Current(),
+            Colour: Services.ColorWording.OnLabel,
+            Variant: _main.LabelVariant,
+            BatteryThreshold: _main.LabelBatteryThreshold,
+            CyclesMinimum: _main.LabelCyclesThreshold));
+
+        return one.Files.FirstOrDefault(file => file.Succeeded)?.Path;
+    }
 
     /// <summary>Where this finish's files go, from the folder scheme setting.</summary>
     private string ResolveFolder() => ExportFolders.FolderUnder(

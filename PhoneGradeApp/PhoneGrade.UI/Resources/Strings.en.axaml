@@ -693,6 +693,10 @@
     <x:String x:Key="Diag_ResolveUsbmuxdMac">Make sure usbmuxd is running, or restart the computer.</x:String>
     <x:String x:Key="Diag_ResolveUsbmuxdLinux">Run: 'sudo systemctl start usbmuxd' or 'sudo usbmuxd -f -v'.</x:String>
     <x:String x:Key="Diag_ResolveUsbCable">Check the USB cable, try another USB port directly on the computer (not a hub), unlock the phone and tap 'Trust' if asked.</x:String>
+    <x:String x:Key="Diag_TitleDymo">DYMO Software</x:String>
+    <x:String x:Key="Diag_MsgDymoInstalled">DYMO's label software is installed, so labels can open in it.</x:String>
+    <x:String x:Key="Diag_MsgDymoNotInstalled">DYMO's label software is not installed; labels print through the PDF instead.</x:String>
+    <x:String x:Key="Diag_ResolveDymoInstall">Install DYMO Connect from dymo.com to print labels straight from DYMO.</x:String>
 
     <!-- Colour names. The device data holds the key, and each of these is one
          key in one language. The Dutch values are the ones the app shipped
