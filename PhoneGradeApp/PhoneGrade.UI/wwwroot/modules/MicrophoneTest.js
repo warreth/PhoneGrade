@@ -1,5 +1,6 @@
 import { t } from './i18n.js';
 import { DeviceTest } from './DeviceTest.js';
+import { reportCapabilityGap } from './CapabilityGap.js';
 import {
     CAPABILITY,
     classifyMediaError,
@@ -81,7 +82,7 @@ export class MicrophoneTest extends DeviceTest {
         this.reportProgress(wsClient, 0, t('microphone.progressTesting'));
 
         if (!hasMediaDevices()) {
-            await this.reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', 'missing');
+            await reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', 'missing');
             return this.runRecorderFallback(wsClient, container, CAPABILITY.MISSING);
         }
 
@@ -126,7 +127,7 @@ export class MicrophoneTest extends DeviceTest {
                 lastResult = classifyMediaError(err);
 
                 if (lastResult.kind === CAPABILITY.DENIED || lastResult.kind === CAPABILITY.MISSING) {
-                    await this.reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', lastResult.kind);
+                    await reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', lastResult.kind);
                 }
             }
 
@@ -576,29 +577,5 @@ export class MicrophoneTest extends DeviceTest {
 
         yes.onclick = () => settle(true, t('microphone.playbackPassNotes', { peak }), t('microphone.progressListenedBack'));
         no.onclick = () => settle(false, t('microphone.playbackFailNotes'), t('microphone.progressNotAudible'));
-    }
-
-    async reportCapabilityGap(wsClient, missingApi, reason) {
-        if (!wsClient || !wsClient.sessionId) return;
-        try {
-            const ua = navigator.userAgent;
-            let osVersion = 'Unknown';
-            if (/Android/.test(ua)) osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
-            else if (/iPhone|iPad|iPod/.test(ua)) osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
-
-            await fetch(`${wsClient.baseUrl}/api/pwa/log-warning`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: wsClient.sessionId,
-                    missingApi,
-                    userAgent: ua,
-                    osVersion,
-                    reason
-                })
-            });
-        } catch (e) {
-            console.warn('Could not report the unusable microphone API:', e);
-        }
     }
 }

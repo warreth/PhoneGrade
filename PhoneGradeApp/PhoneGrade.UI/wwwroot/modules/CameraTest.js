@@ -1,5 +1,6 @@
 import { DeviceTest } from './DeviceTest.js';
 import { t } from './i18n.js';
+import { reportCapabilityGap } from './CapabilityGap.js';
 import {
     CAPABILITY,
     classifyMediaError,
@@ -721,7 +722,7 @@ export class CameraTest extends DeviceTest {
         this.stopStream();
 
         if (!hasMediaDevices()) {
-            await this.reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', 'missing');
+            await reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', 'missing');
             return {
                 ok: false,
                 result: {
@@ -775,7 +776,7 @@ export class CameraTest extends DeviceTest {
         } catch (err) {
             const result = classifyMediaError(err);
             if (result.kind === CAPABILITY.DENIED || result.kind === CAPABILITY.MISSING) {
-                await this.reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', result.kind);
+                await reportCapabilityGap(wsClient, 'navigator.mediaDevices.getUserMedia', result.kind);
             }
             return { ok: false, result };
         }
@@ -809,31 +810,6 @@ export class CameraTest extends DeviceTest {
                 resolve('defect');
             };
         });
-    }
-
-    async reportCapabilityGap(wsClient, missingApi, reason) {
-        if (!wsClient || !wsClient.sessionId) return;
-
-        try {
-            const ua = navigator.userAgent;
-            let osVersion = 'Unknown';
-            if (/Android/.test(ua)) osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
-            else if (/iPhone|iPad|iPod/.test(ua)) osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
-
-            await fetch(`${wsClient.baseUrl}/api/pwa/log-warning`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: wsClient.sessionId,
-                    missingApi,
-                    userAgent: ua,
-                    osVersion,
-                    reason
-                })
-            });
-        } catch (e) {
-            console.warn('Could not report the unusable camera API:', e);
-        }
     }
 }
 

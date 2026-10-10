@@ -16,6 +16,7 @@ import { PowerLockTest } from './modules/PowerLockTest.js';
 import { CosmeticTest } from './modules/CosmeticTest.js';
 import { RemoteConsoleLogger } from './RemoteConsoleLogger.js';
 import { CapabilityScanner } from './modules/CapabilityScanner.js';
+import { describePlatform } from './modules/CapabilityGap.js';
 import { applyStoredResults, firstPendingIndex, canResume, describeResume } from './modules/SuiteProgress.js';
 import { baseUrlFrom } from './modules/serverUrl.js';
 import { initLocale, locale, applyStaticText, t } from './modules/i18n.js';
@@ -165,8 +166,6 @@ class RestApiClient {
         const ua = navigator.userAgent;
         let browser = 'Unknown';
         let browserVersion = '';
-        let os = 'Unknown';
-        let osVersion = '';
 
         if (/Chrome/.test(ua) && !/Edge/.test(ua)) {
             browser = 'Chrome';
@@ -182,18 +181,7 @@ class RestApiClient {
             browserVersion = ua.match(/Edg\/(\d+)/)?.[1] || '';
         }
 
-        if (/iPhone|iPad|iPod/.test(ua)) {
-            os = 'iOS';
-            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || '';
-        } else if (/Android/.test(ua)) {
-            os = 'Android';
-            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || '';
-        } else if (/Macintosh/.test(ua)) {
-            os = 'macOS';
-            osVersion = ua.match(/Mac OS X ([\d_]+)/)?.[1]?.replace(/_/g, '.') || '';
-        } else if (/Windows/.test(ua)) {
-            os = 'Windows';
-        }
+        const { os, version: osVersion } = describePlatform(ua);
 
         const telemetry = {
             userAgent: ua,
@@ -629,12 +617,7 @@ class TestRunner {
     }
 
     getPlatform() {
-        const ua = navigator.userAgent;
-        if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
-        if (/Android/.test(ua)) return 'Android';
-        if (/Macintosh/.test(ua)) return 'macOS';
-        if (/Windows/.test(ua)) return 'Windows';
-        return 'Unknown';
+        return describePlatform(navigator.userAgent).os;
     }
 
     /**

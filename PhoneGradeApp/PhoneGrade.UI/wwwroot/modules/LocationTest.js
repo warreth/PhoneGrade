@@ -1,5 +1,6 @@
 import { DeviceTest } from './DeviceTest.js';
 import { CAPABILITY } from './MediaCapability.js';
+import { reportCapabilityGap } from './CapabilityGap.js';
 import { t } from './i18n.js';
 
 /**
@@ -455,7 +456,7 @@ export class LocationTest extends DeviceTest {
 
         this.details.capabilityGap = CAPABILITY.MISSING;
         this.details.secureContext = true;
-        await this.reportCapabilityGap(wsClient, 'navigator.geolocation', 'missing');
+        await reportCapabilityGap(wsClient, 'navigator.geolocation', 'missing');
         this.skip(t('gps.noApiSkip'));
         this.reportProgress(wsClient, 100, t('gps.noApiProgress'));
     }
@@ -489,33 +490,9 @@ export class LocationTest extends DeviceTest {
 
         this.details.insecureOrigin = true;
         this.details.secureContext = false;
-        await this.reportCapabilityGap(wsClient, 'navigator.geolocation', 'insecure-origin');
+        await reportCapabilityGap(wsClient, 'navigator.geolocation', 'insecure-origin');
         this.skip(t('gps.insecureSkip'));
         this.reportProgress(wsClient, 100, t('gps.insecureProgress'));
-    }
-
-    async reportCapabilityGap(wsClient, missingApi, reason) {
-        if (!wsClient || !wsClient.sessionId) return;
-        try {
-            const ua = navigator.userAgent;
-            let osVersion = 'Unknown';
-            if (/Android/.test(ua)) osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
-            else if (/iPhone|iPad|iPod/.test(ua)) osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
-
-            await fetch(`${wsClient.baseUrl}/api/pwa/log-warning`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: wsClient.sessionId,
-                    missingApi,
-                    userAgent: ua,
-                    osVersion,
-                    reason
-                })
-            });
-        } catch (e) {
-            console.warn('Could not report the missing geolocation API:', e);
-        }
     }
 }
 

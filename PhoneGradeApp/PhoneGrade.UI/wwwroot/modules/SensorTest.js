@@ -1,5 +1,6 @@
 import { DeviceTest } from './DeviceTest.js';
 import { t } from './i18n.js';
+import { reportCapabilityGap } from './CapabilityGap.js';
 import {
     CAPABILITY,
     classifyMediaError,
@@ -213,33 +214,6 @@ export class SensorTest extends DeviceTest {
                 this.reportProgress(wsClient, 60, t('sensor.progressManual'));
             };
 
-            const logMissingApi = async (missingApi, reason) => {
-                if (!wsClient || !wsClient.sessionId) return;
-                try {
-                    const ua = navigator.userAgent;
-                    let osVersion = 'Unknown';
-                    if (/iPhone|iPad|iPod/.test(ua)) {
-                        osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || 'iOS Unknown';
-                    } else if (/Android/.test(ua)) {
-                        osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || 'Android Unknown';
-                    }
-
-                    await fetch(`${wsClient.baseUrl}/api/pwa/log-warning`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            sessionId: wsClient.sessionId,
-                            missingApi,
-                            userAgent: ua,
-                            osVersion,
-                            reason
-                        })
-                    });
-                } catch (e) {
-                    console.warn('Could not report the missing sensor API:', e);
-                }
-            };
-
             /**
              * Asks for the sensor permission where there is one to ask for.
              *
@@ -265,7 +239,7 @@ export class SensorTest extends DeviceTest {
                         try {
                             const result = await ctor.requestPermission();
                             if (result !== 'granted') {
-                                await logMissingApi(name, 'denied');
+                                await reportCapabilityGap(wsClient, name, 'denied');
                                 return {
                                     granted: false,
                                     missing: name,
@@ -275,7 +249,7 @@ export class SensorTest extends DeviceTest {
                             }
                         } catch (e) {
                             const classified = classifyMediaError(e);
-                            await logMissingApi(name, 'denied');
+                            await reportCapabilityGap(wsClient, name, 'denied');
                             return {
                                 granted: false,
                                 missing: name,
@@ -287,7 +261,7 @@ export class SensorTest extends DeviceTest {
                 }
 
                 if (missing.length) {
-                    await logMissingApi(missing[0], 'missing');
+                    await reportCapabilityGap(wsClient, missing[0], 'missing');
                     return {
                         granted: false,
                         missing: missing[0],

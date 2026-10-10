@@ -6,6 +6,8 @@
 // scanAndReport() does both. The DOMContentLoaded bootstrap is the only caller,
 // so a single page load reports once instead of twice.
 
+import { reportCapabilityGap } from './CapabilityGap.js';
+
 export class CapabilityScanner {
     /**
      * @param {object|null} apiClient object exposing baseUrl and sessionId
@@ -50,42 +52,10 @@ export class CapabilityScanner {
     async reportMissing(apiClient = this.apiClient, fetchImpl = this.fetchImpl) {
         if (!apiClient || this.missingApis.length === 0) return;
 
-        const doFetch = fetchImpl || ((...args) => fetch(...args));
-        const ua = navigator.userAgent;
-        let os = 'Unknown';
-        let osVersion = '';
-
-        if (/iPhone|iPad|iPod/.test(ua)) {
-            os = 'iOS';
-            osVersion = ua.match(/OS (\d+_\d+)/)?.[1]?.replace(/_/g, '.') || '';
-        } else if (/Android/.test(ua)) {
-            os = 'Android';
-            osVersion = ua.match(/Android (\d+\.\d+)/)?.[1] || '';
-        } else if (/Macintosh/.test(ua)) {
-            os = 'macOS';
-            osVersion = ua.match(/Mac OS X ([\d_]+)/)?.[1]?.replace(/_/g, '.') || '';
-        } else if (/Windows/.test(ua)) {
-            os = 'Windows';
-        }
-
         for (const missingApi of this.missingApis) {
-            try {
-                await doFetch(`${apiClient.baseUrl}/api/pwa/log-warning`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionId: apiClient.sessionId,
-                        missingApi,
-                        userAgent: ua,
-                        osVersion: `${os} ${osVersion}`.trim(),
-                        // The scan only fires when the property is absent from the
-                        // browser, so this is always a real capability gap.
-                        reason: 'missing'
-                    })
-                });
-            } catch (e) {
-                console.warn('Failed to report missing API:', missingApi, e);
-            }
+            // The scan only fires when the property is absent from the browser,
+            // so this is always a real capability gap.
+            await reportCapabilityGap(apiClient, missingApi, 'missing', { fetchImpl });
         }
     }
 
