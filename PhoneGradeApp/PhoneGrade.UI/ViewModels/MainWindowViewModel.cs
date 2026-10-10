@@ -26,7 +26,7 @@ namespace PhoneGrade.UI.ViewModels;
 /// read → diagnose → label, and asks only the questions settings can't answer
 /// (quality, payment) unless defaults are configured.
 /// </summary>
-public class MainWindowViewModel : ReactiveObject, IDisposable
+public partial class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly AppSettings _settings;
     private readonly DevicePresenceTracker _presence = new();
@@ -82,25 +82,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         && DismissedInteractiveTests.Count == 0;
     public UnifiedLogsViewModel LogsViewModel { get; } = new();
     public TroubleshootViewModel TroubleshootViewModel { get; } = new();
-
-    /// <summary>
-    /// The export panel. Owned here because it needs the device on screen, the
-    /// settings and the battery threshold, and because the summary screen is where
-    /// it is opened from. Declared nullable and set in the constructor so that the
-    /// compiler is forced to say when it is missing.
-    /// </summary>
-    public ExportViewModel? ExportViewModel { get; private set; }
-
-    /// <summary>
-    /// The label settings and their live preview, for the settings page.
-    /// </summary>
-    /// <remarks>
-    /// Separate from the export panel because it answers a different question: the
-    /// panel is "what does this phone's label look like", the settings are "what
-    /// does every label look like". They read the same stored values and both draw
-    /// through the same plate.
-    /// </remarks>
-    public LabelSettingsViewModel? LabelSettings { get; private set; }
 
     // USB Event Monitoring & ADB Tutorial
     private readonly AdbDeviceDirector _adbDirector;
@@ -386,49 +367,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set { _settings.OpenEditorBeforePrint = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _openEditorBeforePrint, value); }
     }
 
-    /// <summary>
-    /// The label template the export writes from, as the settings hold it. Empty
-    /// means the template that came with the app, which is the right default and
-    /// the reason a fresh install can print a label with nothing set up.
-    /// </summary>
-    public string LabelTemplatePath
-    {
-        get => _settings.TemplatePath ?? "";
-        set
-        {
-            string chosen = value ?? "";
-            if (_settings.TemplatePath == chosen) return;
-            _settings.TemplatePath = chosen.Length > 0 ? chosen : null;
-            _settings.Save();
-            this.RaiseAndSetIfChanged(ref _labelTemplatePath, chosen);
-        }
-    }
-
     private string _labelTemplatePath = "";
-
-    /// <summary>
-    /// Whether the label that was written can be printed at all. False means no
-    /// printer is known, which is worth saying on the summary screen rather than
-    /// finding out at the till.
-    /// </summary>
-    public bool HasPrinter => PrintService.ListQueues().Count > 0;
-
-    /// <summary>
-    /// Whether the export panel is open. The panel is a full overlay rather than a
-    /// window, because the summary screen underneath it is where the operator came
-    /// from and where they go back to, and a separate window would put two
-    /// windows on top of each other with no visual order between them.
-    /// </summary>
-    public bool IsExportOpen
-    {
-        get => ExportViewModel?.IsOpen ?? false;
-        set
-        {
-            if (ExportViewModel is null) return;
-            if (value) ExportViewModel.Open();
-            else ExportViewModel.Close();
-        }
-    }
 
     private bool _autoStartWebTest;
     public bool AutoStartWebTest
@@ -582,235 +521,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set { _settings.DefaultPaymentMethod = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _defaultPaymentMethod, value); }
     }
 
-    // ============ What the label says ============
-    //
-    // Six settings that decide what is printed on a label, kept together because
-    // they are read together: the paper and the barcodes take up the space the
-    // words go in, so changing one changes what fits of the others.
-
     private string _labelStockPartNumber = LabelStock.Address.PartNumber;
 
-    /// <summary>
-    /// The DYMO part number of the roll in the printer.
-    ///
-    /// Read as a part number rather than as millimetres because that is how the roll
-    /// is ordered and how it is recognised: 89x28 and 89x36 are both "address", and
-    /// an operator holding the wrong one has no way to tell from the name.
-    /// </summary>
-    public string LabelStockPartNumber
-    {
-        get => _labelStockPartNumber;
-        set
-        {
-            string wanted = LabelStock.FromPartNumber(value).PartNumber;
-            _labelStockPartNumber = wanted;
-            _settings.LabelStockPartNumber = wanted;
-            _settings.Save();
-            this.RaiseAndSetIfChanged(ref _labelStockPartNumber, wanted);
-            LabelSettingsChanged();
-        }
-    }
-
-    /// <summary>What the barcode carries: the identifier, the pair, or one of each.</summary>
-    public LabelBarcodeMode LabelBarcodeMode
-    {
-        get => _settings.LabelBarcodeMode;
-        set
-        {
-            _settings.LabelBarcodeMode = value;
-            _settings.Save();
-            this.RaisePropertyChanged();
-            this.RaisePropertyChanged(nameof(EffectiveLabelBarcodeMode));
-            LabelSettingsChanged();
-        }
-    }
-
-    /// <summary>
-    /// Which symbology the label's barcode is drawn in.
-    /// </summary>
-    /// <remarks>
-    /// Its own setting rather than a part of the mode, because the two answer
-    /// different questions: the mode says what the code carries and the symbology says
-    /// how it is written down. A shop that wants one code carrying everything needs
-    /// both of them chosen, and a shop whose scanner only reads Code39 needs the
-    /// other pairing.
-    /// </remarks>
-    public LabelCodeSymbology LabelSymbology
-    {
-        get => _settings.LabelSymbology;
-        set
-        {
-            _settings.LabelSymbology = value;
-            _settings.Save();
-            this.RaisePropertyChanged();
-            LabelSettingsChanged();
-        }
-    }
-
-    /// <summary>Called by the label settings picker, which owns the collection.</summary>
-    public void SetLabelStock(LabelStock stock)
-    {
-        if (string.Equals(_labelStockPartNumber, stock.PartNumber, StringComparison.Ordinal)) return;
-        _labelStockPartNumber = stock.PartNumber;
-        _settings.LabelStockPartNumber = stock.PartNumber;
-        _settings.Save();
-        this.RaiseAndSetIfChanged(ref _labelStockPartNumber, stock.PartNumber);
-        this.RaisePropertyChanged(nameof(LabelStock));
-        LabelSettingsChanged();
-    }
-
-    /// <summary>Called by the label settings picker.</summary>
-    public void SetLabelSymbology(LabelCodeSymbology symbology) => LabelSymbology = symbology;
-
-    /// <summary>Called by the label settings picker.</summary>
-    public void SetLabelBarcodeMode(LabelBarcodeMode mode)
-    {
-        if (_settings.LabelBarcodeMode == mode) return;
-        _settings.LabelBarcodeMode = mode;
-        _settings.Save();
-        this.RaisePropertyChanged(nameof(LabelBarcodeMode));
-        this.RaisePropertyChanged(nameof(EffectiveLabelBarcodeMode));
-        LabelSettingsChanged();
-    }
-
-    /// <summary>The stock, as the label writers take it.</summary>
-    public LabelStock LabelStock => LabelStock.FromPartNumber(_labelStockPartNumber);
-
-    /// <summary>
-    /// The switches that decide what the label says, as the writers take them.
-    /// </summary>
-    /// <remarks>
-    /// Gathered into one object so the label's wording is passed around as a single
-    /// value. Every renderer takes it, which is the only way the preview can promise
-    /// it is showing what the file will contain.
-    ///
-    /// The faults and the locks are always on. They used to be switches, and a switch
-    /// that takes the locks off a label takes off the one line that stops a FRP locked
-    /// phone being sold; the panel wording said so and it was still the wrong thing to
-    /// offer. A clean phone carries neither line because there is nothing to say, not
-    /// because somebody turned the line off.
-    /// </remarks>
-    public LabelContent LabelContent => new(
-        BatteryCycles: _settings.LabelShowBatteryCycles,
-        Faults: true,
-        Locks: true);
-
-    /// <summary>Whether the charge count is on the label at all.</summary>
-    public bool LabelShowBatteryCycles
-    {
-        get => _settings.LabelShowBatteryCycles;
-        set { _settings.LabelShowBatteryCycles = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _labelShowBatteryCycles, value); LabelSettingsChanged(); }
-    }
-
     private bool _labelShowBatteryCycles = true;
-
-    /// <summary>
-    /// How the label is arranged: the single specification line, the structured
-    /// arrangement, or the grade as a block of its own.
-    /// </summary>
-    public LabelVariant LabelVariant
-    {
-        get => _settings.LabelVariant;
-        set { _settings.LabelVariant = value; _settings.Save(); this.RaisePropertyChanged(); LabelSettingsChanged(); }
-    }
-
-    /// <summary>
-    /// Whether the label carries a barcode at all.
-    /// </summary>
-    /// <remarks>
-    /// Off is for the shop whose scanner cannot read one; the barcode itself is one
-    /// Code39 code with the serial number, which is what every till reads. What the
-    /// code carries and which symbology it is drawn in stay in the label settings
-    /// behind this switch, because a shop that scans nothing has no use for either.
-    /// </remarks>
-    public bool LabelBarcodeEnabled
-    {
-        get => _settings.LabelBarcodeEnabled;
-        set
-        {
-            _settings.LabelBarcodeEnabled = value;
-            _settings.Save();
-            this.RaisePropertyChanged();
-            this.RaisePropertyChanged(nameof(LabelBarcodeMode));
-            LabelSettingsChanged();
-        }
-    }
-
-    /// <summary>The barcode mode the writers actually use: none when the switch is off.</summary>
-    public LabelBarcodeMode EffectiveLabelBarcodeMode =>
-        _settings.LabelBarcodeEnabled ? _settings.LabelBarcodeMode : LabelBarcodeMode.None;
-
-    /// <summary>
-    /// The battery percentage under which the marker goes on the label, and under
-    /// which the report counts the battery as a deviation.
-    /// </summary>
-    public int LabelBatteryThreshold
-    {
-        get => _settings.LabelBatteryThreshold;
-        set
-        {
-            int wanted = Math.Clamp(value, 50, 95);
-            if (_settings.LabelBatteryThreshold == wanted) return;
-            _settings.LabelBatteryThreshold = wanted;
-            _settings.Save();
-            this.RaisePropertyChanged();
-            LabelSettingsChanged();
-        }
-    }
-
-    /// <summary>Below this charge count the number is left off the label.</summary>
-    public int LabelCyclesThreshold
-    {
-        get => _settings.LabelCyclesThreshold;
-        set
-        {
-            int wanted = Math.Clamp(value, 0, 5000);
-            if (_settings.LabelCyclesThreshold == wanted) return;
-            _settings.LabelCyclesThreshold = wanted;
-            _settings.Save();
-            this.RaisePropertyChanged();
-            LabelSettingsChanged();
-        }
-    }
-
-    /// <summary>The files a finished inspection writes without being asked.</summary>
-    public List<ExportFormat> ExportFormats
-    {
-        get => _settings.ExportFormats;
-        set
-        {
-            _settings.ExportFormats = value;
-            _settings.Save();
-            this.RaisePropertyChanged();
-        }
-    }
-
-    /// <summary>Whether a format is in the set a finish writes.</summary>
-    public bool WritesFormat(ExportFormat format) => _settings.ExportFormats.Contains(format);
-
-    /// <summary>Adds or removes one format from the set a finish writes.</summary>
-    public void SetWritesFormat(ExportFormat format, bool wanted)
-    {
-        var formats = new List<ExportFormat>(_settings.ExportFormats);
-        if (wanted && !formats.Contains(format)) formats.Add(format);
-        if (!wanted) formats.Remove(format);
-
-        ExportFormats = formats;
-    }
-
-    /// <summary>How the exports are grouped in the folder the operator sees.</summary>
-    public ExportFolderScheme ExportFolderScheme
-    {
-        get => _settings.ExportFolderScheme;
-        set { _settings.ExportFolderScheme = value; _settings.Save(); this.RaisePropertyChanged(); }
-    }
-
-    /// <summary>Tells the preview and the writers that the label's wording changed.</summary>
-    private void LabelSettingsChanged()
-    {
-        ExportViewModel?.ReloadLabelSettings();
-        LabelSettings?.Refresh();
-    }
 
     private bool _enableUsbEventMonitoring;
     public bool EnableUsbEventMonitoring
@@ -884,216 +597,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         set => this.RaiseAndSetIfChanged(ref _busy, value);
     }
 
-    /// <summary>True when a valid Pro license is active.</summary>
-    public bool IsProLicenseActive => _trialGate.IsPro;
-
-    /// <summary>Number of scans consumed on the free tier.</summary>
-    public int TrialScanCount => _trialGate.ScanCount;
-
-    /// <summary>True when the free tier limit is reached and no Pro license is active.</summary>
-    public bool IsTrialLimitReached => !IsProLicenseActive && TrialScanCount >= TrialGate.FreeScanLimit;
-
-    /// <summary>Human-readable licensing status, kept in one place with the pill and the introduction screen.</summary>
-    public string LicensingStatusText => _licensingViewModel?.LicensingStatusText ?? "";
-
-    /// <summary>Shared licensing view model: drives the introduction screen, the status pill and the settings row.</summary>
-    public LicensingViewModel? Licensing => _licensingViewModel;
-
     private bool _isIntroVisible;
-    /// <summary>True until the operator dismisses the first-run introduction screen.</summary>
-    public bool IsIntroVisible
-    {
-        get => _isIntroVisible;
-        set => this.RaiseAndSetIfChanged(ref _isIntroVisible, value);
-    }
-
-    /// <summary>
-    /// The pages the introduction screen is made of, in the order they are read.
-    ///
-    /// It used to be one long card holding the plan, the Pro price, the IMEI key
-    /// offer, three buttons and a license box, which put the whole of it on one
-    /// screen at a font too small to read comfortably. It is now four pages, and the
-    /// language and the look are asked for on the first one rather than left for
-    /// the operator to find afterwards.
-    /// </summary>
-    public IReadOnlyList<string> IntroPages { get; } =
-        ["Language", "Plan", "Workflow", "Licence", "Imei"];
 
     private string _introPage = "Language";
 
-    /// <summary>The page of the introduction currently on screen.</summary>
-    public string IntroPage
-    {
-        get => _introPage;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _introPage, value);
-            this.RaisePropertyChanged(nameof(IsFirstIntroPage));
-            this.RaisePropertyChanged(nameof(IsLastIntroPage));
-            this.RaisePropertyChanged(nameof(IsOnLicencePage));
-            this.RaisePropertyChanged(nameof(ShowIntroNext));
-            this.RaisePropertyChanged(nameof(IntroStepNumber));
-            this.RaisePropertyChanged(nameof(IntroStepDisplay));
-        }
-    }
-
-    /// <summary>How many pages the introduction has, for the progress line.</summary>
-    public int IntroPageCount => IntroPages.Count;
-
-    /// <summary>Which page is on screen, counting from one.</summary>
-    public int IntroStepNumber => IntroPages.IndexOf(IntroPage) + 1;
-
-    /// <summary>
-    /// The step counter beside the progress bar. Numbers only, so it needs no
-    /// translation and cannot disagree with a language switch halfway through.
-    /// </summary>
-    public string IntroStepDisplay => $"{IntroStepNumber} / {IntroPageCount}";
-
-    /// <summary>True on the first page, where the back button has nowhere to go.</summary>
-    public bool IsFirstIntroPage => IntroPage == IntroPages[0];
-
-    /// <summary>True on the last page, where the button finishes instead of advancing.</summary>
-    public bool IsLastIntroPage => IntroPage == IntroPages[^1];
-
-    /// <summary>The page after this one, wrapping to the first on the last.</summary>
-    public string NextIntroPage =>
-        IsLastIntroPage ? IntroPages[0] : IntroPages[IntroPages.IndexOf(IntroPage) + 1];
-
-    /// <summary>The page before this one, stopping at the first.</summary>
-    public string PreviousIntroPage =>
-        IsFirstIntroPage ? IntroPages[0] : IntroPages[IntroPages.IndexOf(IntroPage) - 1];
-
-    /// <summary>Goes to the next page, or closes the screen when it is the last one.</summary>
-    public ReactiveCommand<Unit, Unit> IntroNextCommand { get; }
-
-    /// <summary>Goes back a page. Does nothing on the first one.</summary>
-    public ReactiveCommand<Unit, Unit> IntroBackCommand { get; }
-
-    /// <summary>Jumps straight to a named page.</summary>
-    public ReactiveCommand<string, Unit> IntroGoToPageCommand { get; }
-
     private bool _isIntroActivationVisible;
-    /// <summary>True once "I already have a license" was pressed on the introduction screen.</summary>
-    public bool IsIntroActivationVisible
-    {
-        get => _isIntroActivationVisible;
-        set => this.RaiseAndSetIfChanged(ref _isIntroActivationVisible, value);
-    }
-
-    /// <summary>Closes the introduction screen for good.</summary>
-    public ReactiveCommand<Unit, Unit> DismissIntroCommand { get; }
-
-    /// <summary>Reveals the license key box on the introduction screen.</summary>
-    public ReactiveCommand<Unit, Unit> ShowIntroActivationCommand { get; }
-
-    /// <summary>
-    /// Accepts the terms and continues to the last page. Not the way out: the
-    /// introduction ends on the last page, where Finish stands.
-    /// </summary>
-    public ReactiveCommand<Unit, Unit> AcceptIntroTermsCommand { get; }
-
-    /// <summary>Opens the introduction again from the settings page.</summary>
-    public ReactiveCommand<Unit, Unit> ReplayIntroCommand { get; }
 
     private bool _isLicensePanelOpen;
-    /// <summary>True while the license panel under the title bar status pill is open.</summary>
-    public bool IsLicensePanelOpen
-    {
-        get => _isLicensePanelOpen;
-        set => this.RaiseAndSetIfChanged(ref _isLicensePanelOpen, value);
-    }
 
-    /// <summary>Shows or hides the license panel. The pill in the title bar is bound to it.</summary>
-    public ReactiveCommand<Unit, Unit> ToggleLicensePanelCommand { get; }
-
-    /// <summary>Opens the license panel and closes the settings drawer, so the two never overlap.</summary>
-    public ReactiveCommand<Unit, Unit> ManageLicenseCommand { get; }
-
-    /// <summary>
-    /// Ends the introduction, and refuses to record it as seen until the terms have
-    /// been accepted.
-    ///
-    /// Every route out of the introduction arrives here, so this is the one place the
-    /// check has to be. Without it the last page's Finish would be a way around the
-    /// agreement, and a gate that can be walked past is worse than no gate because it
-    /// reads as one.
-    /// </summary>
-    private void DismissIntro()
-    {
-        if (!CanFinishIntro) return;
-
-        _settings.IntroSeen = true;
-        _settings.Save();
-        IsIntroVisible = false;
-        IsIntroActivationVisible = false;
-    }
-
-    /// <summary>The page carrying the agreement, named so the markup cannot drift.</summary>
-    public const string LicencePage = "Licence";
-
-    /// <summary>
-    /// Whether the operator has accepted the terms that apply to them.
-    ///
-    /// Deliberately not written to the settings file. An operator who ticked this on
-    /// one machine has not agreed on another, and a gate that remembered across
-    /// machines could be walked past with a single tick on the first one. It is asked
-    /// once per machine, which is also the only point at which the answer is worth
-    /// anything.
-    /// </summary>
     private bool _isLicenceAccepted;
-    public bool IsLicenceAccepted
-    {
-        get => _isLicenceAccepted;
-        set
-        {
-            // The field is asked, not the return value: ReactiveUI 20 returns the
-            // new value from RaiseAndSetIfChanged, so `if (RaiseAndSetIfChanged(...))`
-            // ran the dependent raise only when the box was ticked and skipped it
-            // when it was cleared.
-            if (_isLicenceAccepted == value) return;
-            this.RaiseAndSetIfChanged(ref _isLicenceAccepted, value);
-            this.RaisePropertyChanged(nameof(CanFinishIntro));
-        }
-    }
-
-    /// <summary>
-    /// Whether the introduction may be closed.
-    ///
-    /// Checked in <see cref="DismissIntro"/> rather than only on the buttons,
-    /// because finishing and the terms page's continue are both ways out and
-    /// neither may skip the one page that is not optional.
-    /// </summary>
-    public bool CanFinishIntro => IsLicenceAccepted;
-
-    public bool IsOnLicencePage => IntroPage == LicencePage;
-
-    /// <summary>
-    /// Next is offered everywhere except the agreement page and the last page, where
-    /// the button says Finish instead.
-    /// </summary>
-    public bool ShowIntroNext => !IsOnLicencePage && !IsLastIntroPage;
-
-    /// <summary>
-    /// Which document applies. The free plan is covered by the licence the source is
-    /// published under. A paying customer is not, which is why the commercial end user
-    /// licence agreement is the document that has to be named to them.
-    /// </summary>
-    public string LicenceDocumentUrl =>
-        Services.LicenceTerms.DocumentFor(Licensing.IsPro);
-
-    /// <summary>
-    /// What the checkbox says. It names the document rather than only saying agree,
-    /// so an operator who did not read it can still say afterwards which document it
-    /// was.
-    /// </summary>
-    public string LicenceAgreementLabel => LocalizationManager.GetString(
-        Licensing.IsPro
-            ? "Intro_LicenceAcceptCommercial"
-            : "Intro_LicenceAcceptFree");
-
-    public ReactiveCommand<Unit, Unit> OpenLicenceCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> OpenTrademarkCommand { get; }
 
     private DeviceData _deviceData = new();
     public DeviceData DeviceData
@@ -1126,8 +638,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public string SelectedGradeDisplay => Services.GradeWording.Grade(DeviceData.Quality);
-
     public string SelectedInvoiceMethod
     {
         get => DeviceData.PayMethod;
@@ -1143,29 +653,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
     }
 
-    public string SelectedInvoiceMethodDisplay => Services.GradeWording.InvoiceMethod(DeviceData.PayMethod);
-
-
-    /// <summary>True once real device data has been read: drives the summary grid.</summary>
-    public bool HasDevice => DeviceData is { Model: not "NOMODEL", Identifier: not "NOID" };
-
-    // Kiosk state-driven workflow properties
     private AppWorkflowState _workflowState = AppWorkflowState.Idle;
-    public AppWorkflowState WorkflowState
-    {
-        get => _workflowState;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _workflowState, value);
-            this.RaisePropertyChanged(nameof(IsIdleState));
-            this.RaisePropertyChanged(nameof(IsActiveState));
-            this.RaisePropertyChanged(nameof(IsSummaryState));
-        }
-    }
-
-    public bool IsIdleState => WorkflowState == AppWorkflowState.Idle;
-    public bool IsActiveState => WorkflowState == AppWorkflowState.Active;
-    public bool IsSummaryState => WorkflowState == AppWorkflowState.Summary;
 
     // Overlay Drawer & Modal Flags
     private bool _isSettingsDrawerOpen;
@@ -1284,12 +772,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         ChangelogUnavailable = false;
     }
 
-    // Popups kept minimal: only quality & payment, and only when no default is set.
     private bool _isQualityPopupVisible;
-    public bool IsQualityPopupVisible { get => _isQualityPopupVisible; set => this.RaiseAndSetIfChanged(ref _isQualityPopupVisible, value); }
 
     private bool _isPaymentPopupVisible;
-    public bool IsPaymentPopupVisible { get => _isPaymentPopupVisible; set => this.RaiseAndSetIfChanged(ref _isPaymentPopupVisible, value); }
 
     private bool _hasIssues;
     public bool HasIssues { get => _hasIssues; set => this.RaiseAndSetIfChanged(ref _hasIssues, value); }
@@ -1299,12 +784,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public string[] PaymentOptions { get; } = ["", "Marge", "BTW", PaymentMethods.NeverAsk];
 
     public ReactiveCommand<Unit, Unit> RefreshDevicesCommand { get; }
-    public ReactiveCommand<Unit, Unit> StartCommand { get; }
-    public ReactiveCommand<Unit, Unit> RetestCommand { get; }
-    public ReactiveCommand<string, Unit> SetQualityCommand { get; }
-    public ReactiveCommand<string, Unit> SetPaymentMethodCommand { get; }
-    public ReactiveCommand<InteractiveTestResult, Unit> DismissInteractiveTestCommand { get; }
-    public ReactiveCommand<Unit, Unit> RestoreDismissedTestsCommand { get; }
 
     private bool _showAdbWarning;
     public bool ShowAdbWarning { get => _showAdbWarning; set => this.RaiseAndSetIfChanged(ref _showAdbWarning, value); }
@@ -1324,16 +803,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     public ReactiveCommand<Unit, Unit> DismissAdbGuideCommand { get; }
 
     public ReactiveCommand<Unit, Unit> OpenEditorCommand { get; }
-    public ReactiveCommand<Unit, Unit> FinishInspectionCommand { get; }
-
-    /// <summary>Opens the export panel. One screen for the label, the report and the numbers.</summary>
-    public ReactiveCommand<Unit, Unit> OpenExportCommand { get; }
 
     // IMEI.info BYOK Commands
     public ReactiveCommand<Unit, Unit> SaveImeiInfoApiKeyCommand { get; }
     public ReactiveCommand<Unit, Unit> TestImeiInfoApiKeyCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenImeiDashboardCommand { get; }
-    public ReactiveCommand<Unit, Unit> NavigateToImeiSettingsCommand { get; }
 
     // Shop profile commands
     public ReactiveCommand<Unit, Unit> ExportShopProfileCommand { get; }
@@ -1969,34 +1443,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     }
 
     /// <summary>
-    /// Re-raises everything that shows the licensing state. The gate mutates its
-    /// counter during a scan, but the bindings only follow property changes, so
-    /// without this the settings card and the banner keep showing the count the
-    /// app started with.
-    /// </summary>
-    private void RefreshLicensingState()
-    {
-        this.RaisePropertyChanged(nameof(IsProLicenseActive));
-        this.RaisePropertyChanged(nameof(TrialScanCount));
-        this.RaisePropertyChanged(nameof(IsTrialLimitReached));
-        this.RaisePropertyChanged(nameof(LicensingStatusText));
-        _licensingViewModel?.Refresh();
-
-        // A key that went valid on the introduction screen makes it pointless:
-        // its whole job is explaining what the free tier is.
-        if (_isIntroVisible && IsProLicenseActive) DismissIntro();
-    }
-
-    /// <summary>
-    /// Called after an activation. The gate already answered while the key was
-    /// being checked, so the screen is updated right here instead of after a
-    /// round trip through the dispatcher: an operator who just pasted a key sees
-    /// the tier change, and the introduction screen folds itself away, the
-    /// moment the answer arrives.
-    /// </summary>
-    private void RequestLicenseRefresh() => RefreshLicensingState();
-
-    /// <summary>
     /// <see cref="Shutdown"/> as a contract, so a caller that only has the interface
     /// can release the connector too. Closing the window already does it; a window
     /// that is built but never shown is never closed either, and there the connector
@@ -2038,127 +1484,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         InteractiveSessionStatus = done == 0
             ? string.Format(LocalizationManager.GetString("Session_Started"), where)
             : string.Format(LocalizationManager.GetString("Session_InProgress"), where, done, total);
-    }
-
-    public void ApplyInteractiveResults(InteractiveTestSuiteResult suite)
-    {
-        DeviceData.InteractiveTests = suite;
-        var newIssues = DeviceData.MergeInteractiveResults(Issues.ToList());
-        Issues.Clear();
-        foreach (var iss in newIssues)
-        {
-            Issues.Add(iss);
-        }
-        HasIssues = Issues.Count > 0;
-
-        int passed = suite.Tests.Count(t => t.Status == TestStatus.Passed);
-        int failed = suite.Tests.Count(t => t.Status == TestStatus.Failed);
-        int skipped = suite.Tests.Count(t => t.Status == TestStatus.Skipped);
-
-        InteractiveTestSummary = skipped == 0
-            ? string.Format(LocalizationManager.GetString("Session_TestsPlain"), passed, failed, suite.Platform)
-            : string.Format(LocalizationManager.GetString("Session_TestsSkipped"), passed, failed, skipped, suite.Platform);
-
-        if (failed > 0)
-        {
-            InteractiveSessionStatus = skipped > 0
-                ? string.Format(LocalizationManager.GetString("Session_FailedSkipped"), failed, skipped)
-                : string.Format(LocalizationManager.GetString("Session_Failed"), failed);
-        }
-        else if (skipped > 0)
-        {
-            InteractiveSessionStatus = string.Format(
-                LocalizationManager.GetString("Session_SkippedOnly"), skipped);
-        }
-        else
-        {
-            InteractiveSessionStatus = LocalizationManager.GetString(
-                suite.AllPassed ? "Session_AllPassed" : "Session_Done");
-        }
-
-        RefreshInteractiveTestLists();
-    }
-
-    /// <summary>
-    /// Fills the two lists in the inspection report.
-    ///
-    /// They are refilled here and at the end of the flow, because the run can
-    /// finish either way round: results that arrive after the report was built
-    /// would otherwise sit unseen until the operator paid for nothing.
-    /// </summary>
-    private void RefreshInteractiveTestLists()
-    {
-        FailedInteractiveTests.Clear();
-        SkippedInteractiveTests.Clear();
-        DismissedInteractiveTests.Clear();
-
-        foreach (var test in DeviceData.InteractiveTests?.Tests ?? Enumerable.Empty<InteractiveTestResult>())
-        {
-            // Counted, not dropped: the report says how much it is leaving out.
-            if (test.Excluded)
-            {
-                DismissedInteractiveTests.Add(test);
-            }
-            else if (test.Status == TestStatus.Failed)
-            {
-                FailedInteractiveTests.Add(test);
-            }
-            else if (test.Status == TestStatus.Skipped)
-            {
-                SkippedInteractiveTests.Add(test);
-            }
-        }
-
-        RaiseReportChanged();
-    }
-
-    /// <summary>
-    /// Takes one row out of the inspection report.
-    ///
-    /// The decision is written onto the row, not kept in the list, because both
-    /// lists are emptied and refilled every time the report refreshes: a
-    /// dismissal held only by a list would be back on the next refresh. A new
-    /// run rebuilds the rows from what the phone sent, so a fresh measurement
-    /// shows itself again.
-    /// </summary>
-    private void DismissInteractiveTest(InteractiveTestResult? test)
-    {
-        if (test is null || test.Excluded) return;
-
-        test.Excluded = true;
-        FailedInteractiveTests.Remove(test);
-        SkippedInteractiveTests.Remove(test);
-        DismissedInteractiveTests.Add(test);
-
-        RaiseReportChanged();
-    }
-
-    /// <summary>Puts every row back in the report, so a dismissal is never final.</summary>
-    private void RestoreDismissedTests()
-    {
-        if (DismissedInteractiveTests.Count == 0) return;
-
-        foreach (var test in DismissedInteractiveTests)
-        {
-            test.Excluded = false;
-        }
-
-        RefreshInteractiveTestLists();
-    }
-
-    /// <summary>
-    /// Raises everything that moves when a row enters or leaves the report.
-    ///
-    /// The three are one piece of state: what is listed, what is hidden, and
-    /// whether the green line is allowed to stand. Raising them together is
-    /// what keeps a view from showing a figure for rows it no longer believes
-    /// are hidden.
-    /// </summary>
-    private void RaiseReportChanged()
-    {
-        this.RaisePropertyChanged(nameof(NoInteractiveTestProblems));
-        this.RaisePropertyChanged(nameof(HasDismissedInteractiveTests));
-        this.RaisePropertyChanged(nameof(DismissedInteractiveTestCount));
     }
 
     /// <summary>Polls for device changes every 2s; starts the auto flow on first sight of a device.</summary>
@@ -2221,33 +1546,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     }
 
     private void StopWatcher() => _watcher?.Dispose();
-
-    private void ResetToIdle()
-    {
-        string? lastUdid = SelectedDevice.Key;
-        if (_flowCts != null)
-        {
-            _flowCts.Cancel();
-            _flowCts.Dispose();
-            _flowCts = null;
-        }
-
-        // Preserve session if unhooked mid-test
-        if (WorkflowState == AppWorkflowState.Active && !string.IsNullOrWhiteSpace(lastUdid) && DeviceData != null)
-        {
-            DeviceSessionManager.PreserveDisconnectedSession(lastUdid, DeviceData, Progress);
-            Status = LocalizationManager.GetString("Status_Disconnected");
-        }
-        else
-        {
-            Status = LocalizationManager.GetString("Status_ConnectUsb");
-        }
-
-        WorkflowState = AppWorkflowState.Idle;
-        Busy = false;
-        IsQualityPopupVisible = false;
-        IsPaymentPopupVisible = false;
-    }
 
     /// <summary>
     /// Where a device refresh gets its answer. Production leaves this null and
@@ -2415,303 +1713,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         };
     }
 
-    /// <summary>Resets the current device session and retests it.</summary>
-    private async Task RetestCurrentDeviceAsync()
-    {
-        string? udid = SelectedDevice.Key;
-        if (!string.IsNullOrWhiteSpace(udid))
-        {
-            DeviceSessionManager.ResetDevice(udid);
-            await RunFlowAsync();
-        }
-    }
-
-    /// <summary>
-    /// The licensing half of starting a scan: asks the gate, then refreshes the
-    /// status bindings with whatever the gate decided. The gate spends a free
-    /// scan (or validates Pro) inside EvaluateAsync, so the count on screen is
-    /// stale from that moment on until this raises the changes. Returns false
-    /// when the trial limit blocks the scan, and then no device is touched.
-    /// </summary>
-    public async Task<bool> PassScanGateAsync()
-    {
-        // The refresh touches bound state, so this method has to finish on the
-        // UI thread whoever called it. Called from a pool thread (a watcher
-        // callback, a stray continuation) it hops over first; called from the
-        // UI thread it stays there. Without the hop, IsTrialLimitReached moves
-        // the start button's CanExecute on that pool thread, and Avalonia
-        // answers a command change from the wrong thread by ending the process.
-        if (!Dispatcher.UIThread.CheckAccess())
-            return await Dispatcher.UIThread.InvokeAsync(PassScanGateAsync);
-
-        DeviceService.ScanInitResult verdict = await DeviceService.InitializeScanAsync();
-        RefreshLicensingState();
-        return verdict == DeviceService.ScanInitResult.Proceed;
-    }
-
-    /// <summary>The whole pipeline for one device.</summary>
-    private async Task RunFlowAsync()
-    {
-        // Every line of the flow touches bound state, so a caller off the UI
-        // thread is moved over before anything runs. The gate below guards
-        // itself too, because it is public and has other callers.
-        if (!Dispatcher.UIThread.CheckAccess())
-        {
-            await Dispatcher.UIThread.InvokeAsync(RunFlowAsync);
-            return;
-        }
-
-        string? udid = SelectedDevice.Key;
-        if (udid is not { Length: > 0 })
-        {
-            Status = LocalizationManager.GetString("Status_NoDeviceSelected");
-            return;
-        }
-
-        // Licensing gate: block at the limit before any device work starts.
-        if (!await PassScanGateAsync())
-        {
-            Status = LocalizationManager.GetString("Status_TrialLimit");
-            return;
-        }
-
-        Busy = true;
-        WorkflowState = AppWorkflowState.Active;
-        DeviceSessionManager.MarkStarted(udid);
-        _flowCts = new CancellationTokenSource();
-        Issues.Clear();
-        ComponentChecks.Clear();
-        HasIssues = false;
-        Progress = 5;
-        try
-        {
-            // 1. Trust / connectivity
-            Status = LocalizationManager.GetString("Status_Checking");
-            var state = await DeviceService.GetConnectionStateAsync(udid);
-            if (state == DeviceService.ConnectionState.Unauthorized)
-            {
-                Status = LocalizationManager.GetString("Status_Unauthorized");
-                WorkflowState = AppWorkflowState.Idle; // Fallback to Idle
-                return;
-            }
-            if (state == DeviceService.ConnectionState.NotTrusted)
-            {
-                Status = LocalizationManager.GetString("Status_NotTrusted");
-                WorkflowState = AppWorkflowState.Idle; // Fallback to Idle
-                return;
-            }
-            if (state == DeviceService.ConnectionState.PermissionDenied)
-            {
-                Status = LocalizationManager.GetString("Status_PermissionDenied");
-                return;
-            }
-            if (state == DeviceService.ConnectionState.DriverMissing)
-            {
-                Status = LocalizationManager.GetString("Status_DriverMissing");
-                return;
-            }
-            if (state == DeviceService.ConnectionState.DaemonStopped)
-            {
-                Status = LocalizationManager.GetString(OperatingSystem.IsWindows()
-                    ? "Status_DaemonStoppedWin"
-                    : "Status_DaemonStoppedUnix");
-                return;
-            }
-            if (state != DeviceService.ConnectionState.Connected)
-            {
-                Status = LocalizationManager.GetString("Status_Unreachable");
-                return;
-            }
-            Progress = 20;
-
-            // 2. Activation bypass (optional)
-            if (AutoActivate && state == DeviceService.ConnectionState.NotActivated ||
-                AutoActivate && await NeedsActivationAsync(udid))
-            {
-                Status = LocalizationManager.GetString("Status_Activating");
-                string result = await ActivationService.SkipActivationAsync(udid);
-                Status = result;
-            }
-            Progress = 40;
-
-            // 3. Read device data
-            Status = LocalizationManager.GetString("Status_ReadingData");
-            DeviceData = await DeviceService.GetDeviceDataAsync(udid);
-            ComponentChecks.Clear();
-            foreach (var check in DeviceData.ComponentChecks)
-                ComponentChecks.Add(check);
-            Progress = 60;
-
-            // 4. Battery health: keep actual percentage in UI, label service adds [X] when printing if < 85%
-
-            // 5. Diagnostics (panic logs & sensors): strictly asynchronous on background thread (non-blocking)
-            if (RunDiagnostics)
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var diagIssues = await DiagnosticService.DiagnoseAsync(udid);
-                        await Dispatcher.UIThread.InvokeAsync(() =>
-                        {
-                            foreach (var issue in diagIssues)
-                                Issues.Add(issue);
-                            HasIssues = Issues.Count > 0;
-                        });
-                    }
-                    catch { }
-                });
-            }
-            Progress = 75;
-
-            // Wait for user to explicitly click 'Afronden'
-            Status = LocalizationManager.GetString("Status_SpecsRead");
-        }
-        catch (Exception ex)
-        {
-            Status = string.Format(LocalizationManager.GetString("Status_Error"), ex.Message);
-        }
-        finally
-        {
-            Busy = false;
-        }
-    }
-
     private async Task<bool> NeedsActivationAsync(string udid) =>
         (await DeviceService.GetKeyAsync(udid, "ActivationState")).Contains("Unactivated");
-
-    private async Task ContinueAfterQualityAsync(string quality)
-    {
-        string penalised = GradePolicy.ApplyMissingApiPenalty(quality, DeviceData.ComponentChecks);
-        if (penalised != quality)
-        {
-            quality = penalised;
-            SystemEventLogger.Warning(LogSource.Desktop, "Prevented Grade 'A' selection due to missing mandatory browser APIs.", DeviceData.Identifier);
-            Status = LocalizationManager.GetString("Status_GradeDowngraded");
-        }
-        
-        SelectedGrade = quality;
-        IsQualityPopupVisible = false;
-
-        if (DefaultPaymentMethod == PaymentMethods.NeverAsk)
-        {
-            // A shop that does not record an invoice method is not stopped for one.
-            // The device keeps no method, the label leaves the field off and the
-            // report says nothing about it, which is what "not asked" means.
-            await ContinueAfterPaymentAsync("");
-        }
-        else if (DefaultPaymentMethod is { Length: > 0 })
-        {
-            await ContinueAfterPaymentAsync(DefaultPaymentMethod);
-        }
-        else
-        {
-            Progress = 90;
-            Status = LocalizationManager.GetString("Status_ChoosePayment");
-            IsPaymentPopupVisible = true;
-        }
-    }
-
-    private Task ContinueAfterPaymentAsync(string method)
-    {
-        SelectedInvoiceMethod = method;
-        IsQualityPopupVisible = false;
-        IsPaymentPopupVisible = false;
-        Progress = 100;
-        Status = LocalizationManager.GetString("Status_TestsComplete");
-        // Populate defect inspection report (only non-OEM/mismatch components and failed tests)
-        DefectiveComponents.Clear();
-        foreach (var c in DeviceData.ComponentChecks)
-        {
-            if (c.Status == ComponentStatusType.Mismatch || c.Status == ComponentStatusType.Untrusted)
-            {
-                DefectiveComponents.Add(c);
-            }
-        }
-
-        RefreshInteractiveTestLists();
-
-        WorkflowState = AppWorkflowState.Summary;
-
-        string? udid = SelectedDevice.Key;
-        if (!string.IsNullOrWhiteSpace(udid))
-        {
-            DeviceSessionManager.MarkCompleted(udid, DeviceData);
-        }
-
-        if (OpenEditorBeforePrint)
-        {
-            DataEditorRequested?.Invoke(DeviceData);
-            return Task.CompletedTask;
-        }
-
-        if (!ShowSummaryScreenAfterTesting)
-        {
-            FinishInspectionAndShow();
-        }
-
-        return Task.CompletedTask;
-    }
-
-    /// <summary>Generate + open the label; single click path for the user.</summary>
-    private async Task FinishInspectionAsync()
-    {
-        // Check if PWA test is required and not completed
-        if (RequirePwaTest && DeviceData.InteractiveTests == null)
-        {
-            Status = LocalizationManager.GetString("Status_PwaRequired");
-            return;
-        }
-
-        // Enforce Grading Penalty: Prevent auto 'A' grade if missing mandatory APIs
-        string targetQuality = GradePolicy.ApplyMissingApiPenalty(DefaultQuality, DeviceData.ComponentChecks);
-        if (targetQuality != DefaultQuality)
-        {
-            SystemEventLogger.Warning(LogSource.Desktop, "Downgraded automatic grade from A to B due to missing mandatory browser APIs.", DeviceData.Identifier);
-        }
-
-        // 6. Quality + payment: defaults from settings, else popup
-        if (!string.IsNullOrEmpty(targetQuality))
-            await ContinueAfterQualityAsync(targetQuality);
-        else
-        {
-            IsQualityPopupVisible = true;
-            Status = LocalizationManager.GetString("Status_ChooseQuality");
-        }
-    }
-
-    /// <summary>
-    /// Records the inspection and shows the report.
-    ///
-    /// It used to write the label and open whatever application the system had
-    /// registered for a .dymo file, which meant the flow ended in either the DYMO
-    /// editor or an error dialog depending on what was installed on the operator's
-    /// machine. It now records the inspection and puts the operator in front of the
-    /// export panel, which is the same screen the summary screen's button opens and
-    /// which works the same whether or not DYMO software is present.
-    /// </summary>
-    private void FinishInspectionAndShow()
-    {
-        try
-        {
-            Status = LocalizationManager.GetString("Status_LabelGenerating");
-            AuditLogService.ExportAuditLog(DeviceData);
-            Progress = 100;
-            WorkflowState = AppWorkflowState.Summary;
-
-            if (!ShowSummaryScreenAfterTesting)
-            {
-                // With no report screen there is nowhere for the operator to read
-                // what was found, so the export panel opens in its place rather
-                // than the label being written to a file nobody is shown.
-                ExportViewModel?.Open();
-            }
-        }
-        catch (Exception ex)
-        {
-            Status = string.Format(LocalizationManager.GetString("Status_LabelFailed"), ex.Message);
-        }
-    }
 
     // IMEI.info BYOK Command Implementations
     private Task SaveImeiInfoApiKeyAsync()
