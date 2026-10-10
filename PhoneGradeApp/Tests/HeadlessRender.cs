@@ -40,7 +40,7 @@ public static class HeadlessRender
     /// and looking again until there is one turns that race into a bounded wait.
     /// </para>
     /// </summary>
-    public static WriteableBitmap Capture(Window window, int attempts = 50)
+    public static WriteableBitmap Capture(Window window, int attempts = 300)
     {
         for (int attempt = 0; attempt < attempts; attempt++)
         {

@@ -102,7 +102,7 @@ public class IdleScreenTests : IDisposable
 
     private static MainWindow ShowIdle()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
         vm.Theme = "Dark";
 

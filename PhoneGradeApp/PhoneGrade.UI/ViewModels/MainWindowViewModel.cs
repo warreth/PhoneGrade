@@ -32,6 +32,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
     private CancellationTokenSource? _flowCts;
     private IDisposable? _watcher;
 
+    // Held so Shutdown can take the static USB events back off this instance.
+    // Anonymous handlers cannot be unsubscribed, and a disposed view model that
+    // still answers a plug event brings a closed window back to life.
+    private readonly EventHandler _usbConnected;
+    private readonly EventHandler _usbDisconnected;
+
     // Licensing
     private readonly LemonSqueezyClient _licenseClient;
     private readonly TrialGate _trialGate;
@@ -1576,7 +1582,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
         }
 
 
-        UsbEventWatcher.UsbDeviceConnected += (s, e) =>
+        _usbConnected = (s, e) =>
         {
             Dispatcher.UIThread.Post(() =>
             {
@@ -1587,7 +1593,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             });
         };
 
-        UsbEventWatcher.UsbDeviceDisconnected += (s, e) =>
+        _usbDisconnected = (s, e) =>
         {
             Dispatcher.UIThread.Post(async () =>
             {
@@ -1604,6 +1610,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
                 }
             });
         };
+
+        UsbEventWatcher.UsbDeviceConnected += _usbConnected;
+        UsbEventWatcher.UsbDeviceDisconnected += _usbDisconnected;
         UsbEventWatcher.StartMonitoring();
 
         _ = RefreshDeviceListAsync();
@@ -1903,9 +1912,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             SystemEventLogger.Warning(LogSource.UsbDetector, $"Could not close the tunnel: {ex.Message}");
         }
 
-        // Stop USB event monitoring
+        // Stop USB event monitoring. The subscriptions come off by their held
+        // delegates: an anonymous handler cannot be taken back off, and a view
+        // model that still answers a plug event is a closed window brought back
+        // to life by the next mouse someone plugs in.
         try
         {
+            UsbEventWatcher.UsbDeviceConnected -= _usbConnected;
+            UsbEventWatcher.UsbDeviceDisconnected -= _usbDisconnected;
+            UsbEventWatcher.StopMonitoring();
             AdbTutorialViewModel?.Dispose();
             _adbDirector?.Dispose();
         }
@@ -1914,8 +1929,34 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
             SystemEventLogger.Warning(LogSource.UsbDetector, $"Could not stop USB monitoring: {ex.Message}");
         }
 
+        // The poll loop and a running flow both write to bound state; nothing
+        // may raise a property change once the window has gone.
+        try
+        {
+            StopWatcher();
+            _flowCts?.Cancel();
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Warning(LogSource.UsbDetector, $"Could not stop the device watcher: {ex.Message}");
+        }
+
+        // The phone's page is served from the window's own server. Stopping the
+        // host hands the port back and closes what is still connected, instead
+        // of leaving the next window to find 5055 taken. The stop runs on the
+        // pool and is not waited for: this runs on the window's own thread, and
+        // a Kestrel stop that posts a continuation back to a waiting UI thread
+        // never finishes. UiThreadDoesNotWaitTests is the guard that keeps it
+        // that way.
+        if (_webServer is { } server)
+        {
+            _webServer = null;
+            _ = Task.Run(async () => await server.DisposeAsync());
+        }
+
         // Let go of the static log event, which otherwise keeps the log view model alive.
         LogsViewModel.Dispose();
+        _licensingViewModel?.Dispose();
     }
 
     /// <summary>

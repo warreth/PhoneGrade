@@ -143,7 +143,7 @@ public class StepPlanTests : IDisposable
     /// <summary>The window on one screen, laid out and ready to measure.</summary>
     private static MainWindow Opened(Action<MainWindowViewModel> state)
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
         vm.Theme = "Dark";
         window.Show();

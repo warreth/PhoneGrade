@@ -204,7 +204,7 @@ public class TroubleshootModalTests : IDisposable
     /// <summary>The window, laid out, with the panel shut.</summary>
     private static MainWindow Opened()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
         vm.Theme = "Dark";
         window.Show();

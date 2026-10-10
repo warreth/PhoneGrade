@@ -45,6 +45,29 @@ public class UiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void DisposingTheWindow_StopsTheNativeUsbWatch()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            // The native watcher is inert off Windows, where the polling loop is
+            // the source of truth; there is no watch to check.
+            return;
+        }
+
+        using (var vm = new MainWindowViewModel())
+        {
+            Assert.True(UsbEventWatcher.IsNativeMonitoringActive,
+                "the window starts the native watch as part of opening");
+        }
+
+        // A watcher that outlives its window fires into whatever runs next in
+        // this process: the next window, or the next test. Closing the window
+        // has to leave the process as quiet as it found it.
+        Assert.False(UsbEventWatcher.IsNativeMonitoringActive,
+            "closing the window leaves no native watch behind");
+    }
+
+    [AvaloniaFact]
     public async Task QualityAndPaymentSelection_AdvancesStateMachineAndUpdatesStatus()
     {
         using var vm = new MainWindowViewModel();

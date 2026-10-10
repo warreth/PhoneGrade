@@ -104,7 +104,7 @@ public class ImeiSettingsTests : IDisposable
     /// <summary>The window with the IMEI API topic open and laid out.</summary>
     private static MainWindow OpenSection()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
         vm.Theme = "Dark";
         window.Show();

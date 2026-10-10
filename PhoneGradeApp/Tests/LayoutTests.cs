@@ -225,7 +225,7 @@ public class LayoutTests : IDisposable
     /// <summary>Opens the window at the size the title bar clamps it to.</summary>
     private static MainWindow ShowAtMinimumSize()
     {
-        var window = new MainWindow();
+        using var window = new MainWindow();
         window.Show();
         window.Width = 850;
         window.Height = 620;

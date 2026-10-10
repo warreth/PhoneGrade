@@ -679,7 +679,10 @@ public class TestRunnerServer : IAsyncDisposable
     {
         if (_host != null)
         {
-            await _host.StopAsync(TimeSpan.FromSeconds(5));
+            // No context capture: the window shuts the server down from its own
+            // thread, and a continuation posted back to that thread never runs
+            // because the thread is waiting for this one to finish.
+            await _host.StopAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
             _host.Dispose();
             _host = null;
         }

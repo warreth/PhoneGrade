@@ -83,7 +83,7 @@ public class DismissedTestReportTests
     public void DismissingOneOfTwoFailuresLeavesTheOtherOnTheReport()
     {
         using var _ = new Scope();
-        var vm = Loaded();
+        using var vm = Loaded();
 
         Assert.Equal(2, vm.FailedInteractiveTests.Count);
 
@@ -101,7 +101,7 @@ public class DismissedTestReportTests
     public void TheReportSaysHowMuchItIsHidingInsteadOfQuietlyDroppingRows()
     {
         using var _ = new Scope();
-        var vm = Loaded();
+        using var vm = Loaded();
 
         vm.DismissInteractiveTestCommand.Execute(vm.FailedInteractiveTests[0]).Subscribe();
         vm.DismissInteractiveTestCommand.Execute(vm.FailedInteractiveTests[0]).Subscribe();
@@ -118,7 +118,7 @@ public class DismissedTestReportTests
     public void TheGreenLineIsWithdrawnOnceEveryFailureHasBeenDismissed()
     {
         using var _ = new Scope();
-        var vm = Loaded();
+        using var vm = Loaded();
         Assert.False(vm.NoInteractiveTestProblems);
 
         vm.DismissInteractiveTestCommand.Execute(vm.FailedInteractiveTests[0]).Subscribe();
@@ -135,7 +135,7 @@ public class DismissedTestReportTests
     public void TheSummaryKeepsReportingWhatWasMeasured()
     {
         using var _ = new Scope();
-        var vm = Loaded();
+        using var vm = Loaded();
         string before = vm.InteractiveTestSummary;
 
         vm.DismissInteractiveTestCommand.Execute(vm.FailedInteractiveTests[0]).Subscribe();
@@ -148,7 +148,7 @@ public class DismissedTestReportTests
     public void RestoringPutsTheRowBackOnTheReport()
     {
         using var _ = new Scope();
-        var vm = Loaded();
+        using var vm = Loaded();
         var row = vm.FailedInteractiveTests[0];
 
         vm.DismissInteractiveTestCommand.Execute(row).Subscribe();
@@ -169,7 +169,7 @@ public class DismissedTestReportTests
     public void ADismissedRowStaysGoneWhenTheSameResultsArriveAgain()
     {
         using var _ = new Scope();
-        var vm = Loaded();
+        using var vm = Loaded();
         var row = vm.FailedInteractiveTests[0];
 
         vm.DismissInteractiveTestCommand.Execute(row).Subscribe();
@@ -184,7 +184,7 @@ public class DismissedTestReportTests
     public void ANewRunShowsTheRowAgain()
     {
         using var _ = new Scope();
-        var vm = Loaded();
+        using var vm = Loaded();
 
         vm.DismissInteractiveTestCommand.Execute(vm.FailedInteractiveTests[0]).Subscribe();
         vm.ApplyInteractiveResults(ReadSuite(SuitePayload));
@@ -203,7 +203,7 @@ public class DismissedTestReportTests
     public void ThePhoneCannotHideItsOwnFailure()
     {
         using var _ = new Scope();
-        var vm = new MainWindowViewModel();
+        using var vm = new MainWindowViewModel();
         vm.ApplyInteractiveResults(ReadSuite(SuitePayload.Replace(
             """{ "id": "camera", "name": "Camera", "status": "failed",""",
             """{ "id": "camera", "name": "Camera", "excluded": true, "status": "failed",""")));
