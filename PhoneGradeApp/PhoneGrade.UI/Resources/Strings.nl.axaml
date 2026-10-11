@@ -55,7 +55,7 @@
     <x:String x:Key="Settings_AutoDetect">Start automatisch bij insteken</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Zodra een toestel gedetecteerd wordt, draait het hele proces vanzelf</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB-gebeurtenissen volgen</x:String>
-    <x:String x:Key="Settings_UsbEventMonitoringDesc">Gebruik native OS USB-gebeurtenissen voor directe toesteldetectie (Windows WMI, macOS IOKit, Linux udev)</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoringDesc">Gebruik native USB-gebeurtenissen voor directe toesteldetectie. Alleen Windows; macOS en Linux vallen terug op pollen.</x:String>
     
     <!-- Troubleshoot -->
     <x:String x:Key="Troubleshoot_Title">TOESTELDETECTIE &amp; DRIVERASSISTENT</x:String>
@@ -100,17 +100,17 @@
     <x:String x:Key="Settings_GroupInteractiveTest">De interactieve test</x:String>
     <x:String x:Key="Settings_GroupAfterwards">Na de inspectie</x:String>
     <x:String x:Key="Settings_Quality">Standaardgrade</x:String>
-    <x:String x:Key="Settings_Payment">Standaard Factuurmethode</x:String>
+    <x:String x:Key="Settings_Payment">Standaard factuurmethode</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Automatisch interactieve webtest starten</x:String>
-    <x:String x:Key="Settings_RequirePwaTest">PWA Test Verplicht voor afronden</x:String>
+    <x:String x:Key="Settings_RequirePwaTest">PWA-test verplicht voor afronden</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTest">Automatisch afronden na test</x:String>
     <x:String x:Key="Settings_ShowSummary">Toon samenvatting voor het afdrukken van het label</x:String>
     <x:String x:Key="Settings_Advanced">Geavanceerde automatisering</x:String>
     <x:String x:Key="Settings_AutoActivate">Automatisch activeren (bypass)</x:String>
     <x:String x:Key="Settings_RunDiagnostics">Hardware diagnose draaien (panic-logs)</x:String>
-    <x:String x:Key="Settings_Enable85Checker">85% Batterijcheck (100%-X label)</x:String>
+    <x:String x:Key="Settings_Enable85Checker">Batterijmarkering op het label</x:String>
     <x:String x:Key="Settings_OpenEditor">Labeleditor openen voor het afdrukken</x:String>
-    <x:String x:Key="Settings_Connection">HOE DE TELEFOON DE PAGINA OPENT</x:String>
+    <x:String x:Key="Settings_Connection">Hoe de telefoon de pagina opent</x:String>
     <x:String x:Key="Settings_SecureOrigin">Via USB-kabel (http://localhost)</x:String>
     <x:String x:Key="Settings_SecureOriginDesc">De telefoon opent de testpagina op de pc zelf. Dat adres vertrouwt een browser, dus camera, microfoon, bewegingssensoren en locatie doen er allemaal hun werk. Dit is de snelste van de twee, heeft geen internet nodig en werkt zodra de kabel zit. Deze optie wordt als eerste geprobeerd.</x:String>
     <x:String x:Key="Settings_PublicTunnel">Via internet (https, beveiligd)</x:String>
@@ -193,8 +193,9 @@
     <x:String x:Key="Summary_BtnPrint">Afronden</x:String>
     <x:String x:Key="Summary_BtnRetest">Opnieuw testen</x:String>
     <x:String x:Key="Summary_BtnNext">Volgend toestel (klaar)</x:String>
-    <x:String x:Key="Summary_SimLockFree">Vrijgeschakeld (Simlockvrij)</x:String>
-    <x:String x:Key="Summary_SimLocked">Simlock Actief</x:String>
+    <x:String x:Key="Summary_SimLockFree">Simlockvrij</x:String>
+    <x:String x:Key="Summary_SimLocked">Simlock actief</x:String>
+    <x:String x:Key="Summary_SimLockUnknown">Onbekend</x:String>
 
     <!-- ============ Exporteren en afdrukken ============ -->
     <!-- Het scherm dat de operator opent vanaf het inspectierapport. Het is de
@@ -468,7 +469,7 @@
     <x:String x:Key="CrashLogRange_Week">Laatste week</x:String>
     <x:String x:Key="CrashLogRange_Month">Laatste maand</x:String>
     <x:String x:Key="CrashLogRange_All">Alles</x:String>
-    <x:String x:Key="Settings_Enable85CheckerDesc">Markeert een batterij onder 85 procent van de ontwerpcapaciteit op het label.</x:String>
+    <x:String x:Key="Settings_Enable85CheckerDesc">Markeert een batterij onder de grens hierboven met [X] op het label.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Opent de gegevenseditor voordat er wordt afgedrukt, zodat de waarden eerst kunnen worden gecorrigeerd.</x:String>
     <x:String x:Key="Settings_DebugMode">Debugmodus en netwerk-tracing</x:String>
     <x:String x:Key="Settings_DebugModeDesc">Schrijft uitgebreide logs van elk verzoek. Alleen nuttig bij het oplossen van een probleem.</x:String>
@@ -484,15 +485,15 @@
     <x:String x:Key="Editor_Title">Toestelgegevens bewerken</x:String>
     <x:String x:Key="Editor_Lead">Controleer en pas de waarden aan die op het label komen.</x:String>
     <x:String x:Key="Editor_Identity">Identiteit</x:String>
-    <x:String x:Key="Editor_Identifier">Identifier (IMEI / serienummer)</x:String>
+    <x:String x:Key="Editor_Identifier">IMEI / serienummer</x:String>
     <x:String x:Key="Editor_Battery">Batterij</x:String>
     <x:String x:Key="Editor_Grading">Grade</x:String>
     <x:String x:Key="Editor_Quality">Grade</x:String>
     <x:String x:Key="Editor_Payment">Factuurmethode</x:String>
     <x:String x:Key="Editor_MetricsTitle">Hardware en batterij</x:String>
     <x:String x:Key="Editor_Cycles">Laadcycli</x:String>
-    <x:String x:Key="Editor_DesignMah">Design mAh</x:String>
-    <x:String x:Key="Editor_CurrentMah">Huidig mAh</x:String>
+    <x:String x:Key="Editor_DesignMah">Ontwerpcapaciteit (mAh)</x:String>
+    <x:String x:Key="Editor_CurrentMah">Huidige capaciteit (mAh)</x:String>
     <x:String x:Key="Editor_Save">Opslaan en label openen</x:String>
     <x:String x:Key="Editor_Unset">Niet ingesteld</x:String>
 

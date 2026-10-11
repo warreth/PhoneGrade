@@ -271,7 +271,8 @@
                                         <StackPanel Grid.Column="1" Spacing="1" Margin="0,0,6,0">
                                             <StackPanel Orientation="Horizontal" Spacing="3">
                                                 <TextBlock Classes="dim" Text="{DynamicResource Spec_FindMy}" FontSize="10"/>
-                                                <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="3,1">
+                                                <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="3,1"
+                                                        IsVisible="{Binding DeviceData.HasFmiVerdict}">
                                                     <SelectableTextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
                                                 </Border>
                                             </StackPanel>
@@ -407,7 +408,8 @@
                                         <StackPanel Spacing="1">
                                             <StackPanel Orientation="Horizontal" Spacing="4">
                                                 <TextBlock Text="{DynamicResource Summary_Fmi}" FontSize="9" Classes="dim"/>
-                                                <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="2,0">
+                                                <Border Background="{DynamicResource TrackColor}" CornerRadius="3" Padding="2,0"
+                                                        IsVisible="{Binding DeviceData.HasFmiVerdict}">
                                                     <SelectableTextBlock Text="{Binding DeviceData.FmiVerificationSource}" FontSize="8" Foreground="{DynamicResource TextDimColor}"/>
                                                 </Border>
                                             </StackPanel>
@@ -438,12 +440,30 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Spacing="2">
                                     <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_SimLock}"/>
-                                    <SelectableTextBlock Text="{DynamicResource Summary_SimLockFree}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource SuccessColor}"/>
+                                    <!--
+                                        Three states, bound to what a source actually
+                                        said. The row used to be a static "SIM-free"
+                                        line, so a simlocked handset carried a green
+                                        "unlocked" beside a label that printed CARRIER!.
+                                    -->
+                                    <SelectableTextBlock Text="{DynamicResource Summary_SimLockFree}" FontWeight="Bold" FontSize="12"
+                                               Foreground="{DynamicResource SuccessColor}" IsVisible="{Binding DeviceData.SimLockIsFree}"/>
+                                    <SelectableTextBlock Text="{DynamicResource Summary_SimLocked}" FontWeight="Bold" FontSize="12"
+                                               Foreground="{DynamicResource DangerColor}" IsVisible="{Binding DeviceData.SimLockIsLocked}"/>
+                                    <SelectableTextBlock Text="{DynamicResource Summary_SimLockUnknown}" FontWeight="Bold" FontSize="12"
+                                               Foreground="{DynamicResource TextDimColor}" IsVisible="{Binding DeviceData.SimLockIsUnknown}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="3" Spacing="2">
                                     <TextBlock Classes="fieldLabel" Text="{DynamicResource Summary_HardwareTests}"/>
+                                    <!--
+                                        Wrapped rather than trimmed: the sentence is
+                                        the whole answer, and an ellipsis after the
+                                        pass count hides the failures it exists to
+                                        report. The row grows a line; the label above
+                                        it already says what the numbers are about.
+                                    -->
                                     <SelectableTextBlock Text="{Binding InteractiveTestSummary}" FontWeight="Bold" FontSize="12"
-                                               Foreground="{DynamicResource SuccessColor}" TextTrimming="CharacterEllipsis"/>
+                                               Foreground="{DynamicResource SuccessColor}" TextWrapping="Wrap"/>
                                 </StackPanel>
                             </Grid>
                         </Border>

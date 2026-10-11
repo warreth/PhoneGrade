@@ -596,7 +596,8 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
             _settings.EnableUsbEventMonitoring = value; 
             _settings.Save(); 
             this.RaiseAndSetIfChanged(ref _enableUsbEventMonitoring, value); 
-            if (value) _adbDirector?.Start(); else _adbDirector?.Stop();
+            if (value) { _adbDirector?.Start(); UsbEventWatcher.StartMonitoring(); }
+            else { _adbDirector?.Stop(); UsbEventWatcher.StopMonitoring(); }
         }
     }
 
@@ -979,7 +980,11 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
         _adbDirector.AdbCleared += (_, _) =>
             Dispatcher.UIThread.Post(() => ShowAdbWarning = false);
 
-        _adbDirector.Start();
+        // The USB event monitoring the setting names is started only when the
+        // setting asks for it. The constructor used to start it regardless, so a
+        // shop that had switched it off still got the events until it toggled the
+        // switch twice.
+        if (_settings.EnableUsbEventMonitoring) _adbDirector.Start();
 
         var canStart = this.WhenAnyValue(x => x.Busy, x => x.IsTrialLimitReached)
             .Select(t => !t.Item1 && !t.Item2);
@@ -1179,11 +1184,17 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
         UsbEventWatcher.UsbDeviceConnected += _usbConnected;
         UsbEventWatcher.UsbDeviceDisconnected += _usbDisconnected;
-        UsbEventWatcher.StartMonitoring();
+        if (_settings.EnableUsbEventMonitoring) UsbEventWatcher.StartMonitoring();
 
         _ = RefreshDeviceListAsync();
         if (_autoDetectOnPlug) StartWatcher();
         StartWebRunnerServer();
+
+        // One licence check at startup, not only at the first scan. A shop with a
+        // stored Pro seat saw "Free tier" on every launch until it started
+        // scanning, which read as if the key had been forgotten. A machine with no
+        // key never reaches the network: the gate answers that from the store.
+        _ = RefreshLicenseOnStartupAsync();
     }
 
     private void StartWebRunnerServer()

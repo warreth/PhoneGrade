@@ -160,6 +160,40 @@ public class DeviceData : INotifyPropertyChanged
     /// </summary>
     public Android.FrpLockService.FrpLockStatus? FactoryResetProtection { get; set; }
 
+    /// <summary>
+    /// Whether the phone is locked to a carrier, when either platform answered.
+    /// </summary>
+    /// <remarks>
+    /// Null when neither did. The summary screen used to print "SIM-free" for
+    /// every phone because nothing was bound to this question at all, and a
+    /// simlocked handset then carried a green "unlocked" beside a label that said
+    /// CARRIER!. Unknown is the honest third answer: the local reads cannot tell,
+    /// and the imei.info check is what can.
+    /// </remarks>
+    public bool? SimLockState =>
+        CarrierLockIOS?.IsCarrierLocked ?? CarrierLockAndroid?.IsCarrierLocked;
+
+    /// <summary>True when a carrier lock was actually found.</summary>
+    public bool SimLockIsLocked => SimLockState == true;
+
+    /// <summary>True when a source confirmed the phone is not locked to a carrier.</summary>
+    public bool SimLockIsFree => SimLockState == false;
+
+    /// <summary>True when no source answered the carrier lock question.</summary>
+    public bool SimLockIsUnknown => SimLockState is null;
+
+    /// <summary>
+    /// Whether the Find My row has a verdict worth showing the source of.
+    /// </summary>
+    /// <remarks>
+    /// The badge next to the status says where the answer came from. On an
+    /// Unknown answer there is no answer to source, and a badge reading "Lokaal"
+    /// beside "Onbekend" reads as if something local had verified it.
+    /// </remarks>
+    public bool HasFmiVerdict =>
+        ActivationLock is Apple.ActivationLockService.ActivationLockStatus.Locked
+            or Apple.ActivationLockService.ActivationLockStatus.Unlocked;
+
     public SecurityServices.BlacklistCheckService.BlacklistStatus? Blacklist { get; set; }
 
     /// <summary>

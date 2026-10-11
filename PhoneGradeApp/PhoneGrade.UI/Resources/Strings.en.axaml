@@ -55,7 +55,7 @@
     <x:String x:Key="Settings_AutoDetect">Auto-detect on plug</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Start the process automatically when a device is detected</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB event monitoring</x:String>
-    <x:String x:Key="Settings_UsbEventMonitoringDesc">Use native OS USB events for instant device detection (Windows WMI, macOS IOKit, Linux udev)</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoringDesc">Use native USB events for instant device detection. Windows only; macOS and Linux fall back to polling.</x:String>
     
     <!-- Troubleshoot -->
     <x:String x:Key="Troubleshoot_Title">DEVICE DETECTION &amp; DRIVER ASSISTANT</x:String>
@@ -100,17 +100,17 @@
     <x:String x:Key="Settings_GroupInteractiveTest">The interactive test</x:String>
     <x:String x:Key="Settings_GroupAfterwards">After the inspection</x:String>
     <x:String x:Key="Settings_Quality">Default Quality</x:String>
-    <x:String x:Key="Settings_Payment">Default Payment Method</x:String>
+    <x:String x:Key="Settings_Payment">Default invoice method</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">Automatically start interactive web test</x:String>
-    <x:String x:Key="Settings_RequirePwaTest">Require PWA Test before finishing</x:String>
+    <x:String x:Key="Settings_RequirePwaTest">Require PWA test before finishing</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTest">Automatically finish after test</x:String>
     <x:String x:Key="Settings_ShowSummary">Show summary before printing the label</x:String>
     <x:String x:Key="Settings_Advanced">Advanced automation</x:String>
     <x:String x:Key="Settings_AutoActivate">Auto-activate (bypass)</x:String>
     <x:String x:Key="Settings_RunDiagnostics">Run hardware diagnostics (panic logs)</x:String>
-    <x:String x:Key="Settings_Enable85Checker">85% Battery check (100%-X label)</x:String>
+    <x:String x:Key="Settings_Enable85Checker">Battery marker on the label</x:String>
     <x:String x:Key="Settings_OpenEditor">Open the label editor before printing</x:String>
-    <x:String x:Key="Settings_Connection">HOW THE PHONE OPENS THE PAGE</x:String>
+    <x:String x:Key="Settings_Connection">How the phone opens the page</x:String>
     <x:String x:Key="Settings_SecureOrigin">Over the USB cable (http://localhost)</x:String>
     <x:String x:Key="Settings_SecureOriginDesc">The phone opens the test page on the pc itself. A browser trusts that address, so camera, microphone, motion sensors and location all work there. This is the faster of the two, needs no internet, and works as soon as the cable is in. It is the route that is tried first.</x:String>
     <x:String x:Key="Settings_PublicTunnel">Over the internet (https, secure)</x:String>
@@ -193,8 +193,9 @@
     <x:String x:Key="Summary_BtnPrint">Finish</x:String>
     <x:String x:Key="Summary_BtnRetest">Retest</x:String>
     <x:String x:Key="Summary_BtnNext">Next Device (Done)</x:String>
-    <x:String x:Key="Summary_SimLockFree">Unlocked (SIM-free)</x:String>
-    <x:String x:Key="Summary_SimLocked">SIM Locked</x:String>
+    <x:String x:Key="Summary_SimLockFree">SIM-free</x:String>
+    <x:String x:Key="Summary_SimLocked">SIM locked</x:String>
+    <x:String x:Key="Summary_SimLockUnknown">Unknown</x:String>
 
     <!-- ============ Export and printing ============ -->
     <!-- The panel an operator reaches from the inspection report. It is the only
@@ -467,7 +468,7 @@
     <x:String x:Key="CrashLogRange_Week">Last week</x:String>
     <x:String x:Key="CrashLogRange_Month">Last month</x:String>
     <x:String x:Key="CrashLogRange_All">Everything</x:String>
-    <x:String x:Key="Settings_Enable85CheckerDesc">Flags a battery below 85 percent of its design capacity on the label.</x:String>
+    <x:String x:Key="Settings_Enable85CheckerDesc">Marks a battery under the threshold above with [X] on the label.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Opens the data editor before printing, so the printed values can be corrected first.</x:String>
     <x:String x:Key="Settings_DebugMode">Debug mode and network tracing</x:String>
     <x:String x:Key="Settings_DebugModeDesc">Writes verbose logs of every request. Only useful while tracking down a problem.</x:String>
@@ -483,15 +484,15 @@
     <x:String x:Key="Editor_Title">Edit device data</x:String>
     <x:String x:Key="Editor_Lead">Check and adjust the values that go on the label.</x:String>
     <x:String x:Key="Editor_Identity">Identity</x:String>
-    <x:String x:Key="Editor_Identifier">Identifier (IMEI / serial)</x:String>
+    <x:String x:Key="Editor_Identifier">IMEI / serial number</x:String>
     <x:String x:Key="Editor_Battery">Battery</x:String>
     <x:String x:Key="Editor_Grading">Grading</x:String>
     <x:String x:Key="Editor_Quality">Quality</x:String>
     <x:String x:Key="Editor_Payment">Invoice method</x:String>
     <x:String x:Key="Editor_MetricsTitle">Hardware &amp; battery metrics</x:String>
     <x:String x:Key="Editor_Cycles">Charge cycles</x:String>
-    <x:String x:Key="Editor_DesignMah">Design mAh</x:String>
-    <x:String x:Key="Editor_CurrentMah">Current mAh</x:String>
+    <x:String x:Key="Editor_DesignMah">Design capacity (mAh)</x:String>
+    <x:String x:Key="Editor_CurrentMah">Current capacity (mAh)</x:String>
     <x:String x:Key="Editor_Save">Save and open label</x:String>
     <x:String x:Key="Editor_Unset">Not set</x:String>
 

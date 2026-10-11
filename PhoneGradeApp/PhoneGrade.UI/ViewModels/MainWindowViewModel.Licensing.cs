@@ -60,6 +60,33 @@ public partial class MainWindowViewModel
     private void RequestLicenseRefresh() => RefreshLicensingState();
 
     /// <summary>
+    /// Asks the vendor once, at startup, what the stored key is worth.
+    /// </summary>
+    /// <remarks>
+    /// The gate was only consulted when a scan started, so the pill and the
+    /// settings card said "Free tier" on every launch of a machine that had a
+    /// valid seat, and the operator found out it was still Pro only by starting
+    /// a scan. One check answers that before anything is touched. A failure
+    /// leaves the stored state as it is and the first scan asks again, and a
+    /// machine with no key costs no call at all.
+    /// </remarks>
+    private async Task RefreshLicenseOnStartupAsync()
+    {
+        try
+        {
+            await _trialGate.RefreshLicenseStatusAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            SystemEventLogger.Warning(LogSource.Desktop,
+                "The licence check at startup failed; the stored state stays.", ex.Message);
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(RefreshLicensingState);
+    }
+
+    /// <summary>
     /// The licensing half of starting a scan: asks the gate, then refreshes the
     /// status bindings with whatever the gate decided. The gate spends a free
     /// scan (or validates Pro) inside EvaluateAsync, so the count on screen is

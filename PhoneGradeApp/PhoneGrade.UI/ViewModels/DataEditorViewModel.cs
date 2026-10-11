@@ -51,6 +51,26 @@ public class DataEditorViewModel
     }
 
     /// <summary>
+    /// The battery condition as the operator reads it on the label.
+    /// </summary>
+    /// <remarks>
+    /// The phone reports "90" and the label prints "90%", so an editor that shows
+    /// the bare number is a number the operator has to translate. What is stored
+    /// is what was typed, and a status word like "Good" is shown untouched: only a
+    /// number gets the sign the label will give it.
+    /// </remarks>
+    public string Battery
+    {
+        get
+        {
+            string value = DeviceData.BatteryHealth ?? "";
+            string digits = value.EndsWith('%') ? value[..^1].Trim() : value;
+            return digits.Length > 0 && int.TryParse(digits, out _) ? $"{digits}%" : value;
+        }
+        set => DeviceData.BatteryHealth = value;
+    }
+
+    /// <summary>
     /// True once the phone or the operator supplied at least one of the three
     /// read-only battery numbers. The card holds what the phone reported, so a
     /// phone that reported nothing gets no card: three zeroes under a heading

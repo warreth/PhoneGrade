@@ -280,6 +280,26 @@ public class UiTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void DataEditor_ShowsTheBatteryTheWayTheLabelWillPrintIt()
+    {
+        // The phone reports "90" and the label prints "90%". An editor that shows
+        // the bare number is a number the operator has to translate, so the sign
+        // the label gives it is shown too. A status word is not a percentage and
+        // is left as it is, and what is typed is what is stored.
+        var vm = new DataEditorViewModel(new DeviceData { BatteryHealth = "90" });
+        Assert.Equal("90%", vm.Battery);
+
+        vm.Battery = "88%";
+        Assert.Equal("88%", vm.DeviceData.BatteryHealth);
+
+        var word = new DataEditorViewModel(new DeviceData { BatteryHealth = "Good" });
+        Assert.Equal("Good", word.Battery);
+
+        var already = new DataEditorViewModel(new DeviceData { BatteryHealth = "92%" });
+        Assert.Equal("92%", already.Battery);
+    }
+
+    [AvaloniaFact]
     public void TheActiveScreen_ShowsTheQrOnlyWhenThereIsACode()
     {
         // The white container used to be drawn whether or not a code existed,

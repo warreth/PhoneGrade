@@ -55,7 +55,7 @@
     <x:String x:Key="Settings_AutoDetect">插入时自动检测</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">检测到设备时自动开始流程</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB 事件监控</x:String>
-    <x:String x:Key="Settings_UsbEventMonitoringDesc">使用系统原生的 USB 事件即时检测设备（Windows WMI、macOS IOKit、Linux udev）</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoringDesc">使用原生 USB 事件即时检测设备。仅限 Windows；macOS 和 Linux 使用轮询。</x:String>
     
     <!-- Troubleshoot -->
     <x:String x:Key="Troubleshoot_Title">设备检测与驱动助手</x:String>
@@ -100,15 +100,15 @@
     <x:String x:Key="Settings_GroupInteractiveTest">交互式检测</x:String>
     <x:String x:Key="Settings_GroupAfterwards">检测结束后</x:String>
     <x:String x:Key="Settings_Quality">默认等级</x:String>
-    <x:String x:Key="Settings_Payment">默认结算方式</x:String>
+    <x:String x:Key="Settings_Payment">默认发票方式</x:String>
     <x:String x:Key="Settings_AutoStartWebTest">自动启动交互式网页检测</x:String>
-    <x:String x:Key="Settings_RequirePwaTest">完成前必须执行 PWA 检测</x:String>
+    <x:String x:Key="Settings_RequirePwaTest">完成前必须进行 PWA 测试</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTest">检测后自动完成</x:String>
     <x:String x:Key="Settings_ShowSummary">打印标签前显示摘要</x:String>
     <x:String x:Key="Settings_Advanced">高级自动化</x:String>
     <x:String x:Key="Settings_AutoActivate">自动激活（绕过）</x:String>
     <x:String x:Key="Settings_RunDiagnostics">运行硬件诊断（panic 日志）</x:String>
-    <x:String x:Key="Settings_Enable85Checker">85% 电池检测（标签上标 100%-X）</x:String>
+    <x:String x:Key="Settings_Enable85Checker">标签上的电池标记</x:String>
     <x:String x:Key="Settings_OpenEditor">打印前打开标签编辑器</x:String>
     <x:String x:Key="Settings_Connection">手机如何打开页面</x:String>
     <x:String x:Key="Settings_SecureOrigin">通过 USB 线缆（http://localhost）</x:String>
@@ -193,8 +193,9 @@
     <x:String x:Key="Summary_BtnPrint">完成</x:String>
     <x:String x:Key="Summary_BtnRetest">重新检测</x:String>
     <x:String x:Key="Summary_BtnNext">下一台设备（完成）</x:String>
-    <x:String x:Key="Summary_SimLockFree">已解锁（无 SIM 卡锁）</x:String>
-    <x:String x:Key="Summary_SimLocked">SIM 卡已锁定</x:String>
+    <x:String x:Key="Summary_SimLockFree">无 SIM 锁</x:String>
+    <x:String x:Key="Summary_SimLocked">SIM 已锁定</x:String>
+    <x:String x:Key="Summary_SimLockUnknown">未知</x:String>
 
     <!-- ============ Export and printing ============ -->
     <!-- The panel an operator reaches from the inspection report. It is the only
@@ -467,7 +468,7 @@
     <x:String x:Key="CrashLogRange_Week">最近一周</x:String>
     <x:String x:Key="CrashLogRange_Month">最近一月</x:String>
     <x:String x:Key="CrashLogRange_All">全部</x:String>
-    <x:String x:Key="Settings_Enable85CheckerDesc">当电池容量低于设计容量的 85% 时，在标签上作出标记。</x:String>
+    <x:String x:Key="Settings_Enable85CheckerDesc">在标签上用 [X] 标记低于上方阈值的电池。</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">打印前打开数据编辑器，以便先更正要打印的数值。</x:String>
     <x:String x:Key="Settings_DebugMode">调试模式与网络跟踪</x:String>
     <x:String x:Key="Settings_DebugModeDesc">记录每个请求的详细日志。仅在排查问题时才有用。</x:String>
@@ -483,15 +484,15 @@
     <x:String x:Key="Editor_Title">编辑设备数据</x:String>
     <x:String x:Key="Editor_Lead">检查并调整将印在标签上的数值。</x:String>
     <x:String x:Key="Editor_Identity">身份标识</x:String>
-    <x:String x:Key="Editor_Identifier">识别码（IMEI / 序列号）</x:String>
+    <x:String x:Key="Editor_Identifier">IMEI / 序列号</x:String>
     <x:String x:Key="Editor_Battery">电池</x:String>
     <x:String x:Key="Editor_Grading">等级</x:String>
     <x:String x:Key="Editor_Quality">等级</x:String>
     <x:String x:Key="Editor_Payment">结算方式</x:String>
     <x:String x:Key="Editor_MetricsTitle">硬件与电池指标</x:String>
     <x:String x:Key="Editor_Cycles">循环次数</x:String>
-    <x:String x:Key="Editor_DesignMah">设计容量（mAh）</x:String>
-    <x:String x:Key="Editor_CurrentMah">当前容量（mAh）</x:String>
+    <x:String x:Key="Editor_DesignMah">设计容量 (mAh)</x:String>
+    <x:String x:Key="Editor_CurrentMah">当前容量 (mAh)</x:String>
     <x:String x:Key="Editor_Save">保存并打开标签</x:String>
     <x:String x:Key="Editor_Unset">未设置</x:String>
 

@@ -32,8 +32,15 @@ class ScreenshotRunner
         // screen, the export panel and the USB guide.
         string mainSettings = Path.Combine(outDir, "main-settings");
         Directory.CreateDirectory(mainSettings);
+        // The shots are of the app's own screens, not of this machine's cable: USB
+        // event monitoring is switched off in the scratch settings so a spurious
+        // WMI event cannot reset a demo view model to Idle between the last state
+        // check and the frame, which made the summary shot come out as the idle
+        // screen every other run. The public tunnel is off for the same kind of
+        // reason: the shots show the local address anyway, and a run that starts
+        // cloudflared leaves one behind every time it is killed.
         File.WriteAllText(Path.Combine(mainSettings, "settings.json"),
-            """{"Theme":"Dark","IntroSeen":true}""");
+            """{"Theme":"Dark","IntroSeen":true,"EnableUsbEventMonitoring":false,"UsePublicTunnel":false}""");
         Environment.SetEnvironmentVariable("AUTODYMO_SETTINGS_DIR", mainSettings);
 
         AppBuilder.Configure<PhoneGrade.UI.App>()
@@ -169,9 +176,14 @@ class ScreenshotRunner
                 if (section is "labels") CaptureLabelMatrix(outDir);
 
                 Console.WriteLine("done");
-                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-                    desktop.Shutdown();
-                Environment.Exit(0);
+
+                // Terminate outright instead of Environment.Exit: the exit path runs
+                // ProcessExit handlers, and one of them (the tunnel or the event
+                // logger) waits on something that never arrives, so the tool printed
+                // "done" and then sat there while the shell that called it waited.
+                // Kill skips the handlers; every shot is written and flushed above.
+                Console.Out.Flush();
+                System.Diagnostics.Process.GetCurrentProcess().Kill();
             })
             .StartWithClassicDesktopLifetime([]);
     }
@@ -854,6 +866,20 @@ class ScreenshotRunner
             PhoneGrade.UI.Services.LocalizationManager.GetString("Session_TestsPlain"), 4, 0, "Chrome");
         Shot(clean, "flow-summary-clean-dark.png", state: AppWorkflowState.Summary);
 
+        // A simlocked phone, so the red row is photographed too. The summary used
+        // to print a static "SIM-free" line for every handset, which is the one
+        // state that must not be able to hide a locked phone.
+        var locked = BuildDemoViewModel();
+        locked.WorkflowState = AppWorkflowState.Summary;
+        locked.Status = T("Inspectie afgerond", "Inspection complete");
+        FillAudit(locked);
+        locked.DeviceData.CarrierLockIOS = new PhoneGrade.Core.Apple.ActivationLockService.CarrierLockStatus
+        {
+            IsCarrierLocked = true,
+            CarrierName = "Vodafone",
+        };
+        Shot(locked, "flow-summary-simlocked-dark.png", state: AppWorkflowState.Summary);
+
         var settings = BuildDemoViewModel();
         settings.IsSettingsDrawerOpen = true;
         Shot(settings, "flow-settings-dark.png");
@@ -1179,6 +1205,12 @@ class ScreenshotRunner
             if (arrange is not null && stillWanted?.Invoke() == false)
                 Console.WriteLine($"warning: {file} never settled on the state it was meant to show");
 
+            // A panel that just became visible has never been laid out, and the
+            // frame tick alone does not always give it one: the checks all said
+            // the state was right while the picture showed the screen underneath.
+            // An explicit layout pass before the frame is what puts the newly
+            // shown screen on the picture.
+            window.UpdateLayout();
             for (int i = 0; i < 3; i++) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             if (arrange is not null && stillWanted is not null)
                 Console.WriteLine($"state for {Path.GetFileName(file)}: {(stillWanted() ? "as intended" : "lost again")} visible={window.IsVisible}");

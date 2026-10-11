@@ -67,7 +67,8 @@
                             </StackPanel>
                             <StackPanel Grid.Row="2" Grid.Column="2" Spacing="6">
                                 <TextBlock Classes="fieldLabel" Text="{DynamicResource Editor_Battery}"/>
-                                <TextBox Text="{Binding DeviceData.BatteryHealth}"/>
+                                <TextBox Text="{Binding Battery}"
+                                         Watermark="{DynamicResource Value_NotSet}"/>
                             </StackPanel>
                         </Grid>
                     </StackPanel>

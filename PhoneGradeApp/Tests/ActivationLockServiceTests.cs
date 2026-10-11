@@ -57,6 +57,23 @@ public class ActivationLockServiceTests
     }
 
     [Fact]
+    public async Task DetectCarrierLockAsync_ACarrierNameIsNotASimlock()
+    {
+        // A simlock-free iPhone with a Vodafone card in it reported "carrier
+        // locked" purely for carrying that card, which put CARRIER! on the label
+        // and an error in the report of a clean phone. The name is kept as
+        // information; the lock question is left to the check that can answer it,
+        // so it stays Unknown here.
+        var raw = new DeviceService.DeviceRawData();
+        raw.DefaultDict["CarrierName"] = "Vodafone";
+
+        var status = await ActivationLockService.DetectCarrierLockAsync("MOCK_UDID", raw);
+
+        Assert.Equal("Vodafone", status.CarrierName);
+        Assert.Null(status.IsCarrierLocked);
+    }
+
+    [Fact]
     public async Task DetectAsync_FmipDomainActive_ReturnsLocked()
     {
         var raw = new DeviceService.DeviceRawData();

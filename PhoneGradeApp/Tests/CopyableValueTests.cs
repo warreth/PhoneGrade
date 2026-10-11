@@ -138,6 +138,14 @@ public class CopyableValueTests
         Assert.Contains(
             "<SelectableTextBlock Text=\"{DynamicResource Summary_SimLockFree}\" FontWeight=\"Bold\" FontSize=\"12\"",
             view);
+        // The sim lock row has three states now, one line each, so a locked
+        // phone cannot show the green free line and an unknown one says so.
+        Assert.Contains(
+            "<SelectableTextBlock Text=\"{DynamicResource Summary_SimLocked}\" FontWeight=\"Bold\" FontSize=\"12\"",
+            view);
+        Assert.Contains(
+            "<SelectableTextBlock Text=\"{DynamicResource Summary_SimLockUnknown}\" FontWeight=\"Bold\" FontSize=\"12\"",
+            view);
         Assert.Contains(
             "<SelectableTextBlock Text=\"{Binding InteractiveTestSummary}\" FontWeight=\"Bold\" FontSize=\"12\"",
             view);

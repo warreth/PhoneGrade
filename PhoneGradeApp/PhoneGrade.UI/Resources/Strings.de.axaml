@@ -55,7 +55,7 @@
     <x:String x:Key="Settings_AutoDetect">Automatisch beim Einstecken erkennen</x:String>
     <x:String x:Key="Settings_AutoDetectDesc">Ablauf automatisch starten, sobald ein Gerät erkannt wird</x:String>
     <x:String x:Key="Settings_UsbEventMonitoring">USB-Ereignisüberwachung</x:String>
-    <x:String x:Key="Settings_UsbEventMonitoringDesc">Native USB-Ereignisse des Betriebssystems für sofortige Geräteerkennung nutzen (Windows WMI, macOS IOKit, Linux udev)</x:String>
+    <x:String x:Key="Settings_UsbEventMonitoringDesc">Native USB-Ereignisse für sofortige Geräteerkennung. Nur Windows; macOS und Linux nutzen Polling.</x:String>
     
     <!-- Troubleshoot -->
     <x:String x:Key="Troubleshoot_Title">GERÄTEERKENNUNG &amp; TREIBER-ASSISTENT</x:String>
@@ -108,9 +108,9 @@
     <x:String x:Key="Settings_Advanced">Erweiterte Automatisierung</x:String>
     <x:String x:Key="Settings_AutoActivate">Automatisch aktivieren (Bypass)</x:String>
     <x:String x:Key="Settings_RunDiagnostics">Hardwarediagnose ausführen (Panic-Logs)</x:String>
-    <x:String x:Key="Settings_Enable85Checker">85-Prozent-Batterieprüfung (100-Prozent-X-Etikett)</x:String>
+    <x:String x:Key="Settings_Enable85Checker">Batteriemarkierung auf dem Etikett</x:String>
     <x:String x:Key="Settings_OpenEditor">Etikett-Editor vor dem Drucken öffnen</x:String>
-    <x:String x:Key="Settings_Connection">WIE DAS TELEFON DIE SEITE ÖFFNET</x:String>
+    <x:String x:Key="Settings_Connection">Wie das Telefon die Seite öffnet</x:String>
     <x:String x:Key="Settings_SecureOrigin">Über das USB-Kabel (http://localhost)</x:String>
     <x:String x:Key="Settings_SecureOriginDesc">Das Telefon öffnet die Testseite direkt auf dem PC. Diese Adresse vertraut ein Browser, deshalb funktionieren dort Kamera, Mikrofon, Bewegungssensoren und Standort. Das ist der schnellere der beiden Wege, braucht kein Internet und funktioniert sofort, sobald das Kabel steckt. Dieser Weg wird zuerst versucht.</x:String>
     <x:String x:Key="Settings_PublicTunnel">Über das Internet (https, sicher)</x:String>
@@ -193,8 +193,9 @@
     <x:String x:Key="Summary_BtnPrint">Abschließen</x:String>
     <x:String x:Key="Summary_BtnRetest">Erneut testen</x:String>
     <x:String x:Key="Summary_BtnNext">Nächstes Gerät (Fertig)</x:String>
-    <x:String x:Key="Summary_SimLockFree">Entsperrt (SIM-frei)</x:String>
+    <x:String x:Key="Summary_SimLockFree">SIM-frei</x:String>
     <x:String x:Key="Summary_SimLocked">SIM gesperrt</x:String>
+    <x:String x:Key="Summary_SimLockUnknown">Unbekannt</x:String>
 
     <!-- ============ Export and printing ============ -->
     <!-- The panel an operator reaches from the inspection report. It is the only
@@ -467,7 +468,7 @@
     <x:String x:Key="CrashLogRange_Week">Letzte Woche</x:String>
     <x:String x:Key="CrashLogRange_Month">Letzter Monat</x:String>
     <x:String x:Key="CrashLogRange_All">Alles</x:String>
-    <x:String x:Key="Settings_Enable85CheckerDesc">Markiert auf dem Etikett einen Akku unter 85 Prozent seiner Nennkapazität.</x:String>
+    <x:String x:Key="Settings_Enable85CheckerDesc">Markiert einen Akku unter dem obigen Grenzwert mit [X] auf dem Etikett.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Öffnet den Dateneditor vor dem Druck, damit die gedruckten Werte zuerst korrigiert werden können.</x:String>
     <x:String x:Key="Settings_DebugMode">Debug-Modus und Netzwerk-Tracing</x:String>
     <x:String x:Key="Settings_DebugModeDesc">Schreibt ausführliche Protokolle zu jeder Anfrage. Nur nützlich beim Suchen nach einem Problem.</x:String>
@@ -483,15 +484,15 @@
     <x:String x:Key="Editor_Title">Gerätedaten bearbeiten</x:String>
     <x:String x:Key="Editor_Lead">Prüfen und passen Sie die Werte an, die auf das Etikett kommen.</x:String>
     <x:String x:Key="Editor_Identity">Identität</x:String>
-    <x:String x:Key="Editor_Identifier">Kennung (IMEI / Seriennummer)</x:String>
+    <x:String x:Key="Editor_Identifier">IMEI / Serienummer</x:String>
     <x:String x:Key="Editor_Battery">Akku</x:String>
     <x:String x:Key="Editor_Grading">Bewertung</x:String>
     <x:String x:Key="Editor_Quality">Qualität</x:String>
     <x:String x:Key="Editor_Payment">Abrechnungsmethode</x:String>
     <x:String x:Key="Editor_MetricsTitle">Hardware- und Akkuwerte</x:String>
     <x:String x:Key="Editor_Cycles">Ladezyklen</x:String>
-    <x:String x:Key="Editor_DesignMah">Design mAh</x:String>
-    <x:String x:Key="Editor_CurrentMah">Aktuell mAh</x:String>
+    <x:String x:Key="Editor_DesignMah">Design-Kapazität (mAh)</x:String>
+    <x:String x:Key="Editor_CurrentMah">Aktuelle Kapazität (mAh)</x:String>
     <x:String x:Key="Editor_Save">Speichern &amp; Etikett öffnen</x:String>
     <x:String x:Key="Editor_Unset">Nicht gesetzt</x:String>
 

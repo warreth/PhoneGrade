@@ -78,7 +78,11 @@ public static class ActivationLockService
         }
     }
 
-    /// <summary>Detect carrier lock and SIM status from in-memory bulk XML dictionaries.</summary>
+    /// <summary>
+    /// The carrier and SIM status from the in-memory bulk XML dictionaries. The
+    /// lock question itself is left Unknown: a carrier name is not a lock, and
+    /// nothing read over the cable answers it (see the note in the body).
+    /// </summary>
     public static async Task<CarrierLockStatus> DetectCarrierLockAsync(string udid, DeviceService.DeviceRawData? raw = null)
     {
         var status = new CarrierLockStatus();
@@ -106,15 +110,18 @@ public static class ActivationLockService
 
             string? carrierName = DeviceService.FindDictValue(raw.DefaultDict, "CarrierName", "CarrierBundleName");
             if (!string.IsNullOrWhiteSpace(carrierName))
-            {
                 status.CarrierName = carrierName;
-                status.IsCarrierLocked = true;
-            }
 
-            if (!status.SIMPresent)
-            {
-                status.IsCarrierLocked = null;
-            }
+            // The lock question is deliberately left unanswered here. A carrier
+            // name says which provider is on the card, not whether the handset is
+            // locked to it: a simlock-free iPhone with a Vodafone card in it
+            // reported "carrier locked" purely for carrying that card, which put
+            // CARRIER! on the label and an error in the report of a clean phone.
+            // The same lesson the Android side already carries (FrpLockService:
+            // nothing the shell can read answers the question, so the field stays
+            // empty rather than carrying a guess). The imei.info check is the
+            // source that can answer it, and until that runs the answer is Unknown.
+            status.IsCarrierLocked = null;
         }
         catch (Exception ex)
         {
