@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using PhoneGrade.Core;
+using PhoneGrade.Core.Diagnostics;
 using PhoneGrade.UI.Models;
 
 namespace PhoneGrade.UI.ShopProfiles;
@@ -113,6 +114,13 @@ public sealed class ShopProfile
     // ============ Advanced and support ============
 
     public bool? RunDiagnostics { get; set; }
+
+    /// <summary>Whether the diagnostics pull and scan the crash reports.</summary>
+    public bool? ScanCrashLogs { get; set; }
+
+    /// <summary>How far back the crash report scan looks.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public CrashLogRange? CrashLogRange { get; set; }
     public bool? Enable85PercentChecker { get; set; }
     public bool? OpenEditorBeforePrint { get; set; }
     public bool? IncludePrereleases { get; set; }

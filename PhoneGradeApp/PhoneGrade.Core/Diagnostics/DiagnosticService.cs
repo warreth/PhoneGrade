@@ -19,7 +19,17 @@ public static partial class DiagnosticService
     /// Full diagnostic pass: connectivity, battery health, activation and panic-log analysis.
     /// Pulls crash reports when possible; falls back to ideviceinfo error strings.
     /// </summary>
-    public static async Task<List<DiagnosticIssue>> DiagnoseAsync(string udid)
+    /// <param name="scanCrashLogs">
+    /// Whether to pull and scan the crash reports at all. The pull copies files
+    /// over AFC and is the slow half of the diagnostics; a shop that only wants
+    /// the battery and component checks can leave it off.
+    /// </param>
+    /// <param name="crashLogRange">
+    /// How far back the crash scan looks. Reports older than the window are left
+    /// alone, so a panic from months ago stops being re-reported.
+    /// </param>
+    public static async Task<List<DiagnosticIssue>> DiagnoseAsync(
+        string udid, bool scanCrashLogs = true, CrashLogRange crashLogRange = CrashLogRange.Month)
     {
         var issues = new List<DiagnosticIssue>();
 
@@ -123,7 +133,8 @@ public static partial class DiagnosticService
             issues.AddRange(ComponentFindings(data.ComponentChecks));
 
         // 4. Panic logs - the main hardware-evidence source
-        issues.AddRange(await AnalyzePanicLogsAsync(udid));
+        if (scanCrashLogs)
+            issues.AddRange(await AnalyzePanicLogsAsync(udid, crashLogRange));
         return issues;
     }
 
@@ -182,23 +193,40 @@ public static partial class DiagnosticService
     }
 
     /// <summary>Copies CrashReporter off the device and runs PanicRules over the panic logs.</summary>
-    public static async Task<List<DiagnosticIssue>> AnalyzePanicLogsAsync(string udid)
+    /// <param name="range">
+    /// How far back the scan looks. A report from months ago says nothing about the
+    /// phone on the bench today, and the reports are never cleaned by iOS, so the
+    /// window is the shop's choice rather than the app's.
+    /// </param>
+    public static async Task<List<DiagnosticIssue>> AnalyzePanicLogsAsync(
+        string udid, CrashLogRange range = CrashLogRange.Month)
     {
         try
         {
             // Pairing record needed for the crashreport service on newer iOS versions.
             await ToolRunner.RunAsync("idevicepair", $"-u {udid} validate");
 
+            // A fresh copy every run. The pull used to land in a directory that was
+            // never cleared, so a panic from an earlier inspection stayed on disk and
+            // was reported again on every later scan, even after a repair.
             string deviceDir = Path.Combine(WorkDir, udid);
+            if (Directory.Exists(deviceDir)) Directory.Delete(deviceDir, true);
             Directory.CreateDirectory(deviceDir);
-            // Non-blocking fast execution: max 3 seconds timeout to prevent UI freezes
+
+            // The pull moves files over AFC and takes as long as the phone's storage
+            // says. The old three second cap killed the process before it had copied
+            // anything, which then read as "no crash reports" on a phone that had them.
             var (output, exit) = await ToolRunner.RunAsync("idevicecrashreport",
-                $"-u {udid} -e -k {deviceDir}", 3_000);
-            if (exit != 0 && !Directory.Exists(deviceDir))
+                $"-u {udid} -e -k {deviceDir}", 120_000);
+            if (exit != 0)
                 return FallbackInfo("Geen crash-logs opgehaald", output);
 
             var findings = new List<DiagnosticIssue>();
-            foreach (string file in Directory.EnumerateFiles(deviceDir, "panic-full*", SearchOption.AllDirectories))
+            DateTime now = DateTime.Now;
+
+            foreach (string file in Directory.EnumerateFiles(deviceDir, "panic-full*", SearchOption.AllDirectories)
+                         .Where(file => CrashLogFiles.InRange(
+                             Path.GetFileName(file), File.GetLastWriteTime(file), range, now)))
             {
                 string log = await File.ReadAllTextAsync(file);
                 findings.AddRange(PanicRules.Match(log));

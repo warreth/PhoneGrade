@@ -454,6 +454,13 @@
     <x:String x:Key="Settings_LogsCardDesc">Tudo o que o aplicativo e seus auxiliares relataram, com filtro e campo de busca.</x:String>
     <x:String x:Key="Settings_AutoActivateDesc">Ativa um telemóvel ligado sem perguntar, o que agiliza um lote do mesmo telefone.</x:String>
     <x:String x:Key="Settings_RunDiagnosticsDesc">Lê os logs de pânico e outros diagnósticos de hardware durante a inspeção.</x:String>
+    <x:String x:Key="Settings_ScanCrashLogs">Analisar relatórios de falhas (iPhone)</x:String>
+    <x:String x:Key="Settings_ScanCrashLogsDesc">Obtém os relatórios de falhas do telefone e procura causas de reinício. Desativar torna o diagnóstico mais rápido; os relatórios só existem em iPhones.</x:String>
+    <x:String x:Key="Settings_CrashLogRange">Até quando procurar</x:String>
+    <x:String x:Key="CrashLogRange_Day">Último dia</x:String>
+    <x:String x:Key="CrashLogRange_Week">Última semana</x:String>
+    <x:String x:Key="CrashLogRange_Month">Último mês</x:String>
+    <x:String x:Key="CrashLogRange_All">Tudo</x:String>
     <x:String x:Key="Settings_Enable85CheckerDesc">Sinaliza na etiqueta a bateria abaixo de 85% da capacidade de projeto.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Abre o editor de dados antes de imprimir, para que os valores impressos possam ser corrigidos primeiro.</x:String>
     <x:String x:Key="Settings_DebugMode">Modo de depuração e rastreamento de rede</x:String>

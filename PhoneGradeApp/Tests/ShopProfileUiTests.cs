@@ -9,6 +9,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using PhoneGrade.Core;
+using PhoneGrade.Core.Diagnostics;
 using PhoneGrade.Tests;
 using PhoneGrade.UI.Models;
 using PhoneGrade.UI.Services;
@@ -76,6 +77,8 @@ public class ShopProfileUiTests : IDisposable
         vm.UseSecureOrigin = false;
         vm.UsePublicTunnel = false;
         vm.RunDiagnostics = false;
+        vm.ScanCrashLogs = false;
+        vm.CrashLogRangeItem = vm.CrashLogRanges.First(item => item.Range == CrashLogRange.Day);
         vm.Enable85PercentChecker = false;
         vm.OpenEditorBeforePrint = true;
         vm.IncludePrereleases = true;
@@ -116,6 +119,8 @@ public class ShopProfileUiTests : IDisposable
         Assert.False(profile.UseSecureOrigin);
         Assert.False(profile.UsePublicTunnel);
         Assert.False(profile.RunDiagnostics);
+        Assert.False(profile.ScanCrashLogs);
+        Assert.Equal(CrashLogRange.Day, profile.CrashLogRange);
         Assert.False(profile.Enable85PercentChecker);
         Assert.True(profile.OpenEditorBeforePrint);
         Assert.True(profile.IncludePrereleases);
@@ -179,6 +184,8 @@ public class ShopProfileUiTests : IDisposable
         Assert.False(vm.UseSecureOrigin);
         Assert.False(vm.UsePublicTunnel);
         Assert.False(vm.RunDiagnostics);
+        Assert.False(vm.ScanCrashLogs);
+        Assert.Equal(CrashLogRange.Day, vm.CrashLogRangeItem.Range);
         Assert.False(vm.Enable85PercentChecker);
         Assert.True(vm.OpenEditorBeforePrint);
         Assert.True(vm.IncludePrereleases);
@@ -374,6 +381,8 @@ public class ShopProfileUiTests : IDisposable
         UseSecureOrigin = false,
         UsePublicTunnel = false,
         RunDiagnostics = false,
+        ScanCrashLogs = false,
+        CrashLogRange = CrashLogRange.Day,
         Enable85PercentChecker = false,
         OpenEditorBeforePrint = true,
         IncludePrereleases = true,

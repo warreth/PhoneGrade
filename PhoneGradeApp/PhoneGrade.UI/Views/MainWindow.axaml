@@ -1390,6 +1390,36 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!--
+                                    Crash report scanning: the pull copies files over
+                                    AFC and is the slow half of the diagnostics, so it
+                                    is its own switch, and the window it looks over is
+                                    the shop's choice because iOS never cleans the
+                                    reports. A panic from months ago says nothing about
+                                    the phone on the bench today.
+                                -->
+                                <Border Classes="settingCard">
+                                    <StackPanel Spacing="6">
+                                        <CheckBox Content="{DynamicResource Settings_ScanCrashLogs}" IsChecked="{Binding ScanCrashLogs}"/>
+                                        <TextBlock Classes="settingDesc" Margin="26,0,0,0" TextWrapping="Wrap"
+                                                   Text="{DynamicResource Settings_ScanCrashLogsDesc}"/>
+                                        <Grid ColumnDefinitions="*,Auto" Margin="26,4,0,0"
+                                              IsVisible="{Binding ScanCrashLogs}">
+                                            <TextBlock Classes="settingTitle" VerticalAlignment="Center"
+                                                       Text="{DynamicResource Settings_CrashLogRange}"/>
+                                            <ComboBox Grid.Column="1" Width="190" VerticalAlignment="Center"
+                                                      ItemsSource="{Binding CrashLogRanges}"
+                                                      SelectedItem="{Binding CrashLogRangeItem}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:CrashLogRangeItem">
+                                                        <TextBlock Text="{Binding TitleKey, Converter={StaticResource LocalizationConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
                                 <Border Classes="settingCard">
                                     <StackPanel Spacing="6">
                                         <CheckBox Content="{DynamicResource Settings_OpenEditor}" IsChecked="{Binding OpenEditorBeforePrint}"/>

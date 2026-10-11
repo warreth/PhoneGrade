@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Xml.Linq;
 using PhoneGrade.Core;
+using PhoneGrade.Core.Diagnostics;
 using PhoneGrade.Tests;
 using PhoneGrade.UI.Models;
 using PhoneGrade.UI.ShopProfiles;
@@ -56,6 +57,8 @@ public class ShopProfileTests
         UseSecureOrigin = false,
         UsePublicTunnel = false,
         RunDiagnostics = false,
+        ScanCrashLogs = false,
+        CrashLogRange = CrashLogRange.Day,
         Enable85PercentChecker = false,
         OpenEditorBeforePrint = true,
         IncludePrereleases = true,
@@ -107,6 +110,8 @@ public class ShopProfileTests
         Assert.Equal(settings.UseSecureOrigin, profile.UseSecureOrigin);
         Assert.Equal(settings.UsePublicTunnel, profile.UsePublicTunnel);
         Assert.Equal(settings.RunDiagnostics, profile.RunDiagnostics);
+        Assert.Equal(settings.ScanCrashLogs, profile.ScanCrashLogs);
+        Assert.Equal(settings.CrashLogRange, profile.CrashLogRange);
         Assert.Equal(settings.Enable85PercentChecker, profile.Enable85PercentChecker);
         Assert.Equal(settings.OpenEditorBeforePrint, profile.OpenEditorBeforePrint);
         Assert.Equal(settings.IncludePrereleases, profile.IncludePrereleases);
@@ -126,15 +131,15 @@ public class ShopProfileTests
         string[] expected =
         [
             "AppVersion", "AutoActivate", "AutoDetectOnPlug", "AutoFinishAfterTest",
-            "AutoStartWebTest", "DefaultPaymentMethod", "DefaultQuality",
+            "AutoStartWebTest", "CrashLogRange", "DefaultPaymentMethod", "DefaultQuality",
             "Enable85PercentChecker", "EnableUsbEventMonitoring", "EstimatedAndroidDevices",
             "EstimatedAppleDevices", "ExportFolderScheme", "ExportFormats", "ExportedAtUtc",
             "ImeiInfoApiKey", "IncludePrereleases", "LabelBarcodeEnabled", "LabelBarcodeMode",
             "LabelBatteryThreshold", "LabelCyclesThreshold", "LabelShowBatteryCycles",
             "LabelStockPartNumber", "LabelSymbology", "LabelVariant", "Language",
-            "OpenEditorBeforePrint", "RequirePwaTest", "RunDiagnostics", "SchemaVersion",
-            "SelectedImeiChecks", "ShowSummaryScreenAfterTesting", "Theme", "UsePublicTunnel",
-            "UseSecureOrigin",
+            "OpenEditorBeforePrint", "RequirePwaTest", "RunDiagnostics", "ScanCrashLogs",
+            "SchemaVersion", "SelectedImeiChecks", "ShowSummaryScreenAfterTesting", "Theme",
+            "UsePublicTunnel", "UseSecureOrigin",
         ];
 
         Assert.Equal(expected, actual);
@@ -393,6 +398,8 @@ public class ShopProfileTests
         Assert.Equal(expected.UseSecureOrigin, actual.UseSecureOrigin);
         Assert.Equal(expected.UsePublicTunnel, actual.UsePublicTunnel);
         Assert.Equal(expected.RunDiagnostics, actual.RunDiagnostics);
+        Assert.Equal(expected.ScanCrashLogs, actual.ScanCrashLogs);
+        Assert.Equal(expected.CrashLogRange, actual.CrashLogRange);
         Assert.Equal(expected.Enable85PercentChecker, actual.Enable85PercentChecker);
         Assert.Equal(expected.OpenEditorBeforePrint, actual.OpenEditorBeforePrint);
         Assert.Equal(expected.IncludePrereleases, actual.IncludePrereleases);

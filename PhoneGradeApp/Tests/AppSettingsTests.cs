@@ -1,5 +1,6 @@
 using PhoneGrade.UI.Models;
 using PhoneGrade.Core;
+using PhoneGrade.Core.Diagnostics;
 using Xunit;
 
 namespace Tests;
@@ -29,6 +30,8 @@ public class AppSettingsTests : IDisposable
             AutoActivate = false,
             AutoDetectOnPlug = false,
             RunDiagnostics = false,
+            ScanCrashLogs = false,
+            CrashLogRange = CrashLogRange.Day,
             Enable85PercentChecker = false,
             OpenEditorBeforePrint = true,
             DefaultQuality = "C",
@@ -47,6 +50,8 @@ public class AppSettingsTests : IDisposable
         Assert.Equal(s.AutoActivate, loaded.AutoActivate);
         Assert.Equal(s.AutoDetectOnPlug, loaded.AutoDetectOnPlug);
         Assert.Equal(s.RunDiagnostics, loaded.RunDiagnostics);
+        Assert.Equal(s.ScanCrashLogs, loaded.ScanCrashLogs);
+        Assert.Equal(s.CrashLogRange, loaded.CrashLogRange);
         Assert.Equal(s.Enable85PercentChecker, loaded.Enable85PercentChecker);
         Assert.Equal(s.OpenEditorBeforePrint, loaded.OpenEditorBeforePrint);
         Assert.Equal(s.DefaultQuality, loaded.DefaultQuality);

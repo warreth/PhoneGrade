@@ -454,6 +454,13 @@
     <x:String x:Key="Settings_LogsCardDesc">本工具及其辅助程序报告的全部内容，提供筛选和搜索框。</x:String>
     <x:String x:Key="Settings_AutoActivateDesc">连接设备后无需确认即自动激活，可加快同一台手机的重复检测。</x:String>
     <x:String x:Key="Settings_RunDiagnosticsDesc">检测过程中读取 panic 日志和其他硬件诊断信息。</x:String>
+    <x:String x:Key="Settings_ScanCrashLogs">扫描崩溃报告 (iPhone)</x:String>
+    <x:String x:Key="Settings_ScanCrashLogsDesc">从手机获取崩溃报告并查找重启原因。关闭可加快诊断；报告仅存在于 iPhone 上。</x:String>
+    <x:String x:Key="Settings_CrashLogRange">回溯时间</x:String>
+    <x:String x:Key="CrashLogRange_Day">最近一天</x:String>
+    <x:String x:Key="CrashLogRange_Week">最近一周</x:String>
+    <x:String x:Key="CrashLogRange_Month">最近一月</x:String>
+    <x:String x:Key="CrashLogRange_All">全部</x:String>
     <x:String x:Key="Settings_Enable85CheckerDesc">当电池容量低于设计容量的 85% 时，在标签上作出标记。</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">打印前打开数据编辑器，以便先更正要打印的数值。</x:String>
     <x:String x:Key="Settings_DebugMode">调试模式与网络跟踪</x:String>

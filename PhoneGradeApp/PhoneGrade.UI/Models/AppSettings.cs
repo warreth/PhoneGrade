@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PhoneGrade.Core;
+using PhoneGrade.Core.Diagnostics;
 
 namespace PhoneGrade.UI.Models;
 
@@ -25,6 +26,24 @@ public class AppSettings
     public int EstimatedAndroidDevices { get; set; } = 10; // For cost calculator
 
     public bool RunDiagnostics { get; set; } = true;
+
+    /// <summary>
+    /// Whether the diagnostic pass pulls the crash reports and scans them for
+    /// restart causes.
+    /// </summary>
+    /// <remarks>
+    /// The pull copies files over AFC and is the slow half of the diagnostics, and
+    /// the reports only exist on iPhones. A shop that wants the battery and
+    /// component findings without the wait turns it off.
+    /// </remarks>
+    public bool ScanCrashLogs { get; set; } = true;
+
+    /// <summary>How far back the crash report scan looks.</summary>
+    /// <remarks>
+    /// A panic from months ago says nothing about the phone on the bench today,
+    /// and iOS never cleans the reports, so the window is the shop's choice.
+    /// </remarks>
+    public CrashLogRange CrashLogRange { get; set; } = CrashLogRange.Month;
 
     /// <summary>
     /// Whether a battery under the quality threshold carries the marker on the label.

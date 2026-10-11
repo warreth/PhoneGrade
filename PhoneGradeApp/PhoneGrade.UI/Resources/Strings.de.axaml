@@ -454,6 +454,13 @@
     <x:String x:Key="Settings_LogsCardDesc">Alles, was die App und ihre Hilfsprogramme gemeldet haben, mit Filter und Suchfeld.</x:String>
     <x:String x:Key="Settings_AutoActivateDesc">Aktiviert ein angeschlossenes Gerät ohne Nachfrage, das beschleunigt eine Reihe gleicher Telefone.</x:String>
     <x:String x:Key="Settings_RunDiagnosticsDesc">Liest die Panic-Logs und weitere Hardwarediagnosen während der Prüfung.</x:String>
+    <x:String x:Key="Settings_ScanCrashLogs">Absturzberichte scannen (iPhone)</x:String>
+    <x:String x:Key="Settings_ScanCrashLogsDesc">Lädt die Absturzberichte vom Gerät und sucht nach Neustartursachen. Ausschalten beschleunigt die Diagnose; die Berichte gibt es nur auf iPhones.</x:String>
+    <x:String x:Key="Settings_CrashLogRange">Wie weit zurück</x:String>
+    <x:String x:Key="CrashLogRange_Day">Letzter Tag</x:String>
+    <x:String x:Key="CrashLogRange_Week">Letzte Woche</x:String>
+    <x:String x:Key="CrashLogRange_Month">Letzter Monat</x:String>
+    <x:String x:Key="CrashLogRange_All">Alles</x:String>
     <x:String x:Key="Settings_Enable85CheckerDesc">Markiert auf dem Etikett einen Akku unter 85 Prozent seiner Nennkapazität.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Öffnet den Dateneditor vor dem Druck, damit die gedruckten Werte zuerst korrigiert werden können.</x:String>
     <x:String x:Key="Settings_DebugMode">Debug-Modus und Netzwerk-Tracing</x:String>

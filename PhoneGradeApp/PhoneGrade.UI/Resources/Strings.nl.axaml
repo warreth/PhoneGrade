@@ -455,6 +455,13 @@
     <x:String x:Key="Settings_LogsCardDesc">Alles wat de app en haar hulpmiddelen hebben gemeld, met een filter en een zoekvak.</x:String>
     <x:String x:Key="Settings_AutoActivateDesc">Activeert een aangesloten toestel zonder te vragen, wat een reeks van hetzelfde toestel versnelt.</x:String>
     <x:String x:Key="Settings_RunDiagnosticsDesc">Leest de panic-logboeken en andere hardwarediagnose tijdens het inspecteren.</x:String>
+    <x:String x:Key="Settings_ScanCrashLogs">Crashbestanden scannen (iPhone)</x:String>
+    <x:String x:Key="Settings_ScanCrashLogsDesc">Haalt de crashrapporten van het toestel en zoekt naar herstartoorzaken. Uitzetten maakt de diagnose sneller; de rapporten bestaan alleen op iPhones.</x:String>
+    <x:String x:Key="Settings_CrashLogRange">Hoe ver terug kijken</x:String>
+    <x:String x:Key="CrashLogRange_Day">Laatste dag</x:String>
+    <x:String x:Key="CrashLogRange_Week">Laatste week</x:String>
+    <x:String x:Key="CrashLogRange_Month">Laatste maand</x:String>
+    <x:String x:Key="CrashLogRange_All">Alles</x:String>
     <x:String x:Key="Settings_Enable85CheckerDesc">Markeert een batterij onder 85 procent van de ontwerpcapaciteit op het label.</x:String>
     <x:String x:Key="Settings_OpenEditorDesc">Opent de gegevenseditor voordat er wordt afgedrukt, zodat de waarden eerst kunnen worden gecorrigeerd.</x:String>
     <x:String x:Key="Settings_DebugMode">Debugmodus en netwerk-tracing</x:String>

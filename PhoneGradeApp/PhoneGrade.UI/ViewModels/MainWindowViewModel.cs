@@ -291,6 +291,37 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
         set { _settings.RunDiagnostics = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _runDiagnostics, value); }
     }
 
+    /// <summary>
+    /// Whether the diagnostic pass pulls the crash reports and scans them.
+    /// </summary>
+    /// <remarks>
+    /// The pull copies files over AFC and is the slow half of the diagnostics, and
+    /// the reports only exist on iPhones. A shop that wants the battery and
+    /// component findings without the wait turns it off here.
+    /// </remarks>
+    private bool _scanCrashLogs = true;
+    public bool ScanCrashLogs
+    {
+        get => _scanCrashLogs;
+        set { _settings.ScanCrashLogs = value; _settings.Save(); this.RaiseAndSetIfChanged(ref _scanCrashLogs, value); }
+    }
+
+    /// <summary>The windows the crash report scan can look back over.</summary>
+    public IReadOnlyList<CrashLogRangeItem> CrashLogRanges => CrashLogRangeItem.All;
+
+    /// <summary>How far back the crash report scan looks.</summary>
+    public CrashLogRangeItem CrashLogRangeItem
+    {
+        get => CrashLogRangeItem.All.FirstOrDefault(item => item.Range == _settings.CrashLogRange)
+               ?? CrashLogRangeItem.All[2];
+        set
+        {
+            _settings.CrashLogRange = value.Range;
+            _settings.Save();
+            this.RaisePropertyChanged(nameof(CrashLogRangeItem));
+        }
+    }
+
     private bool _enable85PercentChecker = true;
     public bool Enable85PercentChecker
     {
@@ -842,6 +873,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
         _includePrereleases = _settings.IncludePrereleases;
         _autoDetectOnPlug = _settings.AutoDetectOnPlug;
         _runDiagnostics = _settings.RunDiagnostics;
+        _scanCrashLogs = _settings.ScanCrashLogs;
         _enable85PercentChecker = _settings.Enable85PercentChecker;
         _isDebugMode = _settings.IsDebugMode;
         _useSecureOrigin = _settings.UseSecureOrigin;
@@ -1875,6 +1907,9 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
         if (profile.UsePublicTunnel is { } publicTunnel) UsePublicTunnel = publicTunnel;
 
         if (profile.RunDiagnostics is { } diagnostics) RunDiagnostics = diagnostics;
+        if (profile.ScanCrashLogs is { } scanCrashLogs) ScanCrashLogs = scanCrashLogs;
+        if (profile.CrashLogRange is { } crashLogRange)
+            CrashLogRangeItem = CrashLogRangeItem.All.First(item => item.Range == crashLogRange);
         if (profile.Enable85PercentChecker is { } checker) Enable85PercentChecker = checker;
         if (profile.OpenEditorBeforePrint is { } openEditor) OpenEditorBeforePrint = openEditor;
         if (profile.IncludePrereleases is { } prereleases) IncludePrereleases = prereleases;

@@ -66,6 +66,8 @@ public static class ShopProfileMapper
             UsePublicTunnel = settings.UsePublicTunnel,
 
             RunDiagnostics = settings.RunDiagnostics,
+            ScanCrashLogs = settings.ScanCrashLogs,
+            CrashLogRange = settings.CrashLogRange,
             Enable85PercentChecker = settings.Enable85PercentChecker,
             OpenEditorBeforePrint = settings.OpenEditorBeforePrint,
             IncludePrereleases = settings.IncludePrereleases,

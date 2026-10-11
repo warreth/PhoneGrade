@@ -308,11 +308,16 @@ public partial class MainWindowViewModel
             // 5. Diagnostics (panic logs & sensors): strictly asynchronous on background thread (non-blocking)
             if (RunDiagnostics)
             {
+                // Read on the UI thread and carried into the background: the pass
+                // must not read a setting while the operator is changing it.
+                bool scanCrashLogs = ScanCrashLogs;
+                CrashLogRange crashLogRange = CrashLogRangeItem.Range;
+
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        var diagIssues = await DiagnosticService.DiagnoseAsync(udid);
+                        var diagIssues = await DiagnosticService.DiagnoseAsync(udid, scanCrashLogs, crashLogRange);
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
                             foreach (var issue in diagIssues)
