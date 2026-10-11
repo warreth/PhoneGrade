@@ -44,6 +44,9 @@
     <x:String x:Key="Settings_Title">AJUSTES</x:String>
     <x:String x:Key="Settings_Theme">Tema</x:String>
     <x:String x:Key="Settings_ThemeDesc">Oscuro, claro o según el sistema</x:String>
+    <x:String x:Key="Theme_Dark">Oscuro</x:String>
+    <x:String x:Key="Theme_Light">Claro</x:String>
+    <x:String x:Key="Theme_System">Según el sistema</x:String>
     <x:String x:Key="Settings_Language">Idioma</x:String>
     <x:String x:Key="Settings_LanguageDesc">Idioma de la interfaz</x:String>
     <x:String x:Key="Settings_IntroTitle">Introducción</x:String>
@@ -66,6 +69,7 @@
     <x:String x:Key="Logs_FilterInfo">Info</x:String>
     <x:String x:Key="Logs_FilterWarning">Advertencia</x:String>
     <x:String x:Key="Logs_FilterError">Error</x:String>
+    <x:String x:Key="Logs_LevelCritical">Crítico</x:String>
     
     <!-- Component Status -->
     <x:String x:Key="Component_Read">Leído</x:String>
@@ -100,7 +104,7 @@
     <x:String x:Key="Settings_AutoStartWebTest">Iniciar automáticamente la prueba web interactiva</x:String>
     <x:String x:Key="Settings_RequirePwaTest">Exigir la prueba PWA antes de finalizar</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTest">Finalizar automáticamente después de la prueba</x:String>
-    <x:String x:Key="Settings_ShowSummary">Mostrar el resumen antes de imprimir la etiqueta</x:String>
+    <x:String x:Key="Settings_ShowSummary">Mostrar resumen antes de imprimir la etiqueta</x:String>
     <x:String x:Key="Settings_Advanced">Automatización avanzada</x:String>
     <x:String x:Key="Settings_AutoActivate">Activación automática (bypass)</x:String>
     <x:String x:Key="Settings_RunDiagnostics">Ejecutar el diagnóstico de hardware (registros de pánico)</x:String>
@@ -154,7 +158,7 @@
     <x:String x:Key="Intro_HaveLicense">Ya tengo una licencia</x:String>
     <x:String x:Key="Intro_ActivationTitle">Active su licencia</x:String>
     <x:String x:Key="Licensing_TierFree">{0} análisis restantes</x:String>
-    <x:String x:Key="Licensing_TierPro">Pro - Activo</x:String>
+    <x:String x:Key="Licensing_TierPro">Pro activo</x:String>
     <x:String x:Key="Licensing_PanelHint">Licencia y análisis</x:String>
     <x:String x:Key="Licensing_PanelTitle">Licencia</x:String>
     <x:String x:Key="Licensing_PanelScansLeft">Análisis restantes</x:String>
@@ -244,7 +248,8 @@
     <x:String x:Key="Export_BtnPrintLabel">Imprimir la etiqueta</x:String>
     <x:String x:Key="Export_BtnOpenFolder">Abrir la carpeta</x:String>
     <x:String x:Key="Export_FolderLabel">En</x:String>
-    <x:String x:Key="Export_ResultsTitle">Escritos</x:String>
+    <x:String x:Key="Export_ResultsTitle">Resultado</x:String>
+    <x:String x:Key="Export_PreviewBlocked">La vista previa aparece cuando se conocen el número de serie, el modelo, la calificación y el color.</x:String>
     <x:String x:Key="Export_BtnOpen">Abrir</x:String>
     <x:String x:Key="Export_BtnPrintOne">Imprimir</x:String>
     <x:String x:Key="Export_Close">Cerrar</x:String>
@@ -266,7 +271,7 @@
     <x:String x:Key="Export_PrintFailed">No se pudo escribir la etiqueta, así que no se imprimió nada.</x:String>
     <x:String x:Key="Status_Exporting">Escribiendo los archivos...</x:String>
     <x:String x:Key="Status_ExportDone">{0} archivo(s) escritos en {1}</x:String>
-    <x:String x:Key="Status_ExportPartly">{0} de {1} escritos en {3}. {2} no se pudo escribir: vea la línea anterior.</x:String>
+    <x:String x:Key="Status_ExportPartly">{0} de {1} escritos en {3}. {2} no se pudo escribir: consulta el mensaje junto al archivo de abajo.</x:String>
     <x:String x:Key="Status_DymoSent">Etiqueta enviada a la DYMO. La DYMO informa el trabajo como aceptado, no como impreso.</x:String>
     <x:String x:Key="Status_DymoRefused">La DYMO no aceptó la etiqueta: {0}</x:String>
 
@@ -339,7 +344,7 @@
     <x:String x:Key="Btn_Finish">Finalizar</x:String>
 
     <!-- Idle screen and the USB trust guide -->
-    <x:String x:Key="TrialLimit_Reached">Se ha alcanzado el límite de la prueba gratuita (10/10). Compre una licencia para seguir analizando.</x:String>
+    <x:String x:Key="TrialLimit_Reached">Límite de la versión de prueba alcanzado (10/10). Compra una licencia para seguir escaneando.</x:String>
     <x:String x:Key="Idle_Title">Conecte un dispositivo por USB</x:String>
     <x:String x:Key="Idle_Lead">Compatible con iPhone, iPad y dispositivos Android. Mantenga la pantalla desbloqueada y confirme "Confiar en este equipo".</x:String>
     <x:String x:Key="Idle_DetectedDevices">Dispositivos detectados:</x:String>
@@ -404,6 +409,7 @@
     <x:String x:Key="Summary_InvoiceMethod">Método de facturación</x:String>
     <x:String x:Key="Summary_SimLock">Bloqueo SIM</x:String>
     <x:String x:Key="Summary_HardwareTests">Pruebas de hardware (PWA)</x:String>
+    <x:String x:Key="Summary_TestsNotRun">No realizado</x:String>
     <x:String x:Key="Summary_ReportTitle">INFORME DE INSPECCIÓN (DESVIACIONES &amp; DEFECTOS)</x:String>
     <x:String x:Key="Summary_ReportNote">Solo piezas no originales y pruebas fallidas u omitidas</x:String>
     <x:String x:Key="Summary_AuditSection">AUDITORÍA DE PIEZAS (NO ORIGINALES / SUSTITUIDAS)</x:String>
@@ -510,7 +516,7 @@
     <x:String x:Key="Status_OneFound">Se encontró un dispositivo y está seleccionado.</x:String>
     <x:String x:Key="Status_ManyFound">Se encontraron {0} dispositivos: elija uno.</x:String>
     <x:String x:Key="Status_NoDeviceSelected">No hay ningún dispositivo seleccionado.</x:String>
-    <x:String x:Key="Status_TrialLimit">Límite de la prueba gratuita alcanzado (10/10). Compre una licencia para seguir analizando.</x:String>
+    <x:String x:Key="Status_TrialLimit">Límite de la versión de prueba alcanzado (10/10). Compra una licencia para seguir escaneando.</x:String>
     <x:String x:Key="Status_Checking">Comprobando la conexión…</x:String>
     <x:String x:Key="Status_Unreachable">El dispositivo no es accesible: pruebe otro cable o puerto.</x:String>
     <x:String x:Key="Status_Activating">Activando el dispositivo (bypass)…</x:String>
@@ -578,7 +584,7 @@
     <x:String x:Key="Settings_ImeiInfoGuide">Guía de configuración</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep1">Cree una cuenta en imei.info</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep2">Pulse 'API Manage' en la barra lateral y copie su clave de API (por ejemplo, e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideStep3">Pegue la clave de API en el campo de arriba y pulse Guardar.</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep3">Pega la clave API en el campo de abajo y pulsa el botón de guardar.</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep4">Vaya a 'Add Credits' en el sitio web para añadir saldo a su cuenta.</x:String>
     <x:String x:Key="Settings_ImeiInfoWhyTitle">Por qué necesita su propia clave</x:String>
     <x:String x:Key="Settings_ImeiInfoWhy">Las comprobaciones de IMEI se ejecutan contra su propia cuenta de imei.info, así que la clave que pega más abajo es suya y se queda en el archivo de ajustes de este equipo. PhoneGrade no incluye ninguna.</x:String>
@@ -604,26 +610,26 @@
     <x:String x:Key="Settings_ImeiInfoApiKeySaved">Clave de API guardada</x:String>
 
     <!-- IMEI Check Labels (per check price) -->
-    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0.200</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0.420</x:String>
-    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0.600</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0,36</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0,20</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0,42</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0,60</x:String>
 
     <!-- IMEI check names and descriptions -->
     <x:String x:Key="Settings_SecImeiApi">Configuración de la API de IMEI</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeyWatermark">Pegue aquí su clave de API (por ejemplo, e0d7c26f-5cc7-5644-863c-8992083dfeac)</x:String>
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmi">APPLE: Carrier &amp; Lock Status &amp; FMI</x:String>
-    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - Devuelve el nombre del operador, el estado del bloqueo SIM y el estado de Find My iPhone (FMI) para dispositivos Apple.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0,36 - Devuelve el nombre del operador, el estado del bloqueo SIM y el estado de Find My iPhone (FMI) para dispositivos Apple.</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistSimple">BLACKLIST: Simple Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - Devuelve solo el estado básico de la lista negra (limpio o en lista negra).</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0,20 - Devuelve solo el estado básico de la lista negra (limpio o en lista negra).</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistPremium">BLACKLIST: Premium Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Devuelve información detallada: IMEI, Model Name, Manufacturer, Model Number, Blacklisted By, Blacklisted On, Blacklist Reason, Blacklist Status, Blacklisted Country, General List Status.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0,42 - Devuelve información detallada: IMEI, Model Name, Manufacturer, Model Number, Blacklisted By, Blacklisted On, Blacklist Reason, Blacklist Status, Blacklisted Country, General List Status.</x:String>
     <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnox">GENERIC: Samsung Info Check &amp; Knox Info</x:String>
-    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Devuelve información del dispositivo Samsung, incluido el modelo, el número de serie, la garantía y el estado del bit de garantía de Knox.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0,60 - Devuelve información del dispositivo Samsung, incluido el modelo, el número de serie, la garantía y el estado del bit de garantía de Knox.</x:String>
 
     <!-- Introduction screen: IMEI checks (BYOK) -->
     <x:String x:Key="Intro_ImeiTitle">Comprobaciones de IMEI (BYOK)</x:String>
-    <x:String x:Key="Intro_ImeiBody">PhoneGrade comprueba el bloqueo de operador, el FMI, la lista negra y el estado de Knox a través de imei.info. Es un sistema Bring Your Own Key: cree una cuenta en imei.info, añada saldo y pegue su propia clave de API en Ajustes. Cada comprobación tiene su propio precio (de $0.200 a $0.600) y usted elige cuáles se ejecutan automáticamente.</x:String>
+    <x:String x:Key="Intro_ImeiBody">PhoneGrade comprueba el bloqueo de operador, el FMI, la lista negra y el estado de Knox a través de imei.info. Es un sistema Bring Your Own Key: cree una cuenta en imei.info, añada saldo y pegue su propia clave de API en Ajustes. Cada comprobación tiene su propio precio (de $0,20 a $0,60) y usted elige cuáles se ejecutan automáticamente.</x:String>
     <x:String x:Key="Intro_ImeiConfigureButton">Configurar la API de IMEI en Ajustes</x:String>
     <x:String x:Key="Settings_ImeiInfoWatermarkDefault">10</x:String>
 
@@ -832,7 +838,7 @@
     <x:String x:Key="Export_ConfiguredPrinter">Impresora</x:String>
     <x:String x:Key="Export_ConfiguredChange">Cambiar en Ajustes</x:String>
     <x:String x:Key="Export_ConfiguredNoFiles">Ningún archivo elegido</x:String>
-    <x:String x:Key="Export_FolderLine">Se guarda en {0}</x:String>
+    <x:String x:Key="Export_FolderLine">Carpeta: {0}</x:String>
     <x:String x:Key="Export_MissingTitle">Aún no está completo</x:String>
     <x:String x:Key="Export_MissingBody">Falta todavía para la etiqueta:</x:String>
     <x:String x:Key="Export_BtnFix">Completar en el editor</x:String>

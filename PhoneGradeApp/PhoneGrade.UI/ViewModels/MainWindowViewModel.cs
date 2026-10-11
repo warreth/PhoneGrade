@@ -185,18 +185,45 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
         return raw;
     }
 
-    private string _theme = "Dark";
+    /// <summary>
+    /// The theme codes the settings file stores, with the key each name reads from.
+    /// </summary>
+    /// <remarks>
+    /// The codes are what every build so far wrote, so they stay the file format;
+    /// the picker shows the word the rest of the window uses. A shop reading
+    /// "Donker" in the picker should not have to match it to "Dark" in the file.
+    /// </remarks>
+    private static readonly (string Code, string Key)[] Themes =
+    [
+        ("Dark", "Theme_Dark"),
+        ("Light", "Theme_Light"),
+        ("System", "Theme_System"),
+    ];
+
+    /// <summary>Every theme, in the operator's language. Drives the two pickers.</summary>
+    public IReadOnlyList<string> ThemeOptions =>
+        Themes.Select(theme => Services.LocalizationManager.GetString(theme.Key)).ToList();
+
     public string Theme
     {
-        get => _theme;
+        get => ThemeNameOf(_settings.Theme);
         set
         {
-            _settings.Theme = value;
+            string code = ThemeCodeOf(value);
+            _settings.Theme = code;
             _settings.Save();
-            PhoneGrade.UI.App.ApplyTheme(value);
-            this.RaiseAndSetIfChanged(ref _theme, value);
+            PhoneGrade.UI.App.ApplyTheme(code);
+            this.RaisePropertyChanged(nameof(Theme));
         }
     }
+
+    private static string ThemeNameOf(string code) =>
+        Services.LocalizationManager.GetString(
+            Themes.FirstOrDefault(theme => theme.Code == code).Key ?? "Theme_Dark");
+
+    private static string ThemeCodeOf(string name) =>
+        Themes.FirstOrDefault(theme =>
+            theme.Code == name || Services.LocalizationManager.GetString(theme.Key) == name).Code ?? "Dark";
 
     private string _language = SupportedLanguages.NameOf(SupportedLanguages.DefaultCode);
     public string Language
@@ -223,6 +250,10 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
             // than stored, so the two summary rows have to be asked to re-read.
             this.RaisePropertyChanged(nameof(SelectedGradeDisplay));
             this.RaisePropertyChanged(nameof(SelectedInvoiceMethodDisplay));
+            // The theme picker shows words, not the codes the file stores, so both
+            // the options and the current choice change with the language.
+            this.RaisePropertyChanged(nameof(ThemeOptions));
+            this.RaisePropertyChanged(nameof(Theme));
             // The import preview is made of words the diff already spoke, so it
             // is built again rather than patched.
             RebuildShopProfilePreview();
@@ -535,7 +566,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
         decimal perDeviceCost = (EstimatedAppleDevices + EstimatedAndroidDevices) > 0 ? monthlyCost / (EstimatedAppleDevices + EstimatedAndroidDevices) : 0;
 
         EstimatedMonthlyCostDisplay = string.Format(LocalizationManager.GetString("Settings_ImeiInfoEstimatedMonthlyCost"), monthlyCost.ToString("F2", LocalizationManager.Culture));
-        EstimatedPerDeviceDisplay = string.Format(LocalizationManager.GetString("Settings_ImeiInfoEstimatedPerDevice"), perDeviceCost.ToString("F4", LocalizationManager.Culture));
+        EstimatedPerDeviceDisplay = string.Format(LocalizationManager.GetString("Settings_ImeiInfoEstimatedPerDevice"), perDeviceCost.ToString("F2", LocalizationManager.Culture));
     }
 
     private string _defaultQuality = "";
@@ -810,7 +841,6 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
     private bool _hasIssues;
     public bool HasIssues { get => _hasIssues; set => this.RaiseAndSetIfChanged(ref _hasIssues, value); }
 
-    public string[] ThemeOptions { get; } = ["Dark", "Light", "System"];
     public string[] QualityOptions { get; } = ["", "A", "B", "C"];
     public string[] PaymentOptions { get; } = ["", "Marge", "BTW", PaymentMethods.NeverAsk];
 
@@ -864,7 +894,6 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
         // transport; production passes nothing and gets the real endpoint.
         _licenseClient = licenseClient ?? new LemonSqueezyClient();
         _settings = AppSettings.Load();
-        _theme = _settings.Theme;
         // The stored code is resolved through the table, so a language from a
         // build that carried more of them still lands on the picker as its own
         // name instead of falling back to a row nobody picked.
@@ -1074,7 +1103,29 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
         CloseLogsModalCommand = ReactiveCommand.Create(() => { IsLogsModalOpen = false; });
         OpenTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = true; IsSettingsDrawerOpen = false; });
         CloseTroubleshootModalCommand = ReactiveCommand.Create(() => { IsTroubleshootModalOpen = false; });
-        BackToIdleCommand = ReactiveCommand.Create(() => { WorkflowState = AppWorkflowState.Idle; });
+        BackToIdleCommand = ReactiveCommand.Create(() =>
+        {
+            // The inspection is over and its files are written; the next device
+            // starts clean. The device list itself stays, so the operator does not
+            // have to rescan the cable, but nothing of the finished phone is left on
+            // the idle screen: the header kept showing the last model and serial
+            // after "Next device (done)".
+            if (!string.IsNullOrWhiteSpace(SelectedDevice.Key))
+                DeviceSessionManager.ResetDevice(SelectedDevice.Key);
+
+            DeviceData = new DeviceData();
+            ComponentChecks.Clear();
+            Issues.Clear();
+            HasIssues = false;
+            FailedInteractiveTests.Clear();
+            SkippedInteractiveTests.Clear();
+            DismissedInteractiveTests.Clear();
+            InteractiveTestSummary = LocalizationManager.GetString("Summary_TestsNotRun");
+            InteractiveSessionStatus = "";
+            Progress = 0;
+            Status = LocalizationManager.GetString("Status_ConnectUsb");
+            WorkflowState = AppWorkflowState.Idle;
+        });
         CloseChangelogCommand = ReactiveCommand.Create(() => { IsChangelogVisible = false; });
         // On demand rather than only after an update, and read straight from the
         // release rather than from whatever the updater happened to leave behind.

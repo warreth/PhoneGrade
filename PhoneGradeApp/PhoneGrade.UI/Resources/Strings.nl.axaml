@@ -44,6 +44,9 @@
     <x:String x:Key="Settings_Title">INSTELLINGEN</x:String>
     <x:String x:Key="Settings_Theme">Thema</x:String>
     <x:String x:Key="Settings_ThemeDesc">Donker, licht of volgens systeem</x:String>
+    <x:String x:Key="Theme_Dark">Donker</x:String>
+    <x:String x:Key="Theme_Light">Licht</x:String>
+    <x:String x:Key="Theme_System">Volgens systeem</x:String>
     <x:String x:Key="Settings_Language">Taal</x:String>
     <x:String x:Key="Settings_LanguageDesc">Taal van de app</x:String>
     <x:String x:Key="Settings_IntroTitle">Introductie</x:String>
@@ -66,6 +69,7 @@
     <x:String x:Key="Logs_FilterInfo">Info</x:String>
     <x:String x:Key="Logs_FilterWarning">Waarschuwing</x:String>
     <x:String x:Key="Logs_FilterError">Fout</x:String>
+    <x:String x:Key="Logs_LevelCritical">Kritiek</x:String>
     
     <!-- Component Status -->
     <x:String x:Key="Component_Read">Gelezen</x:String>
@@ -100,12 +104,12 @@
     <x:String x:Key="Settings_AutoStartWebTest">Automatisch interactieve webtest starten</x:String>
     <x:String x:Key="Settings_RequirePwaTest">PWA Test Verplicht voor afronden</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTest">Automatisch afronden na test</x:String>
-    <x:String x:Key="Settings_ShowSummary">Toon samenvatting voor label printen</x:String>
+    <x:String x:Key="Settings_ShowSummary">Toon samenvatting voor het afdrukken van het label</x:String>
     <x:String x:Key="Settings_Advanced">Geavanceerde automatisering</x:String>
     <x:String x:Key="Settings_AutoActivate">Automatisch activeren (bypass)</x:String>
     <x:String x:Key="Settings_RunDiagnostics">Hardware diagnose draaien (panic-logs)</x:String>
     <x:String x:Key="Settings_Enable85Checker">85% Batterijcheck (100%-X label)</x:String>
-    <x:String x:Key="Settings_OpenEditor">Label editor openen voor printen</x:String>
+    <x:String x:Key="Settings_OpenEditor">Labeleditor openen voor het afdrukken</x:String>
     <x:String x:Key="Settings_Connection">HOE DE TELEFOON DE PAGINA OPENT</x:String>
     <x:String x:Key="Settings_SecureOrigin">Via USB-kabel (http://localhost)</x:String>
     <x:String x:Key="Settings_SecureOriginDesc">De telefoon opent de testpagina op de pc zelf. Dat adres vertrouwt een browser, dus camera, microfoon, bewegingssensoren en locatie doen er allemaal hun werk. Dit is de snelste van de twee, heeft geen internet nodig en werkt zodra de kabel zit. Deze optie wordt als eerste geprobeerd.</x:String>
@@ -154,7 +158,7 @@
     <x:String x:Key="Intro_HaveLicense">Ik heb al een licentie</x:String>
     <x:String x:Key="Intro_ActivationTitle">Activeer je licentie</x:String>
     <x:String x:Key="Licensing_TierFree">{0} scans over</x:String>
-    <x:String x:Key="Licensing_TierPro">Pro - actief</x:String>
+    <x:String x:Key="Licensing_TierPro">Pro actief</x:String>
     <x:String x:Key="Licensing_PanelHint">Licentie en scans</x:String>
     <x:String x:Key="Licensing_PanelTitle">Licentie</x:String>
     <x:String x:Key="Licensing_PanelScansLeft">Resterende scans</x:String>
@@ -187,8 +191,8 @@
     <x:String x:Key="Active_ColRead">Gelezen waarde</x:String>
     <x:String x:Key="Summary_ColStatus">Status</x:String>
     <x:String x:Key="Summary_BtnPrint">Afronden</x:String>
-    <x:String x:Key="Summary_BtnRetest">Opnieuw Testen</x:String>
-    <x:String x:Key="Summary_BtnNext">Volgend Toestel (Klaar)</x:String>
+    <x:String x:Key="Summary_BtnRetest">Opnieuw testen</x:String>
+    <x:String x:Key="Summary_BtnNext">Volgend toestel (klaar)</x:String>
     <x:String x:Key="Summary_SimLockFree">Vrijgeschakeld (Simlockvrij)</x:String>
     <x:String x:Key="Summary_SimLocked">Simlock Actief</x:String>
 
@@ -244,7 +248,8 @@
     <x:String x:Key="Export_BtnPrintLabel">Label afdrukken</x:String>
     <x:String x:Key="Export_BtnOpenFolder">Map openen</x:String>
     <x:String x:Key="Export_FolderLabel">Naar</x:String>
-    <x:String x:Key="Export_ResultsTitle">Geschreven</x:String>
+    <x:String x:Key="Export_ResultsTitle">Resultaat</x:String>
+    <x:String x:Key="Export_PreviewBlocked">Voorbeeld verschijnt zodra serienummer, model, grade en kleur bekend zijn.</x:String>
     <x:String x:Key="Export_BtnOpen">Openen</x:String>
     <x:String x:Key="Export_BtnPrintOne">Afdrukken</x:String>
     <x:String x:Key="Export_Close">Sluiten</x:String>
@@ -267,7 +272,7 @@
     <x:String x:Key="Export_PrintFailed">Het label kon niet worden geschreven, dus er is niets afgedrukt.</x:String>
     <x:String x:Key="Status_Exporting">Bestanden schrijven...</x:String>
     <x:String x:Key="Status_ExportDone">{0} bestand(en) geschreven naar {1}</x:String>
-    <x:String x:Key="Status_ExportPartly">{0} van {1} geschreven naar {3}. {2} kon niet worden geschreven: zie de regel hierboven.</x:String>
+    <x:String x:Key="Status_ExportPartly">{0} van {1} geschreven naar {3}. {2} kon niet worden geschreven: zie de melding bij het bestand hieronder.</x:String>
     <x:String x:Key="Status_DymoSent">Label naar DYMO gestuurd. DYMO meldt de opdracht als aangenomen, niet als afgedrukt.</x:String>
     <x:String x:Key="Status_DymoRefused">DYMO nam het label niet aan: {0}</x:String>
 
@@ -340,7 +345,7 @@
     <x:String x:Key="Btn_Finish">Afronden</x:String>
 
     <!-- Idle screen and the USB trust guide -->
-    <x:String x:Key="TrialLimit_Reached">Gratis proefversie limiet bereikt (10/10). Koop een licentie om door te gaan met scannen.</x:String>
+    <x:String x:Key="TrialLimit_Reached">Limiet van de gratis proefversie bereikt (10/10). Koop een licentie om door te gaan met scannen.</x:String>
     <x:String x:Key="Idle_Title">Sluit een toestel aan via USB</x:String>
     <x:String x:Key="Idle_Lead">Ondersteunt iPhone-, iPad- en Android-toestellen. Zorg dat het scherm ontgrendeld is en bevestig 'Vertrouw deze computer'.</x:String>
     <x:String x:Key="Idle_DetectedDevices">Gedetecteerde toestellen:</x:String>
@@ -405,6 +410,7 @@
     <x:String x:Key="Summary_InvoiceMethod">Factuurmethode</x:String>
     <x:String x:Key="Summary_SimLock">SIM-lock</x:String>
     <x:String x:Key="Summary_HardwareTests">Hardwaretests (PWA)</x:String>
+    <x:String x:Key="Summary_TestsNotRun">Niet uitgevoerd</x:String>
     <x:String x:Key="Summary_ReportTitle">INSPECTIERAPPORT (AFWIJKINGEN &amp; DEFECTEN)</x:String>
     <x:String x:Key="Summary_ReportNote">Alleen niet-originele onderdelen en mislukte of overgeslagen tests</x:String>
     <x:String x:Key="Summary_AuditSection">ONDERDELEN-AUDIT (NIET-OEM / VERVANGEN)</x:String>
@@ -511,7 +517,7 @@
     <x:String x:Key="Status_OneFound">Eén toestel gevonden en geselecteerd.</x:String>
     <x:String x:Key="Status_ManyFound">{0} toestellen gevonden: kies er één.</x:String>
     <x:String x:Key="Status_NoDeviceSelected">Geen toestel geselecteerd.</x:String>
-    <x:String x:Key="Status_TrialLimit">Gratis proefversie limiet bereikt (10/10). Koop een licentie om door te gaan met scannen.</x:String>
+    <x:String x:Key="Status_TrialLimit">Limiet van de gratis proefversie bereikt (10/10). Koop een licentie om door te gaan met scannen.</x:String>
     <x:String x:Key="Status_Checking">Verbinding controleren…</x:String>
     <x:String x:Key="Status_Unreachable">Toestel niet bereikbaar: probeer een andere kabel of poort.</x:String>
     <x:String x:Key="Status_Activating">Toestel activeren (bypass)…</x:String>
@@ -657,7 +663,7 @@
     <x:String x:Key="Settings_ImeiInfoGuide">Installatiegids</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep1">Maak een account aan op imei.info</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep2">Klik op 'API Manage' in de zijbalk en kopieer je API-sleutel (bijv., e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideStep3">Plak de API-sleutel in het invoerveld hierboven en klik op Opslaan.</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep3">Plak de API-sleutel in het invoerveld hieronder en klik op de opslaanknop.</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep4">Ga op de website naar 'Add Credits' om saldo toe te voegen.</x:String>
     <x:String x:Key="Settings_ImeiInfoWhyTitle">Waarom je hier je eigen sleutel nodig hebt</x:String>
     <x:String x:Key="Settings_ImeiInfoWhy">IMEI-checks lopen via je eigen imei.info-account, dus de sleutel die je hieronder plakt is van jou en blijft in het instellingenbestand van deze computer staan. PhoneGrade levert er geen mee.</x:String>
@@ -683,26 +689,26 @@
     <x:String x:Key="Settings_ImeiInfoApiKeySaved">API-sleutel opgeslagen</x:String>
 
     <!-- IMEI Check Labels (prijs per check) -->
-    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0.200</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0.420</x:String>
-    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0.600</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0,36</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0,20</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0,42</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0,60</x:String>
 
     <!-- IMEI check namen en beschrijvingen -->
     <x:String x:Key="Settings_SecImeiApi">IMEI-API-configuratie</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeyWatermark">Plak hier je API-sleutel (bijv. e0d7c26f-5cc7-5644-863c-8992083dfeac)</x:String>
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmi">APPLE: Carrier &amp; Lock Status &amp; FMI</x:String>
-    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - Geeft providernaam, SIM-lockstatus en Find My iPhone (FMI)-status voor Apple toestellen.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0,36 - Geeft providernaam, SIM-lockstatus en Find My iPhone (FMI)-status voor Apple toestellen.</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistSimple">BLACKLIST: Simpele Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - Geeft alleen de basis blackliststatus (schoon of geblacklist).</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0,20 - Geeft alleen de basis blackliststatus (schoon of geblacklist).</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistPremium">BLACKLIST: Premium Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Geeft gedetailleerde info: IMEI, Model Name, Manufacturer, Model Number, Blacklisted By, Blacklisted On, Blacklist Reason, Blacklist Status, Blacklisted Country, General List Status.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0,42 - Geeft gedetailleerde info: IMEI, Model Name, Manufacturer, Model Number, Blacklisted By, Blacklisted On, Blacklist Reason, Blacklist Status, Blacklisted Country, General List Status.</x:String>
     <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnox">GENERIC: Samsung Info Check &amp; Knox Info</x:String>
-    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Geeft Samsung toestelinformatie inclusief model, serienummer, garantie en Knox warranty bit-status.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0,60 - Geeft Samsung toestelinformatie inclusief model, serienummer, garantie en Knox warranty bit-status.</x:String>
 
     <!-- Introductiescherm: IMEI controles (BYOK) -->
     <x:String x:Key="Intro_ImeiTitle">IMEI-controles (BYOK)</x:String>
-    <x:String x:Key="Intro_ImeiBody">PhoneGrade controleert carrier lock, FMI, blacklist en Knox status via imei.info. Dit is een Bring Your Own Key systeem: maak een account aan bij imei.info, waardeer je saldo op en plak je eigen API-sleutel bij Instellingen. Elke check heeft een eigen prijs (van $0.200 tot $0.600) en je kiest zelf welke checks automatisch draaien.</x:String>
+    <x:String x:Key="Intro_ImeiBody">PhoneGrade controleert carrier lock, FMI, blacklist en Knox status via imei.info. Dit is een Bring Your Own Key systeem: maak een account aan bij imei.info, waardeer je saldo op en plak je eigen API-sleutel bij Instellingen. Elke check heeft een eigen prijs (van $0,20 tot $0,60) en je kiest zelf welke checks automatisch draaien.</x:String>
     <x:String x:Key="Intro_ImeiConfigureButton">IMEI-API instellen bij Instellingen</x:String>
     <x:String x:Key="Settings_ImeiInfoWatermarkDefault">10</x:String>
 
@@ -776,7 +782,7 @@
     <x:String x:Key="Intro_LicenceLead">Eén pagina die je moet accepteren voordat de introductie kan worden afgesloten.</x:String>
     <x:String x:Key="Intro_LicenceWhat">PhoneGrade leest wat een telefoon over zichzelf meldt. Het wordt geleverd zoals het is, zonder garantie, en de voorwaarden hieronder zeggen wat dat betekent.</x:String>
     <x:String x:Key="Intro_LicenceRead">Lees de voorwaarden</x:String>
-    <x:String x:Key="Intro_LicenceTrademark">Lees het merkpolicy</x:String>
+    <x:String x:Key="Intro_LicenceTrademark">Lees het merkbeleid</x:String>
     <x:String x:Key="Intro_LicenceAcknowledge">Ik heb de licentievoorwaarden gelezen en ga ermee akkoord</x:String>
     <x:String x:Key="Intro_LicenceAcceptFree">Ik heb de licentievoorwaarden gelezen en ga ermee akkoord</x:String>
     <x:String x:Key="Intro_LicenceAcceptCommercial">Ik heb de commerciële eindgebruikerslicentie gelezen en ga ermee akkoord</x:String>
@@ -833,7 +839,7 @@
     <x:String x:Key="Export_ConfiguredPrinter">Printer</x:String>
     <x:String x:Key="Export_ConfiguredChange">Wijzigen in Instellingen</x:String>
     <x:String x:Key="Export_ConfiguredNoFiles">Geen bestanden gekozen</x:String>
-    <x:String x:Key="Export_FolderLine">Wordt opgeslagen in {0}</x:String>
+    <x:String x:Key="Export_FolderLine">Map: {0}</x:String>
     <x:String x:Key="Export_MissingTitle">Nog niet compleet</x:String>
     <x:String x:Key="Export_MissingBody">Voor het label ontbreekt nog:</x:String>
     <x:String x:Key="Export_BtnFix">Vul aan in de editor</x:String>

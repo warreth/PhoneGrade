@@ -100,7 +100,7 @@ public class UiTests : IDisposable
         using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
 
-        Assert.Equal("Dark", vm.Theme);
+        Assert.Equal(LocalizationManager.GetString("Theme_Dark"), vm.Theme);
 
         vm.Theme = "Light";
         Assert.Equal(ThemeVariant.Light, Application.Current!.RequestedThemeVariant);
@@ -129,7 +129,14 @@ public class UiTests : IDisposable
         using var window = new MainWindow();
         var vm = (MainWindowViewModel)window.DataContext!;
 
-        Assert.Equal(new[] { "Dark", "Light", "System" }, vm.ThemeOptions);
+        Assert.Equal(
+            new[]
+            {
+                LocalizationManager.GetString("Theme_Dark"),
+                LocalizationManager.GetString("Theme_Light"),
+                LocalizationManager.GetString("Theme_System"),
+            },
+            vm.ThemeOptions);
         Assert.Equal(new[] { "", "A", "B", "C" }, vm.QualityOptions);
         Assert.Equal(
             new[] { "", "Marge", "BTW", PhoneGrade.Core.PaymentMethods.NeverAsk },

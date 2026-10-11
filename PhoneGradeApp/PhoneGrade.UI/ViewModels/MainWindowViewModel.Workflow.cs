@@ -460,6 +460,16 @@ public partial class MainWindowViewModel
             Status = LocalizationManager.GetString("Status_LabelGenerating");
             AuditLogService.ExportAuditLog(DeviceData);
             Progress = 100;
+
+            // A shop may switch the web test off, and then the report reaches this
+            // screen without one. Saying so beats a blank row, which reads as data
+            // that failed to load.
+            if (DeviceData.InteractiveTests is null)
+            {
+                InteractiveTestSummary = LocalizationManager.GetString("Summary_TestsNotRun");
+                InteractiveSessionStatus = LocalizationManager.GetString("Summary_TestsNotRun");
+            }
+
             WorkflowState = AppWorkflowState.Summary;
 
             if (!ShowSummaryScreenAfterTesting)

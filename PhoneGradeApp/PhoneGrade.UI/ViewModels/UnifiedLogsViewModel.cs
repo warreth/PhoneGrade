@@ -10,6 +10,7 @@ using ReactiveUI;
 using PhoneGrade.Core;
 using System.Reactive.Linq;
 using Avalonia;
+using PhoneGrade.UI.Services;
 using Avalonia.Controls.ApplicationLifetimes;
 
 namespace PhoneGrade.UI.ViewModels;
@@ -37,7 +38,13 @@ public class LogEventViewModel : ReactiveObject
         Source = e.Source;
         Message = e.Message;
         FormattedTime = e.Timestamp.ToLocalTime().ToString("HH:mm:ss.fff");
-        LevelText = e.Level.ToString();
+
+        // The badge is read, not parsed: "Waarschuwing" is the word the filter above
+        // it already uses, so the two cannot disagree. Critical has no filter of its
+        // own and gets its own word.
+        LevelText = e.Level == LogLevel.Critical
+            ? LocalizationManager.GetString("Logs_LevelCritical")
+            : LocalizationManager.GetString($"Logs_Filter{e.Level}");
         SourceText = e.Source.ToString();
         LevelColor = e.Level switch
         {

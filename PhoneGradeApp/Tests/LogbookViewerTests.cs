@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using PhoneGrade.Core;
+using PhoneGrade.UI.Services;
 using PhoneGrade.UI.ViewModels;
 using PhoneGrade.UI.Views;
 using Xunit;
@@ -181,15 +182,16 @@ public class LogbookViewerTests : IDisposable
         var vm = new LogEventViewModel(logEvent);
 
         Assert.Equal(stamp.ToLocalTime().ToString("HH:mm:ss.fff"), vm.FormattedTime);
-        Assert.Equal("Warning", vm.LevelText);
+        Assert.Equal(LocalizationManager.GetString("Logs_FilterWarning"), vm.LevelText);
         Assert.Equal("UsbDetector", vm.SourceText);
         Assert.Equal("#F5A623", vm.LevelColor);
 
-        // The enums stay available for the copy and export commands, which print
-        // the same words they always did - through the stored strings now.
+        // The enums stay available for the copy and export commands. The stored
+        // badge text is the enum run through the dictionary, so it reads as the
+        // filter above the list reads.
         Assert.Equal(LogLevel.Warning, vm.Level);
         Assert.Equal(LogSource.UsbDetector, vm.Source);
-        Assert.Equal(vm.Level.ToString(), vm.LevelText);
+        Assert.Equal(LocalizationManager.GetString($"Logs_Filter{vm.Level}"), vm.LevelText);
         Assert.Equal(vm.Source.ToString(), vm.SourceText);
 
         Assert.Same(vm.FormattedTime, vm.FormattedTime);
@@ -359,9 +361,11 @@ public class LogbookViewerTests : IDisposable
 
         var badges = Descendants(list).OfType<Border>()
             .Where(border => border.Child is TextBlock text
-                             && (text.Text == "Warning" || text.Text == "Info"
-                                 || text.Text == "Error" || text.Text == "Debug"
-                                 || text.Text == "Critical"))
+                             && (text.Text == LocalizationManager.GetString("Logs_FilterWarning")
+                                 || text.Text == LocalizationManager.GetString("Logs_FilterInfo")
+                                 || text.Text == LocalizationManager.GetString("Logs_FilterError")
+                                 || text.Text == LocalizationManager.GetString("Logs_FilterDebug")
+                                 || text.Text == LocalizationManager.GetString("Logs_LevelCritical")))
             .ToList();
         Assert.True(badges.Count > 0, "no level badge reached the visual tree");
 
@@ -371,7 +375,8 @@ public class LogbookViewerTests : IDisposable
                 $"the badge behind '{((TextBlock)badge.Child!).Text}' did not become a brush");
         }
 
-        var warning = badges.First(badge => ((TextBlock)badge.Child!).Text == "Warning");
+        var warning = badges.First(badge =>
+            ((TextBlock)badge.Child!).Text == LocalizationManager.GetString("Logs_FilterWarning"));
         Assert.Equal(Color.Parse("#F5A623"), ((ISolidColorBrush)warning.Background!).Color);
     }
 

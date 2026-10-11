@@ -279,12 +279,19 @@
                                              actually applies, so a paying customer is never handed
                                              the free one by a copy mistake. -->
                                         <Border Classes="stepItem" Padding="10">
-                                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                                <CheckBox IsChecked="{Binding IsLicenceAccepted}" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding LicenceAgreementLabel}"
+                                            <!--
+                                                A grid rather than a horizontal stack: a stack
+                                                hands its children unlimited width, so the
+                                                agreement line never wrapped and its last words
+                                                were cut off by the card edge.
+                                            -->
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsLicenceAccepted}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Margin="10,0,0,0"
+                                                           Text="{Binding LicenceAgreementLabel}"
                                                            Classes="settingDesc" TextWrapping="Wrap"
                                                            VerticalAlignment="Center"/>
-                                            </StackPanel>
+                                            </Grid>
                                         </Border>
 
                                         <!-- Said rather than left to be discovered. A button

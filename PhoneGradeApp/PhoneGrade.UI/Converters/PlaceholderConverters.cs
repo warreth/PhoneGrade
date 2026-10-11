@@ -59,9 +59,20 @@ public class BatteryHealthConverter : IValueConverter
         {
             "NOBATT" => LocalizationManager.GetString("Value_Checking"),
             "" => LocalizationManager.GetString("Value_Unknown"),
-            _ => str,
+            _ => WithPercent(str),
         };
     }
+
+    /// <summary>
+    /// A bare number is a percentage, and the summary says so.
+    /// </summary>
+    /// <remarks>
+    /// iOS reports the health as a number without a sign while Android includes it,
+    /// so the same field read "90" on an iPhone and "90%" on an Android and the
+    /// summary showed the two differently. The label already adds the sign.
+    /// </remarks>
+    private static string WithPercent(string value) =>
+        value.Length > 0 && value.All(char.IsDigit) ? $"{value}%" : value;
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();

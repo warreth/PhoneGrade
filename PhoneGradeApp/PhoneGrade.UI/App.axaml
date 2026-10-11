@@ -458,10 +458,10 @@
         <Style Selector="Button.dismissTest">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="7,2"/>
+            <Setter Property="Padding" Value="9,4"/>
             <Setter Property="CornerRadius" Value="5"/>
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="Opacity" Value="0.45"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Opacity" Value="0.65"/>
             <Setter Property="Margin" Value="7,0,0,0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>

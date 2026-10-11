@@ -838,6 +838,11 @@ class ScreenshotRunner
             Status = TestStatus.Skipped,
             Notes = T("De browser weigerde de toegang tot de sensor.", "The browser refused access to the sensor."),
         });
+        // The row the report reads first. The product sets it from the suite; the
+        // harness seeds the lists by hand, so it has to say the same words or the
+        // picture shows a column the app never leaves empty.
+        summary.InteractiveTestSummary = string.Format(
+            PhoneGrade.UI.Services.LocalizationManager.GetString("Session_TestsSkipped"), 1, 1, 1, "Chrome");
         Shot(summary, "flow-summary-dark.png", state: AppWorkflowState.Summary);
         Shot(summary, "flow-summary-narrow.png", 850, 620, state: AppWorkflowState.Summary);
 
@@ -845,6 +850,8 @@ class ScreenshotRunner
         clean.WorkflowState = AppWorkflowState.Summary;
         clean.Status = T("Inspectie afgerond", "Inspection complete");
         FillAudit(clean);
+        clean.InteractiveTestSummary = string.Format(
+            PhoneGrade.UI.Services.LocalizationManager.GetString("Session_TestsPlain"), 4, 0, "Chrome");
         Shot(clean, "flow-summary-clean-dark.png", state: AppWorkflowState.Summary);
 
         var settings = BuildDemoViewModel();

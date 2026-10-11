@@ -44,6 +44,9 @@
     <x:String x:Key="Settings_Title">PARAMÈTRES</x:String>
     <x:String x:Key="Settings_Theme">Thème</x:String>
     <x:String x:Key="Settings_ThemeDesc">Sombre, clair ou selon le système</x:String>
+    <x:String x:Key="Theme_Dark">Sombre</x:String>
+    <x:String x:Key="Theme_Light">Clair</x:String>
+    <x:String x:Key="Theme_System">Selon le système</x:String>
     <x:String x:Key="Settings_Language">Langue</x:String>
     <x:String x:Key="Settings_LanguageDesc">Langue de l'interface</x:String>
     <x:String x:Key="Settings_IntroTitle">Introduction</x:String>
@@ -66,6 +69,7 @@
     <x:String x:Key="Logs_FilterInfo">Info</x:String>
     <x:String x:Key="Logs_FilterWarning">Avertissement</x:String>
     <x:String x:Key="Logs_FilterError">Erreur</x:String>
+    <x:String x:Key="Logs_LevelCritical">Critique</x:String>
     
     <!-- Component Status -->
     <x:String x:Key="Component_Read">Lu</x:String>
@@ -100,12 +104,12 @@
     <x:String x:Key="Settings_AutoStartWebTest">Démarrer automatiquement le test web interactif</x:String>
     <x:String x:Key="Settings_RequirePwaTest">Exiger le test PWA avant de terminer</x:String>
     <x:String x:Key="Settings_AutoFinishAfterTest">Terminer automatiquement après le test</x:String>
-    <x:String x:Key="Settings_ShowSummary">Afficher le résumé avant l'impression de l'étiquette</x:String>
+    <x:String x:Key="Settings_ShowSummary">Afficher le résumé avant d'imprimer l'étiquette</x:String>
     <x:String x:Key="Settings_Advanced">Automatisation avancée</x:String>
     <x:String x:Key="Settings_AutoActivate">Activation automatique (bypass)</x:String>
     <x:String x:Key="Settings_RunDiagnostics">Lancer le diagnostic matériel (panic logs)</x:String>
     <x:String x:Key="Settings_Enable85Checker">Contrôle batterie 85 % (étiquette 100 %-X)</x:String>
-    <x:String x:Key="Settings_OpenEditor">Ouvrir l'éditeur d'étiquette avant l'impression</x:String>
+    <x:String x:Key="Settings_OpenEditor">Ouvrir l'éditeur d'étiquettes avant l'impression</x:String>
     <x:String x:Key="Settings_Connection">COMMENT LE TÉLÉPHONE OUVRE LA PAGE</x:String>
     <x:String x:Key="Settings_SecureOrigin">Par le câble USB (http://localhost)</x:String>
     <x:String x:Key="Settings_SecureOriginDesc">Le téléphone ouvre la page de test sur le PC lui-même. Un navigateur fait confiance à cette adresse : la caméra, le micro, les capteurs de mouvement et la localisation y fonctionnent donc. C'est la plus rapide des deux options, elle ne demande pas Internet et fonctionne dès que le câble est branché. C'est la voie essayée en premier.</x:String>
@@ -154,7 +158,7 @@
     <x:String x:Key="Intro_HaveLicense">J'ai déjà une licence</x:String>
     <x:String x:Key="Intro_ActivationTitle">Activez votre licence</x:String>
     <x:String x:Key="Licensing_TierFree">{0} scans restants</x:String>
-    <x:String x:Key="Licensing_TierPro">Pro - actif</x:String>
+    <x:String x:Key="Licensing_TierPro">Pro actif</x:String>
     <x:String x:Key="Licensing_PanelHint">Licence et scans</x:String>
     <x:String x:Key="Licensing_PanelTitle">Licence</x:String>
     <x:String x:Key="Licensing_PanelScansLeft">Scans restants</x:String>
@@ -244,7 +248,8 @@
     <x:String x:Key="Export_BtnPrintLabel">Imprimer l'étiquette</x:String>
     <x:String x:Key="Export_BtnOpenFolder">Ouvrir le dossier</x:String>
     <x:String x:Key="Export_FolderLabel">Dossier</x:String>
-    <x:String x:Key="Export_ResultsTitle">Écrits</x:String>
+    <x:String x:Key="Export_ResultsTitle">Résultat</x:String>
+    <x:String x:Key="Export_PreviewBlocked">L'aperçu apparaît dès que le numéro de série, le modèle, la note et la couleur sont connus.</x:String>
     <x:String x:Key="Export_BtnOpen">Ouvrir</x:String>
     <x:String x:Key="Export_BtnPrintOne">Imprimer</x:String>
     <x:String x:Key="Export_Close">Fermer</x:String>
@@ -266,7 +271,7 @@
     <x:String x:Key="Export_PrintFailed">L'étiquette n'a pas pu être écrite, rien n'a donc été imprimé.</x:String>
     <x:String x:Key="Status_Exporting">Écriture des fichiers...</x:String>
     <x:String x:Key="Status_ExportDone">{0} fichier(s) écrit(s) dans {1}</x:String>
-    <x:String x:Key="Status_ExportPartly">{0} sur {1} écrits dans {3}. {2} n'a pas pu être écrit : voir la ligne au-dessus.</x:String>
+    <x:String x:Key="Status_ExportPartly">{0} sur {1} écrits dans {3}. {2} n'a pas pu être écrit : voir le message à côté du fichier ci-dessous.</x:String>
     <x:String x:Key="Status_DymoSent">Étiquette envoyée à la DYMO. La DYMO signale le travail comme accepté, pas comme imprimé.</x:String>
     <x:String x:Key="Status_DymoRefused">La DYMO n'a pas accepté l'étiquette : {0}</x:String>
 
@@ -339,7 +344,7 @@
     <x:String x:Key="Btn_Finish">Terminer</x:String>
 
     <!-- Idle screen and the USB trust guide -->
-    <x:String x:Key="TrialLimit_Reached">La limite de l'essai gratuit est atteinte (10/10). Achetez une licence pour continuer à scanner.</x:String>
+    <x:String x:Key="TrialLimit_Reached">Limite de la version d'essai atteinte (10/10). Achetez une licence pour continuer à scanner.</x:String>
     <x:String x:Key="Idle_Title">Connectez un appareil en USB</x:String>
     <x:String x:Key="Idle_Lead">Compatible avec les iPhone, iPad et appareils Android. Gardez l'écran déverrouillé et confirmez « Faire confiance à cet ordinateur ».</x:String>
     <x:String x:Key="Idle_DetectedDevices">Appareils détectés :</x:String>
@@ -404,6 +409,7 @@
     <x:String x:Key="Summary_InvoiceMethod">Mode de facturation</x:String>
     <x:String x:Key="Summary_SimLock">Verrouillage SIM</x:String>
     <x:String x:Key="Summary_HardwareTests">Tests hardware (PWA)</x:String>
+    <x:String x:Key="Summary_TestsNotRun">Non exécuté</x:String>
     <x:String x:Key="Summary_ReportTitle">RAPPORT D'INSPECTION (ÉCARTS &amp; DÉFAUTS)</x:String>
     <x:String x:Key="Summary_ReportNote">Uniquement les pièces non d'origine et les tests échoués ou ignorés</x:String>
     <x:String x:Key="Summary_AuditSection">AUDIT DES PIÈCES (NON D'ORIGINE / REMPLACÉES)</x:String>
@@ -510,7 +516,7 @@
     <x:String x:Key="Status_OneFound">Un appareil détecté et sélectionné.</x:String>
     <x:String x:Key="Status_ManyFound">{0} appareils détectés : choisissez-en un.</x:String>
     <x:String x:Key="Status_NoDeviceSelected">Aucun appareil sélectionné.</x:String>
-    <x:String x:Key="Status_TrialLimit">Limite de l'essai gratuit atteinte (10/10). Achetez une licence pour continuer à scanner.</x:String>
+    <x:String x:Key="Status_TrialLimit">Limite de la version d'essai atteinte (10/10). Achetez une licence pour continuer à scanner.</x:String>
     <x:String x:Key="Status_Checking">Vérification de la connexion…</x:String>
     <x:String x:Key="Status_Unreachable">L'appareil est injoignable : essayez un autre câble ou un autre port.</x:String>
     <x:String x:Key="Status_Activating">Activation de l'appareil (bypass)…</x:String>
@@ -578,7 +584,7 @@
     <x:String x:Key="Settings_ImeiInfoGuide">Guide de configuration</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep1">Créez un compte sur imei.info</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep2">Cliquez sur « API Manage » dans la barre latérale et copiez votre clé API (par exemple e0d7c26f-5cc7-5644-863c-8992083dfeac).</x:String>
-    <x:String x:Key="Settings_ImeiInfoGuideStep3">Collez la clé API dans le champ ci-dessus et cliquez sur Enregistrer.</x:String>
+    <x:String x:Key="Settings_ImeiInfoGuideStep3">Collez la clé API dans le champ ci-dessous et cliquez sur le bouton d'enregistrement.</x:String>
     <x:String x:Key="Settings_ImeiInfoGuideStep4">Sur le site, allez dans « Add Credits » pour recharger votre compte.</x:String>
     <x:String x:Key="Settings_ImeiInfoWhyTitle">Pourquoi votre propre clé est nécessaire</x:String>
     <x:String x:Key="Settings_ImeiInfoWhy">Les contrôles IMEI passent par votre propre compte imei.info : la clé que vous collez ci-dessous est la vôtre et reste dans le fichier de réglages de cette machine. PhoneGrade n'en fournit pas.</x:String>
@@ -604,26 +610,26 @@
     <x:String x:Key="Settings_ImeiInfoApiKeySaved">Clé API enregistrée</x:String>
 
     <!-- IMEI Check Labels (per check price) -->
-    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0.360</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0.200</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0.420</x:String>
-    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0.600</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiPrice">$0,36</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimplePrice">$0,20</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumPrice">$0,42</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxPrice">$0,60</x:String>
 
     <!-- IMEI check names and descriptions -->
     <x:String x:Key="Settings_SecImeiApi">Configuration de l'API IMEI</x:String>
     <x:String x:Key="Settings_ImeiInfoApiKeyWatermark">Collez ici votre clé API (par exemple e0d7c26f-5cc7-5644-863c-8992083dfeac)</x:String>
     <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmi">APPLE: Carrier &amp; Lock Status &amp; FMI</x:String>
-    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0.360 - Renvoie le nom de l'opérateur, l'état du verrouillage SIM et l'état de Find My iPhone (FMI) pour les appareils Apple.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_AppleCarrierLockFmiDesc">$0,36 - Renvoie le nom de l'opérateur, l'état du verrouillage SIM et l'état de Find My iPhone (FMI) pour les appareils Apple.</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistSimple">BLACKLIST: Simple Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0.200 - Renvoie uniquement l'état de base de la blacklist (propre ou blacklisté).</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistSimpleDesc">$0,20 - Renvoie uniquement l'état de base de la blacklist (propre ou blacklisté).</x:String>
     <x:String x:Key="Settings_ImeiCheck_BlacklistPremium">BLACKLIST: Premium Check</x:String>
-    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0.420 - Renvoie des informations détaillées : IMEI, nom du modèle, fabricant, numéro de modèle, blacklisté par, blacklisté le, motif du blacklist, état du blacklist, pays de blacklist, état de la liste générale.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_BlacklistPremiumDesc">$0,42 - Renvoie des informations détaillées : IMEI, nom du modèle, fabricant, numéro de modèle, blacklisté par, blacklisté le, motif du blacklist, état du blacklist, pays de blacklist, état de la liste générale.</x:String>
     <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnox">GENERIC: Samsung Info Check &amp; Knox Info</x:String>
-    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0.600 - Renvoie les informations de l'appareil Samsung, y compris le modèle, le numéro de série, la garantie et l'état du bit de garantie Knox.</x:String>
+    <x:String x:Key="Settings_ImeiCheck_SamsungInfoKnoxDesc">$0,60 - Renvoie les informations de l'appareil Samsung, y compris le modèle, le numéro de série, la garantie et l'état du bit de garantie Knox.</x:String>
 
     <!-- Introduction screen: IMEI checks (BYOK) -->
     <x:String x:Key="Intro_ImeiTitle">Contrôles IMEI (BYOK)</x:String>
-    <x:String x:Key="Intro_ImeiBody">PhoneGrade contrôle le verrouillage opérateur, le FMI, la blacklist et le statut Knox via imei.info. C'est un système Bring Your Own Key : créez un compte sur imei.info, ajoutez des crédits et collez votre propre clé API dans les Paramètres. Chaque contrôle a son propre prix (de $0.200 à $0.600) et vous choisissez ceux qui s'exécutent automatiquement.</x:String>
+    <x:String x:Key="Intro_ImeiBody">PhoneGrade contrôle le verrouillage opérateur, le FMI, la blacklist et le statut Knox via imei.info. C'est un système Bring Your Own Key : créez un compte sur imei.info, ajoutez des crédits et collez votre propre clé API dans les Paramètres. Chaque contrôle a son propre prix (de $0,20 à $0,60) et vous choisissez ceux qui s'exécutent automatiquement.</x:String>
     <x:String x:Key="Intro_ImeiConfigureButton">Configurer l'API IMEI dans les Paramètres</x:String>
     <x:String x:Key="Settings_ImeiInfoWatermarkDefault">10</x:String>
 
@@ -832,7 +838,7 @@
     <x:String x:Key="Export_ConfiguredPrinter">Imprimante</x:String>
     <x:String x:Key="Export_ConfiguredChange">Modifier dans les réglages</x:String>
     <x:String x:Key="Export_ConfiguredNoFiles">Aucun fichier choisi</x:String>
-    <x:String x:Key="Export_FolderLine">Enregistré dans {0}</x:String>
+    <x:String x:Key="Export_FolderLine">Dossier : {0}</x:String>
     <x:String x:Key="Export_MissingTitle">Pas encore complet</x:String>
     <x:String x:Key="Export_MissingBody">Il manque encore pour l'étiquette :</x:String>
     <x:String x:Key="Export_BtnFix">Compléter dans l'éditeur</x:String>

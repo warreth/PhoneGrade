@@ -55,15 +55,26 @@
                         down when the column cannot hold it at full size and says so
                         underneath, because a scaled preview keeps the right shape
                         and stops being a picture of the physical label.
+
+                        A phone that cannot be labelled yet has no plate, and an
+                        empty white sheet with a caption about what was drawn reads
+                        as a broken preview; the placeholder says what is missing.
                     -->
-                    <views:LabelView x:Name="Sheet"
-                                     Plate="{Binding Plate}"
-                                     Layout="{Binding Layout}"
-                                     MaxWidth="420"
-                                     HorizontalAlignment="Center"/>
+                    <Grid HorizontalAlignment="Center">
+                        <views:LabelView x:Name="Sheet"
+                                         Plate="{Binding Plate}"
+                                         Layout="{Binding Layout}"
+                                         MaxWidth="420"
+                                         HorizontalAlignment="Center"/>
+                        <TextBlock Classes="settingDesc" MaxWidth="360" TextWrapping="Wrap"
+                                   TextAlignment="Center" VerticalAlignment="Center"
+                                   IsVisible="{Binding IsLabelBlocked}"
+                                   Text="{DynamicResource Export_PreviewBlocked}"/>
+                    </Grid>
 
                     <StackPanel Spacing="4">
-                        <TextBlock Classes="settingDesc" Text="{DynamicResource Export_PreviewNote}"/>
+                        <TextBlock Classes="settingDesc" Text="{DynamicResource Export_PreviewNote}"
+                                   IsVisible="{Binding !IsLabelBlocked}"/>
                         <TextBlock Classes="settingDesc"
                                    Foreground="{DynamicResource WarnColor}"
                                    Text="{DynamicResource Export_PreviewScaled}"
